@@ -90,6 +90,28 @@ export const quantumKeys = pgTable("quantum_keys", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const errorLogs = pgTable("error_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  errorType: text("error_type").notNull(), // database, api, validation, authentication, etc.
+  message: text("message").notNull(),
+  stack: text("stack"),
+  userId: varchar("user_id").references(() => users.id),
+  requestUrl: text("request_url"),
+  requestMethod: text("request_method"),
+  statusCode: integer("status_code"),
+  severity: text("severity").notNull(), // low, medium, high, critical
+  context: jsonb("context"), // Additional error context
+  environment: text("environment").notNull().default("development"),
+  isResolved: boolean("is_resolved").notNull().default(false),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at"),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+  sessionId: text("session_id"),
+  errorCount: integer("error_count").notNull().default(1), // For tracking repeated errors
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -134,6 +156,12 @@ export const insertQuantumKeySchema = createInsertSchema(quantumKeys).omit({
   createdAt: true,
 });
 
+export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
+  id: true,
+  timestamp: true,
+  resolvedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -158,3 +186,6 @@ export type InsertSystemMetric = z.infer<typeof insertSystemMetricSchema>;
 
 export type QuantumKey = typeof quantumKeys.$inferSelect;
 export type InsertQuantumKey = z.infer<typeof insertQuantumKeySchema>;
+
+export type ErrorLog = typeof errorLogs.$inferSelect;
+export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;

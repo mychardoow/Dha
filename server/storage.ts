@@ -1,5 +1,7 @@
-import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey } from "@shared/schema";
+import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -42,6 +44,29 @@ export interface IStorage {
   getActiveQuantumKeys(): Promise<QuantumKey[]>;
   createQuantumKey(key: InsertQuantumKey): Promise<QuantumKey>;
   deactivateQuantumKey(keyId: string): Promise<void>;
+
+  // Error logging methods
+  createErrorLog(error: InsertErrorLog): Promise<ErrorLog>;
+  getErrorLogs(filters?: {
+    severity?: string;
+    errorType?: string;
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    isResolved?: boolean;
+    limit?: number;
+  }): Promise<ErrorLog[]>;
+  getErrorLogById(id: string): Promise<ErrorLog | undefined>;
+  getRecentErrors(hours?: number, limit?: number): Promise<ErrorLog[]>;
+  markErrorResolved(errorId: string, resolvedBy: string): Promise<void>;
+  getErrorStats(hours?: number): Promise<{
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    byType: Record<string, number>;
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -53,6 +78,7 @@ export class MemStorage implements IStorage {
   private fraudAlerts: Map<string, FraudAlert>;
   private systemMetrics: Map<string, SystemMetric>;
   private quantumKeys: Map<string, QuantumKey>;
+  private errorLogs: Map<string, ErrorLog>;
 
   constructor() {
     this.users = new Map();
@@ -63,6 +89,7 @@ export class MemStorage implements IStorage {
     this.fraudAlerts = new Map();
     this.systemMetrics = new Map();
     this.quantumKeys = new Map();
+    this.errorLogs = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -289,6 +316,133 @@ export class MemStorage implements IStorage {
       key.isActive = false;
       this.quantumKeys.set(key.id, key);
     }
+  }
+
+  async createErrorLog(insertError: InsertErrorLog): Promise<ErrorLog> {
+    const [errorLog] = await db.insert(errorLogs).values(insertError).returning();
+    return errorLog;
+  }
+
+  async getErrorLogs(filters?: {
+    severity?: string;
+    errorType?: string;
+    userId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    isResolved?: boolean;
+    limit?: number;
+  }): Promise<ErrorLog[]> {
+    const conditions = [];
+    
+    if (filters) {
+      if (filters.severity) {
+        conditions.push(eq(errorLogs.severity, filters.severity));
+      }
+      if (filters.errorType) {
+        conditions.push(eq(errorLogs.errorType, filters.errorType));
+      }
+      if (filters.userId) {
+        conditions.push(eq(errorLogs.userId, filters.userId));
+      }
+      if (filters.startDate) {
+        conditions.push(gte(errorLogs.timestamp, filters.startDate));
+      }
+      if (filters.endDate) {
+        conditions.push(sql`${errorLogs.timestamp} <= ${filters.endDate}`);
+      }
+      if (filters.isResolved !== undefined) {
+        conditions.push(eq(errorLogs.isResolved, filters.isResolved));
+      }
+    }
+    
+    let query = db.select().from(errorLogs);
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    query = query.orderBy(desc(errorLogs.timestamp));
+    
+    if (filters?.limit) {
+      query = query.limit(filters.limit);
+    }
+    
+    return await query;
+  }
+
+  async getErrorLogById(id: string): Promise<ErrorLog | undefined> {
+    const [errorLog] = await db.select().from(errorLogs).where(eq(errorLogs.id, id));
+    return errorLog;
+  }
+
+  async getRecentErrors(hours = 24, limit = 100): Promise<ErrorLog[]> {
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - hours);
+    
+    return await db.select()
+      .from(errorLogs)
+      .where(gte(errorLogs.timestamp, cutoff))
+      .orderBy(desc(errorLogs.timestamp))
+      .limit(limit);
+  }
+
+  async markErrorResolved(errorId: string, resolvedBy: string): Promise<void> {
+    await db.update(errorLogs)
+      .set({
+        isResolved: true,
+        resolvedBy,
+        resolvedAt: new Date()
+      })
+      .where(eq(errorLogs.id, errorId));
+  }
+
+  async getErrorStats(hours = 24): Promise<{
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    byType: Record<string, number>;
+  }> {
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - hours);
+    
+    const errors = await db.select()
+      .from(errorLogs)
+      .where(gte(errorLogs.timestamp, cutoff));
+    
+    const stats = {
+      total: errors.length,
+      critical: 0,
+      high: 0,
+      medium: 0,
+      low: 0,
+      byType: {} as Record<string, number>
+    };
+    
+    errors.forEach(error => {
+      switch (error.severity) {
+        case 'critical':
+          stats.critical++;
+          break;
+        case 'high':
+          stats.high++;
+          break;
+        case 'medium':
+          stats.medium++;
+          break;
+        case 'low':
+          stats.low++;
+          break;
+      }
+      
+      if (!stats.byType[error.errorType]) {
+        stats.byType[error.errorType] = 0;
+      }
+      stats.byType[error.errorType]++;
+    });
+    
+    return stats;
   }
 }
 
