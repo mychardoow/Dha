@@ -34,10 +34,12 @@ export default function BiometricScanner() {
   const queryClient = useQueryClient();
 
   // Get user's biometric profiles
-  const { data: profiles = [], isLoading } = useQuery({
+  const { data: profilesData, isLoading } = useQuery({
     queryKey: ["/api/biometric/profiles"],
     queryFn: () => api.get<BiometricProfile[]>("/api/biometric/profiles")
   });
+  
+  const profiles = Array.isArray(profilesData) ? profilesData : [];
 
   // Biometric verification mutation
   const verifyMutation = useMutation({

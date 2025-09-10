@@ -41,10 +41,12 @@ export default function QuantumEncryption() {
   const queryClient = useQueryClient();
 
   // Get quantum keys
-  const { data: quantumKeys = [], isLoading: keysLoading } = useQuery({
+  const { data: quantumKeysData, isLoading: keysLoading } = useQuery({
     queryKey: ["/api/quantum/keys"],
     queryFn: () => api.get<QuantumKey[]>("/api/quantum/keys")
   });
+  
+  const quantumKeys = Array.isArray(quantumKeysData) ? quantumKeysData : [];
 
   // Get quantum system status
   const { data: quantumStatus } = useQuery({
