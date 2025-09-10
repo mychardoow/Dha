@@ -366,12 +366,14 @@ export default function QuantumEncryption() {
           {quantumStatus ? (
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-secure/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-secure mb-1">{quantumStatus.activeKeys}</div>
+                <div className="text-2xl font-bold text-secure mb-1">
+                  {quantumStatus.activeKeys ?? 0}
+                </div>
                 <div className="text-sm text-muted-foreground">Active Keys</div>
               </div>
               <div className="bg-primary/20 p-4 rounded-lg text-center">
                 <div className="text-2xl font-bold text-primary mb-1">
-                  {Math.round(quantumStatus.averageEntropy)}
+                  {quantumStatus.averageEntropy ? Math.round(quantumStatus.averageEntropy) : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg Entropy</div>
               </div>
