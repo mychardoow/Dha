@@ -52,7 +52,7 @@ export function useWebSocket(): UseWebSocketReturn {
       });
     });
 
-    socketInstance.on("disconnect", (reason) => {
+    socketInstance.on("disconnect", (reason: string) => {
       console.log("WebSocket disconnected:", reason);
       setIsConnected(false);
       
@@ -68,7 +68,7 @@ export function useWebSocket(): UseWebSocketReturn {
       });
     });
 
-    socketInstance.on("connect_error", (error) => {
+    socketInstance.on("connect_error", (error: Error) => {
       console.error("WebSocket connection error:", error);
       setError(error.message);
       reconnectAttemptsRef.current++;
@@ -83,7 +83,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // Authentication error handler
-    socketInstance.on("error", (error) => {
+    socketInstance.on("error", (error: string) => {
       console.error("WebSocket error:", error);
       setError(error);
       
@@ -97,7 +97,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // System alert handlers
-    socketInstance.on("system:alert", (alert) => {
+    socketInstance.on("system:alert", (alert: any) => {
       const severity = alert.severity || "info";
       const toastClass = severity === "high" ? "border-alert bg-alert/10 text-alert" :
                         severity === "medium" ? "border-warning bg-warning/10 text-warning" :
@@ -111,7 +111,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // Security event handlers
-    socketInstance.on("security:event", (event) => {
+    socketInstance.on("security:event", (event: any) => {
       if (event.severity === "high") {
         toast({
           title: "Security Event",
@@ -122,7 +122,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // Fraud alert handlers
-    socketInstance.on("fraud:alert", (alert) => {
+    socketInstance.on("fraud:alert", (alert: any) => {
       toast({
         title: "🚨 Fraud Alert",
         description: `Risk Score: ${alert.riskScore} - ${alert.alertType}`,
@@ -131,7 +131,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // Biometric result handlers
-    socketInstance.on("biometric:result", (result) => {
+    socketInstance.on("biometric:result", (result: any) => {
       if (result.type === "verification") {
         const className = result.success 
           ? "border-secure bg-secure/10 text-secure"
@@ -146,7 +146,7 @@ export function useWebSocket(): UseWebSocketReturn {
     });
 
     // Document processing handlers
-    socketInstance.on("document:processed", (document) => {
+    socketInstance.on("document:processed", (document: any) => {
       toast({
         title: "Document Processed",
         description: "Document processing completed successfully",
