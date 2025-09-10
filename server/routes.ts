@@ -18,11 +18,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(ipFilter);
   app.use(securityLogger);
 
-  // Auth routes
-  const authRouter = app;
-  
   // Registration
-  authRouter.post("/register", authLimiter, async (req: Request, res: Response) => {
+  app.post("/api/auth/register", authLimiter, async (req: Request, res: Response) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
       
@@ -80,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Login
-  authRouter.post("/login", authLimiter, fraudDetection, async (req: Request, res: Response) => {
+  app.post("/api/auth/login", authLimiter, fraudDetection, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
       
@@ -175,14 +172,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.use("/api/auth", authRouter);
-  
-  // Biometric routes
-  const biometricRouter = app;
-  biometricRouter.use(authenticate);
-  biometricRouter.use(apiLimiter);
-  
-  biometricRouter.post("/api/biometric/register", async (req: Request, res: Response) => {
+  app.post("/api/biometric/register", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { type, template } = req.body;
       
@@ -215,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  biometricRouter.post("/api/biometric/verify", async (req: Request, res: Response) => {
+  app.post("/api/biometric/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { type, template, userId } = req.body;
       
@@ -243,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  biometricRouter.get("/api/biometric/profiles", async (req: Request, res: Response) => {
+  app.get("/api/biometric/profiles", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const profiles = await biometricService.getUserBiometrics(req.user.id);
       res.json(profiles);
@@ -253,14 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.use("/api/biometric", biometricRouter);
-  
-  // Fraud detection routes
-  const fraudRouter = app;
-  fraudRouter.use(authenticate);
-  fraudRouter.use(apiLimiter);
-  
-  fraudRouter.get("/api/fraud/alerts", async (req: Request, res: Response) => {
+  app.get("/api/fraud/alerts", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { resolved } = req.query;
       const userId = req.user.role === "admin" ? undefined : req.user.id;
@@ -277,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  fraudRouter.post("/api/fraud/alerts/:id/resolve", requireRole(["admin"]), async (req: Request, res: Response) => {
+  app.post("/api/fraud/alerts/:id/resolve", authenticate, apiLimiter, requireRole(["admin"]), async (req: Request, res: Response) => {
     try {
       await fraudDetectionService.resolveFraudAlert(req.params.id, req.user.id);
       
@@ -294,14 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.use("/api/fraud", fraudRouter);
-  
-  // Document processing routes
-  const documentRouter = app;
-  documentRouter.use(authenticate);
-  documentRouter.use(uploadLimiter);
-  
-  documentRouter.post("/api/documents/upload", documentUpload.single("document"), async (req: Request, res: Response) => {
+  app.post("/api/documents/upload", authenticate, uploadLimiter, documentUpload.single("document"), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -338,7 +314,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  documentRouter.get("/api/documents", async (req: Request, res: Response) => {
+  app.get("/api/documents", authenticate, async (req: Request, res: Response) => {
     try {
       const documents = await documentProcessorService.getUserDocuments(req.user.id);
       res.json(documents);
@@ -348,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  documentRouter.get("/api/documents/:id", async (req: Request, res: Response) => {
+  app.get("/api/documents/:id", authenticate, async (req: Request, res: Response) => {
     try {
       const result = await documentProcessorService.getDocument(req.params.id, req.user.id);
       
@@ -363,14 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.use("/api/documents", documentRouter);
-  
-  // Quantum encryption routes
-  const quantumRouter = app;
-  quantumRouter.use(authenticate);
-  quantumRouter.use(apiLimiter);
-  
-  quantumRouter.post("/api/quantum/keys/generate", async (req: Request, res: Response) => {
+  app.post("/api/quantum/keys/generate", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { algorithm } = req.body;
       
@@ -387,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.post("/api/quantum/encrypt", async (req: Request, res: Response) => {
+  app.post("/api/quantum/encrypt", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { data, keyId } = req.body;
       
@@ -408,7 +377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.post("/api/quantum/decrypt", async (req: Request, res: Response) => {
+  app.post("/api/quantum/decrypt", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { encryptedData, keyId } = req.body;
       
@@ -429,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.get("/api/quantum/keys", async (req: Request, res: Response) => {
+  app.get("/api/quantum/keys", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const keys = await quantumEncryptionService.getActiveKeys();
       res.json(keys);
@@ -439,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.get("/api/quantum/status", async (req: Request, res: Response) => {
+  app.get("/api/quantum/status", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const status = await quantumEncryptionService.getSystemStatus();
       res.json(status);
@@ -448,15 +417,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get quantum status" });
     }
   });
-  
-  app.use("/api/quantum", quantumRouter);
-  
-  // Monitoring routes
-  const monitoringRouter = app;
-  monitoringRouter.use(authenticate);
   monitoringRouter.use(apiLimiter);
   
-  monitoringRouter.get("/api/monitoring/health", async (req: Request, res: Response) => {
+  app.get("/api/monitoring/health", authenticate, async (req: Request, res: Response) => {
     try {
       const health = await monitoringService.getSystemHealth();
       res.json(health);
@@ -466,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/api/monitoring/metrics", async (req: Request, res: Response) => {
+  app.get("/api/monitoring/metrics", authenticate, async (req: Request, res: Response) => {
     try {
       const { type, hours } = req.query;
       const metrics = await monitoringService.getMetricsHistory(
@@ -480,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/api/monitoring/security", async (req: Request, res: Response) => {
+  app.get("/api/monitoring/security", authenticate, async (req: Request, res: Response) => {
     try {
       const security = await monitoringService.getSecurityMetrics();
       res.json(security);
@@ -490,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/api/monitoring/regional", async (req: Request, res: Response) => {
+  app.get("/api/monitoring/regional", authenticate, async (req: Request, res: Response) => {
     try {
       const regional = await monitoringService.getRegionalStatus();
       res.json(regional);
@@ -500,7 +463,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/api/monitoring/report", requireRole(["admin"]), async (req: Request, res: Response) => {
+  app.get("/api/monitoring/report", authenticate, requireRole(["admin"]), async (req: Request, res: Response) => {
     try {
       const report = await monitoringService.generateSystemReport();
       res.json(report);
@@ -510,14 +473,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.use("/api/monitoring", monitoringRouter);
-  
   // Security events routes
-  const securityRouter = app;
-  securityRouter.use(authenticate);
-  securityRouter.use(apiLimiter);
-  
-  securityRouter.get("/api/security/events", async (req: Request, res: Response) => {
+  app.get("/api/security/events", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const userId = req.user.role === "admin" ? undefined : req.user.id;
@@ -533,8 +490,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get security events" });
     }
   });
-  
-  app.use("/api/security", securityRouter);
 
   const httpServer = createServer(app);
   
