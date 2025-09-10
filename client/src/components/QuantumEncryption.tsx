@@ -36,7 +36,7 @@ export default function QuantumEncryption() {
   const [encryptedData, setEncryptedData] = useState("");
   const [selectedKeyId, setSelectedKeyId] = useState("");
   const [operationMode, setOperationMode] = useState<"encrypt" | "decrypt">("encrypt");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,7 +45,7 @@ export default function QuantumEncryption() {
     queryKey: ["/api/quantum/keys"],
     queryFn: () => api.get<QuantumKey[]>("/api/quantum/keys")
   });
-  
+
   const quantumKeys = Array.isArray(quantumKeysData) ? quantumKeysData : [];
 
   // Get quantum system status
@@ -215,7 +215,7 @@ export default function QuantumEncryption() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button
               onClick={handleGenerateKey}
               disabled={generateKeyMutation.isPending}
@@ -365,18 +365,22 @@ export default function QuantumEncryption() {
           {/* System Metrics */}
           {quantumStatus ? (
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-secure/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-secure mb-1">{quantumStatus.activeKeys}</div>
+              <div className="bg-quantum/20 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-quantum mb-1">
+                  {quantumStatus.activeKeys || 0}
+                </div>
                 <div className="text-sm text-muted-foreground">Active Keys</div>
               </div>
-              <div className="bg-primary/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-primary mb-1">
-                  {Math.round(quantumStatus.averageEntropy)}
+              <div className="bg-secure/20 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-secure mb-1">
+                  {quantumStatus.averageEntropy ? Math.round(quantumStatus.averageEntropy) : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg Entropy</div>
               </div>
-              <div className="bg-quantum/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-quantum mb-1">{quantumStatus.nextRotation}</div>
+              <div className="bg-primary/20 p-4 rounded-lg text-center">
+                <div className="text-lg font-bold text-primary mb-1">
+                  {quantumStatus.nextRotation || "24h"}
+                </div>
                 <div className="text-sm text-muted-foreground">Next Rotation</div>
               </div>
               <div className="bg-warning/20 p-4 rounded-lg text-center">
