@@ -40,3 +40,12 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_database==1.0.0"]
+
+[rules]
+
+[rules.formatter]
+
+[rules.formatter.fileExtensions]
+
+[rules.formatter.fileExtensions.".ts"]
+id = "module:web/languageServer:typescript-language-server"
