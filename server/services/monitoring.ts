@@ -259,58 +259,37 @@ export class MonitoringService extends EventEmitter {
   
   async getRegionalStatus(): Promise<RegionalStatus[]> {
     try {
-      // Implementation should return an array
+      // In production, this would get real regional data
       return [
         {
           region: "North America",
-          threatLevel: "LOW" as const,
-          activeThreats: 0,
-          lastUpdated: new Date()
+          nodes: 47,
+          threatLevel: "LOW",
+          status: "online"
         },
         {
           region: "Europe",
-          threatLevel: "MEDIUM" as const,
-          activeThreats: 2,
-          lastUpdated: new Date()
+          nodes: 32,
+          threatLevel: "MEDIUM",
+          status: "warning"
         },
         {
           region: "Asia Pacific",
-          threatLevel: "LOW" as const,
-          activeThreats: 1,
-          lastUpdated: new Date()
+          nodes: 28,
+          threatLevel: "LOW",
+          status: "online"
+        },
+        {
+          region: "Global Threat Intel",
+          nodes: 107,
+          threatLevel: "HIGH",
+          status: "online"
         }
       ];
     } catch (error) {
       console.error("Error getting regional status:", error);
       return []; // Always return an array
     }
-    // In production, this would get real regional data
-    return [
-      {
-        region: "North America",
-        nodes: 47,
-        threatLevel: "LOW",
-        status: "online"
-      },
-      {
-        region: "Europe",
-        nodes: 32,
-        threatLevel: "MEDIUM",
-        status: "warning"
-      },
-      {
-        region: "Asia Pacific",
-        nodes: 28,
-        threatLevel: "LOW",
-        status: "online"
-      },
-      {
-        region: "Global Threat Intel",
-        nodes: 107,
-        threatLevel: "HIGH",
-        status: "online"
-      }
-    ];
   }
   
   async generateSystemReport() {

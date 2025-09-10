@@ -376,7 +376,9 @@ export default function QuantumEncryption() {
                 <div className="text-sm text-muted-foreground">Avg Entropy</div>
               </div>
               <div className="bg-quantum/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-quantum mb-1">{quantumStatus.nextRotation}</div>
+                <div className="text-lg font-bold text-quantum mb-1">
+                  {quantumStatus.nextRotation || "24h"}
+                </div>
                 <div className="text-sm text-muted-foreground">Next Rotation</div>
               </div>
               <div className="bg-warning/20 p-4 rounded-lg text-center">
