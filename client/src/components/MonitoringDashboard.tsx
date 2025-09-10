@@ -38,7 +38,7 @@ interface RegionalStatus {
 export default function MonitoringDashboard() {
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [activityFeed, setActivityFeed] = useState<SecurityEvent[]>([]);
-  
+
   const { socket } = useWebSocket();
 
   // Get system health
@@ -249,33 +249,35 @@ export default function MonitoringDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {regionalStatus.map((region) => (
-                <div
-                  key={region.region}
-                  className={`border rounded-lg p-4 ${
-                    region.threatLevel === "CRITICAL" ? "border-alert bg-alert/10" :
-                    region.threatLevel === "HIGH" ? "border-alert bg-alert/10" :
-                    region.threatLevel === "MEDIUM" ? "border-warning bg-warning/10" :
-                    "border-secure bg-secure/10"
-                  }`}
-                  data-testid={`region-${region.region.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="font-medium">{region.region}</span>
-                    {getStatusIndicator(region.status)}
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Nodes Active:</span>
-                      <span>{region.nodes}</span>
+              {(Array.isArray(regionalStatus) ? regionalStatus : []).map(
+                  (region) => (
+                  <div
+                    key={region.region}
+                    className={`border rounded-lg p-4 ${
+                      region.threatLevel === "CRITICAL" ? "border-alert bg-alert/10" :
+                      region.threatLevel === "HIGH" ? "border-alert bg-alert/10" :
+                      region.threatLevel === "MEDIUM" ? "border-warning bg-warning/10" :
+                      "border-secure bg-secure/10"
+                    }`}
+                    data-testid={`region-${region.region.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium">{region.region}</span>
+                      {getStatusIndicator(region.status)}
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Threat Level:</span>
-                      {getThreatLevelBadge(region.threatLevel)}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nodes Active:</span>
+                        <span>{region.nodes}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Threat Level:</span>
+                        {getThreatLevelBadge(region.threatLevel)}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
           </CardContent>
         </Card>

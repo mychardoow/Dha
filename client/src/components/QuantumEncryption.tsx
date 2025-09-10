@@ -36,7 +36,7 @@ export default function QuantumEncryption() {
   const [encryptedData, setEncryptedData] = useState("");
   const [selectedKeyId, setSelectedKeyId] = useState("");
   const [operationMode, setOperationMode] = useState<"encrypt" | "decrypt">("encrypt");
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,7 +45,7 @@ export default function QuantumEncryption() {
     queryKey: ["/api/quantum/keys"],
     queryFn: () => api.get<QuantumKey[]>("/api/quantum/keys")
   });
-  
+
   const quantumKeys = Array.isArray(quantumKeysData) ? quantumKeysData : [];
 
   // Get quantum system status
@@ -215,7 +215,7 @@ export default function QuantumEncryption() {
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Button
               onClick={handleGenerateKey}
               disabled={generateKeyMutation.isPending}
