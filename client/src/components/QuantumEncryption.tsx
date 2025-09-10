@@ -22,6 +22,8 @@ interface QuantumStatus {
   averageEntropy: number;
   nextRotation: string;
   quantumReadiness: string;
+  entropy?: number; // Added for explicit entropy
+  keysGenerated?: number; // Added for explicit keysGenerated
 }
 
 interface EncryptionResult {
@@ -267,13 +269,13 @@ export default function QuantumEncryption() {
             </label>
             <Textarea
               value={operationMode === "encrypt" ? inputData : encryptedData}
-              onChange={(e) => 
-                operationMode === "encrypt" 
+              onChange={(e) =>
+                operationMode === "encrypt"
                   ? setInputData(e.target.value)
                   : setEncryptedData(e.target.value)
               }
               placeholder={
-                operationMode === "encrypt" 
+                operationMode === "encrypt"
                   ? "Enter sensitive data to encrypt..."
                   : "Paste encrypted data here..."
               }
@@ -286,7 +288,7 @@ export default function QuantumEncryption() {
           <Button
             onClick={operationMode === "encrypt" ? handleEncryptData : handleDecryptData}
             disabled={
-              operationMode === "encrypt" 
+              operationMode === "encrypt"
                 ? encryptMutation.isPending || !inputData.trim()
                 : decryptMutation.isPending || !encryptedData.trim() || !selectedKeyId
             }
@@ -373,7 +375,10 @@ export default function QuantumEncryption() {
               </div>
               <div className="bg-secure/20 p-4 rounded-lg text-center">
                 <div className="text-2xl font-bold text-secure mb-1">
-                  {quantumStatus.averageEntropy ? Math.round(quantumStatus.averageEntropy) : 0}
+                  {typeof quantumStatus.entropy === 'number' && !isNaN(quantumStatus.entropy)
+                    ? quantumStatus.entropy.toFixed(2)
+                    : '0.00'
+                  }
                 </div>
                 <div className="text-sm text-muted-foreground">Avg Entropy</div>
               </div>
@@ -384,8 +389,11 @@ export default function QuantumEncryption() {
                 <div className="text-sm text-muted-foreground">Next Rotation</div>
               </div>
               <div className="bg-warning/20 p-4 rounded-lg text-center">
-                <div className="text-lg font-bold text-warning mb-1">
-                  {getReadinessBadge(quantumStatus.quantumReadiness)}
+                <div className="text-2xl font-bold text-warning mb-1">
+                  {typeof quantumStatus.keysGenerated === 'number' && !isNaN(quantumStatus.keysGenerated)
+                    ? quantumStatus.keysGenerated
+                    : 0
+                  }
                 </div>
                 <div className="text-sm text-muted-foreground">System Status</div>
               </div>
