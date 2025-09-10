@@ -417,7 +417,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get quantum status" });
     }
   });
-  monitoringRouter.use(apiLimiter);
   
   app.get("/api/monitoring/health", authenticate, async (req: Request, res: Response) => {
     try {

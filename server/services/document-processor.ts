@@ -194,6 +194,7 @@ export class DocumentProcessorService {
         };
       }
       
+      await worker.load();
       await worker.loadLanguage('eng');
       await worker.initialize('eng');
       
