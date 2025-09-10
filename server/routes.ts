@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Login
-  authRouter.post("/login", authLimiter, fraudDetection, async (req, res) => {
+  authRouter.post("/login", authLimiter, fraudDetection, async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
       
@@ -178,11 +178,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/auth", authRouter);
   
   // Biometric routes
-  const biometricRouter = require("express").Router();
+  const biometricRouter = app;
   biometricRouter.use(authenticate);
   biometricRouter.use(apiLimiter);
   
-  biometricRouter.post("/register", async (req, res) => {
+  biometricRouter.post("/api/biometric/register", async (req: Request, res: Response) => {
     try {
       const { type, template } = req.body;
       
@@ -215,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  biometricRouter.post("/verify", async (req, res) => {
+  biometricRouter.post("/api/biometric/verify", async (req: Request, res: Response) => {
     try {
       const { type, template, userId } = req.body;
       
@@ -243,7 +243,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  biometricRouter.get("/profiles", async (req, res) => {
+  biometricRouter.get("/api/biometric/profiles", async (req: Request, res: Response) => {
     try {
       const profiles = await biometricService.getUserBiometrics(req.user.id);
       res.json(profiles);
@@ -256,11 +256,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/biometric", biometricRouter);
   
   // Fraud detection routes
-  const fraudRouter = require("express").Router();
+  const fraudRouter = app;
   fraudRouter.use(authenticate);
   fraudRouter.use(apiLimiter);
   
-  fraudRouter.get("/alerts", async (req, res) => {
+  fraudRouter.get("/api/fraud/alerts", async (req: Request, res: Response) => {
     try {
       const { resolved } = req.query;
       const userId = req.user.role === "admin" ? undefined : req.user.id;
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  fraudRouter.post("/alerts/:id/resolve", requireRole(["admin"]), async (req, res) => {
+  fraudRouter.post("/api/fraud/alerts/:id/resolve", requireRole(["admin"]), async (req: Request, res: Response) => {
     try {
       await fraudDetectionService.resolveFraudAlert(req.params.id, req.user.id);
       
@@ -297,11 +297,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/fraud", fraudRouter);
   
   // Document processing routes
-  const documentRouter = require("express").Router();
+  const documentRouter = app;
   documentRouter.use(authenticate);
   documentRouter.use(uploadLimiter);
   
-  documentRouter.post("/upload", documentUpload.single("document"), async (req, res) => {
+  documentRouter.post("/api/documents/upload", documentUpload.single("document"), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  documentRouter.get("/", async (req, res) => {
+  documentRouter.get("/api/documents", async (req: Request, res: Response) => {
     try {
       const documents = await documentProcessorService.getUserDocuments(req.user.id);
       res.json(documents);
@@ -348,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  documentRouter.get("/:id", async (req, res) => {
+  documentRouter.get("/api/documents/:id", async (req: Request, res: Response) => {
     try {
       const result = await documentProcessorService.getDocument(req.params.id, req.user.id);
       
@@ -366,11 +366,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/documents", documentRouter);
   
   // Quantum encryption routes
-  const quantumRouter = require("express").Router();
+  const quantumRouter = app;
   quantumRouter.use(authenticate);
   quantumRouter.use(apiLimiter);
   
-  quantumRouter.post("/keys/generate", async (req, res) => {
+  quantumRouter.post("/api/quantum/keys/generate", async (req: Request, res: Response) => {
     try {
       const { algorithm } = req.body;
       
@@ -387,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.post("/encrypt", async (req, res) => {
+  quantumRouter.post("/api/quantum/encrypt", async (req: Request, res: Response) => {
     try {
       const { data, keyId } = req.body;
       
@@ -408,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.post("/decrypt", async (req, res) => {
+  quantumRouter.post("/api/quantum/decrypt", async (req: Request, res: Response) => {
     try {
       const { encryptedData, keyId } = req.body;
       
@@ -429,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.get("/keys", async (req, res) => {
+  quantumRouter.get("/api/quantum/keys", async (req: Request, res: Response) => {
     try {
       const keys = await quantumEncryptionService.getActiveKeys();
       res.json(keys);
@@ -439,7 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  quantumRouter.get("/status", async (req, res) => {
+  quantumRouter.get("/api/quantum/status", async (req: Request, res: Response) => {
     try {
       const status = await quantumEncryptionService.getSystemStatus();
       res.json(status);
@@ -452,11 +452,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/quantum", quantumRouter);
   
   // Monitoring routes
-  const monitoringRouter = require("express").Router();
+  const monitoringRouter = app;
   monitoringRouter.use(authenticate);
   monitoringRouter.use(apiLimiter);
   
-  monitoringRouter.get("/health", async (req, res) => {
+  monitoringRouter.get("/api/monitoring/health", async (req: Request, res: Response) => {
     try {
       const health = await monitoringService.getSystemHealth();
       res.json(health);
@@ -466,7 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/metrics", async (req, res) => {
+  monitoringRouter.get("/api/monitoring/metrics", async (req: Request, res: Response) => {
     try {
       const { type, hours } = req.query;
       const metrics = await monitoringService.getMetricsHistory(
@@ -480,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/security", async (req, res) => {
+  monitoringRouter.get("/api/monitoring/security", async (req: Request, res: Response) => {
     try {
       const security = await monitoringService.getSecurityMetrics();
       res.json(security);
@@ -490,7 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/regional", async (req, res) => {
+  monitoringRouter.get("/api/monitoring/regional", async (req: Request, res: Response) => {
     try {
       const regional = await monitoringService.getRegionalStatus();
       res.json(regional);
@@ -500,7 +500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  monitoringRouter.get("/report", requireRole(["admin"]), async (req, res) => {
+  monitoringRouter.get("/api/monitoring/report", requireRole(["admin"]), async (req: Request, res: Response) => {
     try {
       const report = await monitoringService.generateSystemReport();
       res.json(report);
@@ -513,11 +513,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api/monitoring", monitoringRouter);
   
   // Security events routes
-  const securityRouter = require("express").Router();
+  const securityRouter = app;
   securityRouter.use(authenticate);
   securityRouter.use(apiLimiter);
   
-  securityRouter.get("/events", async (req, res) => {
+  securityRouter.get("/api/security/events", async (req: Request, res: Response) => {
     try {
       const { limit } = req.query;
       const userId = req.user.role === "admin" ? undefined : req.user.id;
