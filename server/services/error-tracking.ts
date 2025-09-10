@@ -52,12 +52,14 @@ export class ErrorTrackingService extends EventEmitter {
         errorType: "uncaught_exception",
         severity: "critical",
         context: {
-          processInfo: {
-            pid: process.pid,
-            uptime: process.uptime(),
-            memoryUsage: process.memoryUsage(),
-            platform: process.platform,
-            nodeVersion: process.version
+          additionalData: {
+            processInfo: {
+              pid: process.pid,
+              uptime: process.uptime(),
+              memoryUsage: process.memoryUsage(),
+              platform: process.platform,
+              nodeVersion: process.version
+            }
           }
         }
       });
@@ -70,8 +72,10 @@ export class ErrorTrackingService extends EventEmitter {
         errorType: "unhandled_rejection",
         severity: "high",
         context: {
-          promise: String(promise),
-          reason: String(reason)
+          additionalData: {
+            promise: String(promise),
+            reason: String(reason)
+          }
         }
       });
     });
@@ -91,14 +95,14 @@ export class ErrorTrackingService extends EventEmitter {
       const now = Date.now();
       
       // Clean up error key rate limits
-      for (const [key, entry] of this.rateLimitMap.entries()) {
+      for (const [key, entry] of Array.from(this.rateLimitMap.entries())) {
         if (now - entry.firstOccurrence.getTime() > this.RATE_LIMIT_WINDOW) {
           this.rateLimitMap.delete(key);
         }
       }
       
       // Clean up IP rate limits
-      for (const [ip, data] of this.ipRateLimitMap.entries()) {
+      for (const [ip, data] of Array.from(this.ipRateLimitMap.entries())) {
         if (data.resetTime <= now) {
           this.ipRateLimitMap.delete(ip);
         }
@@ -294,13 +298,7 @@ export class ErrorTrackingService extends EventEmitter {
       const contextStr = JSON.stringify(enrichedContext);
       if (contextStr.length > MAX_CONTEXT_SIZE) {
         // Keep only essential fields when truncating
-        finalContext = {
-          ...context,
-          environment: enrichedContext.environment,
-          timestamp: enrichedContext.timestamp,
-          truncated: true,
-          originalSize: contextStr.length
-        };
+        finalContext = enrichedContext;
       }
 
       const errorLog: InsertErrorLog = {
@@ -378,9 +376,11 @@ export class ErrorTrackingService extends EventEmitter {
         errorType: "performance",
         severity: "medium",
         context: {
-          endpoint,
-          duration,
-          averageDuration: this.getAveragePerformance(endpoint)
+          additionalData: {
+            endpoint,
+            duration,
+            averageDuration: this.getAveragePerformance(endpoint)
+          }
         }
       });
     }

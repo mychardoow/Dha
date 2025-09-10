@@ -17,14 +17,16 @@ export default function AIAssistantPage() {
   });
 
   // Fetch conversations
-  const { data: conversations, refetch: refetchConversations } = useQuery({
+  const { data: conversationsData, refetch: refetchConversations } = useQuery({
     queryKey: ["/api/conversations"],
     enabled: !!token,
   });
+  
+  const conversations = Array.isArray(conversationsData) ? conversationsData : [];
 
   // Set initial conversation
   useEffect(() => {
-    if (conversations && conversations.length > 0 && !currentConversationId) {
+    if (conversations.length > 0 && !currentConversationId) {
       setCurrentConversationId(conversations[0].id);
     }
   }, [conversations, currentConversationId]);
@@ -118,7 +120,7 @@ export default function AIAssistantPage() {
         data-testid="sidebar-conversations"
       >
         <ConversationSidebar
-          conversations={conversations || []}
+          conversations={conversations}
           currentConversationId={currentConversationId}
           onSelectConversation={setCurrentConversationId}
           onNewConversation={handleNewConversation}

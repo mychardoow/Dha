@@ -123,7 +123,7 @@ export function DebugDashboard() {
   }
 
   // Fetch error logs
-  const { data: errors = [], isLoading: errorsLoading, refetch: refetchErrors } = useQuery({
+  const { data: errors = [], isLoading: errorsLoading, refetch: refetchErrors } = useQuery<ErrorLog[]>({
     queryKey: ["/api/debug/errors", filterSeverity, filterType, timeRange],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -131,17 +131,17 @@ export function DebugDashboard() {
       if (filterType !== "all") params.append("errorType", filterType);
       params.append("limit", "100");
       
-      const response = await apiRequest(`/api/debug/errors?${params}`);
-      return response as ErrorLog[];
+      const response = await apiRequest(`/api/debug/errors?${params}`, 'GET');
+      return response as unknown as ErrorLog[];
     }
   });
 
   // Fetch system metrics
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery<SystemMetrics>({
     queryKey: ["/api/debug/metrics", timeRange],
     queryFn: async () => {
-      const response = await apiRequest(`/api/debug/metrics?hours=${timeRange}`);
-      return response as SystemMetrics;
+      const response = await apiRequest(`/api/debug/metrics?hours=${timeRange}`, 'GET');
+      return response as unknown as SystemMetrics;
     },
     refetchInterval: 30000 // Refetch every 30 seconds
   });
@@ -149,10 +149,7 @@ export function DebugDashboard() {
   // Mark error as resolved mutation
   const resolveErrorMutation = useMutation({
     mutationFn: async (errorId: string) => {
-      return apiRequest(`/api/debug/errors/${errorId}`, {
-        method: "PATCH",
-        body: JSON.stringify({})
-      });
+      return apiRequest(`/api/debug/errors/${errorId}`, "PATCH", {});
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/debug/errors"] });
@@ -163,10 +160,7 @@ export function DebugDashboard() {
   // Toggle debug mode mutation
   const toggleDebugMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
-      return apiRequest("/api/debug/toggle", {
-        method: "POST",
-        body: JSON.stringify({ enabled })
-      });
+      return apiRequest("/api/debug/toggle", "POST", { enabled });
     },
     onSuccess: (data: any) => {
       setDebugMode(data.debugMode);

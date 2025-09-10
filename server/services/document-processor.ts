@@ -195,8 +195,7 @@ export class DocumentProcessorService {
       }
       
       await worker.load();
-      await worker.loadLanguage('eng');
-      await worker.initialize('eng');
+      await worker.reinitialize('eng');
       
       const { data: { text, confidence } } = await worker.recognize(filePath);
       await worker.terminate();

@@ -107,6 +107,7 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id, 
+      role: insertUser.role || 'user',
       isActive: true, 
       createdAt: new Date() 
     };
@@ -162,6 +163,7 @@ export class MemStorage implements IStorage {
     const message: Message = {
       ...insertMessage,
       id,
+      metadata: insertMessage.metadata || null,
       createdAt: new Date()
     };
     this.messages.set(id, message);
@@ -191,6 +193,13 @@ export class MemStorage implements IStorage {
     const document: Document = {
       ...insertDocument,
       id,
+      encryptionKey: insertDocument.encryptionKey || null,
+      isEncrypted: insertDocument.isEncrypted || false,
+      ocrText: insertDocument.ocrText || null,
+      ocrConfidence: insertDocument.ocrConfidence || null,
+      isVerified: insertDocument.isVerified || false,
+      verificationScore: insertDocument.verificationScore || null,
+      processingStatus: insertDocument.processingStatus || 'pending',
       createdAt: new Date()
     };
     this.documents.set(id, document);
@@ -221,6 +230,11 @@ export class MemStorage implements IStorage {
     const event: SecurityEvent = {
       ...insertEvent,
       id,
+      userId: insertEvent.userId || null,
+      userAgent: insertEvent.userAgent || null,
+      ipAddress: insertEvent.ipAddress || null,
+      details: insertEvent.details || null,
+      location: insertEvent.location || null,
       createdAt: new Date()
     };
     this.securityEvents.set(id, event);
@@ -246,6 +260,7 @@ export class MemStorage implements IStorage {
     const alert: FraudAlert = {
       ...insertAlert,
       id,
+      details: insertAlert.details || null,
       isResolved: false,
       resolvedBy: null,
       resolvedAt: null,
@@ -281,7 +296,8 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const metric: SystemMetric = {
       ...insertMetric,
-      id
+      id,
+      timestamp: insertMetric.timestamp || new Date()
     };
     this.systemMetrics.set(id, metric);
     return metric;
@@ -303,6 +319,7 @@ export class MemStorage implements IStorage {
     const key: QuantumKey = {
       ...insertKey,
       id,
+      isActive: insertKey.isActive !== undefined ? insertKey.isActive : true,
       createdAt: new Date()
     };
     this.quantumKeys.set(id, key);
@@ -355,16 +372,16 @@ export class MemStorage implements IStorage {
       }
     }
     
-    let query = db.select().from(errorLogs);
+    let query: any = db.select().from(errorLogs);
     
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      query = query.where(and(...conditions)) as any;
     }
     
-    query = query.orderBy(desc(errorLogs.timestamp));
+    query = query.orderBy(desc(errorLogs.timestamp)) as any;
     
     if (filters?.limit) {
-      query = query.limit(filters.limit);
+      query = query.limit(filters.limit) as any;
     }
     
     return await query;

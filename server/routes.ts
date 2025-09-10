@@ -585,15 +585,7 @@ export function registerRoutes(app: express.Application) {
           statusCode,
           ipAddress: req.ip || req.connection.remoteAddress,
           userAgent: req.headers["user-agent"],
-          sessionId: (req as any).sessionID,
-          body: req.body,
-          query: req.query,
-          params: req.params,
-          headers: {
-            "user-agent": req.headers["user-agent"],
-            "content-type": req.headers["content-type"],
-            "referer": req.headers["referer"]
-          }
+          sessionId: (req as any).sessionID
         }
       });
     } catch (logError) {

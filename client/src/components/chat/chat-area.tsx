@@ -59,7 +59,7 @@ export default function ChatArea({
 
   // Sync fetched messages with local state
   useEffect(() => {
-    if (messages) {
+    if (messages && Array.isArray(messages)) {
       setLocalMessages(messages);
     } else {
       setLocalMessages([]);
