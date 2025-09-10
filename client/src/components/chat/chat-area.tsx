@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Avatar, AvatarContent, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   Menu, 
   Bot, 
@@ -220,9 +220,9 @@ export default function ChatArea({
           </Button>
           <div className="flex items-center space-x-3">
             <Avatar className="h-8 w-8">
-              <AvatarContent className="bg-primary">
+              <AvatarFallback className="bg-primary">
                 <Bot className="h-4 w-4 text-primary-foreground" />
-              </AvatarContent>
+              </AvatarFallback>
               <AvatarFallback>AI</AvatarFallback>
             </Avatar>
             <div>

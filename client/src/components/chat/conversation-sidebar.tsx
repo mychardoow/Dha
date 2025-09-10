@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarContent, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2, Plus, Search, User, Settings } from "lucide-react";
 
 interface Conversation {
@@ -129,9 +129,9 @@ export default function ConversationSidebar({
       <div className="p-4 border-t border-border">
         <div className="flex items-center space-x-3">
           <Avatar className="h-8 w-8">
-            <AvatarContent className="bg-primary">
+            <AvatarFallback className="bg-primary">
               <User className="h-4 w-4 text-primary-foreground" />
-            </AvatarContent>
+            </AvatarFallback>
             <AvatarFallback>AU</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
