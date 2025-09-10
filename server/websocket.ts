@@ -1,8 +1,8 @@
 import { Server as SocketIOServer } from "socket.io";
 import { Server } from "http";
-import { authenticate } from "./middleware/auth";
-import { monitoringService } from "./services/monitoring";
 import { storage } from "./storage";
+import { aiAssistantService } from "./services/ai-assistant";
+import jwt from "jsonwebtoken";
 
 export interface AuthenticatedSocket {
   id: string;
@@ -21,12 +21,12 @@ export class WebSocketService {
         origin: process.env.FRONTEND_URL || "http://localhost:5000",
         methods: ["GET", "POST"],
         credentials: true
-      }
+      },
+      path: "/ws"
     });
     
     this.setupAuthentication();
     this.setupEventHandlers();
-    this.startMonitoring();
   }
   
   private setupAuthentication() {
@@ -38,18 +38,14 @@ export class WebSocketService {
           return next(new Error("Authentication token required"));
         }
         
-        // Verify token using existing auth middleware logic
-        const jwt = require("jsonwebtoken");
         const JWT_SECRET = process.env.JWT_SECRET || "military-grade-jwt-secret-change-in-production";
-        
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);
         
         if (!user || !user.isActive) {
           return next(new Error("User not found or inactive"));
         }
         
-        // Store authenticated socket info
         this.authenticatedSockets.set(socket.id, {
           id: socket.id,
           userId: user.id,
@@ -57,7 +53,6 @@ export class WebSocketService {
           role: user.role
         });
         
-        // Log connection
         await storage.createSecurityEvent({
           userId: user.id,
           eventType: "websocket_connected",
@@ -67,7 +62,7 @@ export class WebSocketService {
             userAgent: socket.handshake.headers["user-agent"]
           },
           ipAddress: socket.handshake.address,
-          userAgent: socket.handshake.headers["user-agent"]
+          userAgent: socket.handshake.headers["user-agent"] as string
         });
         
         next();
@@ -89,23 +84,133 @@ export class WebSocketService {
       
       console.log(`User ${authSocket.username} connected via WebSocket`);
       
-      // Join user-specific room
       socket.join(`user:${authSocket.userId}`);
-      
-      // Join role-specific room
       socket.join(`role:${authSocket.role}`);
       
-      // Send initial status
-      this.sendInitialStatus(socket);
+      // Handle chat message streaming
+      socket.on("chat:stream", async (data: { 
+        message: string; 
+        conversationId: string; 
+        includeContext?: boolean; 
+      }) => {
+        try {
+          // Verify conversation ownership
+          const conversation = await storage.getConversation(data.conversationId);
+          if (!conversation || conversation.userId !== authSocket.userId) {
+            socket.emit("chat:error", { error: "Conversation not found" });
+            return;
+          }
+          
+          // Create user message
+          const userMessage = await storage.createMessage({
+            conversationId: data.conversationId,
+            role: "user",
+            content: data.message
+          });
+          
+          socket.emit("chat:userMessage", userMessage);
+          
+          // Start streaming AI response
+          socket.emit("chat:streamStart");
+          
+          let fullContent = "";
+          const response = await aiAssistantService.streamResponse(
+            data.message,
+            authSocket.userId,
+            data.conversationId,
+            (chunk: string) => {
+              fullContent += chunk;
+              socket.emit("chat:streamChunk", { chunk });
+            },
+            data.includeContext !== false
+          );
+          
+          if (response.success) {
+            // Create AI message
+            const aiMessage = await storage.createMessage({
+              conversationId: data.conversationId,
+              role: "assistant",
+              content: response.content || fullContent,
+              metadata: response.metadata
+            });
+            
+            socket.emit("chat:streamComplete", { 
+              message: aiMessage,
+              metadata: response.metadata 
+            });
+          } else {
+            socket.emit("chat:streamError", { error: response.error });
+          }
+          
+        } catch (error) {
+          console.error("Chat streaming error:", error);
+          socket.emit("chat:streamError", { 
+            error: "Failed to process message" 
+          });
+        }
+      });
       
-      // Handle client events
-      this.setupClientEventHandlers(socket, authSocket);
+      // Handle quick actions
+      socket.on("chat:quickAction", async (data: { action: string; conversationId: string }) => {
+        try {
+          let message = "";
+          
+          switch (data.action) {
+            case "analyze-security-logs":
+              message = "Analyze the current security logs and highlight any concerning patterns or anomalies.";
+              break;
+            case "review-biometrics":
+              message = "Review the current biometric authentication status and provide optimization recommendations.";
+              break;
+            case "quantum-status":
+              message = "Provide a detailed status report on the quantum encryption system and key management.";
+              break;
+            default:
+              socket.emit("chat:error", { error: "Unknown quick action" });
+              return;
+          }
+          
+          // Trigger the same streaming process as regular messages
+          socket.emit("chat:stream", { 
+            message, 
+            conversationId: data.conversationId,
+            includeContext: true 
+          });
+          
+        } catch (error) {
+          console.error("Quick action error:", error);
+          socket.emit("chat:error", { error: "Failed to execute quick action" });
+        }
+      });
       
-      // Handle disconnection
+      // Handle system context requests
+      socket.on("system:getContext", async () => {
+        try {
+          const { monitoringService } = await import("./services/monitoring");
+          const { quantumEncryptionService } = await import("./services/quantum-encryption");
+          
+          const [systemHealth, securityMetrics, quantumStatus, recentAlerts] = await Promise.all([
+            monitoringService.getSystemHealth(),
+            monitoringService.getSecurityMetrics(),
+            quantumEncryptionService.getSystemStatus(),
+            storage.getFraudAlerts(authSocket.userId, false)
+          ]);
+          
+          socket.emit("system:context", {
+            health: systemHealth,
+            security: securityMetrics,
+            quantum: quantumStatus,
+            alerts: recentAlerts.slice(0, 5)
+          });
+        } catch (error) {
+          console.error("Get system context error:", error);
+          socket.emit("system:contextError", { error: "Failed to fetch system context" });
+        }
+      });
+      
       socket.on("disconnect", async () => {
         console.log(`User ${authSocket.username} disconnected`);
         
-        // Log disconnection
         await storage.createSecurityEvent({
           userId: authSocket.userId,
           eventType: "websocket_disconnected",
@@ -118,158 +223,21 @@ export class WebSocketService {
     });
   }
   
-  private async sendInitialStatus(socket: any) {
-    try {
-      const systemHealth = await monitoringService.getSystemHealth();
-      const securityMetrics = await monitoringService.getSecurityMetrics();
-      const regionalStatus = await monitoringService.getRegionalStatus();
-      
-      socket.emit("system:status", {
-        health: systemHealth,
-        security: securityMetrics,
-        regional: regionalStatus
-      });
-    } catch (error) {
-      console.error("Error sending initial status:", error);
-    }
+  // Public methods for other services
+  sendToUser(userId: string, event: string, data: any) {
+    this.io.to(`user:${userId}`).emit(event, data);
   }
   
-  private setupClientEventHandlers(socket: any, authSocket: AuthenticatedSocket) {
-    
-    // Request system metrics
-    socket.on("system:requestMetrics", async (data: { timeRange?: number }) => {
-      try {
-        const metrics = await monitoringService.getMetricsHistory(
-          undefined, 
-          data.timeRange || 24
-        );
-        socket.emit("system:metrics", metrics);
-      } catch (error) {
-        socket.emit("error", { message: "Failed to fetch metrics" });
-      }
-    });
-    
-    // Request security events
-    socket.on("security:requestEvents", async (data: { limit?: number }) => {
-      try {
-        const events = await storage.getSecurityEvents(
-          authSocket.userId, 
-          data.limit || 50
-        );
-        socket.emit("security:events", events);
-      } catch (error) {
-        socket.emit("error", { message: "Failed to fetch security events" });
-      }
-    });
-    
-    // Request fraud alerts
-    socket.on("fraud:requestAlerts", async (data: { resolved?: boolean }) => {
-      try {
-        const alerts = await storage.getFraudAlerts(
-          authSocket.userId, 
-          data.resolved
-        );
-        socket.emit("fraud:alerts", alerts);
-      } catch (error) {
-        socket.emit("error", { message: "Failed to fetch fraud alerts" });
-      }
-    });
-    
-    // Resolve fraud alert
-    socket.on("fraud:resolveAlert", async (data: { alertId: string }) => {
-      try {
-        if (authSocket.role !== "admin") {
-          socket.emit("error", { message: "Insufficient permissions" });
-          return;
-        }
-        
-        await storage.resolveFraudAlert(data.alertId, authSocket.userId);
-        
-        // Notify all admins
-        this.io.to("role:admin").emit("fraud:alertResolved", {
-          alertId: data.alertId,
-          resolvedBy: authSocket.username
-        });
-        
-      } catch (error) {
-        socket.emit("error", { message: "Failed to resolve alert" });
-      }
-    });
-    
-    // Request user documents
-    socket.on("documents:requestList", async () => {
-      try {
-        const documents = await storage.getDocuments(authSocket.userId);
-        socket.emit("documents:list", documents);
-      } catch (error) {
-        socket.emit("error", { message: "Failed to fetch documents" });
-      }
-    });
-    
-    // Join monitoring channel (admin only)
-    socket.on("monitoring:subscribe", () => {
-      if (authSocket.role === "admin") {
-        socket.join("monitoring");
-      }
-    });
-    
-    // Leave monitoring channel
-    socket.on("monitoring:unsubscribe", () => {
-      socket.leave("monitoring");
-    });
+  sendToRole(role: string, event: string, data: any) {
+    this.io.to(`role:${role}`).emit(event, data);
   }
   
-  private startMonitoring() {
-    // Start system monitoring
-    monitoringService.startMonitoring(30000); // 30 seconds
-    
-    // Listen to monitoring events
-    monitoringService.on("systemHealth", (health) => {
-      this.io.to("monitoring").emit("system:health", health);
-    });
-    
-    monitoringService.on("securityMetrics", (metrics) => {
-      this.io.to("monitoring").emit("security:metrics", metrics);
-    });
-    
-    monitoringService.on("alert", (alert) => {
-      // Send alerts to all authenticated users
-      this.io.emit("system:alert", alert);
-    });
-  }
-  
-  // Public methods for other services to send real-time updates
-  
-  sendSecurityEvent(userId: string, event: any) {
-    this.io.to(`user:${userId}`).emit("security:event", event);
-  }
-  
-  sendFraudAlert(userId: string, alert: any) {
-    this.io.to(`user:${userId}`).emit("fraud:alert", alert);
-    // Also send to admins
-    this.io.to("role:admin").emit("fraud:alert", alert);
-  }
-  
-  sendDocumentProcessed(userId: string, document: any) {
-    this.io.to(`user:${userId}`).emit("document:processed", document);
-  }
-  
-  sendBiometricResult(userId: string, result: any) {
-    this.io.to(`user:${userId}`).emit("biometric:result", result);
-  }
-  
-  sendSystemAlert(alert: any) {
-    this.io.emit("system:alert", alert);
+  broadcast(event: string, data: any) {
+    this.io.emit(event, data);
   }
   
   getConnectedUsers(): number {
     return this.authenticatedSockets.size;
-  }
-  
-  getUserSockets(userId: string): string[] {
-    return Array.from(this.authenticatedSockets.values())
-      .filter(socket => socket.userId === userId)
-      .map(socket => socket.id);
   }
 }
 

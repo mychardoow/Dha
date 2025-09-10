@@ -17,8 +17,11 @@ externalPort = 80
 [env]
 PORT = "5000"
 
+[agent]
+integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0"]
+
 [workflows]
-runButton = "Development Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -37,24 +40,3 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Development Server"
-author = 47427735
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-
-[agent]
-integrations = ["javascript_database==1.0.0"]
-
-[rules]
-
-[rules.formatter]
-
-[rules.formatter.fileExtensions]
-
-[rules.formatter.fileExtensions.".ts"]
-id = "module:web/languageServer:typescript-language-server"
