@@ -3,6 +3,7 @@ import { Server } from "http";
 import { storage } from "./storage";
 import { aiAssistantService } from "./services/ai-assistant";
 import jwt from "jsonwebtoken";
+import { errorTrackingService } from "./services/error-tracking";
 
 export interface AuthenticatedSocket {
   id: string;
@@ -27,6 +28,7 @@ export class WebSocketService {
     
     this.setupAuthentication();
     this.setupEventHandlers();
+    this.setupErrorTracking();
   }
   
   private setupAuthentication() {
@@ -221,6 +223,43 @@ export class WebSocketService {
         this.authenticatedSockets.delete(socket.id);
       });
     });
+  }
+  
+  private setupErrorTracking() {
+    // Listen for new errors from the error tracking service
+    errorTrackingService.on("error:new", (error) => {
+      // Broadcast to all admin users
+      this.io.to("role:admin").emit("error:new", error);
+    });
+    
+    errorTrackingService.on("error:resolved", (error) => {
+      // Broadcast to all admin users
+      this.io.to("role:admin").emit("error:resolved", error);
+    });
+    
+    errorTrackingService.on("metrics:update", (metrics) => {
+      // Broadcast metrics updates to all admin users
+      this.io.to("role:admin").emit("metrics:update", metrics);
+    });
+    
+    // Send periodic system metrics to connected admin clients
+    setInterval(() => {
+      const connectedAdmins = Array.from(this.authenticatedSockets.values())
+        .filter(s => s.role === "admin");
+      
+      if (connectedAdmins.length > 0) {
+        errorTrackingService.getErrorStats(1).then(stats => {
+          const performanceReport = errorTrackingService.getPerformanceReport();
+          
+          this.io.to("role:admin").emit("metrics:update", {
+            errors: stats,
+            performance: performanceReport,
+            timestamp: new Date(),
+            connectedUsers: this.authenticatedSockets.size
+          });
+        });
+      }
+    }, 30000); // Every 30 seconds
   }
   
   // Public methods for other services

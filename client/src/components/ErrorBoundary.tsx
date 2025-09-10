@@ -43,30 +43,111 @@ export class ErrorBoundary extends Component<Props, State> {
     this.logError(error, errorInfo);
   }
 
+  private retryCount = 0;
+  private maxRetries = 3;
+  private retryDelay = 1000;
+
   private async logError(error: Error, errorInfo: ErrorInfo) {
-    try {
-      const response = await fetch("/api/monitoring/error", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({
+    const attemptLog = async () => {
+      try {
+        const userId = localStorage.getItem("userId");
+        const token = localStorage.getItem("token");
+        
+        // Collect browser context
+        const context = {
+          viewport: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          },
+          screen: {
+            width: window.screen.width,
+            height: window.screen.height
+          },
+          memory: (navigator as any).deviceMemory,
+          cores: navigator.hardwareConcurrency,
+          language: navigator.language,
+          platform: navigator.platform,
+          cookieEnabled: navigator.cookieEnabled,
+          onLine: navigator.onLine,
+          referrer: document.referrer,
+          timestamp: new Date().toISOString()
+        };
+
+        const errorData = {
           message: error.message,
           stack: error.stack,
           componentStack: errorInfo.componentStack,
-          timestamp: new Date().toISOString(),
           userAgent: navigator.userAgent,
-          url: window.location.href
-        })
-      });
+          url: window.location.href,
+          userId,
+          context
+        };
 
-      if (!response.ok) {
-        console.warn("Failed to log error to server");
+        let response: Response;
+        
+        // Try authenticated endpoint first if token exists
+        if (token) {
+          try {
+            response = await fetch("/api/debug/errors", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify(errorData)
+            });
+            
+            if (response.ok) {
+              console.log("Error logged successfully (authenticated)");
+              this.retryCount = 0;
+              return;
+            } else if (response.status === 401 || response.status === 403) {
+              // Token invalid or expired, try unauthenticated endpoint
+              console.log("Authentication failed, trying unauthenticated endpoint");
+            } else {
+              throw new Error(`Authenticated endpoint failed with ${response.status}`);
+            }
+          } catch (authError) {
+            console.warn("Authenticated error logging failed:", authError);
+          }
+        }
+        
+        // Fall back to unauthenticated endpoint
+        response = await fetch("/api/debug/client-errors", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(errorData)
+        });
+
+        if (!response.ok) {
+          if (response.status === 429) {
+            const data = await response.json();
+            throw new Error(`Rate limited. Retry after ${data.retryAfter} seconds`);
+          }
+          throw new Error(`Unauthenticated endpoint failed with ${response.status}`);
+        }
+
+        // Reset retry count on success
+        this.retryCount = 0;
+        console.log("Error logged successfully (unauthenticated)");
+      } catch (logError) {
+        console.warn("Error logging failed:", logError);
+        
+        // Implement exponential backoff retry
+        if (this.retryCount < this.maxRetries) {
+          this.retryCount++;
+          const delay = this.retryDelay * Math.pow(2, this.retryCount - 1);
+          console.log(`Retrying error log in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
+          setTimeout(() => attemptLog(), delay);
+        } else {
+          console.error("Failed to log error after maximum retries");
+        }
       }
-    } catch (logError) {
-      console.warn("Error logging failed:", logError);
-    }
+    };
+
+    await attemptLog();
   }
 
   render() {
