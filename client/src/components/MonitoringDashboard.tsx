@@ -278,10 +278,13 @@ export default function MonitoringDashboard() {
                   </div>
                 )
               ) : (
-                <div className="col-span-full text-center py-8 text-muted-foreground">
-                  <span className="text-4xl block mb-4">🌍</span>
-                  <p>No regional data available</p>
-                  <p className="text-sm mt-2">Connecting to monitoring network...</p>
+                <div className="col-span-full text-center p-8 text-muted-foreground">
+                  <div className="text-sm">Loading regional status...</div>
+                  {regionalStatus && !Array.isArray(regionalStatus) && (
+                    <div className="text-xs mt-2 text-alert">
+                      Error: Invalid data format received
+                    </div>
+                  )}
                 </div>
               )}
             </div>
