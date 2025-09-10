@@ -10,7 +10,7 @@ interface ApiResponse<T = any> {
 
 class ApiClient {
   private baseUrl: string;
-  
+
   constructor(baseUrl: string = API_BASE) {
     this.baseUrl = baseUrl;
   }
@@ -20,10 +20,10 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     // Get authentication token
     const token = localStorage.getItem("authToken");
-    
+
     const defaultHeaders: HeadersInit = {
       "Content-Type": "application/json",
     };
@@ -42,24 +42,24 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
           // If parsing JSON fails, use the default error message
         }
-        
+
         if (response.status === 401) {
           // Unauthorized - clear token and redirect to login
           localStorage.removeItem("authToken");
           window.location.href = "/login";
           throw new Error("Authentication required");
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -112,7 +112,7 @@ class ApiClient {
   async postFormData<T = any>(endpoint: string, formData: FormData): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const token = localStorage.getItem("authToken");
-    
+
     const headers: HeadersInit = {};
     if (token) {
       headers.Authorization = `Bearer ${token}`;
@@ -127,20 +127,20 @@ class ApiClient {
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch {
           // If parsing JSON fails, use the default error message
         }
-        
+
         if (response.status === 401) {
           localStorage.removeItem("authToken");
           window.location.href = "/login";
           throw new Error("Authentication required");
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -168,13 +168,13 @@ export const auth = {
         riskLevel: string;
       };
     }>("/auth/login", { email, password });
-    
+
     // Store token
     localStorage.setItem("authToken", response.token);
-    
+
     // Store user info
     localStorage.setItem("user", JSON.stringify(response.user));
-    
+
     return response;
   },
 
@@ -193,23 +193,23 @@ export const auth = {
         role: string;
       };
     }>("/auth/register", userData);
-    
+
     // Store token
     localStorage.setItem("authToken", response.token);
-    
+
     // Store user info
     localStorage.setItem("user", JSON.stringify(response.user));
-    
+
     return response;
   },
 
   logout() {
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");
-    
+
     // Clear query cache
     queryClient.clear();
-    
+
     // Redirect to login
     window.location.href = "/login";
   },

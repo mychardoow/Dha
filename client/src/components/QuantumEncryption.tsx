@@ -365,20 +365,20 @@ export default function QuantumEncryption() {
           {/* System Metrics */}
           {quantumStatus ? (
             <div className="grid grid-cols-2 gap-4">
-              <div className="bg-secure/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-secure mb-1">
-                  {quantumStatus.activeKeys ?? 0}
+              <div className="bg-quantum/20 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-quantum mb-1">
+                  {quantumStatus.activeKeys || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Active Keys</div>
               </div>
-              <div className="bg-primary/20 p-4 rounded-lg text-center">
-                <div className="text-2xl font-bold text-primary mb-1">
+              <div className="bg-secure/20 p-4 rounded-lg text-center">
+                <div className="text-2xl font-bold text-secure mb-1">
                   {quantumStatus.averageEntropy ? Math.round(quantumStatus.averageEntropy) : 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Avg Entropy</div>
               </div>
-              <div className="bg-quantum/20 p-4 rounded-lg text-center">
-                <div className="text-lg font-bold text-quantum mb-1">
+              <div className="bg-primary/20 p-4 rounded-lg text-center">
+                <div className="text-lg font-bold text-primary mb-1">
                   {quantumStatus.nextRotation || "24h"}
                 </div>
                 <div className="text-sm text-muted-foreground">Next Rotation</div>

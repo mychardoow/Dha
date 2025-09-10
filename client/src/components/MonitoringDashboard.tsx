@@ -249,7 +249,7 @@ export default function MonitoringDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {Array.isArray(regionalStatus) ? regionalStatus.map(
+              {regionalStatus && Array.isArray(regionalStatus) && regionalStatus.length > 0 ? regionalStatus.map(
                   (region) => (
                   <div
                     key={region.region}
@@ -277,6 +277,12 @@ export default function MonitoringDashboard() {
                     </div>
                   </div>
                 )
+              ) : (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  <span className="text-4xl block mb-4">🌍</span>
+                  <p>No regional data available</p>
+                  <p className="text-sm mt-2">Connecting to monitoring network...</p>
+                </div>
               )}
             </div>
           </CardContent>

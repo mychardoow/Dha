@@ -497,3 +497,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return httpServer;
 }
+  // Error logging endpoint
+  app.post("/api/monitoring/error", authenticate, async (req: Request, res: Response) => {
+    try {
+      const { message, stack, componentStack, timestamp, userAgent, url } = req.body;
+
+      await storage.createSecurityEvent({
+        userId: req.user.id,
+        eventType: "client_error",
+        severity: "medium",
+        details: {
+          message,
+          stack,
+          componentStack,
+          timestamp,
+          url,
+          browser: userAgent
+        },
+        ipAddress: req.ip,
+        userAgent
+      });
+
+      res.json({ message: "Error logged successfully" });
+    } catch (error) {
+      console.error("Error logging client error:", error);
+      res.status(500).json({ error: "Failed to log error" });
+    }
+  });
+
+  // Security events routes

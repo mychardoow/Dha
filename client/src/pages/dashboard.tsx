@@ -9,10 +9,16 @@ import MonitoringDashboard from "@/components/MonitoringDashboard";
 import DeploymentPackage from "@/components/DeploymentPackage";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 export default function Dashboard() {
   const { socket, isConnected } = useWebSocket();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("monitoring");
 
   useEffect(() => {
     if (isConnected) {
@@ -28,7 +34,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <SecurityAlert />
       <Navigation />
-      
+
       {/* Hero Section */}
       <section className="hero-bg relative">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
@@ -40,7 +46,7 @@ export default function Dashboard() {
               Production-ready digital services platform with authentic biometric authentication, 
               quantum encryption, and real-time fraud detection systems.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <button 
                 className="btn-enhanced bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
@@ -57,7 +63,7 @@ export default function Dashboard() {
                 <span>Download Package</span>
               </button>
             </div>
-            
+
             {/* Security Status Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
               <div className="glass p-6 rounded-lg text-center" data-testid="card-security-level">
@@ -88,7 +94,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Biometric Authentication System</h2>
             <p className="text-muted-foreground">Multi-factor biometric verification with military-grade accuracy</p>
           </div>
-          <BiometricScanner />
+          <ErrorBoundary>
+            <BiometricScanner />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -99,7 +107,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Real-Time Fraud Detection</h2>
             <p className="text-muted-foreground">Advanced AI-powered fraud monitoring and prevention</p>
           </div>
-          <FraudDetection />
+          <ErrorBoundary>
+            <FraudDetection />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -110,7 +120,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Document Verification & OCR</h2>
             <p className="text-muted-foreground">Advanced document processing with AI-powered verification</p>
           </div>
-          <DocumentProcessor />
+          <ErrorBoundary>
+            <DocumentProcessor />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -121,7 +133,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Quantum Encryption System</h2>
             <p className="text-muted-foreground">Next-generation quantum-resistant encryption technology</p>
           </div>
-          <QuantumEncryption />
+          <ErrorBoundary>
+            <QuantumEncryption />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -132,7 +146,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Real-time Security Monitoring</h2>
             <p className="text-muted-foreground">Comprehensive security dashboard with live threat intelligence</p>
           </div>
-          <MonitoringDashboard />
+          <ErrorBoundary>
+            <MonitoringDashboard />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -143,7 +159,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-bold mb-4">Deployment Package</h2>
             <p className="text-muted-foreground">Download production-ready deployment package with complete documentation</p>
           </div>
-          <DeploymentPackage />
+          <ErrorBoundary>
+            <DeploymentPackage />
+          </ErrorBoundary>
         </div>
       </section>
 
@@ -160,7 +178,7 @@ export default function Dashboard() {
                 Military-grade security platform for enterprise digital services.
               </p>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Security Features</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -170,7 +188,7 @@ export default function Dashboard() {
                 <li>Document Verification</li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -180,7 +198,7 @@ export default function Dashboard() {
                 <li>Technical Support</li>
               </ul>
             </div>
-            
+
             <div>
               <h4 className="font-semibold mb-4">Compliance</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -191,7 +209,7 @@ export default function Dashboard() {
               </ul>
             </div>
           </div>
-          
+
           <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
             <p>&copy; 2024 DHA Digital Services Pro. All rights reserved. Military-grade security for critical systems.</p>
           </div>
