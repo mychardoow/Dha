@@ -25,8 +25,8 @@ export class FraudDetectionService {
     let riskScore = 0;
     
     // Analyze various risk factors
-    riskScore += await this.checkLocationAnomaly(data.userId, data.location, indicators);
-    riskScore += await this.checkDeviceFingerprint(data.userId, data.deviceFingerprint, indicators);
+    riskScore += await this.checkLocationAnomaly(data.userId, indicators, data.location);
+    riskScore += await this.checkDeviceFingerprint(data.userId, indicators, data.deviceFingerprint);
     riskScore += await this.checkIPReputation(data.ipAddress, indicators);
     riskScore += await this.checkLoginFrequency(data.userId, indicators);
     riskScore += await this.checkUserAgentAnomaly(data.userId, data.userAgent, indicators);
@@ -68,7 +68,7 @@ export class FraudDetectionService {
     return result;
   }
   
-  private async checkLocationAnomaly(userId: string, currentLocation?: string, indicators: string[]): Promise<number> {
+  private async checkLocationAnomaly(userId: string, indicators: string[], currentLocation?: string): Promise<number> {
     if (!currentLocation) return 0;
     
     try {
@@ -88,7 +88,7 @@ export class FraudDetectionService {
         
         // Calculate distance-based risk (simplified)
         // In production, use geolocation APIs for accurate distance calculation
-        const isVeryDistant = this.isLocationDistant(currentLocation, locationEvents[0]);
+        const isVeryDistant = this.isLocationDistant(currentLocation, locationEvents[0] as string);
         
         if (isVeryDistant) {
           indicators.push("distant_location");
@@ -105,7 +105,7 @@ export class FraudDetectionService {
     }
   }
   
-  private async checkDeviceFingerprint(userId: string, deviceFingerprint?: string, indicators: string[]): Promise<number> {
+  private async checkDeviceFingerprint(userId: string, indicators: string[], deviceFingerprint?: string): Promise<number> {
     if (!deviceFingerprint) return 10; // Slight risk for missing fingerprint
     
     try {

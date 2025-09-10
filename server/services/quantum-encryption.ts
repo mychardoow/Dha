@@ -126,8 +126,8 @@ export class QuantumEncryptionService {
       }
 
       const keyMaterial = keyId 
-        ? this.decryptKeyMaterial(quantumKey.keyData)
-        : quantumKey.keyMaterial;
+        ? this.decryptKeyMaterial((quantumKey as any).keyData)
+        : (quantumKey as QuantumKeyData).keyMaterial;
 
       const encryptedData = await this.performQuantumEncryption(data, keyMaterial, quantumKey.algorithm);
 
@@ -406,7 +406,7 @@ export class QuantumEncryptionService {
 
     return {
       activeKeys: activeKeys.length,
-      algorithms: [...new Set(activeKeys.map(k => k.algorithm))],
+      algorithms: Array.from(new Set(activeKeys.map(k => k.algorithm))),
       averageEntropy: activeKeys.reduce((sum, k) => sum + k.entropy, 0) / activeKeys.length || 0,
       nextRotation: this.calculateNextRotation(),
       quantumReadiness: this.assessQuantumReadiness(activeKeys)
