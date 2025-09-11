@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { DocumentCardSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
@@ -51,7 +52,156 @@ interface ProcessingOptions {
   enablePOPIACompliance: boolean;
 }
 
-export default function DocumentProcessor() {
+// Memoized document card for better performance
+interface DocumentCardProps {
+  doc: Document;
+  getFileIcon: (mimeType: string) => string;
+  formatFileSize: (bytes: number) => string;
+  getVerificationBadge: (score?: number, isVerified?: boolean) => JSX.Element;
+}
+
+const MemoizedDocumentCard = memo(({ doc, getFileIcon, formatFileSize, getVerificationBadge }: DocumentCardProps) => {
+  return (
+    <div
+      className="p-4 bg-muted/30 rounded-lg border border-muted"
+      data-testid={`document-${doc.id}`}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start space-x-3">
+          <span className="text-2xl">{getFileIcon(doc.mimeType)}</span>
+          <div>
+            <div className="font-medium">{doc.filename}</div>
+            <div className="text-sm text-muted-foreground">
+              {formatFileSize(doc.size)} • {new Date(doc.createdAt).toLocaleString()}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          {doc.isEncrypted && (
+            <Badge className="bg-quantum/20 text-quantum border-quantum">
+              🔐 Encrypted
+            </Badge>
+          )}
+          {getVerificationBadge(doc.verificationScore, doc.isVerified)}
+        </div>
+      </div>
+
+      {/* Document Details */}
+      <div className="space-y-2">
+        {doc.ocrConfidence && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">OCR Confidence:</span>
+            <Badge className={
+              doc.ocrConfidence >= 90 ? "security-level-1" :
+              doc.ocrConfidence >= 70 ? "security-level-2" : "security-level-3"
+            }>
+              {doc.ocrConfidence}%
+            </Badge>
+          </div>
+        )}
+        
+        {doc.verificationScore && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Verification Score:</span>
+            <Badge className={
+              doc.verificationScore >= 90 ? "security-level-1" :
+              doc.verificationScore >= 70 ? "security-level-2" : "security-level-3"
+            }>
+              {doc.verificationScore}%
+            </Badge>
+          </div>
+        )}
+
+        {doc.extractedFields && Object.keys(doc.extractedFields).length > 0 && (
+          <div className="mt-3">
+            <div className="text-sm font-medium mb-2">Extracted Fields:</div>
+            <div className="grid grid-cols-1 gap-2">
+              {Object.entries(doc.extractedFields).slice(0, 3).map(([key, value]) => (
+                <div key={key} className="flex justify-between text-sm bg-muted/50 p-2 rounded">
+                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                  <span className="text-muted-foreground truncate ml-2">{String(value)}</span>
+                </div>
+              ))}
+              {Object.keys(doc.extractedFields).length > 3 && (
+                <div className="text-xs text-muted-foreground text-center py-1">
+                  +{Object.keys(doc.extractedFields).length - 3} more fields
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* SA Validation Results */}
+        {doc.saValidationResult && (
+          <div className="mt-3 p-3 bg-muted/50 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">SA Document Validation</span>
+              <Badge className={
+                doc.saValidationResult.isValidSADocument 
+                  ? "security-level-1" 
+                  : "security-level-3"
+              }>
+                {doc.saValidationResult.isValidSADocument ? "VALID" : "INVALID"}
+              </Badge>
+            </div>
+            
+            {doc.saValidationResult.isValidSADocument && (
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Document Category:</span>
+                  <span className="capitalize">{doc.saValidationResult.documentCategory.replace(/_/g, ' ')}</span>
+                </div>
+                {doc.saValidationResult.permitNumber && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Permit Number:</span>
+                    <span className="font-mono">{doc.saValidationResult.permitNumber}</span>
+                  </div>
+                )}
+                {doc.saValidationResult.expiryDate && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Expiry Date:</span>
+                    <span>{doc.saValidationResult.expiryDate}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Compliance Score:</span>
+                  <Badge className={
+                    doc.saValidationResult.complianceScore >= 90 ? "security-level-1" :
+                    doc.saValidationResult.complianceScore >= 70 ? "security-level-2" : "security-level-3"
+                  }>
+                    {doc.saValidationResult.complianceScore}%
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+            {doc.saValidationResult.validationErrors.length > 0 && (
+              <div className="mt-2">
+                <div className="text-sm font-medium text-alert mb-1">Validation Errors:</div>
+                <div className="space-y-1">
+                  {doc.saValidationResult.validationErrors.slice(0, 2).map((error, index) => (
+                    <div key={index} className="text-xs text-muted-foreground bg-alert/10 p-2 rounded">
+                      {error}
+                    </div>
+                  ))}
+                  {doc.saValidationResult.validationErrors.length > 2 && (
+                    <div className="text-xs text-muted-foreground text-center py-1">
+                      +{doc.saValidationResult.validationErrors.length - 2} more errors
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+MemoizedDocumentCard.displayName = 'MemoizedDocumentCard';
+
+function DocumentProcessor() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>({
     performOCR: true,
@@ -73,15 +223,17 @@ export default function DocumentProcessor() {
   const { socket } = useWebSocket();
   const queryClient = useQueryClient();
 
-  // Get user documents
+  // Get user documents with optimized caching
   const { data: documents = [], isLoading } = useQuery({
     queryKey: ["/api/documents"],
-    queryFn: () => api.get<Document[]>("/api/documents")
+    queryFn: () => api.get<Document[]>("/api/documents"),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
   });
 
-  // Document upload mutation
+  // Document upload mutation with optimized progress tracking
   const uploadMutation = useMutation({
-    mutationFn: (formData: FormData) => {
+    mutationFn: useCallback((formData: FormData) => {
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProcessingProgress(prev => {
@@ -94,7 +246,7 @@ export default function DocumentProcessor() {
       }, 500);
 
       return api.postFormData("/api/documents/upload", formData);
-    },
+    }, []),
     onSuccess: (result) => {
       setProcessingProgress(100);
       setCurrentProcessingDocument(result);
@@ -181,7 +333,7 @@ export default function DocumentProcessor() {
     handleFileSelect(e.target.files);
   }, [handleFileSelect]);
 
-  const processDocument = async () => {
+  const processDocument = useCallback(async () => {
     if (!selectedFile) return;
 
     const formData = new FormData();
@@ -198,24 +350,24 @@ export default function DocumentProcessor() {
 
     setProcessingProgress(5);
     uploadMutation.mutate(formData);
-  };
+  }, [selectedFile, processingOptions, uploadMutation]);
 
-  const getFileIcon = (mimeType: string) => {
+  const getFileIcon = useCallback((mimeType: string) => {
     if (mimeType.includes('pdf')) return '📄';
     if (mimeType.includes('image')) return '🖼️';
     if (mimeType.includes('word')) return '📝';
     return '📎';
-  };
+  }, []);
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = useCallback((bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  }, []);
 
-  const getVerificationBadge = (score?: number, isVerified?: boolean) => {
+  const getVerificationBadge = useCallback((score?: number, isVerified?: boolean) => {
     if (!isVerified || score === undefined) {
       return <Badge variant="outline">Not Verified</Badge>;
     }
@@ -223,7 +375,7 @@ export default function DocumentProcessor() {
     if (score >= 90) return <Badge className="security-level-1">VERIFIED</Badge>;
     if (score >= 70) return <Badge className="security-level-2">PARTIAL</Badge>;
     return <Badge className="security-level-3">FAILED</Badge>;
-  };
+  }, []);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -279,7 +431,7 @@ export default function DocumentProcessor() {
             </div>
           </div>
 
-          {/* Processing Options */}
+          {/* Processing Options - Memoized */}
           <Tabs defaultValue="basic" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic" data-testid="tab-basic-options">Basic Options</TabsTrigger>
@@ -502,17 +654,21 @@ export default function DocumentProcessor() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="loading-spinner w-6 h-6" />
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <DocumentCardSkeleton key={i} />
+              ))}
             </div>
           ) : documents.length > 0 ? (
             <div className="space-y-4">
               {documents.map((doc) => (
-                <div
+                <MemoizedDocumentCard
                   key={doc.id}
-                  className="p-4 bg-muted/30 rounded-lg border border-muted"
-                  data-testid={`document-${doc.id}`}
-                >
+                  doc={doc}
+                  getFileIcon={getFileIcon}
+                  formatFileSize={formatFileSize}
+                  getVerificationBadge={getVerificationBadge}
+                />
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start space-x-3">
                       <span className="text-2xl">{getFileIcon(doc.mimeType)}</span>
@@ -615,8 +771,6 @@ export default function DocumentProcessor() {
                       <span>👁️</span>
                       <span className="ml-1">View</span>
                     </Button>
-                  </div>
-                </div>
               ))}
             </div>
           ) : (
@@ -631,3 +785,6 @@ export default function DocumentProcessor() {
     </div>
   );
 }
+
+// Export memoized component for performance
+export default memo(DocumentProcessor);

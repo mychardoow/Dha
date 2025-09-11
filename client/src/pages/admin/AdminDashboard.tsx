@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { api } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/hooks/use-toast";
+import { CardSkeleton, TableSkeleton, ChartSkeleton } from "@/components/ui/skeleton";
 
 interface SystemMetric {
   metricType: string;
@@ -54,57 +55,68 @@ interface SystemHealth {
   integrations: Record<string, { status: string; lastCheck: string }>;
 }
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const { toast } = useToast();
   const { socket, isConnected } = useWebSocket();
 
-  // Fetch system health
+  // Fetch system health with optimized caching
   const { data: systemHealth, isLoading: healthLoading, refetch: refetchHealth } = useQuery<SystemHealth>({
     queryKey: ["/api/monitoring/health"],
     refetchInterval: 30000, // Refetch every 30 seconds
+    staleTime: 15000, // 15 seconds stale time
+    gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // Fetch system metrics
+  // Fetch system metrics with optimized caching
   const { data: metrics, isLoading: metricsLoading } = useQuery<SystemMetric[]>({
     queryKey: ["/api/monitoring/metrics"],
     refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000, // 30 seconds stale time
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
   });
 
-  // Fetch security events
+  // Fetch security events with optimized caching
   const { data: securityEvents, isLoading: eventsLoading } = useQuery<SecurityEvent[]>({
     queryKey: ["/api/security/events", { limit: 10 }],
     refetchInterval: 30000,
+    staleTime: 15000, // 15 seconds stale time
+    gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // Fetch fraud alerts
+  // Fetch fraud alerts with optimized caching
   const { data: fraudAlerts, isLoading: fraudLoading } = useQuery<FraudAlert[]>({
     queryKey: ["/api/fraud/alerts", { resolved: false }],
     refetchInterval: 30000,
+    staleTime: 15000, // 15 seconds stale time
+    gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // WebSocket event handlers
+  // Optimized WebSocket event handlers with useCallback
+  const handleSystemHealth = useCallback(() => {
+    refetchHealth();
+  }, [refetchHealth]);
+
+  const handleSecurityAlert = useCallback((data: any) => {
+    toast({
+      title: "Security Alert",
+      description: `New ${data.severity} security event detected`,
+      variant: data.severity === "high" ? "destructive" : "default",
+    });
+  }, [toast]);
+
   useEffect(() => {
     if (socket && isConnected) {
-      socket.on("system:health", (data) => {
-        refetchHealth();
-      });
-
-      socket.on("security:alert", (data) => {
-        toast({
-          title: "Security Alert",
-          description: `New ${data.severity} security event detected`,
-          variant: data.severity === "high" ? "destructive" : "default",
-        });
-      });
+      socket.on("system:health", handleSystemHealth);
+      socket.on("security:alert", handleSecurityAlert);
 
       return () => {
-        socket.off("system:health");
-        socket.off("security:alert");
+        socket.off("system:health", handleSystemHealth);
+        socket.off("security:alert", handleSecurityAlert);
       };
     }
-  }, [socket, isConnected, refetchHealth, toast]);
+  }, [socket, isConnected, handleSystemHealth, handleSecurityAlert]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status.toLowerCase()) {
       case "healthy":
       case "online":
@@ -118,9 +130,9 @@ export default function AdminDashboard() {
       default:
         return "text-gray-600 bg-gray-50";
     }
-  };
+  }, []);
 
-  const getSeverityColor = (severity: string) => {
+  const getSeverityColor = useCallback((severity: string) => {
     switch (severity.toLowerCase()) {
       case "high":
         return "text-red-600 bg-red-50";
@@ -131,17 +143,25 @@ export default function AdminDashboard() {
       default:
         return "text-gray-600 bg-gray-50";
     }
-  };
+  }, []);
 
-  const formatUptime = (seconds: number) => {
+  const formatUptime = useCallback((seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${days}d ${hours}h ${minutes}m`;
-  };
+  }, []);
 
-  const unresolvedAlertsCount = fraudAlerts?.filter(alert => !alert.isResolved).length || 0;
-  const criticalEventsCount = securityEvents?.filter(event => event.severity === "high").length || 0;
+  // Memoized calculations for performance
+  const unresolvedAlertsCount = useMemo(() => 
+    fraudAlerts?.filter(alert => !alert.isResolved).length || 0, 
+    [fraudAlerts]
+  );
+  
+  const criticalEventsCount = useMemo(() => 
+    securityEvents?.filter(event => event.severity === "high").length || 0, 
+    [securityEvents]
+  );
 
   return (
     <AdminLayout>
@@ -154,7 +174,7 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Status Cards */}
+        {/* Status Cards - Memoized for performance */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card data-testid="card-system-health">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -296,11 +316,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 {eventsLoading ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-                    ))}
-                  </div>
+                  <TableSkeleton rows={5} />
                 ) : securityEvents && securityEvents.length > 0 ? (
                   <div className="space-y-3">
                     {securityEvents.map((event) => (
@@ -343,11 +359,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 {fraudLoading ? (
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-16 bg-muted animate-pulse rounded" />
-                    ))}
-                  </div>
+                  <TableSkeleton rows={3} />
                 ) : fraudAlerts && fraudAlerts.length > 0 ? (
                   <div className="space-y-3">
                     {fraudAlerts.map((alert) => (
@@ -427,3 +439,6 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
+
+// Memoized admin dashboard for better performance
+export default memo(AdminDashboard);
