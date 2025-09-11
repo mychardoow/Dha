@@ -9,6 +9,7 @@ import { documentProcessorService, documentUpload } from "./services/document-pr
 import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
+import { notificationService } from "./services/notification-service";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
 import { 
   insertUserSchema, 
@@ -23,7 +24,11 @@ import {
   dhaIdentityVerificationSchema,
   dhaPassportVerificationSchema,
   dhaBackgroundCheckCreationSchema,
-  dhaApplicationTransitionSchema
+  dhaApplicationTransitionSchema,
+  insertNotificationEventSchema,
+  updateNotificationPreferencesSchema,
+  systemNotificationSchema,
+  criticalAlertSchema
 } from "@shared/schema";
 import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
 import { dhaMRZParser } from "./services/dha-mrz-parser";
@@ -2361,6 +2366,362 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("DHA workflow transition error:", error);
       res.status(500).json({ error: "Workflow transition failed" });
+    }
+  });
+
+  // ===================== NOTIFICATION API ROUTES =====================
+
+  // Get user notifications with optional filtering
+  app.get("/api/notifications", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const { category, priority, isRead, limit, offset } = req.query;
+      
+      const filters: any = {};
+      if (category) filters.category = String(category);
+      if (priority) filters.priority = String(priority);
+      if (isRead !== undefined) filters.isRead = isRead === 'true';
+      if (limit) filters.limit = parseInt(String(limit), 10);
+      if (offset) filters.offset = parseInt(String(offset), 10);
+      
+      const notifications = await notificationService.getNotifications(userId, filters);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ error: "Failed to retrieve notifications" });
+    }
+  });
+
+  // Get unread notification count
+  app.get("/api/notifications/count", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const count = await notificationService.getUnreadCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Get notification count error:", error);
+      res.status(500).json({ error: "Failed to retrieve notification count" });
+    }
+  });
+
+  // Mark notification as read
+  app.post("/api/notifications/:id/read", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user.id;
+      
+      // Verify notification belongs to user
+      const notification = await storage.getNotification(id);
+      if (!notification || notification.userId !== userId) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      
+      await notificationService.markAsRead(id);
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      console.error("Mark notification as read error:", error);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post("/api/notifications/mark-all-read", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      await notificationService.markAllAsRead(userId);
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      console.error("Mark all notifications as read error:", error);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // Archive notification
+  app.post("/api/notifications/:id/archive", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = (req as any).user.id;
+      
+      // Verify notification belongs to user
+      const notification = await storage.getNotification(id);
+      if (!notification || notification.userId !== userId) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      
+      await storage.archiveNotification(id);
+      res.json({ message: "Notification archived" });
+    } catch (error) {
+      console.error("Archive notification error:", error);
+      res.status(500).json({ error: "Failed to archive notification" });
+    }
+  });
+
+  // Get user notification preferences
+  app.get("/api/notifications/preferences", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const preferences = await notificationService.getUserPreferences(userId);
+      res.json(preferences);
+    } catch (error) {
+      console.error("Get notification preferences error:", error);
+      res.status(500).json({ error: "Failed to retrieve notification preferences" });
+    }
+  });
+
+  // Update user notification preferences
+  app.patch("/api/notifications/preferences", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const updates = updateNotificationPreferencesSchema.parse(req.body);
+      
+      await notificationService.updateUserPreferences(userId, updates);
+      res.json({ message: "Notification preferences updated" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid preferences data", details: error.errors });
+      }
+      console.error("Update notification preferences error:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
+  // Create notification (admin only)
+  app.post("/api/notifications", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const adminId = (req as any).user.id;
+      const notificationData = insertNotificationEventSchema.parse(req.body);
+      
+      const notification = await notificationService.createNotification({
+        ...notificationData,
+        createdBy: adminId
+      });
+      
+      res.status(201).json(notification);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid notification data", details: error.errors });
+      }
+      console.error("Create notification error:", error);
+      res.status(500).json({ error: "Failed to create notification" });
+    }
+  });
+
+  // Send system-wide notification (admin only)
+  app.post("/api/notifications/system", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const adminId = (req as any).user.id;
+      const validatedData = systemNotificationSchema.parse(req.body);
+      const { targetRole, ...notificationData } = validatedData;
+      
+      const notifications = await notificationService.sendSystemNotification(
+        { ...notificationData, createdBy: adminId },
+        targetRole
+      );
+      
+      res.status(201).json({ 
+        message: `Sent ${notifications.length} notifications`,
+        notifications: notifications.length 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid notification data", details: error.errors });
+      }
+      console.error("Send system notification error:", error);
+      res.status(500).json({ error: "Failed to send system notification" });
+    }
+  });
+
+  // Send critical alert (admin only)
+  app.post("/api/notifications/critical", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const adminId = (req as any).user.id;
+      const validatedData = criticalAlertSchema.parse(req.body);
+      
+      // Set critical alert properties
+      const notificationData = {
+        ...validatedData,
+        priority: "critical" as const,
+        category: "security" as const
+      };
+      
+      const notification = await notificationService.sendCriticalAlert({
+        ...notificationData,
+        createdBy: adminId
+      });
+      
+      res.status(201).json(notification);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid alert data", details: error.errors });
+      }
+      console.error("Send critical alert error:", error);
+      res.status(500).json({ error: "Failed to send critical alert" });
+    }
+  });
+
+  // ===================== STATUS UPDATE API ROUTES =====================
+
+  // Get status updates for an entity
+  app.get("/api/status/:entityType/:entityId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const { limit } = req.query;
+      
+      const statusUpdates = await storage.getStatusUpdates({
+        entityType,
+        entityId,
+        isPublic: true,
+        limit: limit ? parseInt(String(limit), 10) : 20
+      });
+      
+      res.json(statusUpdates);
+    } catch (error) {
+      console.error("Get status updates error:", error);
+      res.status(500).json({ error: "Failed to retrieve status updates" });
+    }
+  });
+
+  // Get latest status for an entity
+  app.get("/api/status/latest/:entityType/:entityId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { entityType, entityId } = req.params;
+      
+      const latestStatus = await storage.getLatestStatusUpdate(entityType, entityId);
+      res.json(latestStatus);
+    } catch (error) {
+      console.error("Get latest status error:", error);
+      res.status(500).json({ error: "Failed to retrieve latest status" });
+    }
+  });
+
+  // Create status update (admin only)
+  app.post("/api/status", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const adminId = (req as any).user.id;
+      const statusData = req.body;
+      
+      const statusUpdate = await notificationService.createStatusUpdate({
+        ...statusData,
+        updatedBy: adminId
+      });
+      
+      res.status(201).json(statusUpdate);
+    } catch (error) {
+      console.error("Create status update error:", error);
+      res.status(500).json({ error: "Failed to create status update" });
+    }
+  });
+
+  // ===================== CHAT API ROUTES =====================
+
+  // Get user's chat sessions
+  app.get("/api/chat/sessions", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const userRole = (req as any).user.role;
+      
+      let sessions;
+      if (userRole === 'admin') {
+        const { userId: filterUserId } = req.query;
+        sessions = await storage.getChatSessions(filterUserId ? String(filterUserId) : undefined, userId);
+      } else {
+        sessions = await storage.getChatSessions(userId);
+      }
+      
+      res.json(sessions);
+    } catch (error) {
+      console.error("Get chat sessions error:", error);
+      res.status(500).json({ error: "Failed to retrieve chat sessions" });
+    }
+  });
+
+  // Create new chat session
+  app.post("/api/chat/sessions", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const { subject, priority } = req.body;
+      
+      const session = await storage.createChatSession({
+        userId,
+        subject: subject || "Support Request",
+        priority: priority || "medium",
+        sessionType: "support",
+        status: "active"
+      });
+      
+      res.status(201).json(session);
+    } catch (error) {
+      console.error("Create chat session error:", error);
+      res.status(500).json({ error: "Failed to create chat session" });
+    }
+  });
+
+  // Get messages in a chat session
+  app.get("/api/chat/sessions/:sessionId/messages", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const userId = (req as any).user.id;
+      const userRole = (req as any).user.role;
+      
+      // Verify access to session
+      const session = await storage.getChatSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Chat session not found" });
+      }
+      
+      if (userRole !== 'admin' && session.userId !== userId) {
+        return res.status(403).json({ error: "Access denied to chat session" });
+      }
+      
+      const messages = await storage.getChatMessages(sessionId);
+      res.json(messages);
+    } catch (error) {
+      console.error("Get chat messages error:", error);
+      res.status(500).json({ error: "Failed to retrieve chat messages" });
+    }
+  });
+
+  // Send message in chat session
+  app.post("/api/chat/sessions/:sessionId/messages", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const { content, messageType } = req.body;
+      const userId = (req as any).user.id;
+      const userRole = (req as any).user.role;
+      
+      // Verify access to session
+      const session = await storage.getChatSession(sessionId);
+      if (!session) {
+        return res.status(404).json({ error: "Chat session not found" });
+      }
+      
+      if (userRole !== 'admin' && session.userId !== userId) {
+        return res.status(403).json({ error: "Access denied to chat session" });
+      }
+      
+      const message = await storage.createChatMessage({
+        chatSessionId: sessionId,
+        senderId: userId,
+        content,
+        messageType: messageType || "text"
+      });
+      
+      // Send real-time notification via WebSocket
+      const wsService = getWebSocketService();
+      if (wsService) {
+        const targetUserId = userRole === 'admin' ? session.userId : session.adminId;
+        if (targetUserId) {
+          wsService.sendToUser(targetUserId, "chat:new_message", {
+            sessionId,
+            message
+          });
+        }
+      }
+      
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Send chat message error:", error);
+      res.status(500).json({ error: "Failed to send message" });
     }
   });
 

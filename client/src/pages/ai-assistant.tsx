@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import ConversationSidebar from "@/components/chat/conversation-sidebar";
 import ChatArea from "@/components/chat/chat-area";
 import ContextPanel from "@/components/chat/context-panel";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 export default function AIAssistantPage() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -13,7 +13,9 @@ export default function AIAssistantPage() {
 
   const { isConnected, emit, on, off } = useWebSocket({ 
     token: token || undefined,
-    autoConnect: !!token 
+    autoConnect: !!token,
+    enableToasts: false,
+    enableEventHandlers: false
   });
 
   // Fetch conversations
