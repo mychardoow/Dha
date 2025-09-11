@@ -182,12 +182,224 @@ export const permits = pgTable("permits", {
 export const documentTemplates = pgTable("document_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  type: text("type").notNull(), // 'certificate', 'permit'
+  type: text("type").notNull(), // 'certificate', 'permit', 'birth_certificate', 'marriage_certificate', 'passport', 'death_certificate', 'work_permit', 'permanent_visa', 'id_card'
   htmlTemplate: text("html_template").notNull(),
   cssStyles: text("css_styles").notNull(),
   officialLayout: jsonb("official_layout"), // Layout configuration and styling options
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Birth Certificates
+export const birthCertificates = pgTable("birth_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  fullName: text("full_name").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  placeOfBirth: text("place_of_birth").notNull(),
+  motherFullName: text("mother_full_name").notNull(),
+  motherMaidenName: text("mother_maiden_name"),
+  fatherFullName: text("father_full_name").notNull(),
+  registrationNumber: text("registration_number").notNull().unique(),
+  registrationDate: timestamp("registration_date").notNull().default(sql`now()`),
+  issuingAuthority: text("issuing_authority").notNull(),
+  officialSeal: text("official_seal"), // Seal image data or reference
+  watermarkData: text("watermark_data"), // Security watermark information
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"), // Additional security metadata
+  status: text("status").notNull().default("active"), // 'active', 'amended', 'revoked'
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Marriage Certificates
+export const marriageCertificates = pgTable("marriage_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  spouseOneFullName: text("spouse_one_full_name").notNull(),
+  spouseOneDateOfBirth: timestamp("spouse_one_date_of_birth").notNull(),
+  spouseOnePlaceOfBirth: text("spouse_one_place_of_birth").notNull(),
+  spouseTwoFullName: text("spouse_two_full_name").notNull(),
+  spouseTwoDateOfBirth: timestamp("spouse_two_date_of_birth").notNull(),
+  spouseTwoPlaceOfBirth: text("spouse_two_place_of_birth").notNull(),
+  marriageDate: timestamp("marriage_date").notNull(),
+  marriagePlace: text("marriage_place").notNull(),
+  witnessOneName: text("witness_one_name").notNull(),
+  witnessTwoName: text("witness_two_name").notNull(),
+  officiantName: text("officiant_name").notNull(),
+  licenseNumber: text("license_number").notNull().unique(),
+  registrationNumber: text("registration_number").notNull().unique(),
+  issuingAuthority: text("issuing_authority").notNull(),
+  officialSignatures: jsonb("official_signatures"), // Signatures data
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Passports
+export const passports = pgTable("passports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  passportNumber: text("passport_number").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  placeOfBirth: text("place_of_birth").notNull(),
+  nationality: text("nationality").notNull(),
+  sex: text("sex").notNull(),
+  height: text("height"),
+  eyeColor: text("eye_color"),
+  issueDate: timestamp("issue_date").notNull().default(sql`now()`),
+  expiryDate: timestamp("expiry_date").notNull(),
+  issuingAuthority: text("issuing_authority").notNull(),
+  placeOfIssue: text("place_of_issue").notNull(),
+  photoUrl: text("photo_url"), // Passport photo reference
+  signatureUrl: text("signature_url"), // Signature reference
+  machineReadableZone: text("machine_readable_zone"), // MRZ data
+  rfidChipData: text("rfid_chip_data"), // Simulated chip data
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Death Certificates
+export const deathCertificates = pgTable("death_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deceasedFullName: text("deceased_full_name").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  dateOfDeath: timestamp("date_of_death").notNull(),
+  placeOfDeath: text("place_of_death").notNull(),
+  causeOfDeath: text("cause_of_death").notNull(),
+  mannerOfDeath: text("manner_of_death"), // natural, accident, suicide, homicide, undetermined
+  certifyingPhysician: text("certifying_physician").notNull(),
+  medicalExaminerSignature: text("medical_examiner_signature"),
+  registrationNumber: text("registration_number").notNull().unique(),
+  registrationDate: timestamp("registration_date").notNull().default(sql`now()`),
+  issuingAuthority: text("issuing_authority").notNull(),
+  informantName: text("informant_name"), // Person who reported death
+  relationshipToDeceased: text("relationship_to_deceased"),
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Work Permits
+export const workPermits = pgTable("work_permits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  employeeFullName: text("employee_full_name").notNull(),
+  employeeNationality: text("employee_nationality").notNull(),
+  employeePassportNumber: text("employee_passport_number").notNull(),
+  employerName: text("employer_name").notNull(),
+  employerAddress: text("employer_address").notNull(),
+  jobTitle: text("job_title").notNull(),
+  jobDescription: text("job_description"),
+  workLocation: text("work_location").notNull(),
+  permitNumber: text("permit_number").notNull().unique(),
+  issueDate: timestamp("issue_date").notNull().default(sql`now()`),
+  validFrom: timestamp("valid_from").notNull(),
+  validUntil: timestamp("valid_until").notNull(),
+  workRestrictions: jsonb("work_restrictions"), // Array of restrictions
+  issuingAuthority: text("issuing_authority").notNull(),
+  sponsorDetails: jsonb("sponsor_details"), // Sponsor information
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Permanent Visas
+export const permanentVisas = pgTable("permanent_visas", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  holderFullName: text("holder_full_name").notNull(),
+  holderNationality: text("holder_nationality").notNull(),
+  holderPassportNumber: text("holder_passport_number").notNull(),
+  visaType: text("visa_type").notNull(), // family, employment, investment, refugee, etc.
+  visaCategory: text("visa_category").notNull(),
+  visaNumber: text("visa_number").notNull().unique(),
+  issueDate: timestamp("issue_date").notNull().default(sql`now()`),
+  validFrom: timestamp("valid_from").notNull(),
+  expiryDate: timestamp("expiry_date"),
+  countryOfIssue: text("country_of_issue").notNull(),
+  issuingAuthority: text("issuing_authority").notNull(),
+  portOfEntry: text("port_of_entry"),
+  immigrationStamps: jsonb("immigration_stamps"), // Entry/exit stamps
+  sponsorInformation: jsonb("sponsor_information"),
+  photoUrl: text("photo_url"),
+  fingerprintData: text("fingerprint_data"), // Biometric data reference
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// ID Cards
+export const idCards = pgTable("id_cards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  idNumber: text("id_number").notNull().unique(),
+  fullName: text("full_name").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  placeOfBirth: text("place_of_birth").notNull(),
+  sex: text("sex").notNull(),
+  nationality: text("nationality").notNull(),
+  address: text("address").notNull(),
+  issueDate: timestamp("issue_date").notNull().default(sql`now()`),
+  expiryDate: timestamp("expiry_date").notNull(),
+  issuingAuthority: text("issuing_authority").notNull(),
+  photoUrl: text("photo_url"),
+  signatureUrl: text("signature_url"),
+  rfidChipData: text("rfid_chip_data"), // Simulated chip data
+  parentNames: text("parent_names"), // Combined parent information
+  emergencyContact: jsonb("emergency_contact"),
+  verificationCode: text("verification_code").notNull().unique(),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  securityFeatures: jsonb("security_features"),
+  status: text("status").notNull().default("active"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Document Verification Audit Trail
+export const documentVerifications = pgTable("document_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentType: text("document_type").notNull(), // 'birth_certificate', 'passport', etc.
+  documentId: varchar("document_id").notNull(), // Reference to specific document
+  verificationCode: text("verification_code").notNull(),
+  verifierIpAddress: text("verifier_ip_address"),
+  verifierUserAgent: text("verifier_user_agent"),
+  verificationResult: text("verification_result").notNull(), // 'valid', 'invalid', 'expired', 'revoked'
+  verificationDetails: jsonb("verification_details"), // Additional verification data
+  verifiedAt: timestamp("verified_at").notNull().default(sql`now()`),
 });
 
 // Insert schemas
@@ -266,6 +478,45 @@ export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates
   createdAt: true,
 });
 
+export const insertBirthCertificateSchema = createInsertSchema(birthCertificates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMarriageCertificateSchema = createInsertSchema(marriageCertificates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPassportSchema = createInsertSchema(passports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDeathCertificateSchema = createInsertSchema(deathCertificates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWorkPermitSchema = createInsertSchema(workPermits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPermanentVisaSchema = createInsertSchema(permanentVisas).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertIdCardSchema = createInsertSchema(idCards).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentVerificationSchema = createInsertSchema(documentVerifications).omit({
+  id: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -308,3 +559,27 @@ export type InsertPermit = z.infer<typeof insertPermitSchema>;
 
 export type DocumentTemplate = typeof documentTemplates.$inferSelect;
 export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
+
+export type BirthCertificate = typeof birthCertificates.$inferSelect;
+export type InsertBirthCertificate = z.infer<typeof insertBirthCertificateSchema>;
+
+export type MarriageCertificate = typeof marriageCertificates.$inferSelect;
+export type InsertMarriageCertificate = z.infer<typeof insertMarriageCertificateSchema>;
+
+export type Passport = typeof passports.$inferSelect;
+export type InsertPassport = z.infer<typeof insertPassportSchema>;
+
+export type DeathCertificate = typeof deathCertificates.$inferSelect;
+export type InsertDeathCertificate = z.infer<typeof insertDeathCertificateSchema>;
+
+export type WorkPermit = typeof workPermits.$inferSelect;
+export type InsertWorkPermit = z.infer<typeof insertWorkPermitSchema>;
+
+export type PermanentVisa = typeof permanentVisas.$inferSelect;
+export type InsertPermanentVisa = z.infer<typeof insertPermanentVisaSchema>;
+
+export type IdCard = typeof idCards.$inferSelect;
+export type InsertIdCard = z.infer<typeof insertIdCardSchema>;
+
+export type DocumentVerification = typeof documentVerifications.$inferSelect;
+export type InsertDocumentVerification = z.infer<typeof insertDocumentVerificationSchema>;

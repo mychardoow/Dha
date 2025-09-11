@@ -1,4 +1,17 @@
-import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, type Certificate, type InsertCertificate, type Permit, type InsertPermit, type DocumentTemplate, type InsertDocumentTemplate, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, biometricProfiles, apiKeys, certificates, permits, documentTemplates } from "@shared/schema";
+import { 
+  type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, 
+  type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, 
+  type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, 
+  type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, type Certificate, type InsertCertificate, 
+  type Permit, type InsertPermit, type DocumentTemplate, type InsertDocumentTemplate,
+  type BirthCertificate, type InsertBirthCertificate, type MarriageCertificate, type InsertMarriageCertificate,
+  type Passport, type InsertPassport, type DeathCertificate, type InsertDeathCertificate,
+  type WorkPermit, type InsertWorkPermit, type PermanentVisa, type InsertPermanentVisa,
+  type IdCard, type InsertIdCard, type DocumentVerification, type InsertDocumentVerification,
+  users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
+  biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
+  passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications
+} from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
@@ -95,9 +108,63 @@ export interface IStorage {
 
   // Document template methods
   getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
-  getDocumentTemplates(type?: 'certificate' | 'permit'): Promise<DocumentTemplate[]>;
+  getDocumentTemplates(type?: 'certificate' | 'permit' | 'birth_certificate' | 'marriage_certificate' | 'passport' | 'death_certificate' | 'work_permit' | 'permanent_visa' | 'id_card'): Promise<DocumentTemplate[]>;
   createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
   updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<void>;
+
+  // Birth certificate methods
+  getBirthCertificate(id: string): Promise<BirthCertificate | undefined>;
+  getBirthCertificates(userId: string): Promise<BirthCertificate[]>;
+  getBirthCertificateByVerificationCode(verificationCode: string): Promise<BirthCertificate | undefined>;
+  createBirthCertificate(certificate: InsertBirthCertificate): Promise<BirthCertificate>;
+  updateBirthCertificate(id: string, updates: Partial<BirthCertificate>): Promise<void>;
+
+  // Marriage certificate methods
+  getMarriageCertificate(id: string): Promise<MarriageCertificate | undefined>;
+  getMarriageCertificates(userId: string): Promise<MarriageCertificate[]>;
+  getMarriageCertificateByVerificationCode(verificationCode: string): Promise<MarriageCertificate | undefined>;
+  createMarriageCertificate(certificate: InsertMarriageCertificate): Promise<MarriageCertificate>;
+  updateMarriageCertificate(id: string, updates: Partial<MarriageCertificate>): Promise<void>;
+
+  // Passport methods
+  getPassport(id: string): Promise<Passport | undefined>;
+  getPassports(userId: string): Promise<Passport[]>;
+  getPassportByVerificationCode(verificationCode: string): Promise<Passport | undefined>;
+  createPassport(passport: InsertPassport): Promise<Passport>;
+  updatePassport(id: string, updates: Partial<Passport>): Promise<void>;
+
+  // Death certificate methods
+  getDeathCertificate(id: string): Promise<DeathCertificate | undefined>;
+  getDeathCertificates(userId: string): Promise<DeathCertificate[]>;
+  getDeathCertificateByVerificationCode(verificationCode: string): Promise<DeathCertificate | undefined>;
+  createDeathCertificate(certificate: InsertDeathCertificate): Promise<DeathCertificate>;
+  updateDeathCertificate(id: string, updates: Partial<DeathCertificate>): Promise<void>;
+
+  // Work permit methods
+  getWorkPermit(id: string): Promise<WorkPermit | undefined>;
+  getWorkPermits(userId: string): Promise<WorkPermit[]>;
+  getWorkPermitByVerificationCode(verificationCode: string): Promise<WorkPermit | undefined>;
+  createWorkPermit(permit: InsertWorkPermit): Promise<WorkPermit>;
+  updateWorkPermit(id: string, updates: Partial<WorkPermit>): Promise<void>;
+
+  // Permanent visa methods
+  getPermanentVisa(id: string): Promise<PermanentVisa | undefined>;
+  getPermanentVisas(userId: string): Promise<PermanentVisa[]>;
+  getPermanentVisaByVerificationCode(verificationCode: string): Promise<PermanentVisa | undefined>;
+  createPermanentVisa(visa: InsertPermanentVisa): Promise<PermanentVisa>;
+  updatePermanentVisa(id: string, updates: Partial<PermanentVisa>): Promise<void>;
+
+  // ID card methods
+  getIdCard(id: string): Promise<IdCard | undefined>;
+  getIdCards(userId: string): Promise<IdCard[]>;
+  getIdCardByVerificationCode(verificationCode: string): Promise<IdCard | undefined>;
+  createIdCard(idCard: InsertIdCard): Promise<IdCard>;
+  updateIdCard(id: string, updates: Partial<IdCard>): Promise<void>;
+
+  // Document verification methods
+  getDocumentVerification(id: string): Promise<DocumentVerification | undefined>;
+  getDocumentVerifications(documentType?: string, documentId?: string): Promise<DocumentVerification[]>;
+  createDocumentVerification(verification: InsertDocumentVerification): Promise<DocumentVerification>;
 }
 
 export class MemStorage implements IStorage {
@@ -115,6 +182,14 @@ export class MemStorage implements IStorage {
   private certificates: Map<string, Certificate>;
   private permits: Map<string, Permit>;
   private documentTemplates: Map<string, DocumentTemplate>;
+  private birthCertificates: Map<string, BirthCertificate>;
+  private marriageCertificates: Map<string, MarriageCertificate>;
+  private passports: Map<string, Passport>;
+  private deathCertificates: Map<string, DeathCertificate>;
+  private workPermits: Map<string, WorkPermit>;
+  private permanentVisas: Map<string, PermanentVisa>;
+  private idCards: Map<string, IdCard>;
+  private documentVerifications: Map<string, DocumentVerification>;
 
   constructor() {
     this.users = new Map();
@@ -131,6 +206,14 @@ export class MemStorage implements IStorage {
     this.certificates = new Map();
     this.permits = new Map();
     this.documentTemplates = new Map();
+    this.birthCertificates = new Map();
+    this.marriageCertificates = new Map();
+    this.passports = new Map();
+    this.deathCertificates = new Map();
+    this.workPermits = new Map();
+    this.permanentVisas = new Map();
+    this.idCards = new Map();
+    this.documentVerifications = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -676,6 +759,306 @@ export class MemStorage implements IStorage {
     if (template) {
       this.documentTemplates.set(id, { ...template, ...updates });
     }
+  }
+
+  // Birth certificate methods
+  async getBirthCertificate(id: string): Promise<BirthCertificate | undefined> {
+    return this.birthCertificates.get(id);
+  }
+
+  async getBirthCertificates(userId: string): Promise<BirthCertificate[]> {
+    return Array.from(this.birthCertificates.values())
+      .filter(cert => cert.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getBirthCertificateByVerificationCode(verificationCode: string): Promise<BirthCertificate | undefined> {
+    return Array.from(this.birthCertificates.values())
+      .find(cert => cert.verificationCode === verificationCode);
+  }
+
+  async createBirthCertificate(insertCertificate: InsertBirthCertificate): Promise<BirthCertificate> {
+    const id = randomUUID();
+    const certificate: BirthCertificate = {
+      ...insertCertificate,
+      id,
+      registrationDate: insertCertificate.registrationDate || new Date(),
+      watermarkData: insertCertificate.watermarkData || null,
+      officialSeal: insertCertificate.officialSeal || null,
+      createdAt: new Date()
+    };
+    this.birthCertificates.set(id, certificate);
+    return certificate;
+  }
+
+  async updateBirthCertificate(id: string, updates: Partial<BirthCertificate>): Promise<void> {
+    const certificate = this.birthCertificates.get(id);
+    if (certificate) {
+      this.birthCertificates.set(id, { ...certificate, ...updates });
+    }
+  }
+
+  // Marriage certificate methods
+  async getMarriageCertificate(id: string): Promise<MarriageCertificate | undefined> {
+    return this.marriageCertificates.get(id);
+  }
+
+  async getMarriageCertificates(userId: string): Promise<MarriageCertificate[]> {
+    return Array.from(this.marriageCertificates.values())
+      .filter(cert => cert.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getMarriageCertificateByVerificationCode(verificationCode: string): Promise<MarriageCertificate | undefined> {
+    return Array.from(this.marriageCertificates.values())
+      .find(cert => cert.verificationCode === verificationCode);
+  }
+
+  async createMarriageCertificate(insertCertificate: InsertMarriageCertificate): Promise<MarriageCertificate> {
+    const id = randomUUID();
+    const certificate: MarriageCertificate = {
+      ...insertCertificate,
+      id,
+      officialSignatures: insertCertificate.officialSignatures || null,
+      createdAt: new Date()
+    };
+    this.marriageCertificates.set(id, certificate);
+    return certificate;
+  }
+
+  async updateMarriageCertificate(id: string, updates: Partial<MarriageCertificate>): Promise<void> {
+    const certificate = this.marriageCertificates.get(id);
+    if (certificate) {
+      this.marriageCertificates.set(id, { ...certificate, ...updates });
+    }
+  }
+
+  // Passport methods
+  async getPassport(id: string): Promise<Passport | undefined> {
+    return this.passports.get(id);
+  }
+
+  async getPassports(userId: string): Promise<Passport[]> {
+    return Array.from(this.passports.values())
+      .filter(passport => passport.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPassportByVerificationCode(verificationCode: string): Promise<Passport | undefined> {
+    return Array.from(this.passports.values())
+      .find(passport => passport.verificationCode === verificationCode);
+  }
+
+  async createPassport(insertPassport: InsertPassport): Promise<Passport> {
+    const id = randomUUID();
+    const passport: Passport = {
+      ...insertPassport,
+      id,
+      issueDate: insertPassport.issueDate || new Date(),
+      height: insertPassport.height || null,
+      eyeColor: insertPassport.eyeColor || null,
+      photoUrl: insertPassport.photoUrl || null,
+      signatureUrl: insertPassport.signatureUrl || null,
+      machineReadableZone: insertPassport.machineReadableZone || null,
+      rfidChipData: insertPassport.rfidChipData || null,
+      createdAt: new Date()
+    };
+    this.passports.set(id, passport);
+    return passport;
+  }
+
+  async updatePassport(id: string, updates: Partial<Passport>): Promise<void> {
+    const passport = this.passports.get(id);
+    if (passport) {
+      this.passports.set(id, { ...passport, ...updates });
+    }
+  }
+
+  // Death certificate methods
+  async getDeathCertificate(id: string): Promise<DeathCertificate | undefined> {
+    return this.deathCertificates.get(id);
+  }
+
+  async getDeathCertificates(userId: string): Promise<DeathCertificate[]> {
+    return Array.from(this.deathCertificates.values())
+      .filter(cert => cert.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getDeathCertificateByVerificationCode(verificationCode: string): Promise<DeathCertificate | undefined> {
+    return Array.from(this.deathCertificates.values())
+      .find(cert => cert.verificationCode === verificationCode);
+  }
+
+  async createDeathCertificate(insertCertificate: InsertDeathCertificate): Promise<DeathCertificate> {
+    const id = randomUUID();
+    const certificate: DeathCertificate = {
+      ...insertCertificate,
+      id,
+      registrationDate: insertCertificate.registrationDate || new Date(),
+      mannerOfDeath: insertCertificate.mannerOfDeath || null,
+      medicalExaminerSignature: insertCertificate.medicalExaminerSignature || null,
+      informantName: insertCertificate.informantName || null,
+      relationshipToDeceased: insertCertificate.relationshipToDeceased || null,
+      createdAt: new Date()
+    };
+    this.deathCertificates.set(id, certificate);
+    return certificate;
+  }
+
+  async updateDeathCertificate(id: string, updates: Partial<DeathCertificate>): Promise<void> {
+    const certificate = this.deathCertificates.get(id);
+    if (certificate) {
+      this.deathCertificates.set(id, { ...certificate, ...updates });
+    }
+  }
+
+  // Work permit methods
+  async getWorkPermit(id: string): Promise<WorkPermit | undefined> {
+    return this.workPermits.get(id);
+  }
+
+  async getWorkPermits(userId: string): Promise<WorkPermit[]> {
+    return Array.from(this.workPermits.values())
+      .filter(permit => permit.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getWorkPermitByVerificationCode(verificationCode: string): Promise<WorkPermit | undefined> {
+    return Array.from(this.workPermits.values())
+      .find(permit => permit.verificationCode === verificationCode);
+  }
+
+  async createWorkPermit(insertPermit: InsertWorkPermit): Promise<WorkPermit> {
+    const id = randomUUID();
+    const permit: WorkPermit = {
+      ...insertPermit,
+      id,
+      issueDate: insertPermit.issueDate || new Date(),
+      jobDescription: insertPermit.jobDescription || null,
+      workRestrictions: insertPermit.workRestrictions || null,
+      sponsorDetails: insertPermit.sponsorDetails || null,
+      createdAt: new Date()
+    };
+    this.workPermits.set(id, permit);
+    return permit;
+  }
+
+  async updateWorkPermit(id: string, updates: Partial<WorkPermit>): Promise<void> {
+    const permit = this.workPermits.get(id);
+    if (permit) {
+      this.workPermits.set(id, { ...permit, ...updates });
+    }
+  }
+
+  // Permanent visa methods
+  async getPermanentVisa(id: string): Promise<PermanentVisa | undefined> {
+    return this.permanentVisas.get(id);
+  }
+
+  async getPermanentVisas(userId: string): Promise<PermanentVisa[]> {
+    return Array.from(this.permanentVisas.values())
+      .filter(visa => visa.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPermanentVisaByVerificationCode(verificationCode: string): Promise<PermanentVisa | undefined> {
+    return Array.from(this.permanentVisas.values())
+      .find(visa => visa.verificationCode === verificationCode);
+  }
+
+  async createPermanentVisa(insertVisa: InsertPermanentVisa): Promise<PermanentVisa> {
+    const id = randomUUID();
+    const visa: PermanentVisa = {
+      ...insertVisa,
+      id,
+      issueDate: insertVisa.issueDate || new Date(),
+      expiryDate: insertVisa.expiryDate || null,
+      portOfEntry: insertVisa.portOfEntry || null,
+      immigrationStamps: insertVisa.immigrationStamps || null,
+      sponsorInformation: insertVisa.sponsorInformation || null,
+      photoUrl: insertVisa.photoUrl || null,
+      fingerprintData: insertVisa.fingerprintData || null,
+      createdAt: new Date()
+    };
+    this.permanentVisas.set(id, visa);
+    return visa;
+  }
+
+  async updatePermanentVisa(id: string, updates: Partial<PermanentVisa>): Promise<void> {
+    const visa = this.permanentVisas.get(id);
+    if (visa) {
+      this.permanentVisas.set(id, { ...visa, ...updates });
+    }
+  }
+
+  // ID card methods
+  async getIdCard(id: string): Promise<IdCard | undefined> {
+    return this.idCards.get(id);
+  }
+
+  async getIdCards(userId: string): Promise<IdCard[]> {
+    return Array.from(this.idCards.values())
+      .filter(card => card.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getIdCardByVerificationCode(verificationCode: string): Promise<IdCard | undefined> {
+    return Array.from(this.idCards.values())
+      .find(card => card.verificationCode === verificationCode);
+  }
+
+  async createIdCard(insertCard: InsertIdCard): Promise<IdCard> {
+    const id = randomUUID();
+    const card: IdCard = {
+      ...insertCard,
+      id,
+      issueDate: insertCard.issueDate || new Date(),
+      photoUrl: insertCard.photoUrl || null,
+      signatureUrl: insertCard.signatureUrl || null,
+      rfidChipData: insertCard.rfidChipData || null,
+      parentNames: insertCard.parentNames || null,
+      emergencyContact: insertCard.emergencyContact || null,
+      createdAt: new Date()
+    };
+    this.idCards.set(id, card);
+    return card;
+  }
+
+  async updateIdCard(id: string, updates: Partial<IdCard>): Promise<void> {
+    const card = this.idCards.get(id);
+    if (card) {
+      this.idCards.set(id, { ...card, ...updates });
+    }
+  }
+
+  // Document verification methods
+  async getDocumentVerification(id: string): Promise<DocumentVerification | undefined> {
+    return this.documentVerifications.get(id);
+  }
+
+  async getDocumentVerifications(documentType?: string, documentId?: string): Promise<DocumentVerification[]> {
+    return Array.from(this.documentVerifications.values())
+      .filter(verification => {
+        if (documentType && verification.documentType !== documentType) return false;
+        if (documentId && verification.documentId !== documentId) return false;
+        return true;
+      })
+      .sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime());
+  }
+
+  async createDocumentVerification(insertVerification: InsertDocumentVerification): Promise<DocumentVerification> {
+    const id = randomUUID();
+    const verification: DocumentVerification = {
+      ...insertVerification,
+      id,
+      verifierIpAddress: insertVerification.verifierIpAddress || null,
+      verifierUserAgent: insertVerification.verifierUserAgent || null,
+      verificationDetails: insertVerification.verificationDetails || null,
+      verifiedAt: insertVerification.verifiedAt || new Date()
+    };
+    this.documentVerifications.set(id, verification);
+    return verification;
   }
 }
 

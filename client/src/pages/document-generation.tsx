@@ -15,40 +15,150 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { FileText, Download, Eye, Shield, CheckCircle, QrCode, Calendar, User, Hash } from "lucide-react";
+import { 
+  FileText, Download, Eye, Shield, CheckCircle, QrCode, Calendar, User, Hash,
+  Baby, Heart, Plane, Skull, Briefcase, CreditCard, UserCheck, Search
+} from "lucide-react";
 
+// ==================== FORM SCHEMAS ====================
+
+const birthCertificateSchema = z.object({
+  childFullName: z.string().min(1, "Child's full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  placeOfBirth: z.string().min(1, "Place of birth is required"),
+  sex: z.enum(["male", "female", "other"]),
+  motherFullName: z.string().min(1, "Mother's full name is required"),
+  motherAge: z.number().min(1).optional(),
+  fatherFullName: z.string().min(1, "Father's full name is required"),
+  fatherAge: z.number().min(1).optional(),
+  attendantType: z.string().optional(),
+  attendantName: z.string().optional()
+});
+
+const marriageCertificateSchema = z.object({
+  partner1FullName: z.string().min(1, "Partner 1 full name is required"),
+  partner1Age: z.number().min(18, "Must be at least 18 years old"),
+  partner1Occupation: z.string().optional(),
+  partner2FullName: z.string().min(1, "Partner 2 full name is required"),
+  partner2Age: z.number().min(18, "Must be at least 18 years old"),
+  partner2Occupation: z.string().optional(),
+  marriageDate: z.string().min(1, "Marriage date is required"),
+  marriagePlace: z.string().min(1, "Marriage place is required"),
+  officiantName: z.string().min(1, "Officiant name is required"),
+  witness1Name: z.string().optional(),
+  witness2Name: z.string().optional()
+});
+
+const passportSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  placeOfBirth: z.string().min(1, "Place of birth is required"),
+  sex: z.enum(["M", "F", "X"]),
+  nationality: z.string().min(1, "Nationality is required"),
+  height: z.string().optional(),
+  eyeColor: z.string().optional(),
+  expiryDate: z.string().min(1, "Expiry date is required")
+});
+
+const deathCertificateSchema = z.object({
+  deceasedFullName: z.string().min(1, "Deceased full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  dateOfDeath: z.string().min(1, "Date of death is required"),
+  placeOfDeath: z.string().min(1, "Place of death is required"),
+  causeOfDeath: z.string().min(1, "Cause of death is required"),
+  mannerOfDeath: z.string().optional(),
+  certifyingPhysician: z.string().min(1, "Certifying physician is required"),
+  informantName: z.string().optional(),
+  relationshipToDeceased: z.string().optional()
+});
+
+const workPermitSchema = z.object({
+  employeeFullName: z.string().min(1, "Employee full name is required"),
+  employeeNationality: z.string().min(1, "Employee nationality is required"),
+  employeePassportNumber: z.string().min(1, "Employee passport number is required"),
+  employerName: z.string().min(1, "Employer name is required"),
+  jobTitle: z.string().min(1, "Job title is required"),
+  workLocation: z.string().min(1, "Work location is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required"),
+  jobDescription: z.string().optional()
+});
+
+const permanentVisaSchema = z.object({
+  holderFullName: z.string().min(1, "Holder full name is required"),
+  holderNationality: z.string().min(1, "Holder nationality is required"),
+  holderPassportNumber: z.string().min(1, "Holder passport number is required"),
+  visaType: z.string().min(1, "Visa type is required"),
+  visaCategory: z.string().min(1, "Visa category is required"),
+  countryOfIssue: z.string().min(1, "Country of issue is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  expiryDate: z.string().optional(),
+  portOfEntry: z.string().optional()
+});
+
+const idCardSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  sex: z.enum(["M", "F", "X"]),
+  nationality: z.string().min(1, "Nationality is required"),
+  address: z.string().min(1, "Address is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
+  parentNames: z.string().optional(),
+  emergencyContact: z.string().optional()
+});
+
+const verificationSchema = z.object({
+  verificationCode: z.string().min(1, "Verification code is required"),
+  documentType: z.enum([
+    "birth_certificate", "marriage_certificate", "passport", 
+    "death_certificate", "work_permit", "permanent_visa", "id_card"
+  ]).optional()
+});
+
+// Certificate form schema for general certificates
 const certificateFormSchema = z.object({
-  type: z.string().min(1, "Type is required"),
+  type: z.string().min(1, "Certificate type is required"),
   templateType: z.string().min(1, "Template type is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   expiresAt: z.string().optional(),
-  data: z.record(z.string()).optional()
+  data: z.record(z.any()).optional()
 });
 
+// Permit form schema for general permits
 const permitFormSchema = z.object({
-  type: z.string().min(1, "Type is required"),
+  type: z.string().min(1, "Permit type is required"),
   templateType: z.string().min(1, "Template type is required"),
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   expiresAt: z.string().optional(),
-  data: z.record(z.string()).optional(),
-  conditions: z.record(z.string()).optional()
+  data: z.record(z.any()).optional(),
+  conditions: z.record(z.any()).optional()
 });
+
+// ==================== INTERFACES ====================
+
+interface DocumentTemplate {
+  id: string;
+  name: string;
+  type: "certificate" | "permit";
+  category: string;
+  description?: string;
+}
 
 interface Certificate {
   id: string;
   type: string;
   title: string;
   description: string;
+  status: "active" | "expired" | "revoked";
   serialNumber: string;
   issuedAt: string;
   expiresAt?: string;
-  status: string;
   verificationCode: string;
+  userId: string;
   documentUrl?: string;
   qrCodeUrl?: string;
-  isRevoked: boolean;
 }
 
 interface Permit {
@@ -56,21 +166,94 @@ interface Permit {
   type: string;
   title: string;
   description: string;
+  status: "active" | "expired" | "revoked";
   permitNumber: string;
   issuedAt: string;
   expiresAt?: string;
-  status: string;
   verificationCode: string;
+  userId: string;
+  conditions?: Record<string, any>;
   documentUrl?: string;
   qrCodeUrl?: string;
-  isRevoked: boolean;
 }
 
-interface DocumentTemplate {
+interface BaseDocument {
   id: string;
-  name: string;
-  type: "certificate" | "permit";
+  userId: string;
+  verificationCode: string;
+  createdAt: string;
 }
+
+interface BirthCertificate extends BaseDocument {
+  childFullName: string;
+  dateOfBirth: string;
+  placeOfBirth: string;
+  sex: string;
+  motherFullName: string;
+  fatherFullName: string;
+  registrationNumber: string;
+}
+
+interface MarriageCertificate extends BaseDocument {
+  partner1FullName: string;
+  partner2FullName: string;
+  marriageDate: string;
+  marriagePlace: string;
+  licenseNumber: string;
+}
+
+interface Passport extends BaseDocument {
+  fullName: string;
+  dateOfBirth: string;
+  nationality: string;
+  passportNumber: string;
+  expiryDate: string;
+  sex: string;
+}
+
+interface DeathCertificate extends BaseDocument {
+  deceasedFullName: string;
+  dateOfDeath: string;
+  placeOfDeath: string;
+  causeOfDeath: string;
+  registrationNumber: string;
+}
+
+interface WorkPermit extends BaseDocument {
+  employeeFullName: string;
+  employerName: string;
+  jobTitle: string;
+  permitNumber: string;
+  validFrom: string;
+  validUntil: string;
+}
+
+interface PermanentVisa extends BaseDocument {
+  holderFullName: string;
+  visaType: string;
+  visaNumber: string;
+  countryOfIssue: string;
+  validFrom: string;
+}
+
+interface IdCard extends BaseDocument {
+  fullName: string;
+  dateOfBirth: string;
+  address: string;
+  idNumber: string;
+  expiryDate: string;
+}
+
+interface VerificationResult {
+  isValid: boolean;
+  documentType?: string;
+  verificationCode?: string;
+  verificationTimestamp: string;
+  message?: string;
+}
+
+type DocumentType = "birth_certificate" | "marriage_certificate" | "passport" | 
+                   "death_certificate" | "work_permit" | "permanent_visa" | "id_card";
 
 export default function DocumentGenerationPage() {
   const { toast } = useToast();

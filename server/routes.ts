@@ -788,6 +788,467 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== GOVERNMENT DOCUMENT GENERATION ENDPOINTS ====================
+
+  // Birth Certificate Generation
+  app.post("/api/documents/birth-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.childFullName || !documentData.dateOfBirth || !documentData.placeOfBirth) {
+        return res.status(400).json({ error: "Missing required fields for birth certificate" });
+      }
+
+      const birthCertificate = await documentGenerator.generateBirthCertificate({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Birth certificate generated successfully",
+        document: birthCertificate,
+        downloadUrl: `/documents/${birthCertificate.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Birth certificate generation error:", error);
+      res.status(500).json({ error: "Birth certificate generation failed" });
+    }
+  });
+
+  // Marriage Certificate Generation
+  app.post("/api/documents/marriage-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.partner1FullName || !documentData.partner2FullName || !documentData.marriageDate) {
+        return res.status(400).json({ error: "Missing required fields for marriage certificate" });
+      }
+
+      const marriageCertificate = await documentGenerator.generateMarriageCertificate({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Marriage certificate generated successfully",
+        document: marriageCertificate,
+        downloadUrl: `/documents/${marriageCertificate.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Marriage certificate generation error:", error);
+      res.status(500).json({ error: "Marriage certificate generation failed" });
+    }
+  });
+
+  // Passport Generation
+  app.post("/api/documents/passport", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.fullName || !documentData.dateOfBirth || !documentData.nationality) {
+        return res.status(400).json({ error: "Missing required fields for passport" });
+      }
+
+      const passport = await documentGenerator.generatePassport({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Passport generated successfully",
+        document: passport,
+        downloadUrl: `/documents/${passport.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Passport generation error:", error);
+      res.status(500).json({ error: "Passport generation failed" });
+    }
+  });
+
+  // Death Certificate Generation
+  app.post("/api/documents/death-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.deceasedFullName || !documentData.dateOfDeath || !documentData.causeOfDeath) {
+        return res.status(400).json({ error: "Missing required fields for death certificate" });
+      }
+
+      const deathCertificate = await documentGenerator.generateDeathCertificate({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Death certificate generated successfully",
+        document: deathCertificate,
+        downloadUrl: `/documents/${deathCertificate.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Death certificate generation error:", error);
+      res.status(500).json({ error: "Death certificate generation failed" });
+    }
+  });
+
+  // Work Permit Generation
+  app.post("/api/documents/work-permit", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.employeeFullName || !documentData.employerName || !documentData.jobTitle) {
+        return res.status(400).json({ error: "Missing required fields for work permit" });
+      }
+
+      const workPermit = await documentGenerator.generateWorkPermit({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Work permit generated successfully",
+        document: workPermit,
+        downloadUrl: `/documents/${workPermit.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Work permit generation error:", error);
+      res.status(500).json({ error: "Work permit generation failed" });
+    }
+  });
+
+  // Permanent Visa Generation
+  app.post("/api/documents/permanent-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.holderFullName || !documentData.visaType || !documentData.countryOfIssue) {
+        return res.status(400).json({ error: "Missing required fields for permanent visa" });
+      }
+
+      const permanentVisa = await documentGenerator.generatePermanentVisa({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "Permanent visa generated successfully",
+        document: permanentVisa,
+        downloadUrl: `/documents/${permanentVisa.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("Permanent visa generation error:", error);
+      res.status(500).json({ error: "Permanent visa generation failed" });
+    }
+  });
+
+  // ID Card Generation
+  app.post("/api/documents/id-card", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const documentData = req.body;
+
+      // Validate required fields
+      if (!documentData.fullName || !documentData.dateOfBirth || !documentData.address) {
+        return res.status(400).json({ error: "Missing required fields for ID card" });
+      }
+
+      const idCard = await documentGenerator.generateIdCard({
+        userId: user.id,
+        ...documentData
+      });
+
+      res.json({
+        message: "ID card generated successfully",
+        document: idCard,
+        downloadUrl: `/documents/${idCard.id}.pdf`
+      });
+
+    } catch (error) {
+      console.error("ID card generation error:", error);
+      res.status(500).json({ error: "ID card generation failed" });
+    }
+  });
+
+  // ==================== DOCUMENT RETRIEVAL ENDPOINTS ====================
+
+  // Get Birth Certificates
+  app.get("/api/documents/birth-certificates", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const birthCertificates = await storage.getBirthCertificates(user.id);
+      res.json(birthCertificates);
+    } catch (error) {
+      console.error("Get birth certificates error:", error);
+      res.status(500).json({ error: "Failed to retrieve birth certificates" });
+    }
+  });
+
+  // Get Marriage Certificates
+  app.get("/api/documents/marriage-certificates", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const marriageCertificates = await storage.getMarriageCertificates(user.id);
+      res.json(marriageCertificates);
+    } catch (error) {
+      console.error("Get marriage certificates error:", error);
+      res.status(500).json({ error: "Failed to retrieve marriage certificates" });
+    }
+  });
+
+  // Get Passports
+  app.get("/api/documents/passports", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const passports = await storage.getPassports(user.id);
+      res.json(passports);
+    } catch (error) {
+      console.error("Get passports error:", error);
+      res.status(500).json({ error: "Failed to retrieve passports" });
+    }
+  });
+
+  // Get Death Certificates
+  app.get("/api/documents/death-certificates", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const deathCertificates = await storage.getDeathCertificates(user.id);
+      res.json(deathCertificates);
+    } catch (error) {
+      console.error("Get death certificates error:", error);
+      res.status(500).json({ error: "Failed to retrieve death certificates" });
+    }
+  });
+
+  // Get Work Permits
+  app.get("/api/documents/work-permits", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const workPermits = await storage.getWorkPermits(user.id);
+      res.json(workPermits);
+    } catch (error) {
+      console.error("Get work permits error:", error);
+      res.status(500).json({ error: "Failed to retrieve work permits" });
+    }
+  });
+
+  // Get Permanent Visas
+  app.get("/api/documents/permanent-visas", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const permanentVisas = await storage.getPermanentVisas(user.id);
+      res.json(permanentVisas);
+    } catch (error) {
+      console.error("Get permanent visas error:", error);
+      res.status(500).json({ error: "Failed to retrieve permanent visas" });
+    }
+  });
+
+  // Get ID Cards
+  app.get("/api/documents/id-cards", authenticate, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const idCards = await storage.getIdCards(user.id);
+      res.json(idCards);
+    } catch (error) {
+      console.error("Get ID cards error:", error);
+      res.status(500).json({ error: "Failed to retrieve ID cards" });
+    }
+  });
+
+  // ==================== DOCUMENT VERIFICATION ENDPOINTS ====================
+
+  // Verify Document by Verification Code
+  app.post("/api/verify/document", apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { verificationCode, documentType } = req.body;
+
+      if (!verificationCode || !documentType) {
+        return res.status(400).json({ error: "Verification code and document type required" });
+      }
+
+      let document = null;
+      let isValid = false;
+
+      // Check each document type
+      switch (documentType) {
+        case 'birth_certificate':
+          document = await storage.getBirthCertificateByVerificationCode(verificationCode);
+          break;
+        case 'marriage_certificate':
+          document = await storage.getMarriageCertificateByVerificationCode(verificationCode);
+          break;
+        case 'passport':
+          document = await storage.getPassportByVerificationCode(verificationCode);
+          break;
+        case 'death_certificate':
+          document = await storage.getDeathCertificateByVerificationCode(verificationCode);
+          break;
+        case 'work_permit':
+          document = await storage.getWorkPermitByVerificationCode(verificationCode);
+          break;
+        case 'permanent_visa':
+          document = await storage.getPermanentVisaByVerificationCode(verificationCode);
+          break;
+        case 'id_card':
+          document = await storage.getIdCardByVerificationCode(verificationCode);
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid document type" });
+      }
+
+      isValid = document !== undefined;
+
+      // Log verification attempt
+      await storage.createDocumentVerification({
+        documentType,
+        documentId: document?.id || null,
+        verificationCode,
+        isValid,
+        verifierIpAddress: req.ip,
+        verifierUserAgent: req.get("User-Agent")
+      });
+
+      if (isValid && document) {
+        res.json({
+          isValid: true,
+          document: {
+            id: document.id,
+            type: documentType,
+            verificationCode: document.verificationCode,
+            createdAt: document.createdAt,
+            status: 'verified'
+          },
+          verificationTimestamp: new Date()
+        });
+      } else {
+        res.json({
+          isValid: false,
+          message: "Document not found or verification code invalid",
+          verificationTimestamp: new Date()
+        });
+      }
+
+    } catch (error) {
+      console.error("Document verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  // Get Verification History
+  app.get("/api/verify/history", authenticate, requireRole(["admin"]), async (req: Request, res: Response) => {
+    try {
+      const { documentType, documentId } = req.query;
+      const verifications = await storage.getDocumentVerifications(
+        documentType as string, 
+        documentId as string
+      );
+      res.json(verifications);
+    } catch (error) {
+      console.error("Get verification history error:", error);
+      res.status(500).json({ error: "Failed to retrieve verification history" });
+    }
+  });
+
+  // Public Verification Portal (no authentication required)
+  app.get("/api/verify/public/:verificationCode", apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { verificationCode } = req.params;
+      
+      if (!verificationCode) {
+        return res.status(400).json({ error: "Verification code required" });
+      }
+
+      // Check all document types for the verification code
+      const documentTypes = ['birth_certificate', 'marriage_certificate', 'passport', 'death_certificate', 'work_permit', 'permanent_visa', 'id_card'];
+      
+      for (const docType of documentTypes) {
+        let document = null;
+        
+        switch (docType) {
+          case 'birth_certificate':
+            document = await storage.getBirthCertificateByVerificationCode(verificationCode);
+            break;
+          case 'marriage_certificate':
+            document = await storage.getMarriageCertificateByVerificationCode(verificationCode);
+            break;
+          case 'passport':
+            document = await storage.getPassportByVerificationCode(verificationCode);
+            break;
+          case 'death_certificate':
+            document = await storage.getDeathCertificateByVerificationCode(verificationCode);
+            break;
+          case 'work_permit':
+            document = await storage.getWorkPermitByVerificationCode(verificationCode);
+            break;
+          case 'permanent_visa':
+            document = await storage.getPermanentVisaByVerificationCode(verificationCode);
+            break;
+          case 'id_card':
+            document = await storage.getIdCardByVerificationCode(verificationCode);
+            break;
+        }
+
+        if (document) {
+          // Log public verification
+          await storage.createDocumentVerification({
+            documentType: docType,
+            documentId: document.id,
+            verificationCode,
+            isValid: true,
+            verifierIpAddress: req.ip,
+            verifierUserAgent: req.get("User-Agent")
+          });
+
+          return res.json({
+            isValid: true,
+            documentType: docType,
+            verificationCode,
+            issuedDate: document.createdAt,
+            status: 'verified',
+            verificationTimestamp: new Date()
+          });
+        }
+      }
+
+      // No document found
+      await storage.createDocumentVerification({
+        documentType: 'unknown',
+        documentId: null,
+        verificationCode,
+        isValid: false,
+        verifierIpAddress: req.ip,
+        verifierUserAgent: req.get("User-Agent")
+      });
+
+      res.json({
+        isValid: false,
+        message: "Document not found",
+        verificationTimestamp: new Date()
+      });
+
+    } catch (error) {
+      console.error("Public verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket
