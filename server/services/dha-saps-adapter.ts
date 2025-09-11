@@ -86,14 +86,20 @@ export class DHASAPSAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    this.baseUrl = process.env.SAPS_CRC_BASE_URL!;
-    this.apiKey = process.env.SAPS_CRC_API_KEY!;
+    const isDevelopment = process.env.NODE_ENV === 'development';
     
-    if (!this.baseUrl) {
-      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL environment variable is required for SAPS integration');
+    this.baseUrl = process.env.SAPS_CRC_BASE_URL || (isDevelopment ? 'http://localhost:8080/saps-crc-api' : '');
+    this.apiKey = process.env.SAPS_CRC_API_KEY || (isDevelopment ? 'dev-saps-api-key' : '');
+    
+    if (!this.baseUrl && !isDevelopment) {
+      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL environment variable is required for SAPS integration in production');
     }
-    if (!this.apiKey) {
-      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_API_KEY environment variable is required for SAPS integration');
+    if (!this.apiKey && !isDevelopment) {
+      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_API_KEY environment variable is required for SAPS integration in production');
+    }
+    
+    if (isDevelopment && (!process.env.SAPS_CRC_BASE_URL || !process.env.SAPS_CRC_API_KEY)) {
+      console.log('⚠️  SAPS Integration: Using development fallback values. Set SAPS_CRC_BASE_URL and SAPS_CRC_API_KEY environment variables for production use.');
     }
   }
 

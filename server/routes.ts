@@ -34,6 +34,11 @@ import {
   updateNotificationPreferencesSchema,
   systemNotificationSchema,
   criticalAlertSchema,
+  insertRefugeeDocumentSchema,
+  insertDiplomaticPassportSchema,
+  insertDocumentDeliverySchema,
+  insertVerificationWorkflowSchema,
+  insertDhaOfficeSchema,
   // Security monitoring validation schemas
   securityMetricsQuerySchema,
   errorLogCreationSchema,
@@ -287,6 +292,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/biometric/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
       const { type, template, userId } = req.body;
 
       if (!type || !template) {
@@ -315,6 +324,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/biometric/profiles", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const profiles = await biometricService.getUserBiometrics(req.user.id);
       res.json(profiles);
     } catch (error) {
@@ -325,8 +337,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/fraud/alerts", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { resolved } = req.query;
-      const userId = req.user.role === "admin" ? undefined : req.user.id;
+      const userId = (req.user as any).role === "admin" ? undefined : req.user.id;
 
       const alerts = await fraudDetectionService.getFraudAlerts(
         userId, 
@@ -342,6 +357,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/fraud/alerts/:id/resolve", authenticate, apiLimiter, requireRole(["admin"]), async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       await fraudDetectionService.resolveFraudAlert(req.params.id, req.user.id);
 
       const wsService = getWebSocketService();
@@ -360,6 +378,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/documents/upload", authenticate, uploadLimiter, documentUpload.single("document"), async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -397,6 +418,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/documents", authenticate, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const documents = await documentProcessorService.getUserDocuments(req.user.id);
       res.json(documents);
     } catch (error) {
@@ -407,6 +431,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/documents/:id", authenticate, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const result = await documentProcessorService.getDocument(req.params.id, req.user.id);
 
       if (!result.success) {
@@ -1248,6 +1275,243 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===================== STATUS CHANGE API ENDPOINTS =====================
+  
+  // AMS Certificate endpoints
+  app.post("/api/ams/certificate/create", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const certificate = await storage.createAmsCertificate({
+        ...req.body,
+        userId: req.user!.id
+      });
+      res.status(201).json(certificate);
+    } catch (error) {
+      console.error("Create AMS certificate error:", error);
+      res.status(500).json({ error: "Failed to create AMS certificate" });
+    }
+  });
+
+  app.post("/api/ams/certificate/verify", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { certificateId, action, reason } = req.body;
+      
+      if (!certificateId || !action) {
+        return res.status(400).json({ error: "Certificate ID and action required" });
+      }
+      
+      const certificate = await storage.getAmsCertificate(certificateId);
+      if (!certificate) {
+        return res.status(404).json({ error: "Certificate not found" });
+      }
+      
+      switch (action) {
+        case 'verify':
+          await storage.verifyAmsCertificate(certificateId, req.user!.id);
+          break;
+        case 'revoke':
+          if (!reason) {
+            return res.status(400).json({ error: "Reason required for revocation" });
+          }
+          await storage.revokeAmsCertificate(certificateId, reason);
+          break;
+        case 'suspend':
+          if (!reason) {
+            return res.status(400).json({ error: "Reason required for suspension" });
+          }
+          await storage.suspendAmsCertificate(certificateId, reason);
+          break;
+        case 'renew':
+          const expiryDate = req.body.expiryDate ? new Date(req.body.expiryDate) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+          const newCertificate = await storage.renewAmsCertificate(certificateId, expiryDate);
+          return res.json({ message: "Certificate renewed", newCertificate });
+        default:
+          return res.status(400).json({ error: "Invalid action" });
+      }
+      
+      res.json({ message: `Certificate ${action} successful` });
+    } catch (error) {
+      console.error("AMS certificate action error:", error);
+      res.status(500).json({ error: "Failed to process certificate action" });
+    }
+  });
+
+  app.get("/api/ams/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { status } = req.query;
+      const certificates = await storage.getAmsCertificates(req.user!.id, status as string);
+      res.json(certificates);
+    } catch (error) {
+      console.error("Get AMS certificates error:", error);
+      res.status(500).json({ error: "Failed to get certificates" });
+    }
+  });
+
+  // Permit Status Change endpoints
+  app.post("/api/permits/status/change", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { permitId, newStatus, reason, endorsements, conditions, gracePeriod } = req.body;
+      
+      if (!permitId || !newStatus || !reason) {
+        return res.status(400).json({ error: "Permit ID, new status, and reason required" });
+      }
+      
+      // Get current permit status
+      const latestStatus = await storage.getLatestPermitStatus(permitId);
+      
+      // Create status change record
+      const statusChange = await storage.createPermitStatusChange({
+        permitId,
+        permitType: req.body.permitType || latestStatus?.permitType || 'work',
+        previousStatus: latestStatus?.newStatus || 'unknown',
+        newStatus,
+        changedBy: req.user!.id,
+        changeReason: reason,
+        changeNotes: req.body.notes,
+        endorsementsAdded: endorsements?.added,
+        endorsementsRemoved: endorsements?.removed,
+        conditionsModified: conditions,
+        gracePeriodDays: gracePeriod,
+        renewalStatus: req.body.renewalStatus,
+        renewalDeadline: req.body.renewalDeadline ? new Date(req.body.renewalDeadline) : undefined,
+        effectiveDate: new Date()
+      });
+      
+      // Send notification
+      const wsService = getWebSocketService();
+      wsService?.broadcast("permit:status:changed", {
+        permitId,
+        previousStatus: statusChange.previousStatus,
+        newStatus: statusChange.newStatus,
+        changedBy: req.user!.username
+      });
+      
+      res.json({ message: "Permit status changed", statusChange });
+    } catch (error) {
+      console.error("Permit status change error:", error);
+      res.status(500).json({ error: "Failed to change permit status" });
+    }
+  });
+
+  app.get("/api/permits/:permitId/status/history", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { permitId } = req.params;
+      const history = await storage.getPermitStatusChanges(permitId);
+      res.json(history);
+    } catch (error) {
+      console.error("Get permit status history error:", error);
+      res.status(500).json({ error: "Failed to get status history" });
+    }
+  });
+
+  // Document Verification Status endpoints
+  app.post("/api/documents/status/update", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId, documentType, newStatus, reason, verificationStage, scores } = req.body;
+      
+      if (!documentId || !documentType || !newStatus) {
+        return res.status(400).json({ error: "Document ID, type, and new status required" });
+      }
+      
+      // Check if status exists or create new
+      let status = await storage.getDocumentVerificationStatus(documentId);
+      
+      if (!status) {
+        status = await storage.createDocumentVerificationStatus({
+          documentId,
+          documentType,
+          currentStatus: newStatus,
+          verificationStage: verificationStage || 'initial',
+          verificationScore: scores?.overall,
+          authenticityCheckPassed: scores?.authenticity,
+          biometricCheckPassed: scores?.biometric,
+          backgroundCheckPassed: scores?.background,
+          updatedBy: req.user!.id
+        });
+      } else {
+        await storage.updateDocumentStatus(documentId, newStatus, req.user!.id, reason);
+        
+        if (scores) {
+          await storage.updateDocumentVerificationStatus(status.id, {
+            verificationScore: scores.overall,
+            authenticityCheckPassed: scores.authenticity,
+            biometricCheckPassed: scores.biometric,
+            backgroundCheckPassed: scores.background
+          });
+        }
+      }
+      
+      // Send real-time notification
+      const wsService = getWebSocketService();
+      wsService?.broadcast("document:status:updated", {
+        documentId,
+        documentType,
+        newStatus,
+        updatedBy: req.user!.username
+      });
+      
+      res.json({ message: "Document status updated", status });
+    } catch (error) {
+      console.error("Document status update error:", error);
+      res.status(500).json({ error: "Failed to update document status" });
+    }
+  });
+
+  app.get("/api/documents/status/:documentId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId } = req.params;
+      const status = await storage.getDocumentVerificationStatus(documentId);
+      
+      if (!status) {
+        return res.status(404).json({ error: "Status not found" });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Get document status error:", error);
+      res.status(500).json({ error: "Failed to get document status" });
+    }
+  });
+
+  app.get("/api/verification/history/:documentId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId } = req.params;
+      const history = await storage.getDocumentVerificationHistory(documentId);
+      res.json(history);
+    } catch (error) {
+      console.error("Get verification history error:", error);
+      res.status(500).json({ error: "Failed to get verification history" });
+    }
+  });
+
+  app.post("/api/documents/verification/history", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId, documentType, action, previousValue, newValue, reason, notes } = req.body;
+      
+      if (!documentId || !documentType || !action) {
+        return res.status(400).json({ error: "Document ID, type, and action required" });
+      }
+      
+      const history = await storage.createDocumentVerificationHistory({
+        documentId,
+        documentType,
+        action,
+        previousValue,
+        newValue,
+        actionBy: req.user!.id,
+        actionReason: reason,
+        actionNotes: notes,
+        metadata: req.body.metadata,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+      
+      res.json({ message: "History entry created", history });
+    } catch (error) {
+      console.error("Create verification history error:", error);
+      res.status(500).json({ error: "Failed to create history entry" });
+    }
+  });
+
   // Admin routes - Error Logs
   app.get("/api/admin/error-logs", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
@@ -1279,6 +1543,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Security events routes
   app.get("/api/security/events", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const validatedQuery = securityEventsQuerySchema.parse({
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         severity: req.query.severity,
@@ -1309,6 +1576,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging endpoint
   app.post("/api/monitoring/error", authenticate, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const validatedData = errorLogCreationSchema.parse(req.body);
 
       await storage.createSecurityEvent({
@@ -1342,6 +1612,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate certificate
   app.post("/api/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { type, templateType, title, description, data, expiresAt } = req.body;
 
       if (!type || !templateType || !title || !description) {
@@ -1387,6 +1660,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user certificates
   app.get("/api/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const certificates = await storage.getCertificates(req.user.id);
       res.json(certificates);
     } catch (error) {
@@ -1398,6 +1674,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get specific certificate
   app.get("/api/certificates/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const certificate = await storage.getCertificate(req.params.id);
       
       if (!certificate) {
@@ -1419,6 +1698,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Generate permit
   app.post("/api/permits", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { type, templateType, title, description, data, conditions, expiresAt } = req.body;
 
       if (!type || !templateType || !title || !description) {
@@ -1465,6 +1747,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user permits
   app.get("/api/permits", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const permits = await storage.getPermits(req.user.id);
       res.json(permits);
     } catch (error) {
@@ -1476,6 +1761,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get specific permit
   app.get("/api/permits/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const permit = await storage.getPermit(req.params.id);
       
       if (!permit) {
@@ -2070,6 +2358,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create DHA applicant profile
   app.post("/api/dha/applicants", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const applicantData = insertDhaApplicantSchema.parse(req.body);
       
       const applicant = await storage.createDhaApplicant({
@@ -2103,6 +2394,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create DHA application
   app.post("/api/dha/applications", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const validatedData = dhaApplicationCreationSchema.parse(req.body);
       const { applicantId, applicationType, applicationData } = validatedData;
 
@@ -2140,6 +2434,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get DHA application status
   app.get("/api/dha/applications/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { id } = req.params;
       
       const application = await storage.getDhaApplication(id);
@@ -2254,6 +2551,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SAPS Background Check
   app.post("/api/dha/background-check", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const validatedData = dhaBackgroundCheckCreationSchema.parse(req.body);
       const { applicantId, applicationId, purpose, consentGiven } = validatedData;
 
@@ -2291,6 +2591,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's DHA applications
   app.get("/api/dha/applications", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { status, type } = req.query;
       
       const filters: any = { userId: req.user.id };
@@ -2373,6 +2676,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get DHA applicant profiles
   app.get("/api/dha/applicants", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const applicants = await storage.getDhaApplicants(req.user.id);
       res.json(applicants);
     } catch (error) {
@@ -2403,6 +2709,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // DHA Workflow State Transition (for processing applications)
   app.post("/api/dha/applications/:id/transition", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
       const { id } = req.params;
       const validatedData = dhaApplicationTransitionSchema.parse(req.body);
       const { targetState, reason, data } = validatedData;
@@ -2422,10 +2731,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicantId: application.applicantId,
         userId: req.user.id,
         currentState: application.currentState as any,
-        targetState,
+        targetState: targetState as any,
         triggerReason: reason || 'Manual transition',
         actorId: req.user.id,
-        actorName: req.user.username,
+        actorName: req.user.username || req.user.email,
         documentData: data || {}
       });
 
@@ -2621,7 +2930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notificationData = {
         ...validatedData,
         priority: "critical" as const,
-        category: "security" as const
+        category: "SECURITY" as const
       };
       
       const notification = await notificationService.sendCriticalAlert({

@@ -18,10 +18,40 @@ import { z } from "zod";
 import { 
   FileText, Download, Eye, Shield, CheckCircle, QrCode, Calendar, User, Hash,
   Baby, Heart, Plane, Skull, Briefcase, CreditCard, UserCheck, Search,
-  Building2, Scan, Clock, AlertTriangle, FileCheck, Camera, Upload
+  Building2, Scan, Clock, AlertTriangle, FileCheck, Camera, Upload,
+  Users, Globe, Lock, ShieldCheck
 } from "lucide-react";
 
 // ==================== FORM SCHEMAS ====================
+
+// Refugee Document Schema
+const refugeeDocumentSchema = z.object({
+  documentType: z.enum(["section22_permit", "asylum_permit", "refugee_id", "refugee_travel"]),
+  fullName: z.string().min(1, "Full name is required"),
+  unhcrNumber: z.string().optional(),
+  countryOfOrigin: z.string().min(1, "Country of origin is required"),
+  dateOfEntry: z.string().min(1, "Date of entry is required"),
+  campLocation: z.string().optional(),
+  permitNumber: z.string().optional(),
+  permitExpiryDate: z.string().optional(),
+  maroonPassportNumber: z.string().optional(),
+});
+
+// Diplomatic Passport Schema
+const diplomaticPassportSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  placeOfBirth: z.string().min(1, "Place of birth is required"),
+  sex: z.enum(["M", "F", "X"]),
+  nationality: z.string().min(1, "Nationality is required"),
+  diplomaticNoteNumber: z.string().min(1, "Diplomatic note number is required"),
+  embassy: z.string().min(1, "Embassy is required"),
+  consulate: z.string().optional(),
+  diplomaticRank: z.string().min(1, "Diplomatic rank is required"),
+  immunityStatus: z.enum(["full", "partial", "none"]),
+  countryOfAccreditation: z.string().min(1, "Country of accreditation is required"),
+  emergencyContactEmbassy: z.string().min(1, "Emergency contact is required"),
+});
 
 const birthCertificateSchema = z.object({
   childFullName: z.string().min(1, "Child's full name is required"),

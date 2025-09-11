@@ -17,12 +17,20 @@ import {
   type AuditLog, type InsertAuditLog, type SecurityIncident, type InsertSecurityIncident,
   type UserBehaviorProfile, type InsertUserBehaviorProfile, type SecurityRule, type InsertSecurityRule,
   type ComplianceEvent, type InsertComplianceEvent, type SecurityMetric, type InsertSecurityMetric,
+  type RefugeeDocument, type InsertRefugeeDocument, type DiplomaticPassport, type InsertDiplomaticPassport,
+  type DocumentDelivery, type InsertDocumentDelivery, type VerificationWorkflow, type InsertVerificationWorkflow,
+  type DhaOffice, type InsertDhaOffice,
+  type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
+  type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
+  type DocumentVerificationHistory, type InsertDocumentVerificationHistory,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications,
   dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
-  auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics
+  auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
+  refugeeDocuments, diplomaticPassports, documentDelivery, verificationWorkflow, dhaOffices,
+  amsCertificates, permitStatusChanges, documentVerificationStatus, documentVerificationHistory
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -175,6 +183,65 @@ export interface IStorage {
   getIdCardByVerificationCode(verificationCode: string): Promise<IdCard | undefined>;
   createIdCard(idCard: InsertIdCard): Promise<IdCard>;
   updateIdCard(id: string, updates: Partial<IdCard>): Promise<void>;
+
+  // Refugee Document methods
+  getRefugeeDocument(id: string): Promise<RefugeeDocument | undefined>;
+  getRefugeeDocuments(userId?: string): Promise<RefugeeDocument[]>;
+  createRefugeeDocument(document: InsertRefugeeDocument): Promise<RefugeeDocument>;
+  updateRefugeeDocument(id: string, updates: Partial<RefugeeDocument>): Promise<void>;
+
+  // Diplomatic Passport methods
+  getDiplomaticPassport(id: string): Promise<DiplomaticPassport | undefined>;
+  getDiplomaticPassports(userId?: string): Promise<DiplomaticPassport[]>;
+  createDiplomaticPassport(passport: InsertDiplomaticPassport): Promise<DiplomaticPassport>;
+  updateDiplomaticPassport(id: string, updates: Partial<DiplomaticPassport>): Promise<void>;
+
+  // Document Delivery methods
+  getDocumentDelivery(id: string): Promise<DocumentDelivery | undefined>;
+  getDocumentDeliveries(userId?: string): Promise<DocumentDelivery[]>;
+  createDocumentDelivery(delivery: InsertDocumentDelivery): Promise<DocumentDelivery>;
+  updateDocumentDelivery(id: string, updates: Partial<DocumentDelivery>): Promise<void>;
+
+  // Verification Workflow methods
+  getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined>;
+  getVerificationWorkflows(documentId?: string): Promise<VerificationWorkflow[]>;
+  createVerificationWorkflow(workflow: InsertVerificationWorkflow): Promise<VerificationWorkflow>;
+  updateVerificationWorkflow(id: string, updates: Partial<VerificationWorkflow>): Promise<void>;
+
+  // DHA Office methods
+  getDhaOffice(id: string): Promise<DhaOffice | undefined>;
+  getDhaOffices(province?: string): Promise<DhaOffice[]>;
+  createDhaOffice(office: InsertDhaOffice): Promise<DhaOffice>;
+  updateDhaOffice(id: string, updates: Partial<DhaOffice>): Promise<void>;
+
+  // AMS Certificate methods
+  getAmsCertificate(id: string): Promise<AmsCertificate | undefined>;
+  getAmsCertificates(userId?: string, status?: string): Promise<AmsCertificate[]>;
+  getAmsCertificateByNumber(certificateNumber: string): Promise<AmsCertificate | undefined>;
+  createAmsCertificate(certificate: InsertAmsCertificate): Promise<AmsCertificate>;
+  updateAmsCertificate(id: string, updates: Partial<AmsCertificate>): Promise<void>;
+  verifyAmsCertificate(id: string, verifiedBy: string): Promise<void>;
+  revokeAmsCertificate(id: string, reason: string): Promise<void>;
+  suspendAmsCertificate(id: string, reason: string): Promise<void>;
+  renewAmsCertificate(id: string, newExpiryDate: Date): Promise<AmsCertificate>;
+
+  // Permit Status Change methods
+  getPermitStatusChanges(permitId: string): Promise<PermitStatusChange[]>;
+  createPermitStatusChange(change: InsertPermitStatusChange): Promise<PermitStatusChange>;
+  getLatestPermitStatus(permitId: string): Promise<PermitStatusChange | undefined>;
+  updatePermitStatus(permitId: string, newStatus: string, changedBy: string, reason: string): Promise<PermitStatusChange>;
+
+  // Document Verification Status methods
+  getDocumentVerificationStatus(documentId: string): Promise<DocumentVerificationStatus | undefined>;
+  getDocumentVerificationStatuses(documentType?: string): Promise<DocumentVerificationStatus[]>;
+  createDocumentVerificationStatus(status: InsertDocumentVerificationStatus): Promise<DocumentVerificationStatus>;
+  updateDocumentVerificationStatus(id: string, updates: Partial<DocumentVerificationStatus>): Promise<void>;
+  updateDocumentStatus(documentId: string, newStatus: string, updatedBy: string, reason?: string): Promise<void>;
+
+  // Document Verification History methods
+  getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]>;
+  createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory>;
+  getVerificationHistoryByType(documentType: string, limit?: number): Promise<DocumentVerificationHistory[]>;
 
   // Document verification methods
   getDocumentVerification(id: string): Promise<DocumentVerification | undefined>;
@@ -415,6 +482,19 @@ export class MemStorage implements IStorage {
   private securityRules: Map<string, SecurityRule>;
   private complianceEvents: Map<string, ComplianceEvent>;
   private securityMetricsStorage: Map<string, SecurityMetric>;
+  
+  // New document management storage
+  private refugeeDocuments: Map<string, RefugeeDocument>;
+  private diplomaticPassports: Map<string, DiplomaticPassport>;
+  private documentDelivery: Map<string, DocumentDelivery>;
+  private verificationWorkflow: Map<string, VerificationWorkflow>;
+  private dhaOffices: Map<string, DhaOffice>;
+  
+  // AMS Certificate and Status Management storage
+  private amsCertificates: Map<string, AmsCertificate>;
+  private permitStatusChanges: Map<string, PermitStatusChange>;
+  private documentVerificationStatusMap: Map<string, DocumentVerificationStatus>;
+  private documentVerificationHistoryMap: Map<string, DocumentVerificationHistory>;
 
   constructor() {
     this.users = new Map();
@@ -463,6 +543,19 @@ export class MemStorage implements IStorage {
     this.securityRules = new Map();
     this.complianceEvents = new Map();
     this.securityMetricsStorage = new Map();
+    
+    // Initialize new document management storage
+    this.refugeeDocuments = new Map();
+    this.diplomaticPassports = new Map();
+    this.documentDelivery = new Map();
+    this.verificationWorkflow = new Map();
+    this.dhaOffices = new Map();
+    
+    // Initialize AMS Certificate and Status Management storage
+    this.amsCertificates = new Map();
+    this.permitStatusChanges = new Map();
+    this.documentVerificationStatusMap = new Map();
+    this.documentVerificationHistoryMap = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -1735,9 +1828,21 @@ export class MemStorage implements IStorage {
     const notification: NotificationEvent = {
       ...insertNotification,
       id,
+      userId: insertNotification.userId || null,
+      expiresAt: insertNotification.expiresAt || null,
       isRead: false,
       isArchived: false,
+      payload: insertNotification.payload || null,
+      requiresAction: insertNotification.requiresAction ?? false,
+      actionData: insertNotification.actionData || null,
+      actionUrl: insertNotification.actionUrl || null,
+      createdBy: insertNotification.createdBy || null,
+      metadata: insertNotification.metadata || null,
+      relatedEntityType: insertNotification.relatedEntityType || null,
+      relatedEntityId: insertNotification.relatedEntityId || null,
       createdAt: new Date(),
+      deliveredAt: null,
+      readAt: null
     };
     this.notificationEvents.set(id, notification);
     return notification;
@@ -1800,6 +1905,11 @@ export class MemStorage implements IStorage {
     const preferences: UserNotificationPreferences = {
       ...insertPreferences,
       id,
+      emailNotifications: insertPreferences.emailNotifications ?? true,
+      pushNotifications: insertPreferences.pushNotifications ?? false,
+      smsNotifications: insertPreferences.smsNotifications ?? false,
+      categories: insertPreferences.categories || null,
+      quietHours: insertPreferences.quietHours || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -1853,6 +1963,13 @@ export class MemStorage implements IStorage {
     const update: StatusUpdate = {
       ...insertUpdate,
       id,
+      userId: insertUpdate.userId || null,
+      previousStatus: insertUpdate.previousStatus || null,
+      updatedBy: insertUpdate.updatedBy || null,
+      statusDetails: insertUpdate.statusDetails || null,
+      progressPercentage: insertUpdate.progressPercentage || null,
+      estimatedCompletion: insertUpdate.estimatedCompletion || null,
+      isPublic: insertUpdate.isPublic ?? false,
       createdAt: new Date(),
     };
     this.statusUpdates.set(id, update);
@@ -1877,6 +1994,11 @@ export class MemStorage implements IStorage {
       ...insertSession,
       id,
       isActive: true,
+      ipAddress: insertSession.ipAddress || null,
+      userAgent: insertSession.userAgent || null,
+      sessionData: insertSession.sessionData || null,
+      subscribedEvents: insertSession.subscribedEvents || null,
+      lastSeen: insertSession.lastSeen || new Date(),
       createdAt: new Date(),
     };
     this.webSocketSessions.set(id, session);
@@ -1934,6 +2056,14 @@ export class MemStorage implements IStorage {
     const session: ChatSession = {
       ...insertSession,
       id,
+      status: insertSession.status || 'active',
+      metadata: insertSession.metadata || null,
+      priority: insertSession.priority || 'normal',
+      adminId: insertSession.adminId || null,
+      sessionType: insertSession.sessionType || 'user',
+      subject: insertSession.subject || null,
+      lastMessageAt: insertSession.lastMessageAt || new Date(),
+      closedAt: insertSession.closedAt || null,
       createdAt: new Date(),
     };
     this.chatSessions.set(id, session);
@@ -1980,6 +2110,11 @@ export class MemStorage implements IStorage {
     const message: ChatMessage = {
       ...insertMessage,
       id,
+      metadata: insertMessage.metadata || null,
+      isRead: insertMessage.isRead ?? false,
+      messageType: insertMessage.messageType || 'text',
+      readAt: null,
+      editedAt: null,
       createdAt: new Date(),
     };
     this.chatMessages.set(id, message);
@@ -2060,6 +2195,17 @@ export class MemStorage implements IStorage {
     const auditLog: AuditLog = {
       ...insertAuditLog,
       id,
+      userId: insertAuditLog.userId || null,
+      ipAddress: insertAuditLog.ipAddress || null,
+      userAgent: insertAuditLog.userAgent || null,
+      location: insertAuditLog.location || null,
+      riskScore: insertAuditLog.riskScore || null,
+      sessionId: insertAuditLog.sessionId || null,
+      entityType: insertAuditLog.entityType || null,
+      entityId: insertAuditLog.entityId || null,
+      actionDetails: insertAuditLog.actionDetails || null,
+      metadata: insertAuditLog.metadata || null,
+      complianceFlags: insertAuditLog.complianceFlags || null,
       createdAt: new Date()
     };
     this.auditLogs.set(id, auditLog);
@@ -2105,6 +2251,16 @@ export class MemStorage implements IStorage {
     const incident: SecurityIncident = {
       ...insertIncident,
       id,
+      status: insertIncident.status || 'open',
+      resolvedAt: insertIncident.resolvedAt || null,
+      riskAssessment: insertIncident.riskAssessment || null,
+      closedAt: insertIncident.closedAt || null,
+      affectedUsers: insertIncident.affectedUsers || null,
+      investigationNotes: insertIncident.investigationNotes || null,
+      containmentActions: insertIncident.containmentActions || null,
+      assignedTo: insertIncident.assignedTo || null,
+      resolution: insertIncident.resolution || null,
+      lessonsLearned: insertIncident.lessonsLearned || null,
       openedAt: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -2154,6 +2310,13 @@ export class MemStorage implements IStorage {
     const profile: UserBehaviorProfile = {
       ...insertProfile,
       id,
+      riskFactors: insertProfile.riskFactors || null,
+      typicalLocations: insertProfile.typicalLocations || null,
+      typicalDevices: insertProfile.typicalDevices || null,
+      typicalTimes: insertProfile.typicalTimes || null,
+      loginPatterns: insertProfile.loginPatterns || null,
+      documentPatterns: insertProfile.documentPatterns || null,
+      baselineScore: insertProfile.baselineScore || 0,
       lastAnalyzed: new Date(),
       createdAt: new Date(),
       updatedAt: new Date()
@@ -2234,6 +2397,11 @@ export class MemStorage implements IStorage {
     const rule: SecurityRule = {
       ...insertRule,
       id,
+      isActive: insertRule.isActive ?? true,
+      triggeredCount: 0,
+      falsePositiveCount: 0,
+      lastTriggered: insertRule.lastTriggered || null,
+      effectivenessScore: insertRule.effectivenessScore || null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -2305,6 +2473,12 @@ export class MemStorage implements IStorage {
     const event: ComplianceEvent = {
       ...insertEvent,
       id,
+      userId: insertEvent.userId || null,
+      dataRetentionPeriod: insertEvent.dataRetentionPeriod || null,
+      dataSubjectId: insertEvent.dataSubjectId || null,
+      reviewNotes: insertEvent.reviewNotes || null,
+      reviewedBy: insertEvent.reviewedBy || null,
+      reviewedAt: insertEvent.reviewedAt || null,
       createdAt: new Date()
     };
     this.complianceEvents.set(id, event);
@@ -2321,9 +2495,9 @@ export class MemStorage implements IStorage {
       this.complianceEvents.set(id, {
         ...event,
         complianceStatus: status,
-        reviewNotes,
-        reviewedBy,
-        reviewedAt: reviewedBy ? new Date() : undefined
+        reviewNotes: reviewNotes || null,
+        reviewedBy: reviewedBy || null,
+        reviewedAt: reviewedBy ? new Date() : null
       });
     }
   }
@@ -2392,6 +2566,9 @@ export class MemStorage implements IStorage {
     const metric: SecurityMetric = {
       ...insertMetric,
       id,
+      dimensions: insertMetric.dimensions || null,
+      threshold: insertMetric.threshold || null,
+      isAlert: insertMetric.isAlert ?? false,
       calculatedAt: new Date(),
       createdAt: new Date()
     };
@@ -2415,6 +2592,538 @@ export class MemStorage implements IStorage {
   async getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]> {
     const metrics = await this.getSecurityMetrics({ metricName, timeWindow, limit: periods });
     return metrics.slice(0, periods);
+  }
+
+  // ===================== REFUGEE DOCUMENT METHODS =====================
+  
+  async getRefugeeDocument(id: string): Promise<RefugeeDocument | undefined> {
+    return this.refugeeDocuments.get(id);
+  }
+
+  async getRefugeeDocuments(userId?: string): Promise<RefugeeDocument[]> {
+    let docs = Array.from(this.refugeeDocuments.values());
+    if (userId) {
+      docs = docs.filter(doc => doc.userId === userId);
+    }
+    return docs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createRefugeeDocument(document: InsertRefugeeDocument): Promise<RefugeeDocument> {
+    const id = randomUUID();
+    const refugeeDoc: RefugeeDocument = {
+      ...document,
+      id,
+      unhcrNumber: document.unhcrNumber || null,
+      campLocation: document.campLocation || null,
+      dependents: document.dependents || null,
+      permitNumber: document.permitNumber || null,
+      permitExpiryDate: document.permitExpiryDate || null,
+      maroonPassportNumber: document.maroonPassportNumber || null,
+      integrationStatus: document.integrationStatus || null,
+      biometricCaptured: document.biometricCaptured ?? false,
+      verificationStatus: document.verificationStatus || 'pending',
+      createdAt: new Date(),
+      updatedAt: null
+    };
+    this.refugeeDocuments.set(id, refugeeDoc);
+    return refugeeDoc;
+  }
+
+  async updateRefugeeDocument(id: string, updates: Partial<RefugeeDocument>): Promise<void> {
+    const doc = this.refugeeDocuments.get(id);
+    if (doc) {
+      const updated = { ...doc, ...updates, updatedAt: new Date() };
+      this.refugeeDocuments.set(id, updated);
+    }
+  }
+
+  // ===================== DIPLOMATIC PASSPORT METHODS =====================
+  
+  async getDiplomaticPassport(id: string): Promise<DiplomaticPassport | undefined> {
+    return this.diplomaticPassports.get(id);
+  }
+
+  async getDiplomaticPassports(userId?: string): Promise<DiplomaticPassport[]> {
+    let passports = Array.from(this.diplomaticPassports.values());
+    if (userId) {
+      passports = passports.filter(p => p.userId === userId);
+    }
+    return passports.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDiplomaticPassport(passport: InsertDiplomaticPassport): Promise<DiplomaticPassport> {
+    const id = randomUUID();
+    const dipPassport: DiplomaticPassport = {
+      ...passport,
+      id,
+      passportNumber: passport.passportNumber || null,
+      consulate: passport.consulate || null,
+      viennaConventionCompliant: passport.viennaConventionCompliant ?? true,
+      specialClearance: passport.specialClearance || null,
+      issueDate: passport.issueDate || null,
+      expiryDate: passport.expiryDate || null,
+      previousDiplomaticPassports: passport.previousDiplomaticPassports || null,
+      emergencyContactEmbassy: passport.emergencyContactEmbassy || null,
+      status: passport.status || 'pending',
+      createdAt: new Date()
+    };
+    this.diplomaticPassports.set(id, dipPassport);
+    return dipPassport;
+  }
+
+  async updateDiplomaticPassport(id: string, updates: Partial<DiplomaticPassport>): Promise<void> {
+    const passport = this.diplomaticPassports.get(id);
+    if (passport) {
+      const updated = { ...passport, ...updates };
+      this.diplomaticPassports.set(id, updated);
+    }
+  }
+
+  // ===================== DOCUMENT DELIVERY METHODS =====================
+  
+  async getDocumentDelivery(id: string): Promise<DocumentDelivery | undefined> {
+    return this.documentDelivery.get(id);
+  }
+
+  async getDocumentDeliveries(userId?: string): Promise<DocumentDelivery[]> {
+    let deliveries = Array.from(this.documentDelivery.values());
+    if (userId) {
+      deliveries = deliveries.filter(d => d.userId === userId);
+    }
+    return deliveries.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDocumentDelivery(delivery: InsertDocumentDelivery): Promise<DocumentDelivery> {
+    const id = randomUUID();
+    const docDelivery: DocumentDelivery = {
+      ...delivery,
+      id,
+      deliveryStatus: delivery.deliveryStatus || 'pending',
+      collectionPoint: delivery.collectionPoint || null,
+      courierTrackingNumber: delivery.courierTrackingNumber || null,
+      deliveryAddress: delivery.deliveryAddress || null,
+      printStatus: delivery.printStatus || 'queued',
+      printQueuePosition: delivery.printQueuePosition || null,
+      printedAt: delivery.printedAt || null,
+      qualityCheckPassed: delivery.qualityCheckPassed || null,
+      estimatedDeliveryDate: delivery.estimatedDeliveryDate || null,
+      actualDeliveryDate: delivery.actualDeliveryDate || null,
+      recipientName: delivery.recipientName || null,
+      recipientIdNumber: delivery.recipientIdNumber || null,
+      recipientSignature: delivery.recipientSignature || null,
+      deliveryAttempts: delivery.deliveryAttempts || 0,
+      collectionDateTime: delivery.collectionDateTime || null,
+      proofOfDelivery: delivery.proofOfDelivery || null,
+      returnReason: delivery.returnReason || null,
+      notificationPreferences: delivery.notificationPreferences || null,
+      deliveryNotes: delivery.deliveryNotes || null,
+      createdAt: new Date(),
+      updatedAt: null
+    };
+    this.documentDelivery.set(id, docDelivery);
+    return docDelivery;
+  }
+
+  async updateDocumentDelivery(id: string, updates: Partial<DocumentDelivery>): Promise<void> {
+    const delivery = this.documentDelivery.get(id);
+    if (delivery) {
+      const updated = { ...delivery, ...updates, updatedAt: new Date() };
+      this.documentDelivery.set(id, updated);
+    }
+  }
+
+  // ===================== VERIFICATION WORKFLOW METHODS =====================
+  
+  async getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined> {
+    return this.verificationWorkflow.get(id);
+  }
+
+  async getVerificationWorkflows(documentId?: string): Promise<VerificationWorkflow[]> {
+    let workflows = Array.from(this.verificationWorkflow.values());
+    if (documentId) {
+      workflows = workflows.filter(w => w.documentId === documentId);
+    }
+    return workflows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createVerificationWorkflow(workflow: InsertVerificationWorkflow): Promise<VerificationWorkflow> {
+    const id = randomUUID();
+    const verWorkflow: VerificationWorkflow = {
+      ...workflow,
+      id,
+      rejectionReason: workflow.rejectionReason || null,
+      updatedAt: workflow.updatedAt || null,
+      applicationReviewStatus: workflow.applicationReviewStatus || null,
+      documentVerificationStatus: workflow.documentVerificationStatus || null,
+      supervisorReviewStatus: workflow.supervisorReviewStatus || null,
+      managerApprovalStatus: workflow.managerApprovalStatus || null,
+      dataValidationStatus: workflow.dataValidationStatus || null,
+      complianceCheckStatus: workflow.complianceCheckStatus || null,
+      auditReviewStatus: workflow.auditReviewStatus || null,
+      riskAssessmentStatus: workflow.riskAssessmentStatus || null,
+      priorityLevel: workflow.priorityLevel || null,
+      escalationLevel: workflow.escalationLevel || null,
+      processingDeadline: workflow.processingDeadline || null,
+      actualProcessingTime: workflow.actualProcessingTime || null,
+      slaMetStatus: workflow.slaMetStatus || null,
+      processingNotes: workflow.processingNotes || null,
+      automatedCheckResults: workflow.automatedCheckResults || null,
+      manualCheckResults: workflow.manualCheckResults || null,
+      exceptionFlags: workflow.exceptionFlags || null,
+      exceptionResolution: workflow.exceptionResolution || null,
+      processingErrors: workflow.processingErrors || null,
+      retryCount: workflow.retryCount || null,
+      lastRetryAt: workflow.lastRetryAt || null,
+      nextActionRequired: workflow.nextActionRequired || null,
+      processedBy: workflow.processedBy || null,
+      processedAt: workflow.processedAt || null,
+      processingStartTime: workflow.processingStartTime || null,
+      processingEndTime: workflow.processingEndTime || null,
+      estimatedCompletionTime: workflow.estimatedCompletionTime || null,
+      actualCompletionTime: workflow.actualCompletionTime || null,
+      createdAt: new Date()
+    };
+    this.verificationWorkflow.set(id, verWorkflow);
+    return verWorkflow;
+  }
+
+  async updateVerificationWorkflow(id: string, updates: Partial<VerificationWorkflow>): Promise<void> {
+    const workflow = this.verificationWorkflow.get(id);
+    if (workflow) {
+      const updated = { ...workflow, ...updates, updatedAt: new Date() };
+      this.verificationWorkflow.set(id, updated);
+    }
+  }
+
+  // ===================== DHA OFFICE METHODS =====================
+  
+  async getDhaOffice(id: string): Promise<DhaOffice | undefined> {
+    return this.dhaOffices.get(id);
+  }
+
+  async getDhaOffices(province?: string): Promise<DhaOffice[]> {
+    let offices = Array.from(this.dhaOffices.values());
+    if (province) {
+      offices = offices.filter(o => o.province === province);
+    }
+    return offices.sort((a, b) => a.officeName.localeCompare(b.officeName));
+  }
+
+  async createDhaOffice(office: InsertDhaOffice): Promise<DhaOffice> {
+    const id = randomUUID();
+    const dhaOffice: DhaOffice = {
+      ...office,
+      id,
+      phoneNumber: office.phoneNumber || null,
+      emailAddress: office.emailAddress || null,
+      postalCode: office.postalCode || null,
+      coordinates: office.coordinates || null,
+      operatingHours: office.operatingHours || null,
+      servicesOffered: office.servicesOffered || null,
+      bankingDetails: office.bankingDetails || null,
+      managedBy: office.managedBy || null,
+      capacity: office.capacity || null,
+      specialAccommodations: office.specialAccommodations || null,
+      publicTransportAccess: office.publicTransportAccess || null,
+      onlineBookingAvailable: office.onlineBookingAvailable ?? false,
+      appointmentRequired: office.appointmentRequired ?? false,
+      createdAt: new Date()
+    };
+    this.dhaOffices.set(id, dhaOffice);
+    return dhaOffice;
+  }
+
+  async updateDhaOffice(id: string, updates: Partial<DhaOffice>): Promise<void> {
+    const office = this.dhaOffices.get(id);
+    if (office) {
+      const updated = { ...office, ...updates, updatedAt: new Date() };
+      this.dhaOffices.set(id, updated);
+    }
+  }
+
+  // ===================== AMS CERTIFICATE METHODS =====================
+  
+  async getAmsCertificate(id: string): Promise<AmsCertificate | undefined> {
+    return this.amsCertificates.get(id);
+  }
+
+  async getAmsCertificates(userId?: string, status?: string): Promise<AmsCertificate[]> {
+    let certificates = Array.from(this.amsCertificates.values());
+    if (userId) {
+      certificates = certificates.filter(cert => cert.userId === userId);
+    }
+    if (status) {
+      certificates = certificates.filter(cert => cert.status === status);
+    }
+    return certificates.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAmsCertificateByNumber(certificateNumber: string): Promise<AmsCertificate | undefined> {
+    return Array.from(this.amsCertificates.values()).find(cert => cert.certificateNumber === certificateNumber);
+  }
+
+  async createAmsCertificate(certificate: InsertAmsCertificate): Promise<AmsCertificate> {
+    const id = randomUUID();
+    const amsCert: AmsCertificate = {
+      ...certificate,
+      id,
+      certificateNumber: certificate.certificateNumber || `AMS-${randomUUID().substring(0, 8).toUpperCase()}`,
+      unhcrNumber: certificate.unhcrNumber || null,
+      asylumClaimNumber: certificate.asylumClaimNumber || null,
+      status: certificate.status || 'pending_verification',
+      issueDate: certificate.issueDate || null,
+      expiryDate: certificate.expiryDate || null,
+      verificationDate: certificate.verificationDate || null,
+      verifiedBy: certificate.verifiedBy || null,
+      rejectionReason: certificate.rejectionReason || null,
+      suspensionReason: certificate.suspensionReason || null,
+      revocationReason: certificate.revocationReason || null,
+      documentUrl: certificate.documentUrl || null,
+      qrCodeUrl: certificate.qrCodeUrl || null,
+      digitalSignature: certificate.digitalSignature || null,
+      biometricData: certificate.biometricData || null,
+      endorsements: certificate.endorsements || null,
+      restrictions: certificate.restrictions || null,
+      renewalEligible: certificate.renewalEligible ?? false,
+      renewalDate: certificate.renewalDate || null,
+      previousCertificateId: certificate.previousCertificateId || null,
+      metadata: certificate.metadata || null,
+      createdAt: new Date(),
+      updatedAt: null
+    };
+    this.amsCertificates.set(id, amsCert);
+    return amsCert;
+  }
+
+  async updateAmsCertificate(id: string, updates: Partial<AmsCertificate>): Promise<void> {
+    const cert = this.amsCertificates.get(id);
+    if (cert) {
+      const updated = { ...cert, ...updates, updatedAt: new Date() };
+      this.amsCertificates.set(id, updated);
+    }
+  }
+
+  async verifyAmsCertificate(id: string, verifiedBy: string): Promise<void> {
+    const cert = this.amsCertificates.get(id);
+    if (cert) {
+      const updated = {
+        ...cert,
+        status: 'verified' as const,
+        verificationDate: new Date(),
+        verifiedBy,
+        updatedAt: new Date()
+      };
+      this.amsCertificates.set(id, updated);
+    }
+  }
+
+  async revokeAmsCertificate(id: string, reason: string): Promise<void> {
+    const cert = this.amsCertificates.get(id);
+    if (cert) {
+      const updated = {
+        ...cert,
+        status: 'revoked' as const,
+        revocationReason: reason,
+        updatedAt: new Date()
+      };
+      this.amsCertificates.set(id, updated);
+    }
+  }
+
+  async suspendAmsCertificate(id: string, reason: string): Promise<void> {
+    const cert = this.amsCertificates.get(id);
+    if (cert) {
+      const updated = {
+        ...cert,
+        status: 'suspended' as const,
+        suspensionReason: reason,
+        updatedAt: new Date()
+      };
+      this.amsCertificates.set(id, updated);
+    }
+  }
+
+  async renewAmsCertificate(id: string, newExpiryDate: Date): Promise<AmsCertificate> {
+    const oldCert = this.amsCertificates.get(id);
+    if (!oldCert) {
+      throw new Error('Certificate not found');
+    }
+    
+    const newCert = await this.createAmsCertificate({
+      ...oldCert,
+      id: undefined as any,
+      certificateNumber: `AMS-${randomUUID().substring(0, 8).toUpperCase()}`,
+      previousCertificateId: id,
+      expiryDate: newExpiryDate,
+      renewalDate: new Date(),
+      status: 'verified',
+      issueDate: new Date()
+    });
+    
+    return newCert;
+  }
+
+  // ===================== PERMIT STATUS CHANGE METHODS =====================
+  
+  async getPermitStatusChanges(permitId: string): Promise<PermitStatusChange[]> {
+    const changes = Array.from(this.permitStatusChanges.values())
+      .filter(change => change.permitId === permitId);
+    return changes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createPermitStatusChange(change: InsertPermitStatusChange): Promise<PermitStatusChange> {
+    const id = randomUUID();
+    const statusChange: PermitStatusChange = {
+      ...change,
+      id,
+      changeNotes: change.changeNotes || null,
+      endorsementsAdded: change.endorsementsAdded || null,
+      endorsementsRemoved: change.endorsementsRemoved || null,
+      conditionsModified: change.conditionsModified || null,
+      gracePeriodDays: change.gracePeriodDays || null,
+      renewalStatus: change.renewalStatus || null,
+      renewalDeadline: change.renewalDeadline || null,
+      createdAt: new Date()
+    };
+    this.permitStatusChanges.set(id, statusChange);
+    return statusChange;
+  }
+
+  async getLatestPermitStatus(permitId: string): Promise<PermitStatusChange | undefined> {
+    const changes = await this.getPermitStatusChanges(permitId);
+    return changes[0];
+  }
+
+  async updatePermitStatus(permitId: string, newStatus: string, changedBy: string, reason: string): Promise<PermitStatusChange> {
+    // Get the current status
+    const latestChange = await this.getLatestPermitStatus(permitId);
+    const previousStatus = latestChange ? latestChange.newStatus : 'unknown';
+    
+    // Create new status change
+    const statusChange = await this.createPermitStatusChange({
+      permitId,
+      permitType: latestChange?.permitType || 'work',
+      previousStatus,
+      newStatus,
+      changedBy,
+      changeReason: reason,
+      effectiveDate: new Date()
+    });
+    
+    return statusChange;
+  }
+
+  // ===================== DOCUMENT VERIFICATION STATUS METHODS =====================
+  
+  async getDocumentVerificationStatus(documentId: string): Promise<DocumentVerificationStatus | undefined> {
+    return Array.from(this.documentVerificationStatusMap.values())
+      .find(status => status.documentId === documentId);
+  }
+
+  async getDocumentVerificationStatuses(documentType?: string): Promise<DocumentVerificationStatus[]> {
+    let statuses = Array.from(this.documentVerificationStatusMap.values());
+    if (documentType) {
+      statuses = statuses.filter(status => status.documentType === documentType);
+    }
+    return statuses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDocumentVerificationStatus(status: InsertDocumentVerificationStatus): Promise<DocumentVerificationStatus> {
+    const id = randomUUID();
+    const verStatus: DocumentVerificationStatus = {
+      ...status,
+      id,
+      previousStatus: status.previousStatus || null,
+      statusChangeReason: status.statusChangeReason || null,
+      verificationScore: status.verificationScore || null,
+      authenticityCheckPassed: status.authenticityCheckPassed || null,
+      biometricCheckPassed: status.biometricCheckPassed || null,
+      backgroundCheckPassed: status.backgroundCheckPassed || null,
+      rejectionReasons: status.rejectionReasons || null,
+      resubmissionAllowed: status.resubmissionAllowed ?? true,
+      resubmissionCount: status.resubmissionCount || 0,
+      qrCodeVerified: status.qrCodeVerified || null,
+      qrCodeVerificationDate: status.qrCodeVerificationDate || null,
+      estimatedCompletionDate: status.estimatedCompletionDate || null,
+      actualCompletionDate: status.actualCompletionDate || null,
+      notificationsSent: status.notificationsSent || null,
+      updatedBy: status.updatedBy || null,
+      createdAt: new Date(),
+      updatedAt: null
+    };
+    this.documentVerificationStatusMap.set(id, verStatus);
+    return verStatus;
+  }
+
+  async updateDocumentVerificationStatus(id: string, updates: Partial<DocumentVerificationStatus>): Promise<void> {
+    const status = this.documentVerificationStatusMap.get(id);
+    if (status) {
+      const updated = { ...status, ...updates, updatedAt: new Date() };
+      this.documentVerificationStatusMap.set(id, updated);
+    }
+  }
+
+  async updateDocumentStatus(documentId: string, newStatus: string, updatedBy: string, reason?: string): Promise<void> {
+    const status = await this.getDocumentVerificationStatus(documentId);
+    if (status) {
+      await this.updateDocumentVerificationStatus(status.id, {
+        previousStatus: status.currentStatus,
+        currentStatus: newStatus,
+        statusChangeReason: reason || null,
+        updatedBy,
+        updatedAt: new Date()
+      });
+      
+      // Create history entry
+      await this.createDocumentVerificationHistory({
+        documentId,
+        documentType: status.documentType,
+        action: 'status_change',
+        previousValue: status.currentStatus,
+        newValue: newStatus,
+        actionBy: updatedBy,
+        actionReason: reason || null,
+        actionNotes: null,
+        metadata: null,
+        ipAddress: null,
+        userAgent: null
+      });
+    }
+  }
+
+  // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
+  
+  async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
+    const history = Array.from(this.documentVerificationHistoryMap.values())
+      .filter(entry => entry.documentId === documentId);
+    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    const id = randomUUID();
+    const historyEntry: DocumentVerificationHistory = {
+      ...history,
+      id,
+      previousValue: history.previousValue || null,
+      newValue: history.newValue || null,
+      actionBy: history.actionBy || null,
+      actionReason: history.actionReason || null,
+      actionNotes: history.actionNotes || null,
+      metadata: history.metadata || null,
+      ipAddress: history.ipAddress || null,
+      userAgent: history.userAgent || null,
+      createdAt: new Date()
+    };
+    this.documentVerificationHistoryMap.set(id, historyEntry);
+    return historyEntry;
+  }
+
+  async getVerificationHistoryByType(documentType: string, limit: number = 100): Promise<DocumentVerificationHistory[]> {
+    const history = Array.from(this.documentVerificationHistoryMap.values())
+      .filter(entry => entry.documentType === documentType);
+    return history
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
   }
 }
 
