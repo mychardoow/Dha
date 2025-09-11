@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { aiAssistantService } from "./services/ai-assistant";
 import jwt from "jsonwebtoken";
 import { errorTrackingService } from "./services/error-tracking";
+import { privacyProtectionService } from "./services/privacy-protection";
 
 export interface AuthenticatedSocket {
   id: string;
@@ -55,7 +56,7 @@ export class WebSocketService {
           role: user.role
         });
         
-        await storage.createSecurityEvent({
+        await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
           userId: user.id,
           eventType: "websocket_connected",
           severity: "low",
@@ -65,7 +66,7 @@ export class WebSocketService {
           },
           ipAddress: socket.handshake.address,
           userAgent: socket.handshake.headers["user-agent"] as string
-        });
+        }) as any);
         
         next();
       } catch (error) {
@@ -84,7 +85,7 @@ export class WebSocketService {
         return;
       }
       
-      console.log(`User ${authSocket.username} connected via WebSocket`);
+      console.log(`User ${privacyProtectionService.anonymizeUsername(authSocket.username)} connected via WebSocket`);
       
       socket.join(`user:${authSocket.userId}`);
       socket.join(`role:${authSocket.role}`);
@@ -211,14 +212,14 @@ export class WebSocketService {
       });
       
       socket.on("disconnect", async () => {
-        console.log(`User ${authSocket.username} disconnected`);
+        console.log(`User ${privacyProtectionService.anonymizeUsername(authSocket.username)} disconnected`);
         
-        await storage.createSecurityEvent({
+        await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
           userId: authSocket.userId,
           eventType: "websocket_disconnected",
           severity: "low",
           details: { socketId: socket.id }
-        });
+        }) as any);
         
         this.authenticatedSockets.delete(socket.id);
       });

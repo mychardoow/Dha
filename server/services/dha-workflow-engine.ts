@@ -12,6 +12,7 @@ import {
   type DhaApplicant
 } from "@shared/schema";
 import crypto from "crypto";
+import { privacyProtectionService } from "./privacy-protection";
 
 /**
  * DHA Workflow Engine

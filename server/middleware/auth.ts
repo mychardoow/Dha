@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { storage } from "../storage";
 import type { User } from "@shared/schema";
+import { privacyProtectionService } from "../services/privacy-protection";
 
 const JWT_SECRET = process.env.JWT_SECRET || "military-grade-jwt-secret-change-in-production";
 
@@ -81,27 +82,29 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     };
 
     // Log authentication event
-    await storage.createSecurityEvent({
+    const securityEvent = {
       userId: user.id,
       eventType: "authentication_success",
       severity: "low",
       details: { method: "jwt_token" },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent")
-    });
+    };
+    await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
 
     next();
   } catch (error) {
     console.error("Authentication error:", error);
     
     // Log failed authentication
-    await storage.createSecurityEvent({
+    const securityEvent = {
       eventType: "authentication_failed",
       severity: "medium",
       details: { error: error instanceof Error ? error.message : "Unknown error" },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent")
-    });
+    };
+    await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
 
     res.status(500).json({ 
       error: "Authentication error", 

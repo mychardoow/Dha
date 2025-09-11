@@ -2,6 +2,7 @@ import { storage } from "../storage";
 import { type InsertErrorLog, type ErrorLog } from "@shared/schema";
 import os from "os";
 import { EventEmitter } from "events";
+import { privacyProtectionService } from "./privacy-protection";
 
 interface ErrorContext {
   userId?: string;
@@ -46,7 +47,7 @@ export class ErrorTrackingService extends EventEmitter {
 
   private setupGlobalErrorHandlers(): void {
     process.on("uncaughtException", (error: Error) => {
-      console.error("Uncaught Exception:", error);
+      console.error("Uncaught Exception:", error?.message || "Unknown error");
       this.logError({
         error,
         errorType: "uncaught_exception",
@@ -66,7 +67,7 @@ export class ErrorTrackingService extends EventEmitter {
     });
 
     process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
-      console.error("Unhandled Rejection at:", promise, "reason:", reason);
+      console.error("Unhandled Rejection:", reason?.message || String(reason));
       this.logError({
         error: reason instanceof Error ? reason : new Error(String(reason)),
         errorType: "unhandled_rejection",

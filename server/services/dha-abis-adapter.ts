@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { storage } from "../storage";
 import { InsertDhaVerification, InsertDhaAuditEvent } from "@shared/schema";
+import { privacyProtectionService } from "./privacy-protection";
 
 /**
  * DHA ABIS (Automated Biometric Identification System) Adapter

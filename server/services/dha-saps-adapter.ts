@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { storage } from "../storage";
 import { InsertDhaVerification, InsertDhaAuditEvent, InsertDhaBackgroundCheck } from "@shared/schema";
+import { privacyProtectionService } from "./privacy-protection";
 
 /**
  * DHA SAPS CRC (Criminal Record Centre) Adapter
