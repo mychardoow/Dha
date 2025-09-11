@@ -47,10 +47,11 @@ args = "Start application"
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
-mode = "sequential"
+mode = "parallel"
 
 [[workflows.workflow.tasks]]
-task = "packager.installForAll"
+task = "shell.exec"
+args = "Npm run dev "
 
 [[workflows.workflow]]
 name = "Simple "
