@@ -1834,10 +1834,9 @@ export class MemStorage implements IStorage {
       isArchived: false,
       payload: insertNotification.payload || null,
       requiresAction: insertNotification.requiresAction ?? false,
-      actionData: insertNotification.actionData || null,
       actionUrl: insertNotification.actionUrl || null,
+      actionLabel: insertNotification.actionLabel || null,
       createdBy: insertNotification.createdBy || null,
-      metadata: insertNotification.metadata || null,
       relatedEntityType: insertNotification.relatedEntityType || null,
       relatedEntityId: insertNotification.relatedEntityId || null,
       createdAt: new Date(),
@@ -2203,9 +2202,11 @@ export class MemStorage implements IStorage {
       sessionId: insertAuditLog.sessionId || null,
       entityType: insertAuditLog.entityType || null,
       entityId: insertAuditLog.entityId || null,
-      actionDetails: insertAuditLog.actionDetails || null,
-      metadata: insertAuditLog.metadata || null,
+      actionDetails: insertAuditLog.actionDetails || {},
       complianceFlags: insertAuditLog.complianceFlags || null,
+      previousState: insertAuditLog.previousState || null,
+      newState: insertAuditLog.newState || null,
+      outcome: insertAuditLog.outcome || 'success',
       createdAt: new Date()
     };
     this.auditLogs.set(id, auditLog);
@@ -2256,6 +2257,8 @@ export class MemStorage implements IStorage {
       riskAssessment: insertIncident.riskAssessment || null,
       closedAt: insertIncident.closedAt || null,
       affectedUsers: insertIncident.affectedUsers || null,
+      evidenceIds: insertIncident.evidenceIds || [],
+      correlatedEvents: insertIncident.correlatedEvents || [],
       investigationNotes: insertIncident.investigationNotes || null,
       containmentActions: insertIncident.containmentActions || null,
       assignedTo: insertIncident.assignedTo || null,
@@ -2479,6 +2482,8 @@ export class MemStorage implements IStorage {
       reviewNotes: insertEvent.reviewNotes || null,
       reviewedBy: insertEvent.reviewedBy || null,
       reviewedAt: insertEvent.reviewedAt || null,
+      consentId: insertEvent.consentId || null,
+      processingDetails: insertEvent.processingDetails || null,
       createdAt: new Date()
     };
     this.complianceEvents.set(id, event);
@@ -2712,9 +2717,6 @@ export class MemStorage implements IStorage {
       recipientIdNumber: delivery.recipientIdNumber || null,
       recipientSignature: delivery.recipientSignature || null,
       deliveryAttempts: delivery.deliveryAttempts || 0,
-      collectionDateTime: delivery.collectionDateTime || null,
-      proofOfDelivery: delivery.proofOfDelivery || null,
-      returnReason: delivery.returnReason || null,
       notificationPreferences: delivery.notificationPreferences || null,
       deliveryNotes: delivery.deliveryNotes || null,
       createdAt: new Date(),
@@ -2754,31 +2756,27 @@ export class MemStorage implements IStorage {
       rejectionReason: workflow.rejectionReason || null,
       updatedAt: workflow.updatedAt || null,
       applicationReviewStatus: workflow.applicationReviewStatus || null,
+      applicationReviewNotes: workflow.applicationReviewNotes || null,
+      applicationReviewedBy: workflow.applicationReviewedBy || null,
+      applicationReviewedAt: workflow.applicationReviewedAt || null,
+      biometricCaptureStatus: workflow.biometricCaptureStatus || null,
+      biometricQualityScore: workflow.biometricQualityScore || null,
+      biometricCapturedAt: workflow.biometricCapturedAt || null,
       documentVerificationStatus: workflow.documentVerificationStatus || null,
-      supervisorReviewStatus: workflow.supervisorReviewStatus || null,
-      managerApprovalStatus: workflow.managerApprovalStatus || null,
-      dataValidationStatus: workflow.dataValidationStatus || null,
-      complianceCheckStatus: workflow.complianceCheckStatus || null,
-      auditReviewStatus: workflow.auditReviewStatus || null,
-      riskAssessmentStatus: workflow.riskAssessmentStatus || null,
-      priorityLevel: workflow.priorityLevel || null,
-      escalationLevel: workflow.escalationLevel || null,
-      processingDeadline: workflow.processingDeadline || null,
-      actualProcessingTime: workflow.actualProcessingTime || null,
-      slaMetStatus: workflow.slaMetStatus || null,
-      processingNotes: workflow.processingNotes || null,
-      automatedCheckResults: workflow.automatedCheckResults || null,
-      manualCheckResults: workflow.manualCheckResults || null,
-      exceptionFlags: workflow.exceptionFlags || null,
-      exceptionResolution: workflow.exceptionResolution || null,
-      processingErrors: workflow.processingErrors || null,
-      retryCount: workflow.retryCount || null,
-      lastRetryAt: workflow.lastRetryAt || null,
-      nextActionRequired: workflow.nextActionRequired || null,
-      processedBy: workflow.processedBy || null,
-      processedAt: workflow.processedAt || null,
-      processingStartTime: workflow.processingStartTime || null,
-      processingEndTime: workflow.processingEndTime || null,
+      documentVerificationScore: workflow.documentVerificationScore || null,
+      documentVerifiedBy: workflow.documentVerifiedBy || null,
+      documentVerifiedAt: workflow.documentVerifiedAt || null,
+      securityClearanceStatus: workflow.securityClearanceStatus || null,
+      securityClearanceLevel: workflow.securityClearanceLevel || null,
+      securityClearedBy: workflow.securityClearedBy || null,
+      securityClearedAt: workflow.securityClearedAt || null,
+      qualityCheckStatus: workflow.qualityCheckStatus || null,
+      qualityCheckScore: workflow.qualityCheckScore || null,
+      qualityCheckedBy: workflow.qualityCheckedBy || null,
+      qualityCheckedAt: workflow.qualityCheckedAt || null,
+      approvalStatus: workflow.approvalStatus || null,
+      approvedBy: workflow.approvedBy || null,
+      approvedAt: workflow.approvedAt || null,
       estimatedCompletionTime: workflow.estimatedCompletionTime || null,
       actualCompletionTime: workflow.actualCompletionTime || null,
       createdAt: new Date()
@@ -2820,13 +2818,10 @@ export class MemStorage implements IStorage {
       coordinates: office.coordinates || null,
       operatingHours: office.operatingHours || null,
       servicesOffered: office.servicesOffered || null,
-      bankingDetails: office.bankingDetails || null,
-      managedBy: office.managedBy || null,
-      capacity: office.capacity || null,
-      specialAccommodations: office.specialAccommodations || null,
-      publicTransportAccess: office.publicTransportAccess || null,
-      onlineBookingAvailable: office.onlineBookingAvailable ?? false,
-      appointmentRequired: office.appointmentRequired ?? false,
+      hasRefugeeServices: office.hasRefugeeServices ?? false,
+      hasDiplomaticServices: office.hasDiplomaticServices ?? false,
+      collectionAvailable: office.collectionAvailable ?? true,
+      wheelchairAccessible: office.wheelchairAccessible ?? false,
       createdAt: new Date()
     };
     this.dhaOffices.set(id, dhaOffice);
@@ -2836,7 +2831,7 @@ export class MemStorage implements IStorage {
   async updateDhaOffice(id: string, updates: Partial<DhaOffice>): Promise<void> {
     const office = this.dhaOffices.get(id);
     if (office) {
-      const updated = { ...office, ...updates, updatedAt: new Date() };
+      const updated = { ...office, ...updates };
       this.dhaOffices.set(id, updated);
     }
   }
@@ -2949,9 +2944,12 @@ export class MemStorage implements IStorage {
       throw new Error('Certificate not found');
     }
     
+    const { id: _, createdAt, biometricData, endorsements, restrictions, ...oldCertData } = oldCert;
     const newCert = await this.createAmsCertificate({
-      ...oldCert,
-      id: undefined as any,
+      ...oldCertData,
+      biometricData: biometricData as any,
+      endorsements: endorsements as any,
+      restrictions: restrictions as any,
       certificateNumber: `AMS-${randomUUID().substring(0, 8).toUpperCase()}`,
       previousCertificateId: id,
       expiryDate: newExpiryDate,
