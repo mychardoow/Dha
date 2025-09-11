@@ -14,11 +14,15 @@ import {
   type NotificationEvent, type InsertNotificationEvent, type UserNotificationPreferences, type InsertUserNotificationPreferences,
   type StatusUpdate, type InsertStatusUpdate, type WebSocketSession, type InsertWebSocketSession,
   type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage,
+  type AuditLog, type InsertAuditLog, type SecurityIncident, type InsertSecurityIncident,
+  type UserBehaviorProfile, type InsertUserBehaviorProfile, type SecurityRule, type InsertSecurityRule,
+  type ComplianceEvent, type InsertComplianceEvent, type SecurityMetric, type InsertSecurityMetric,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications,
   dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
-  notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages
+  notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
+  auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -276,6 +280,92 @@ export interface IStorage {
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   markChatMessageAsRead(messageId: string): Promise<void>;
   markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void>;
+  
+  // ===================== ENHANCED SECURITY MONITORING METHODS =====================
+  
+  // Audit Log methods
+  getAuditLogs(filters?: {
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    entityId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AuditLog[]>;
+  createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog>;
+  getAuditLogById(id: string): Promise<AuditLog | undefined>;
+  
+  // Security Incident methods
+  getSecurityIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    incidentType?: string;
+    assignedTo?: string;
+    limit?: number;
+  }): Promise<SecurityIncident[]>;
+  getSecurityIncident(id: string): Promise<SecurityIncident | undefined>;
+  createSecurityIncident(incident: InsertSecurityIncident): Promise<SecurityIncident>;
+  updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<void>;
+  assignIncidentTo(incidentId: string, assignedTo: string): Promise<void>;
+  resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void>;
+  closeIncident(incidentId: string, closedBy: string): Promise<void>;
+  
+  // User Behavior Profile methods
+  getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined>;
+  createUserBehaviorProfile(profile: InsertUserBehaviorProfile): Promise<UserBehaviorProfile>;
+  updateUserBehaviorProfile(userId: string, updates: Partial<UserBehaviorProfile>): Promise<void>;
+  analyzeUserBehavior(userId: string): Promise<{
+    riskScore: number;
+    anomalies: string[];
+    recommendations: string[];
+  }>;
+  
+  // Security Rule methods
+  getSecurityRules(filters?: {
+    category?: string;
+    isActive?: boolean;
+    ruleType?: string;
+  }): Promise<SecurityRule[]>;
+  getSecurityRule(id: string): Promise<SecurityRule | undefined>;
+  createSecurityRule(rule: InsertSecurityRule): Promise<SecurityRule>;
+  updateSecurityRule(id: string, updates: Partial<SecurityRule>): Promise<void>;
+  activateSecurityRule(id: string): Promise<void>;
+  deactivateSecurityRule(id: string): Promise<void>;
+  incrementRuleTriggeredCount(id: string): Promise<void>;
+  
+  // Compliance Event methods
+  getComplianceEvents(filters?: {
+    regulation?: string;
+    eventType?: string;
+    dataSubjectId?: string;
+    complianceStatus?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<ComplianceEvent[]>;
+  createComplianceEvent(event: InsertComplianceEvent): Promise<ComplianceEvent>;
+  getComplianceEvent(id: string): Promise<ComplianceEvent | undefined>;
+  updateComplianceEventStatus(id: string, status: string, reviewNotes?: string, reviewedBy?: string): Promise<void>;
+  getComplianceReport(regulation: string, startDate: Date, endDate: Date): Promise<{
+    totalEvents: number;
+    compliantEvents: number;
+    nonCompliantEvents: number;
+    eventsByType: Record<string, number>;
+    dataByCategory: Record<string, number>;
+  }>;
+  
+  // Security Metrics methods
+  getSecurityMetrics(filters?: {
+    metricName?: string;
+    timeWindow?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<SecurityMetric[]>;
+  createSecurityMetric(metric: InsertSecurityMetric): Promise<SecurityMetric>;
+  getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]>;
+  getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -317,6 +407,14 @@ export class MemStorage implements IStorage {
   private webSocketSessions: Map<string, WebSocketSession>;
   private chatSessions: Map<string, ChatSession>;
   private chatMessages: Map<string, ChatMessage>;
+  
+  // Enhanced security monitoring storage
+  private auditLogs: Map<string, AuditLog>;
+  private securityIncidents: Map<string, SecurityIncident>;
+  private userBehaviorProfiles: Map<string, UserBehaviorProfile>;
+  private securityRules: Map<string, SecurityRule>;
+  private complianceEvents: Map<string, ComplianceEvent>;
+  private securityMetricsStorage: Map<string, SecurityMetric>;
 
   constructor() {
     this.users = new Map();
@@ -357,6 +455,14 @@ export class MemStorage implements IStorage {
     this.webSocketSessions = new Map();
     this.chatSessions = new Map();
     this.chatMessages = new Map();
+    
+    // Initialize enhanced security monitoring storage
+    this.auditLogs = new Map();
+    this.securityIncidents = new Map();
+    this.userBehaviorProfiles = new Map();
+    this.securityRules = new Map();
+    this.complianceEvents = new Map();
+    this.securityMetricsStorage = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -1915,6 +2021,400 @@ export class MemStorage implements IStorage {
           readAt: new Date()
         });
       });
+  }
+
+  // ===================== ENHANCED SECURITY MONITORING IMPLEMENTATIONS =====================
+
+  // Audit Log methods
+  async getAuditLogs(filters?: {
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    entityId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AuditLog[]> {
+    let logs = Array.from(this.auditLogs.values());
+
+    if (filters) {
+      logs = logs.filter(log => {
+        if (filters.userId && log.userId !== filters.userId) return false;
+        if (filters.action && log.action !== filters.action) return false;
+        if (filters.entityType && log.entityType !== filters.entityType) return false;
+        if (filters.entityId && log.entityId !== filters.entityId) return false;
+        if (filters.startDate && log.createdAt < filters.startDate) return false;
+        if (filters.endDate && log.createdAt > filters.endDate) return false;
+        return true;
+      });
+    }
+
+    const limit = filters?.limit || 100;
+    return logs
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async createAuditLog(insertAuditLog: InsertAuditLog): Promise<AuditLog> {
+    const id = randomUUID();
+    const auditLog: AuditLog = {
+      ...insertAuditLog,
+      id,
+      createdAt: new Date()
+    };
+    this.auditLogs.set(id, auditLog);
+    return auditLog;
+  }
+
+  async getAuditLogById(id: string): Promise<AuditLog | undefined> {
+    return this.auditLogs.get(id);
+  }
+
+  // Security Incident methods
+  async getSecurityIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    incidentType?: string;
+    assignedTo?: string;
+    limit?: number;
+  }): Promise<SecurityIncident[]> {
+    let incidents = Array.from(this.securityIncidents.values());
+
+    if (filters) {
+      incidents = incidents.filter(incident => {
+        if (filters.status && incident.status !== filters.status) return false;
+        if (filters.severity && incident.severity !== filters.severity) return false;
+        if (filters.incidentType && incident.incidentType !== filters.incidentType) return false;
+        if (filters.assignedTo && incident.assignedTo !== filters.assignedTo) return false;
+        return true;
+      });
+    }
+
+    const limit = filters?.limit || 50;
+    return incidents
+      .sort((a, b) => b.openedAt.getTime() - a.openedAt.getTime())
+      .slice(0, limit);
+  }
+
+  async getSecurityIncident(id: string): Promise<SecurityIncident | undefined> {
+    return this.securityIncidents.get(id);
+  }
+
+  async createSecurityIncident(insertIncident: InsertSecurityIncident): Promise<SecurityIncident> {
+    const id = randomUUID();
+    const incident: SecurityIncident = {
+      ...insertIncident,
+      id,
+      openedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.securityIncidents.set(id, incident);
+    return incident;
+  }
+
+  async updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<void> {
+    const incident = this.securityIncidents.get(id);
+    if (incident) {
+      this.securityIncidents.set(id, {
+        ...incident,
+        ...updates,
+        updatedAt: new Date()
+      });
+    }
+  }
+
+  async assignIncidentTo(incidentId: string, assignedTo: string): Promise<void> {
+    await this.updateSecurityIncident(incidentId, { assignedTo });
+  }
+
+  async resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void> {
+    await this.updateSecurityIncident(incidentId, {
+      status: 'resolved',
+      resolution,
+      resolvedAt: new Date()
+    });
+  }
+
+  async closeIncident(incidentId: string, closedBy: string): Promise<void> {
+    await this.updateSecurityIncident(incidentId, {
+      status: 'closed',
+      closedAt: new Date()
+    });
+  }
+
+  // User Behavior Profile methods
+  async getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined> {
+    return Array.from(this.userBehaviorProfiles.values())
+      .find(profile => profile.userId === userId);
+  }
+
+  async createUserBehaviorProfile(insertProfile: InsertUserBehaviorProfile): Promise<UserBehaviorProfile> {
+    const id = randomUUID();
+    const profile: UserBehaviorProfile = {
+      ...insertProfile,
+      id,
+      lastAnalyzed: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.userBehaviorProfiles.set(id, profile);
+    return profile;
+  }
+
+  async updateUserBehaviorProfile(userId: string, updates: Partial<UserBehaviorProfile>): Promise<void> {
+    const profile = Array.from(this.userBehaviorProfiles.values())
+      .find(p => p.userId === userId);
+    
+    if (profile) {
+      this.userBehaviorProfiles.set(profile.id, {
+        ...profile,
+        ...updates,
+        updatedAt: new Date()
+      });
+    }
+  }
+
+  async analyzeUserBehavior(userId: string): Promise<{
+    riskScore: number;
+    anomalies: string[];
+    recommendations: string[];
+  }> {
+    // Simplified behavior analysis implementation
+    const profile = await this.getUserBehaviorProfile(userId);
+    const recentEvents = await this.getSecurityEvents(userId, 10);
+    
+    let riskScore = 0;
+    const anomalies: string[] = [];
+    const recommendations: string[] = [];
+
+    if (!profile) {
+      riskScore = 30;
+      anomalies.push("No established behavior baseline");
+      recommendations.push("Monitor user activity to establish baseline");
+    }
+
+    // Analyze recent security events
+    const highSeverityEvents = recentEvents.filter(e => e.severity === 'high' || e.severity === 'critical');
+    if (highSeverityEvents.length > 0) {
+      riskScore += 40;
+      anomalies.push("Recent high-severity security events");
+      recommendations.push("Review recent security activities");
+    }
+
+    return { riskScore: Math.min(riskScore, 100), anomalies, recommendations };
+  }
+
+  // Security Rule methods
+  async getSecurityRules(filters?: {
+    category?: string;
+    isActive?: boolean;
+    ruleType?: string;
+  }): Promise<SecurityRule[]> {
+    let rules = Array.from(this.securityRules.values());
+
+    if (filters) {
+      rules = rules.filter(rule => {
+        if (filters.category && rule.category !== filters.category) return false;
+        if (typeof filters.isActive === 'boolean' && rule.isActive !== filters.isActive) return false;
+        if (filters.ruleType && rule.ruleType !== filters.ruleType) return false;
+        return true;
+      });
+    }
+
+    return rules.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getSecurityRule(id: string): Promise<SecurityRule | undefined> {
+    return this.securityRules.get(id);
+  }
+
+  async createSecurityRule(insertRule: InsertSecurityRule): Promise<SecurityRule> {
+    const id = randomUUID();
+    const rule: SecurityRule = {
+      ...insertRule,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.securityRules.set(id, rule);
+    return rule;
+  }
+
+  async updateSecurityRule(id: string, updates: Partial<SecurityRule>): Promise<void> {
+    const rule = this.securityRules.get(id);
+    if (rule) {
+      this.securityRules.set(id, {
+        ...rule,
+        ...updates,
+        updatedAt: new Date()
+      });
+    }
+  }
+
+  async activateSecurityRule(id: string): Promise<void> {
+    await this.updateSecurityRule(id, { isActive: true });
+  }
+
+  async deactivateSecurityRule(id: string): Promise<void> {
+    await this.updateSecurityRule(id, { isActive: false });
+  }
+
+  async incrementRuleTriggeredCount(id: string): Promise<void> {
+    const rule = this.securityRules.get(id);
+    if (rule) {
+      await this.updateSecurityRule(id, {
+        triggeredCount: (rule.triggeredCount || 0) + 1,
+        lastTriggered: new Date()
+      });
+    }
+  }
+
+  // Compliance Event methods
+  async getComplianceEvents(filters?: {
+    regulation?: string;
+    eventType?: string;
+    dataSubjectId?: string;
+    complianceStatus?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<ComplianceEvent[]> {
+    let events = Array.from(this.complianceEvents.values());
+
+    if (filters) {
+      events = events.filter(event => {
+        if (filters.regulation && event.regulation !== filters.regulation) return false;
+        if (filters.eventType && event.eventType !== filters.eventType) return false;
+        if (filters.dataSubjectId && event.dataSubjectId !== filters.dataSubjectId) return false;
+        if (filters.complianceStatus && event.complianceStatus !== filters.complianceStatus) return false;
+        if (filters.startDate && event.createdAt < filters.startDate) return false;
+        if (filters.endDate && event.createdAt > filters.endDate) return false;
+        return true;
+      });
+    }
+
+    const limit = filters?.limit || 100;
+    return events
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  async createComplianceEvent(insertEvent: InsertComplianceEvent): Promise<ComplianceEvent> {
+    const id = randomUUID();
+    const event: ComplianceEvent = {
+      ...insertEvent,
+      id,
+      createdAt: new Date()
+    };
+    this.complianceEvents.set(id, event);
+    return event;
+  }
+
+  async getComplianceEvent(id: string): Promise<ComplianceEvent | undefined> {
+    return this.complianceEvents.get(id);
+  }
+
+  async updateComplianceEventStatus(id: string, status: string, reviewNotes?: string, reviewedBy?: string): Promise<void> {
+    const event = this.complianceEvents.get(id);
+    if (event) {
+      this.complianceEvents.set(id, {
+        ...event,
+        complianceStatus: status,
+        reviewNotes,
+        reviewedBy,
+        reviewedAt: reviewedBy ? new Date() : undefined
+      });
+    }
+  }
+
+  async getComplianceReport(regulation: string, startDate: Date, endDate: Date): Promise<{
+    totalEvents: number;
+    compliantEvents: number;
+    nonCompliantEvents: number;
+    eventsByType: Record<string, number>;
+    dataByCategory: Record<string, number>;
+  }> {
+    const events = await this.getComplianceEvents({
+      regulation,
+      startDate,
+      endDate
+    });
+
+    const compliantEvents = events.filter(e => e.complianceStatus === 'compliant').length;
+    const nonCompliantEvents = events.filter(e => e.complianceStatus === 'non_compliant').length;
+
+    const eventsByType: Record<string, number> = {};
+    const dataByCategory: Record<string, number> = {};
+
+    events.forEach(event => {
+      eventsByType[event.eventType] = (eventsByType[event.eventType] || 0) + 1;
+      dataByCategory[event.dataCategory] = (dataByCategory[event.dataCategory] || 0) + 1;
+    });
+
+    return {
+      totalEvents: events.length,
+      compliantEvents,
+      nonCompliantEvents,
+      eventsByType,
+      dataByCategory
+    };
+  }
+
+  // Security Metrics methods
+  async getSecurityMetrics(filters?: {
+    metricName?: string;
+    timeWindow?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<SecurityMetric[]> {
+    let metrics = Array.from(this.securityMetricsStorage.values());
+
+    if (filters) {
+      metrics = metrics.filter(metric => {
+        if (filters.metricName && metric.metricName !== filters.metricName) return false;
+        if (filters.timeWindow && metric.timeWindow !== filters.timeWindow) return false;
+        if (filters.startDate && metric.calculatedAt < filters.startDate) return false;
+        if (filters.endDate && metric.calculatedAt > filters.endDate) return false;
+        return true;
+      });
+    }
+
+    const limit = filters?.limit || 100;
+    return metrics
+      .sort((a, b) => b.calculatedAt.getTime() - a.calculatedAt.getTime())
+      .slice(0, limit);
+  }
+
+  async createSecurityMetric(insertMetric: InsertSecurityMetric): Promise<SecurityMetric> {
+    const id = randomUUID();
+    const metric: SecurityMetric = {
+      ...insertMetric,
+      id,
+      calculatedAt: new Date(),
+      createdAt: new Date()
+    };
+    this.securityMetricsStorage.set(id, metric);
+    return metric;
+  }
+
+  async getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]> {
+    const results: SecurityMetric[] = [];
+    
+    for (const metricName of metricNames) {
+      const metrics = await this.getSecurityMetrics({ metricName, limit: 1 });
+      if (metrics.length > 0) {
+        results.push(metrics[0]);
+      }
+    }
+    
+    return results;
+  }
+
+  async getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]> {
+    const metrics = await this.getSecurityMetrics({ metricName, timeWindow, limit: periods });
+    return metrics.slice(0, periods);
   }
 }
 

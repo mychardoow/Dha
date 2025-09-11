@@ -1310,3 +1310,477 @@ export const EventType = {
   BIOMETRIC_FAILED: 'biometric.failed',
   BIOMETRIC_UPDATED: 'biometric.updated',
 } as const;
+
+// ===================== ENHANCED SECURITY MONITORING SCHEMA =====================
+
+// Audit Trail System - Comprehensive logging of all user actions
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // null for system actions
+  sessionId: text("session_id"), // Session identifier
+  action: text("action").notNull(), // Standardized action type
+  entityType: text("entity_type"), // What was acted upon
+  entityId: varchar("entity_id"), // ID of entity
+  previousState: jsonb("previous_state"), // State before action
+  newState: jsonb("new_state"), // State after action
+  actionDetails: jsonb("action_details").notNull(), // Detailed action information
+  outcome: text("outcome").notNull(), // success, failure, partial
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  location: text("location"),
+  riskScore: integer("risk_score"), // Action risk assessment 0-100
+  complianceFlags: jsonb("compliance_flags"), // POPIA compliance markers
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Security Incidents - Automated incident management
+export const securityIncidents = pgTable("security_incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  incidentType: text("incident_type").notNull(), // fraud, breach, suspicious_activity, policy_violation
+  severity: text("severity").notNull(), // low, medium, high, critical
+  status: text("status").notNull().default("open"), // open, investigating, resolved, closed
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  triggeredBy: text("triggered_by").notNull(), // system, user, admin, automated_rule
+  affectedUsers: jsonb("affected_users"), // Array of affected user IDs
+  evidenceIds: jsonb("evidence_ids"), // Array of evidence document IDs
+  correlatedEvents: jsonb("correlated_events"), // Array of related security event IDs
+  investigationNotes: jsonb("investigation_notes"), // Array of investigation updates
+  assignedTo: varchar("assigned_to").references(() => users.id), // Assigned investigator
+  riskAssessment: jsonb("risk_assessment"), // Risk analysis details
+  containmentActions: jsonb("containment_actions"), // Actions taken to contain
+  resolution: text("resolution"), // How incident was resolved
+  lessonsLearned: text("lessons_learned"), // Post-incident analysis
+  openedAt: timestamp("opened_at").notNull().default(sql`now()`),
+  resolvedAt: timestamp("resolved_at"),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// User Behavior Analytics - Track user patterns for fraud detection
+export const userBehaviorProfiles = pgTable("user_behavior_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  typicalLocations: jsonb("typical_locations"), // Array of common locations
+  typicalDevices: jsonb("typical_devices"), // Array of device fingerprints
+  typicalTimes: jsonb("typical_times"), // Common activity times
+  loginPatterns: jsonb("login_patterns"), // Login behavior analysis
+  documentPatterns: jsonb("document_patterns"), // Document interaction patterns
+  riskFactors: jsonb("risk_factors"), // Identified risk factors
+  baselineScore: integer("baseline_score").notNull().default(0), // Normal behavior score
+  lastAnalyzed: timestamp("last_analyzed").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Security Rules Engine - Dynamic security rule management
+export const securityRules = pgTable("security_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // fraud, access, document, authentication
+  ruleType: text("rule_type").notNull(), // threshold, pattern, correlation, ml_model
+  conditions: jsonb("conditions").notNull(), // Rule conditions in structured format
+  actions: jsonb("actions").notNull(), // Actions to take when rule triggered
+  severity: text("severity").notNull(), // low, medium, high, critical
+  isActive: boolean("is_active").notNull().default(true),
+  triggeredCount: integer("triggered_count").notNull().default(0),
+  lastTriggered: timestamp("last_triggered"),
+  falsePositiveCount: integer("false_positive_count").notNull().default(0),
+  effectivenessScore: integer("effectiveness_score"), // 0-100 rule effectiveness
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Compliance Tracking - POPIA and regulatory compliance monitoring
+export const complianceEvents = pgTable("compliance_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(), // data_access, data_modification, consent_given, consent_withdrawn, data_export, data_deletion
+  regulation: text("regulation").notNull(), // POPIA, GDPR, etc.
+  userId: varchar("user_id").references(() => users.id),
+  dataSubjectId: varchar("data_subject_id").references(() => users.id), // The person whose data is being processed
+  dataCategory: text("data_category").notNull(), // personal, biometric, document, health
+  processingPurpose: text("processing_purpose").notNull(),
+  legalBasis: text("legal_basis").notNull(),
+  consentId: varchar("consent_id"), // Reference to consent record
+  dataRetentionPeriod: integer("data_retention_period"), // In days
+  processingDetails: jsonb("processing_details"), // Detailed processing information
+  complianceStatus: text("compliance_status").notNull(), // compliant, non_compliant, under_review
+  reviewNotes: text("review_notes"),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Security Metrics - Real-time security KPIs
+export const securityMetrics = pgTable("security_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  metricName: text("metric_name").notNull(),
+  metricValue: integer("metric_value").notNull(),
+  metricUnit: text("metric_unit").notNull(), // count, percentage, score, rate
+  timeWindow: text("time_window").notNull(), // hour, day, week, month
+  aggregationType: text("aggregation_type").notNull(), // sum, avg, max, min, count
+  dimensions: jsonb("dimensions"), // Additional metric dimensions
+  threshold: jsonb("threshold"), // Alert thresholds
+  isAlert: boolean("is_alert").notNull().default(false),
+  calculatedAt: timestamp("calculated_at").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// ===================== SECURITY MONITORING INSERT SCHEMAS =====================
+
+export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSecurityIncidentSchema = createInsertSchema(securityIncidents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  openedAt: true,
+});
+
+export const insertUserBehaviorProfileSchema = createInsertSchema(userBehaviorProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastAnalyzed: true,
+});
+
+export const insertSecurityRuleSchema = createInsertSchema(securityRules).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  triggeredCount: true,
+  falsePositiveCount: true,
+});
+
+export const insertComplianceEventSchema = createInsertSchema(complianceEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertSecurityMetricSchema = createInsertSchema(securityMetrics).omit({
+  id: true,
+  createdAt: true,
+  calculatedAt: true,
+});
+
+// ===================== SECURITY MONITORING TYPES =====================
+
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+
+export type SecurityIncident = typeof securityIncidents.$inferSelect;
+export type InsertSecurityIncident = z.infer<typeof insertSecurityIncidentSchema>;
+
+export type UserBehaviorProfile = typeof userBehaviorProfiles.$inferSelect;
+export type InsertUserBehaviorProfile = z.infer<typeof insertUserBehaviorProfileSchema>;
+
+export type SecurityRule = typeof securityRules.$inferSelect;
+export type InsertSecurityRule = z.infer<typeof insertSecurityRuleSchema>;
+
+export type ComplianceEvent = typeof complianceEvents.$inferSelect;
+export type InsertComplianceEvent = z.infer<typeof insertComplianceEventSchema>;
+
+export type SecurityMetric = typeof securityMetrics.$inferSelect;
+export type InsertSecurityMetric = z.infer<typeof insertSecurityMetricSchema>;
+
+// ===================== SECURITY ACTION TYPES =====================
+
+export const AuditAction = {
+  // Authentication actions
+  LOGIN_ATTEMPT: 'auth.login_attempt',
+  LOGIN_SUCCESS: 'auth.login_success',
+  LOGIN_FAILED: 'auth.login_failed',
+  LOGOUT: 'auth.logout',
+  PASSWORD_CHANGED: 'auth.password_changed',
+  ACCOUNT_LOCKED: 'auth.account_locked',
+  
+  // Document actions
+  DOCUMENT_VIEWED: 'document.viewed',
+  DOCUMENT_DOWNLOADED: 'document.downloaded',
+  DOCUMENT_UPLOADED: 'document.uploaded',
+  DOCUMENT_DELETED: 'document.deleted',
+  DOCUMENT_MODIFIED: 'document.modified',
+  DOCUMENT_VERIFIED: 'document.verified',
+  
+  // User management actions
+  USER_CREATED: 'user.created',
+  USER_UPDATED: 'user.updated',
+  USER_DELETED: 'user.deleted',
+  USER_DEACTIVATED: 'user.deactivated',
+  USER_ROLE_CHANGED: 'user.role_changed',
+  
+  // Admin actions
+  ADMIN_LOGIN: 'admin.login',
+  ADMIN_ACTION: 'admin.action',
+  SYSTEM_CONFIG_CHANGED: 'admin.config_changed',
+  
+  // API actions
+  API_CALL: 'api.call',
+  API_KEY_USED: 'api.key_used',
+  
+  // Integration actions
+  DHA_API_CALL: 'integration.dha_call',
+  SAPS_API_CALL: 'integration.saps_call',
+  ICAO_API_CALL: 'integration.icao_call',
+} as const;
+
+export const ComplianceEventType = {
+  DATA_ACCESSED: 'data.accessed',
+  DATA_MODIFIED: 'data.modified',
+  DATA_EXPORTED: 'data.exported',
+  DATA_DELETED: 'data.deleted',
+  CONSENT_GIVEN: 'consent.given',
+  CONSENT_WITHDRAWN: 'consent.withdrawn',
+  DATA_BREACH_DETECTED: 'breach.detected',
+  DATA_RETENTION_EXPIRED: 'retention.expired',
+} as const;
+
+// ===================== SECURITY MONITORING VALIDATION SCHEMAS =====================
+
+// Security Metrics Query Schema
+export const securityMetricsQuerySchema = z.object({
+  type: z.string().optional(),
+  hours: z.number().min(1).max(8760).optional(), // max 1 year
+  timeframe: z.enum(['1h', '24h', '7d', '30d']).optional(),
+  limit: z.number().min(1).max(1000).optional(),
+  offset: z.number().min(0).optional()
+});
+
+// Error Logging Schema
+export const errorLogCreationSchema = z.object({
+  message: z.string().min(1).max(2000),
+  stack: z.string().max(10000).optional(),
+  componentStack: z.string().max(5000).optional(),
+  timestamp: z.string().optional(),
+  userAgent: z.string().max(500).optional(),
+  url: z.string().max(500).optional()
+});
+
+// Security Events Query Schema  
+export const securityEventsQuerySchema = z.object({
+  limit: z.number().min(1).max(500).optional(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  eventType: z.string().max(100).optional(),
+  userId: z.string().uuid().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional()
+});
+
+// Error Logs Query Schema
+export const errorLogsQuerySchema = z.object({
+  limit: z.number().min(1).max(500).optional(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  errorType: z.string().max(100).optional(),
+  isResolved: z.boolean().optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional()
+});
+
+// Alert Management Schemas
+export const alertFilterSchema = z.object({
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  status: z.enum(['active', 'acknowledged', 'resolved', 'escalated']).optional(),
+  userId: z.string().uuid().optional(),
+  limit: z.number().min(1).max(500).optional(),
+  offset: z.number().min(0).optional()
+});
+
+export const alertActionSchema = z.object({
+  notes: z.string().max(1000).optional(),
+  resolution: z.string().min(1).max(1000).optional(),
+  reason: z.string().min(1).max(500).optional()
+});
+
+// Alert Rule Creation Schema
+export const alertRuleCreationSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().min(1).max(1000),
+  conditions: z.array(z.object({
+    field: z.string().min(1).max(100),
+    operator: z.enum(['gt', 'lt', 'eq', 'gte', 'lte', 'contains', 'pattern']),
+    value: z.union([z.string(), z.number(), z.boolean()]),
+    timeWindow: z.number().min(1).max(1440).optional() // max 24 hours
+  })).min(1).max(10),
+  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  channels: z.array(z.object({
+    type: z.enum(['email', 'sms', 'webhook', 'dashboard', 'websocket']),
+    target: z.string().min(1).max(500),
+    enabled: z.boolean()
+  })).min(1).max(10),
+  enabled: z.boolean(),
+  cooldown: z.number().min(1).max(1440), // max 24 hours
+  tags: z.array(z.string().max(50)).max(20)
+});
+
+export const alertRuleUpdateSchema = alertRuleCreationSchema.partial();
+
+// Incident Management Schemas
+export const incidentFilterSchema = z.object({
+  status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  assignedTo: z.string().uuid().optional(),
+  limit: z.number().min(1).max(500).optional(),
+  offset: z.number().min(0).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional()
+});
+
+export const incidentActionSchema = z.object({
+  assignedTo: z.string().uuid().optional(),
+  resolution: z.string().min(1).max(2000).optional(),
+  notes: z.string().max(1000).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).optional()
+});
+
+// Audit Log Query Schema
+export const auditLogQuerySchema = z.object({
+  userId: z.string().uuid().optional(),
+  action: z.string().max(100).optional(),
+  entityType: z.string().max(100).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  limit: z.number().min(1).max(1000).optional(),
+  offset: z.number().min(0).optional(),
+  outcome: z.enum(['success', 'failure']).optional()
+});
+
+// Compliance Report Query Schema
+export const complianceReportQuerySchema = z.object({
+  regulation: z.enum(['POPIA', 'GDPR']),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime(),
+  eventType: z.string().max(100).optional(),
+  complianceStatus: z.enum(['compliant', 'non_compliant', 'under_review']).optional()
+});
+
+// Security Rules Query Schema
+export const securityRulesQuerySchema = z.object({
+  category: z.string().max(100).optional(),
+  isActive: z.boolean().optional(),
+  ruleType: z.string().max(100).optional(),
+  limit: z.number().min(1).max(500).optional(),
+  offset: z.number().min(0).optional()
+});
+
+export const securityRuleToggleSchema = z.object({
+  enabled: z.boolean()
+});
+
+// Dashboard Query Schema
+export const dashboardQuerySchema = z.object({
+  timeframe: z.enum(['1h', '24h', '7d', '30d']).optional(),
+  includeAlerts: z.boolean().optional(),
+  includeTrends: z.boolean().optional(),
+  includeMetrics: z.boolean().optional()
+});
+
+// Fraud Statistics Query Schema
+export const fraudStatisticsQuerySchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  userId: z.string().uuid().optional(),
+  riskThreshold: z.number().min(0).max(100).optional()
+});
+
+// User Behavior Analysis Query Schema
+export const userBehaviorQuerySchema = z.object({
+  userId: z.string().uuid(),
+  includeProfile: z.boolean().optional(),
+  includeAnalysis: z.boolean().optional(),
+  includeDevicePatterns: z.boolean().optional(),
+  timeframe: z.enum(['24h', '7d', '30d']).optional()
+});
+
+// Alert Statistics Query Schema
+export const alertStatisticsQuerySchema = z.object({
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  status: z.enum(['active', 'acknowledged', 'resolved', 'escalated']).optional()
+});
+
+// Compliance Events Query Schema
+export const complianceEventsQuerySchema = z.object({
+  regulation: z.string().max(50).optional(),
+  eventType: z.string().max(100).optional(),
+  complianceStatus: z.enum(['compliant', 'non_compliant', 'under_review']).optional(),
+  startDate: z.string().datetime().optional(),
+  endDate: z.string().datetime().optional(),
+  limit: z.number().min(1).max(500).optional(),
+  offset: z.number().min(0).optional()
+});
+
+// System Health Query Schema
+export const systemHealthQuerySchema = z.object({
+  includeMetrics: z.boolean().optional(),
+  includeIntegrations: z.boolean().optional(),
+  includePerformance: z.boolean().optional()
+});
+
+// Document Template Query Schema
+export const documentTemplateQuerySchema = z.object({
+  type: z.enum(['birth_certificate', 'passport', 'id_card', 'permit', 'certificate', 'visa']).optional()
+});
+
+// Document Verification Query Schema  
+export const documentVerificationQuerySchema = z.object({
+  documentType: z.enum(['birth_certificate', 'passport', 'id_card', 'permit', 'certificate', 'visa']).optional(),
+  documentId: z.string().uuid().optional()
+});
+
+// Compliance Report Parameter Schema (for URL params)
+export const complianceReportParamsSchema = z.object({
+  regulation: z.enum(['POPIA', 'GDPR']),
+  startDate: z.string().datetime(),
+  endDate: z.string().datetime()
+});
+
+// Input sanitization helper schemas
+export const sanitizedStringSchema = z.string().transform((val) => {
+  // Basic XSS prevention - remove HTML tags and escape special chars
+  return val.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/[<>]/g, (match) => match === '<' ? '&lt;' : '&gt;')
+            .trim();
+});
+
+export const sanitizedOptionalStringSchema = sanitizedStringSchema.optional();
+
+// WebSocket Event Schemas
+export const webSocketSubscriptionSchema = z.object({
+  eventTypes: z.array(z.enum(['security_alert', 'fraud_alert', 'incident_update', 'system_status'])).min(1),
+  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  userId: z.string().uuid().optional() // for user-specific alerts
+});
+
+// ===================== VALIDATION SCHEMA EXPORTS =====================
+
+export type SecurityMetricsQuery = z.infer<typeof securityMetricsQuerySchema>;
+export type ErrorLogCreation = z.infer<typeof errorLogCreationSchema>;
+export type SecurityEventsQuery = z.infer<typeof securityEventsQuerySchema>;
+export type ErrorLogsQuery = z.infer<typeof errorLogsQuerySchema>;
+export type AlertFilter = z.infer<typeof alertFilterSchema>;
+export type AlertAction = z.infer<typeof alertActionSchema>;
+export type AlertRuleCreation = z.infer<typeof alertRuleCreationSchema>;
+export type AlertRuleUpdate = z.infer<typeof alertRuleUpdateSchema>;
+export type IncidentFilter = z.infer<typeof incidentFilterSchema>;
+export type IncidentAction = z.infer<typeof incidentActionSchema>;
+export type AuditLogQuery = z.infer<typeof auditLogQuerySchema>;
+export type ComplianceReportQuery = z.infer<typeof complianceReportQuerySchema>;
+export type SecurityRulesQuery = z.infer<typeof securityRulesQuerySchema>;
+export type SecurityRuleToggle = z.infer<typeof securityRuleToggleSchema>;
+export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
+export type FraudStatisticsQuery = z.infer<typeof fraudStatisticsQuerySchema>;
+export type UserBehaviorQuery = z.infer<typeof userBehaviorQuerySchema>;
+export type AlertStatisticsQuery = z.infer<typeof alertStatisticsQuerySchema>;
+export type ComplianceEventsQuery = z.infer<typeof complianceEventsQuerySchema>;
+export type SystemHealthQuery = z.infer<typeof systemHealthQuerySchema>;
+export type DocumentTemplateQuery = z.infer<typeof documentTemplateQuerySchema>;
+export type DocumentVerificationQuery = z.infer<typeof documentVerificationQuerySchema>;
+export type ComplianceReportParams = z.infer<typeof complianceReportParamsSchema>;
+export type WebSocketSubscription = z.infer<typeof webSocketSubscriptionSchema>;

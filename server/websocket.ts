@@ -191,9 +191,15 @@ export class WebSocketService {
         }
       });
       
-      // Handle system context requests
+      // Handle system context requests with role-based authorization
       socket.on("system:getContext", async () => {
         try {
+          // Restrict sensitive system context to admin/security roles only
+          if (!['admin', 'security_officer'].includes(authSocket.role)) {
+            socket.emit("system:contextError", { error: "Insufficient permissions for system context" });
+            return;
+          }
+          
           const { monitoringService } = await import("./services/monitoring");
           const { quantumEncryptionService } = await import("./services/quantum-encryption");
           
@@ -204,12 +210,39 @@ export class WebSocketService {
             storage.getFraudAlerts(authSocket.userId, false)
           ]);
           
-          socket.emit("system:context", {
-            health: systemHealth,
-            security: securityMetrics,
-            quantum: quantumStatus,
-            alerts: recentAlerts.slice(0, 5)
-          });
+          // Sanitize sensitive system data before sending
+          const sanitizedContext = {
+            health: {
+              status: systemHealth.status,
+              uptime: systemHealth.uptime,
+              // Remove sensitive internal metrics
+              services: systemHealth.services?.map(service => ({
+                name: service.name,
+                status: service.status
+                // Remove internal configurations, keys, endpoints
+              }))
+            },
+            security: {
+              threatLevel: securityMetrics.threatLevel,
+              activeAlerts: securityMetrics.activeAlerts || 0,
+              lastUpdated: securityMetrics.lastUpdated
+              // Remove detailed security patterns, thresholds, internal data
+            },
+            quantum: {
+              status: quantumStatus.status,
+              keysActive: quantumStatus.keysActive || 0
+              // Remove key data, algorithms, entropy details
+            },
+            alerts: recentAlerts.slice(0, 5).map(alert => ({
+              id: alert.id,
+              type: alert.alertType,
+              severity: alert.riskScore > 80 ? "high" : alert.riskScore > 50 ? "medium" : "low",
+              timestamp: alert.createdAt
+              // Remove sensitive details, user data, investigation notes
+            }))
+          };
+          
+          socket.emit("system:context", sanitizedContext);
         } catch (error) {
           console.error("Get system context error:", error);
           socket.emit("system:contextError", { error: "Failed to fetch system context" });
@@ -263,9 +296,137 @@ export class WebSocketService {
         }
       });
 
+      // ===================== SECURITY ALERT SUBSCRIPTION HANDLERS =====================
+      
+      // Subscribe to security alerts with enhanced role-based validation
+      socket.on("security:subscribe", async (data: { eventTypes: string[]; severity?: string; userId?: string }) => {
+        try {
+          // Import and validate subscription data with strict validation
+          const { webSocketSubscriptionSchema } = await import("@shared/schema");
+          const validatedData = webSocketSubscriptionSchema.parse(data);
+          
+          // Enhanced deny-by-default security for sensitive alert types
+          const highPrivilegeAlerts = ['fraud_alert', 'incident_update', 'system_status'];
+          const hasHighPrivilegeRequest = validatedData.eventTypes.some(type => 
+            highPrivilegeAlerts.includes(type)
+          );
+          
+          if (hasHighPrivilegeRequest && !['admin', 'security_officer'].includes(authSocket.role)) {
+            socket.emit("security:subscriptionError", { 
+              error: "Insufficient permissions for sensitive security alerts",
+              requiredRole: "admin or security_officer"
+            });
+            
+            // Log unauthorized subscription attempt
+            await storage.createSecurityEvent({
+              userId: authSocket.userId,
+              eventType: "unauthorized_alert_subscription_attempt",
+              severity: "medium",
+              details: {
+                requestedEventTypes: validatedData.eventTypes,
+                userRole: authSocket.role,
+                deniedAlertTypes: validatedData.eventTypes.filter(type => highPrivilegeAlerts.includes(type))
+              },
+              ipAddress: socket.handshake.address,
+              userAgent: socket.handshake.headers["user-agent"] as string
+            });
+            return;
+          }
+          
+          // Users can only subscribe to their own alerts unless they're admin/security_officer
+          if (validatedData.userId && validatedData.userId !== authSocket.userId) {
+            if (!['admin', 'security_officer'].includes(authSocket.role)) {
+              socket.emit("security:subscriptionError", { 
+                error: "Cannot subscribe to other users' alerts",
+                scope: "own_alerts_only" 
+              });
+              return;
+            }
+          }
+          
+          // Apply tenant/user scoping based on role and permissions
+          const scopedEventTypes = validatedData.eventTypes.map(eventType => {
+            if (['admin', 'security_officer'].includes(authSocket.role)) {
+              // Admin/security officers can receive global alerts
+              return eventType;
+            } else {
+              // Regular users only receive their own alerts
+              return `${eventType}:user:${authSocket.userId}`;
+            }
+          });
+          
+          // Join appropriate channels with scoped permissions
+          scopedEventTypes.forEach(eventType => {
+            const channelSuffix = validatedData.userId && ['admin', 'security_officer'].includes(authSocket.role) 
+              ? `:${validatedData.userId}` 
+              : '';
+            socket.join(`security:${eventType}${channelSuffix}`);
+          });
+          
+          // If severity filter specified, join severity-specific channels with role check
+          if (validatedData.severity) {
+            const severityChannel = ['admin', 'security_officer'].includes(authSocket.role)
+              ? `security:severity:${validatedData.severity}`
+              : `security:severity:${validatedData.severity}:user:${authSocket.userId}`;
+            socket.join(severityChannel);
+          }
+          
+          socket.emit("security:subscribed", { 
+            eventTypes: validatedData.eventTypes, 
+            severity: validatedData.severity,
+            userId: validatedData.userId,
+            scope: ['admin', 'security_officer'].includes(authSocket.role) ? 'global' : 'user_only'
+          });
+          
+          // Log security alert subscription with enhanced details
+          await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
+            userId: authSocket.userId,
+            eventType: "security_alert_subscription",
+            severity: "low",
+            details: {
+              subscribedEventTypes: validatedData.eventTypes,
+              severity: validatedData.severity,
+              targetUserId: validatedData.userId,
+              scope: ['admin', 'security_officer'].includes(authSocket.role) ? 'global' : 'user_only',
+              channels: scopedEventTypes
+            },
+            ipAddress: socket.handshake.address,
+            userAgent: socket.handshake.headers["user-agent"] as string
+          }) as any);
+          
+        } catch (error) {
+          console.error("Security subscription error:", error);
+          if (error instanceof Error && error.name === 'ZodError') {
+            socket.emit("security:subscriptionError", { error: "Invalid subscription data", details: (error as any).errors });
+          } else {
+            socket.emit("security:subscriptionError", { error: "Failed to subscribe to security alerts" });
+          }
+        }
+      });
+      
+      // Unsubscribe from security alerts
+      socket.on("security:unsubscribe", async (data: { eventTypes: string[] }) => {
+        try {
+          const { webSocketSubscriptionSchema } = await import("@shared/schema");
+          const validatedData = webSocketSubscriptionSchema.parse(data);
+          
+          // Leave the specified channels
+          validatedData.eventTypes.forEach(eventType => {
+            socket.leave(`security:${eventType}`);
+            socket.leave(`security:${eventType}:${authSocket.userId}`);
+          });
+          
+          socket.emit("security:unsubscribed", { eventTypes: validatedData.eventTypes });
+          
+        } catch (error) {
+          console.error("Security unsubscribe error:", error);
+          socket.emit("security:subscriptionError", { error: "Failed to unsubscribe from security alerts" });
+        }
+      });
+
       // ===================== ADMIN NOTIFICATION HANDLERS =====================
       
-      if (authSocket.role === "admin") {
+      if (authSocket.role === "admin" || authSocket.role === "security_officer") {
         // Get active admin alerts
         socket.on("admin:getActiveAlerts", async () => {
           try {
