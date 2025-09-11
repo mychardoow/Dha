@@ -139,6 +139,57 @@ export const apiKeys = pgTable("api_keys", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+export const certificates = pgTable("certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // 'completion', 'achievement', 'compliance', etc.
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  templateType: text("template_type").notNull(), // References document template
+  data: jsonb("data"), // Certificate-specific data
+  serialNumber: text("serial_number").notNull().unique(),
+  issuedAt: timestamp("issued_at").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at"),
+  status: text("status").notNull().default("active"), // 'active', 'suspended', 'expired'
+  verificationCode: text("verification_code").notNull().unique(),
+  qrCodeUrl: text("qr_code_url"),
+  documentUrl: text("document_url"),
+  digitalSignature: text("digital_signature"),
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const permits = pgTable("permits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // 'building', 'business', 'special_event', etc.
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  templateType: text("template_type").notNull(), // References document template
+  data: jsonb("data"), // Permit-specific data
+  permitNumber: text("permit_number").notNull().unique(),
+  issuedAt: timestamp("issued_at").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at"),
+  status: text("status").notNull().default("active"), // 'active', 'suspended', 'expired'
+  verificationCode: text("verification_code").notNull().unique(),
+  qrCodeUrl: text("qr_code_url"),
+  documentUrl: text("document_url"),
+  conditions: jsonb("conditions"), // Terms and conditions specific to permit
+  isRevoked: boolean("is_revoked").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const documentTemplates = pgTable("document_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'certificate', 'permit'
+  htmlTemplate: text("html_template").notNull(),
+  cssStyles: text("css_styles").notNull(),
+  officialLayout: jsonb("official_layout"), // Layout configuration and styling options
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -200,6 +251,21 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   createdAt: true,
 });
 
+export const insertCertificateSchema = createInsertSchema(certificates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPermitSchema = createInsertSchema(permits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -233,3 +299,12 @@ export type InsertBiometricProfile = z.infer<typeof insertBiometricProfileSchema
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+
+export type Certificate = typeof certificates.$inferSelect;
+export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
+
+export type Permit = typeof permits.$inferSelect;
+export type InsertPermit = z.infer<typeof insertPermitSchema>;
+
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
