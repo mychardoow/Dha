@@ -269,12 +269,18 @@ export class QuantumEncryptionService {
   }
 
   private encryptKeyMaterial(keyMaterial: string): string {
-    const masterKey = process.env.QUANTUM_MASTER_KEY || "default-quantum-master-key-change-in-production";
+    const masterKey = process.env.QUANTUM_MASTER_KEY;
+    if (!masterKey) {
+      throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption');
+    }
     return CryptoJS.AES.encrypt(keyMaterial, masterKey).toString();
   }
 
   private decryptKeyMaterial(encryptedKeyMaterial: string): string {
-    const masterKey = process.env.QUANTUM_MASTER_KEY || "default-quantum-master-key-change-in-production";
+    const masterKey = process.env.QUANTUM_MASTER_KEY;
+    if (!masterKey) {
+      throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption');
+    }
     const bytes = CryptoJS.AES.decrypt(encryptedKeyMaterial, masterKey);
     return bytes.toString(CryptoJS.enc.Utf8);
   }

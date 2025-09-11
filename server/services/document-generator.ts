@@ -947,20 +947,39 @@ export class DocumentGeneratorService {
     const pageWidth = doc.page.width;
     let yPos = 80;
 
-    // Official header
-    doc.rect(0, 0, pageWidth, 60)
-       .fillColor('#2980b9')
+    // Official SA Government header with green border
+    doc.rect(0, 0, pageWidth, 80)
+       .fillColor('#007749') // SA Government Green
        .fill();
     
+    // White content area with green border
+    doc.rect(10, 85, pageWidth - 20, doc.page.height - 120)
+       .fillColor('white')
+       .fill()
+       .strokeColor('#007749')
+       .lineWidth(3)
+       .stroke();
+    
+    // SA Coat of Arms placeholder and header
     doc.fillColor('white')
-       .fontSize(28)
+       .fontSize(12)
        .font('Helvetica-Bold')
-       .text('CERTIFICATE OF BIRTH', 0, 15, {
+       .text('🇿🇦 REPUBLIC OF SOUTH AFRICA', 0, 10, {
          align: 'center',
          width: pageWidth
        })
-       .fontSize(14)
-       .text('OFFICIAL GOVERNMENT DOCUMENT', 0, 45, {
+       .fontSize(16)
+       .text('DEPARTMENT OF HOME AFFAIRS', 0, 25, {
+         align: 'center',
+         width: pageWidth
+       })
+       .fontSize(24)
+       .text('CERTIFICATE OF BIRTH', 0, 45, {
+         align: 'center',
+         width: pageWidth
+       })
+       .fontSize(12)
+       .text('(Birth and Deaths Registration Act, 1992)', 0, 70, {
          align: 'center',
          width: pageWidth
        });
@@ -968,60 +987,99 @@ export class DocumentGeneratorService {
     doc.fillColor('black').font('Helvetica');
     yPos = 100;
 
-    // Registration info
-    doc.strokeColor('#2980b9')
+    // Registration info with SA styling
+    doc.strokeColor('#007749')
        .lineWidth(2)
-       .rect(50, yPos, pageWidth - 100, 50)
+       .rect(20, yPos, pageWidth - 40, 50)
        .stroke();
     
-    doc.fontSize(12)
-       .text(`Registration No: ${data.registrationNumber}`, 60, yPos + 15)
-       .text(`Registration Date: ${data.registrationDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 60, yPos + 35);
+    doc.fillColor('black')
+       .fontSize(12)
+       .font('Helvetica-Bold')
+       .text(`REGISTRATION NUMBER: ${data.registrationNumber}`, 30, yPos + 10)
+       .text(`DATE OF REGISTRATION: ${data.registrationDate?.toLocaleDateString() || new Date().toLocaleDateString()}`, 30, yPos + 30);
     yPos += 80;
 
-    // Child information
-    doc.fontSize(16)
+    // Child information with SA government styling
+    doc.rect(20, yPos, pageWidth - 40, 2)
+       .fillColor('#007749')
+       .fill();
+    
+    doc.fillColor('black')
+       .fontSize(16)
        .font('Helvetica-Bold')
-       .text('CHILD INFORMATION', 50, yPos);
-    yPos += 25;
-
-    doc.fontSize(14)
-       .font('Helvetica')
-       .text(`Full Name: ${data.fullName}`, 50, yPos);
-    yPos += 20;
-    doc.text(`Date of Birth: ${data.dateOfBirth?.toLocaleDateString()}`, 50, yPos);
-    yPos += 20;
-    doc.text(`Place of Birth: ${data.placeOfBirth}`, 50, yPos);
-    yPos += 20;
-    doc.text(`Sex: ${data.sex}`, 50, yPos);
+       .text('PARTICULARS OF CHILD', 30, yPos + 15);
     yPos += 40;
 
-    // Parents information
-    doc.fontSize(16)
-       .font('Helvetica-Bold')
-       .text('PARENTS INFORMATION', 50, yPos);
-    yPos += 25;
-
-    doc.fontSize(14)
+    doc.fontSize(12)
        .font('Helvetica')
-       .text(`Mother's Full Name: ${data.motherFullName}`, 50, yPos);
-    yPos += 20;
-    doc.text(`Father's Full Name: ${data.fatherFullName}`, 50, yPos);
+       .text(`FULL NAME: ${data.childFullName || data.fullName}`, 30, yPos);
+    yPos += 25;
+    doc.text(`DATE OF BIRTH: ${data.dateOfBirth?.toLocaleDateString ? data.dateOfBirth.toLocaleDateString() : data.dateOfBirth}`, 30, yPos);
+    yPos += 25;
+    doc.text(`PLACE OF BIRTH: ${data.placeOfBirth}`, 30, yPos);
+    yPos += 25;
+    doc.text(`SEX: ${data.sex?.toUpperCase()}`, 30, yPos);
     yPos += 40;
 
-    // Official signatures area
+    // Parents information with SA styling
+    doc.rect(20, yPos, pageWidth - 40, 2)
+       .fillColor('#007749')
+       .fill();
+    
+    doc.fillColor('black')
+       .fontSize(16)
+       .font('Helvetica-Bold')
+       .text('PARTICULARS OF PARENTS', 30, yPos + 15);
+    yPos += 40;
+
+    doc.fontSize(12)
+       .font('Helvetica')
+       .text(`MOTHER'S FULL NAME: ${data.motherFullName}`, 30, yPos);
+    yPos += 20;
+    doc.text(`MOTHER'S AGE: ${data.motherAge || 'Not specified'}`, 30, yPos);
+    yPos += 25;
+    doc.text(`FATHER'S FULL NAME: ${data.fatherFullName}`, 30, yPos);
+    yPos += 20;
+    doc.text(`FATHER'S AGE: ${data.fatherAge || 'Not specified'}`, 30, yPos);
+    yPos += 40;
+
+    // Official SA Government signatures and seal area
+    const footerY = doc.page.height - 120;
+    
+    // DHA Official stamp area
+    doc.rect(30, footerY, 150, 80)
+       .strokeColor('#007749')
+       .lineWidth(2)
+       .stroke();
+    doc.fontSize(10)
+       .fillColor('#007749')
+       .font('Helvetica-Bold')
+       .text('DEPARTMENT OF\nHOME AFFAIRS\nOFFICIAL SEAL', 35, footerY + 25, {
+         align: 'center',
+         width: 140
+       });
+    
+    // Registrar signature area
     doc.strokeColor('black')
        .lineWidth(1)
-       .moveTo(50, yPos)
-       .lineTo(200, yPos)
+       .moveTo(pageWidth - 250, footerY + 50)
+       .lineTo(pageWidth - 50, footerY + 50)
        .stroke();
-    doc.fontSize(12)
-       .text('Registrar Signature', 50, yPos + 10);
+    doc.fontSize(10)
+       .fillColor('black')
+       .font('Helvetica')
+       .text('REGISTRAR OF BIRTHS AND DEATHS', pageWidth - 250, footerY + 60);
     
-    doc.moveTo(pageWidth - 200, yPos)
-       .lineTo(pageWidth - 50, yPos)
-       .stroke();
-    doc.text('Official Seal', pageWidth - 200, yPos + 10);
+    // Verification code at bottom
+    doc.fontSize(8)
+       .fillColor('#007749')
+       .text(`VERIFICATION CODE: ${data.verificationCode}`, 30, doc.page.height - 30, {
+         align: 'left'
+       })
+       .text('For verification visit: www.dha.gov.za', 30, doc.page.height - 20, {
+         align: 'left'
+       });
   }
 
   /**
@@ -1110,21 +1168,39 @@ export class DocumentGeneratorService {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
-    // Passport cover (dark blue)
+    // SA Passport cover (SA flag colors - dark blue)
     doc.rect(0, 0, pageWidth, pageHeight)
-       .fillColor('#001450')
+       .fillColor('#001489') // SA Flag Blue
        .fill();
 
-    // Gold lettering
+    // SA Coat of Arms area (top center)
+    doc.circle(pageWidth / 2, 30, 15)
+       .fillColor('#FFD700')
+       .fill();
+    doc.fontSize(8)
+       .fillColor('black')
+       .text('🇿🇦', pageWidth / 2 - 8, 25);
+
+    // Official SA Government text
     doc.fillColor('#FFD700')
-       .fontSize(12)
+       .fontSize(10)
        .font('Helvetica-Bold')
-       .text(data.countryOfIssue || 'UNITED STATES', 0, 20, {
+       .text('REPUBLIC OF SOUTH AFRICA', 0, 55, {
          align: 'center',
          width: pageWidth
        })
-       .fontSize(10)
-       .text('PASSPORT', 0, 40, {
+       .fontSize(8)
+       .text('REPUBLIEK VAN SUID-AFRIKA', 0, 70, {
+         align: 'center',
+         width: pageWidth
+       })
+       .fontSize(12)
+       .text('PASSPORT', 0, 90, {
+         align: 'center',
+         width: pageWidth
+       })
+       .fontSize(8)
+       .text('PASPOORT', 0, 105, {
          align: 'center',
          width: pageWidth
        });
@@ -1137,19 +1213,22 @@ export class DocumentGeneratorService {
        .fontSize(8)
        .text('PHOTO', 60, 115, { align: 'center' });
 
-    // Personal information
+    // SA Personal information page layout
     doc.fillColor('white')
        .fontSize(8)
        .font('Helvetica')
-       .text(`Type: P`, 120, 80)
-       .text(`Country Code: ${data.nationality?.substring(0, 3).toUpperCase()}`, 120, 95)
-       .text(`Passport No: ${data.passportNumber}`, 120, 110)
-       .text(`Surname: ${data.fullName?.split(' ').pop()}`, 120, 125)
-       .text(`Given Names: ${data.fullName?.split(' ').slice(0, -1).join(' ')}`, 120, 140)
-       .text(`Nationality: ${data.nationality}`, 120, 155)
-       .text(`Date of Birth: ${data.dateOfBirth?.toLocaleDateString()}`, 120, 170)
-       .text(`Sex: ${data.sex}`, 120, 185)
-       .text(`Place of Birth: ${data.placeOfBirth}`, 120, 200);
+       .text(`Type/Tipe: P`, 120, 125)
+       .text(`Country Code/Landkode: ZAF`, 120, 140)
+       .text(`Passport No/Paspoort Nr: ${data.passportNumber}`, 120, 155)
+       .text(`Surname/Van: ${data.fullName?.split(' ').pop()}`, 120, 170)
+       .text(`Given Names/Voorname: ${data.fullName?.split(' ').slice(0, -1).join(' ')}`, 120, 185)
+       .text(`Nationality/Nasionaliteit: South African`, 120, 200)
+       .text(`Date of Birth/Geboortedatum: ${data.dateOfBirth?.toLocaleDateString ? data.dateOfBirth.toLocaleDateString() : data.dateOfBirth}`, 120, 215)
+       .text(`Sex/Geslag: ${data.sex}`, 120, 230)
+       .text(`Place of Birth/Geboorteplek: ${data.placeOfBirth}`, 120, 245)
+       .text(`Date of Issue/Uitgiftedatum: ${new Date().toLocaleDateString()}`, 120, 260)
+       .text(`Date of Expiry/Vervaldatum: ${data.expiryDate?.toLocaleDateString ? data.expiryDate.toLocaleDateString() : data.expiryDate}`, 120, 275)
+       .text(`Authority/Gesag: Department of Home Affairs`, 120, 290);
 
     // Machine Readable Zone
     if (data.machineReadableZone) {

@@ -134,38 +134,47 @@ export class SitaIntegrationService {
         scope: 'government_services dha_integration eservices_access'
       };
 
-      // In production, this would use actual SITA OAuth2 endpoints
-      // For development, we simulate the authentication process
-      if (this.credentials.environment === 'development') {
-        this.authToken = this.simulateAuthResponse();
-        return { success: true, token: this.authToken };
-      }
+      // Production authentication with SITA e-Services
+      // All environments now use live SITA connectivity
 
-      // Production authentication with SITA
-      const response = await this.makeHttpRequest(
-        'POST',
-        `${this.baseUrls[this.credentials.environment]}/oauth2/token`,
-        authPayload,
-        {
+      // Live SITA API Gateway authentication
+      const response = await fetch(`${this.baseUrls[this.credentials.environment]}/oauth2/token`, {
+        method: 'POST',
+        headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': this.credentials.apiKey
-        }
-      );
+          'X-API-Key': this.credentials.apiKey,
+          'User-Agent': 'DHA-Digital-Services/2025.1',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(authPayload)
+      });
+      
+      const responseData = await response.json();
 
-      if (response.statusCode === 200) {
+      if (response.ok) {
         this.authToken = {
-          accessToken: response.data.access_token,
-          refreshToken: response.data.refresh_token,
+          accessToken: responseData.access_token,
+          refreshToken: responseData.refresh_token,
           tokenType: 'Bearer',
-          expiresIn: response.data.expires_in,
-          scope: response.data.scope?.split(' ') || [],
+          expiresIn: responseData.expires_in,
+          scope: responseData.scope?.split(' ') || [],
           issuedAt: Date.now()
         };
+        
+        // Log successful authentication
+        await storage.createSecurityEvent({
+          eventType: "sita_authentication_success",
+          severity: "low",
+          details: {
+            environment: this.credentials.environment,
+            tokenExpiry: this.authToken.expiresIn
+          }
+        });
 
         return { success: true, token: this.authToken };
       }
 
-      return { success: false, error: 'Authentication failed' };
+      return { success: false, error: `SITA authentication failed: ${response.statusText}` };
 
     } catch (error) {
       return {
@@ -596,10 +605,18 @@ export class SitaIntegrationService {
  * Create SITA integration instance
  */
 export function createSitaIntegration(): SitaIntegrationService {
+  const clientId = process.env.SITA_CLIENT_ID;
+  const clientSecret = process.env.SITA_CLIENT_SECRET;
+  const apiKey = process.env.SITA_API_KEY;
+  
+  if (!clientId || !clientSecret || !apiKey) {
+    throw new Error('CRITICAL SECURITY ERROR: SITA_CLIENT_ID, SITA_CLIENT_SECRET, and SITA_API_KEY environment variables are required for SITA integration');
+  }
+  
   const credentials: SitaApiCredentials = {
-    clientId: process.env.SITA_CLIENT_ID || 'dev-client-id',
-    clientSecret: process.env.SITA_CLIENT_SECRET || 'dev-client-secret',
-    apiKey: process.env.SITA_API_KEY || 'dev-api-key',
+    clientId,
+    clientSecret,
+    apiKey,
     environment: (process.env.NODE_ENV as any) || 'development'
   };
 

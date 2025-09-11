@@ -420,23 +420,28 @@ export default function DocumentGenerationPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
-                <Shield className="h-8 w-8 text-primary" />
-                Document Generation Center
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Generate secure certificates and permits with official authentication
-              </p>
+    <div className="min-h-screen dha-page">
+      {/* Official DHA Header */}
+      <div className="dha-header">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <div className="official-seal w-16 h-16 flex items-center justify-center text-3xl">
+                🇿🇦
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  Department of Home Affairs
+                </h1>
+                <p className="text-white/90">Republic of South Africa • Digital Services Platform</p>
+              </div>
             </div>
-            <Badge variant="outline" className="text-green-600 border-green-600">
+            <p className="text-white/80 max-w-2xl mx-auto mb-4">
+              Official government document services, certificate generation, and citizen verification portal.
+            </p>
+            <Badge className="dha-badge">
               <CheckCircle className="h-4 w-4 mr-1" />
-              Secure & Verified
+              Government Authorized
             </Badge>
           </div>
         </div>
@@ -445,7 +450,7 @@ export default function DocumentGenerationPage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-4 government-card p-2">
             <TabsTrigger value="generate" data-testid="tab-generate">
               <FileText className="h-4 w-4 mr-2" />
               Generate Documents
@@ -466,11 +471,14 @@ export default function DocumentGenerationPage() {
 
           {/* Generate Documents Tab */}
           <TabsContent value="generate" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Document Generator</CardTitle>
+            <Card className="government-card">
+              <CardHeader className="border-b border-certificate-green">
+                <CardTitle className="text-primary flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Official DHA Document Generator
+                </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Create professional certificates and permits with security features
+                  Generate authentic government documents with advanced security features and digital verification
                 </p>
               </CardHeader>
               <CardContent>

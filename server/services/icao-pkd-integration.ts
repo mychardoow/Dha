@@ -609,9 +609,19 @@ export class IcaoPkdService {
  * Create ICAO PKD integration instance
  */
 export function createIcaoPkdIntegration(): IcaoPkdService {
+  const apiKey = process.env.ICAO_PKD_API_KEY;
+  const baseUrl = process.env.ICAO_PKD_BASE_URL;
+  
+  if (!apiKey) {
+    throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_API_KEY environment variable is required for ICAO PKD integration');
+  }
+  if (!baseUrl) {
+    throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_BASE_URL environment variable is required for ICAO PKD integration');
+  }
+  
   const credentials: IcaoPkdCredentials = {
-    apiKey: process.env.ICAO_PKD_API_KEY || 'dev-api-key',
-    baseUrl: process.env.ICAO_PKD_BASE_URL || 'https://pkddownloadsg.icao.int',
+    apiKey,
+    baseUrl,
     environment: (process.env.NODE_ENV as any) || 'development'
   };
 

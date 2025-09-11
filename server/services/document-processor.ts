@@ -9,7 +9,10 @@ import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
-const ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || "default-document-key-change-in-production";
+const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY;
+if (!DOCUMENT_ENCRYPTION_KEY) {
+  throw new Error('CRITICAL SECURITY ERROR: DOCUMENT_ENCRYPTION_KEY environment variable is required for document encryption');
+}
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Ensure upload directory exists

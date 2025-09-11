@@ -5,7 +5,10 @@ import { storage } from "../storage";
 import type { User } from "@shared/schema";
 import { privacyProtectionService } from "../services/privacy-protection";
 
-const JWT_SECRET = process.env.JWT_SECRET || "military-grade-jwt-secret-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET!;
+if (!JWT_SECRET) {
+  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication');
+}
 
 // Type for authenticated user in request object (excludes sensitive fields)
 export type AuthenticatedUser = {
@@ -146,18 +149,26 @@ export async function requireApiKey(req: Request, res: Response, next: NextFunct
       });
     }
 
-    // Hash the provided API key to compare with stored hash
-    const keyHash = await bcrypt.hash(apiKey, 12);
-    const storedKey = await storage.getApiKeyByHash(keyHash);
+    // Get all API keys and compare using bcrypt.compare
+    const allApiKeys = await storage.getAllApiKeys();
+    let matchedKey = null;
     
-    if (!storedKey) {
+    for (const storedKey of allApiKeys) {
+      const isMatch = await bcrypt.compare(apiKey, storedKey.keyHash);
+      if (isMatch) {
+        matchedKey = storedKey;
+        break;
+      }
+    }
+    
+    if (!matchedKey) {
       return res.status(401).json({ 
         error: "Invalid API key",
         message: "API key is not valid or has been revoked" 
       });
     }
 
-    if (storedKey.expiresAt && storedKey.expiresAt < new Date()) {
+    if (matchedKey.expiresAt && matchedKey.expiresAt < new Date()) {
       return res.status(401).json({ 
         error: "API key expired",
         message: "API key has expired" 
@@ -165,7 +176,7 @@ export async function requireApiKey(req: Request, res: Response, next: NextFunct
     }
 
     // Update last used timestamp
-    await storage.updateApiKeyLastUsed(storedKey.id);
+    await storage.updateApiKeyLastUsed(matchedKey.id);
 
     next();
   } catch (error) {
