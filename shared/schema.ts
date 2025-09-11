@@ -583,3 +583,386 @@ export type InsertIdCard = z.infer<typeof insertIdCardSchema>;
 
 export type DocumentVerification = typeof documentVerifications.$inferSelect;
 export type InsertDocumentVerification = z.infer<typeof insertDocumentVerificationSchema>;
+
+// ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
+
+// DHA Applicants - Personal details and citizenship information
+export const dhaApplicants = pgTable("dha_applicants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Personal Information
+  fullName: text("full_name").notNull(),
+  surNames: text("sur_names").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  placeOfBirth: text("place_of_birth").notNull(),
+  countryOfBirth: text("country_of_birth").notNull(),
+  sex: text("sex").notNull(), // 'M', 'F', 'X'
+  nationality: text("nationality").notNull(),
+  
+  // Contact Information
+  residentialAddress: text("residential_address").notNull(),
+  postalAddress: text("postal_address"),
+  phoneNumber: text("phone_number").notNull(),
+  emailAddress: text("email_address").notNull(),
+  
+  // Identity Information
+  idNumber: text("id_number"), // South African ID number
+  passportNumber: text("passport_number"), // Current passport number
+  previousPassportNumbers: jsonb("previous_passport_numbers"), // Array of previous passport numbers
+  
+  // Citizenship Status
+  citizenshipStatus: text("citizenship_status").notNull(), // 'citizen', 'permanent_resident', 'refugee', 'asylum_seeker'
+  citizenshipAcquisitionDate: timestamp("citizenship_acquisition_date"),
+  citizenshipAcquisitionMethod: text("citizenship_acquisition_method"), // 'birth', 'naturalization', 'descent'
+  
+  // Parents Information
+  motherFullName: text("mother_full_name"),
+  motherMaidenName: text("mother_maiden_name"),
+  motherIdNumber: text("mother_id_number"),
+  fatherFullName: text("father_full_name"),
+  fatherIdNumber: text("father_id_number"),
+  
+  // Biometric Information
+  biometricTemplates: jsonb("biometric_templates"), // Fingerprint, facial recognition templates
+  biometricQualityScores: jsonb("biometric_quality_scores"),
+  
+  // Document Information
+  photoUrl: text("photo_url"),
+  signatureUrl: text("signature_url"),
+  
+  // Verification Status
+  isVerified: boolean("is_verified").notNull().default(false),
+  verificationScore: integer("verification_score"),
+  verificationNotes: text("verification_notes"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// DHA Applications - Permit/certificate applications with workflow states
+export const dhaApplications = pgTable("dha_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Application Details
+  applicationType: text("application_type").notNull(), // 'passport', 'id_document', 'visa', 'permit', 'certificate'
+  applicationSubtype: text("application_subtype"), // 'renewal', 'replacement', 'new', 'amendment'
+  applicationNumber: text("application_number").notNull().unique(),
+  
+  // DHA Workflow States
+  currentState: text("current_state").notNull().default("draft"), 
+  // States: draft → identity_verification → eligibility_check → background_verification → payment_processing → adjudication → approved → issued → active
+  previousStates: jsonb("previous_states"), // Array of state history with timestamps
+  
+  // Application Data
+  applicationData: jsonb("application_data").notNull(), // Form data specific to application type
+  documentsSubmitted: jsonb("documents_submitted"), // References to uploaded documents
+  
+  // Processing Information
+  priorityLevel: text("priority_level").notNull().default("standard"), // 'urgent', 'standard', 'low'
+  processingFee: integer("processing_fee"), // Fee in cents
+  paymentStatus: text("payment_status").default("pending"), // 'pending', 'paid', 'refunded', 'failed'
+  paymentReference: text("payment_reference"),
+  
+  // DHA Officer Assignment
+  assignedOfficer: text("assigned_officer"),
+  assignedOffice: text("assigned_office"),
+  assignedDate: timestamp("assigned_date"),
+  
+  // Verification Results
+  identityVerificationResult: text("identity_verification_result"), // 'passed', 'failed', 'pending'
+  eligibilityCheckResult: text("eligibility_check_result"),
+  backgroundVerificationResult: text("background_verification_result"),
+  
+  // Decision Information
+  decisionStatus: text("decision_status"), // 'approved', 'rejected', 'pending'
+  decisionDate: timestamp("decision_date"),
+  decisionReason: text("decision_reason"),
+  decisionNotes: text("decision_notes"),
+  
+  // Issuance Information
+  issuedDocumentNumber: text("issued_document_number"),
+  issuedDate: timestamp("issued_date"),
+  expiryDate: timestamp("expiry_date"),
+  
+  // Collection Information
+  collectionMethod: text("collection_method"), // 'office', 'courier', 'post'
+  collectionOffice: text("collection_office"),
+  collectionDate: timestamp("collection_date"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// DHA Verifications - Record of NPR, ABIS, SAPS, PKD verification results
+export const dhaVerifications = pgTable("dha_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  
+  // Verification Type and Service
+  verificationType: text("verification_type").notNull(), // 'npr', 'abis', 'saps_crc', 'icao_pkd', 'mrz'
+  verificationService: text("verification_service").notNull(), // External service used
+  verificationMethod: text("verification_method"), // Specific method within service
+  
+  // Request Information
+  requestId: text("request_id").notNull().unique(), // External service request ID
+  requestData: jsonb("request_data"), // Data sent to external service
+  requestTimestamp: timestamp("request_timestamp").notNull().default(sql`now()`),
+  
+  // Response Information
+  responseStatus: text("response_status").notNull(), // 'success', 'failed', 'timeout', 'error'
+  responseData: jsonb("response_data"), // Full response from external service
+  responseTimestamp: timestamp("response_timestamp"),
+  responseTime: integer("response_time"), // Response time in milliseconds
+  
+  // Verification Results
+  verificationResult: text("verification_result"), // 'verified', 'not_verified', 'inconclusive'
+  confidenceScore: integer("confidence_score"), // 0-100 confidence in verification
+  matchScore: integer("match_score"), // 0-100 match score for biometric verifications
+  
+  // NPR Specific Fields
+  nprPersonId: text("npr_person_id"), // NPR person identifier
+  nprMatchLevel: text("npr_match_level"), // 'exact', 'probable', 'possible'
+  
+  // ABIS Specific Fields
+  abisMatchId: text("abis_match_id"), // ABIS match identifier
+  abisBiometricType: text("abis_biometric_type"), // 'fingerprint', 'facial', 'iris'
+  
+  // SAPS CRC Specific Fields
+  sapsReferenceNumber: text("saps_reference_number"),
+  sapsClearanceStatus: text("saps_clearance_status"), // 'clear', 'pending', 'record_found'
+  
+  // PKD Specific Fields
+  pkdCertificateStatus: text("pkd_certificate_status"), // 'valid', 'invalid', 'revoked', 'expired'
+  pkdIssuerCountry: text("pkd_issuer_country"),
+  pkdCertificateSerial: text("pkd_certificate_serial"),
+  
+  // MRZ Specific Fields
+  mrzValidationResult: text("mrz_validation_result"), // 'valid', 'invalid', 'checksum_failed'
+  mrzParsedData: jsonb("mrz_parsed_data"),
+  
+  // Error Information
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  errorDetails: jsonb("error_details"),
+  
+  // Retry Information
+  retryCount: integer("retry_count").notNull().default(0),
+  lastRetryAt: timestamp("last_retry_at"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// DHA Audit Events - Complete audit trail of all DHA interactions
+export const dhaAuditEvents = pgTable("dha_audit_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  
+  // Entity References
+  applicationId: varchar("application_id").references(() => dhaApplications.id),
+  applicantId: varchar("applicant_id").references(() => dhaApplicants.id),
+  userId: varchar("user_id").references(() => users.id),
+  
+  // Event Information
+  eventType: text("event_type").notNull(), // 'application_submitted', 'state_changed', 'verification_completed', etc.
+  eventCategory: text("event_category").notNull(), // 'system', 'user', 'external_service', 'administrative'
+  eventDescription: text("event_description").notNull(),
+  
+  // Actor Information
+  actorType: text("actor_type").notNull(), // 'user', 'system', 'dha_officer', 'external_service'
+  actorId: text("actor_id"), // ID of the actor (user ID, service name, etc.)
+  actorName: text("actor_name"), // Human-readable name of actor
+  
+  // Context Information
+  contextData: jsonb("context_data"), // Additional context about the event
+  beforeState: jsonb("before_state"), // State before the event
+  afterState: jsonb("after_state"), // State after the event
+  
+  // Request Information
+  requestSource: text("request_source"), // 'web', 'mobile', 'api', 'batch_process'
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  sessionId: text("session_id"),
+  
+  // Compliance Information
+  complianceFlags: jsonb("compliance_flags"), // POPIA and other compliance markers
+  dataProcessingPurpose: text("data_processing_purpose"), // Legal basis for processing
+  
+  // Metadata
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+});
+
+// DHA Consent Records - POPIA compliance for background checks and data processing
+export const dhaConsentRecords = pgTable("dha_consent_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  applicationId: varchar("application_id").references(() => dhaApplications.id),
+  
+  // Consent Information
+  consentType: text("consent_type").notNull(), // 'data_processing', 'background_check', 'biometric_capture', 'information_sharing'
+  consentPurpose: text("consent_purpose").notNull(), // Specific purpose for which consent is given
+  consentScope: jsonb("consent_scope"), // Detailed scope of what is consented to
+  
+  // Legal Basis
+  legalBasis: text("legal_basis").notNull(), // POPIA legal basis - 'consent', 'legitimate_interest', 'legal_obligation', etc.
+  lawfulnessAssessment: text("lawfulness_assessment"), // Documentation of lawfulness assessment
+  
+  // Consent Details
+  consentText: text("consent_text").notNull(), // Full text of consent given
+  consentVersion: text("consent_version").notNull(), // Version of consent document
+  consentLanguage: text("consent_language").notNull().default("en"), // Language in which consent was given
+  
+  // Consent Status
+  consentStatus: text("consent_status").notNull().default("given"), // 'given', 'withdrawn', 'expired'
+  consentMethod: text("consent_method").notNull(), // 'digital_signature', 'checkbox', 'verbal', 'written'
+  
+  // Timing Information
+  consentGivenAt: timestamp("consent_given_at").notNull().default(sql`now()`),
+  consentExpiresAt: timestamp("consent_expires_at"),
+  consentWithdrawnAt: timestamp("consent_withdrawn_at"),
+  
+  // Evidence
+  consentEvidence: jsonb("consent_evidence"), // Digital signature, IP address, etc.
+  consentWitness: text("consent_witness"), // Witness to consent if applicable
+  
+  // Data Subject Rights
+  dataSubjectNotified: boolean("data_subject_notified").notNull().default(true),
+  dataSubjectRights: jsonb("data_subject_rights"), // Rights explained to data subject
+  withdrawalMethod: text("withdrawal_method"), // How consent can be withdrawn
+  
+  // Processing Information
+  processingStartDate: timestamp("processing_start_date"),
+  processingEndDate: timestamp("processing_end_date"),
+  dataRetentionPeriod: text("data_retention_period"),
+  
+  // Compliance
+  popiaCompliant: boolean("popia_compliant").notNull().default(true),
+  complianceNotes: text("compliance_notes"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// DHA Background Checks - SAPS criminal record check results
+export const dhaBackgroundChecks = pgTable("dha_background_checks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
+  verificationId: varchar("verification_id").references(() => dhaVerifications.id),
+  
+  // Check Information
+  checkType: text("check_type").notNull(), // 'criminal_record', 'credit_check', 'employment_verification', 'reference_check'
+  checkProvider: text("check_provider").notNull(), // 'saps', 'credit_bureau', 'employer', etc.
+  checkReference: text("check_reference").notNull().unique(), // External reference number
+  
+  // Request Information
+  requestedBy: varchar("requested_by").notNull().references(() => users.id),
+  requestDate: timestamp("request_date").notNull().default(sql`now()`),
+  requestReason: text("request_reason").notNull(),
+  
+  // Consent Information
+  consentRecordId: varchar("consent_record_id").references(() => dhaConsentRecords.id),
+  consentGiven: boolean("consent_given").notNull(),
+  consentDate: timestamp("consent_date"),
+  
+  // Results
+  checkStatus: text("check_status").notNull().default("pending"), // 'pending', 'completed', 'failed', 'cancelled'
+  resultStatus: text("result_status"), // 'clear', 'records_found', 'inconclusive'
+  
+  // SAPS Criminal Record Specific
+  sapsPolicyNumber: text("saps_policy_number"), // SAPS policy clearance number
+  sapsResultCode: text("saps_result_code"),
+  sapsResultDescription: text("saps_result_description"),
+  criminalRecords: jsonb("criminal_records"), // Array of criminal record details
+  
+  // General Results
+  checkResults: jsonb("check_results"), // Full results from check provider
+  riskAssessment: text("risk_assessment"), // 'low', 'medium', 'high'
+  riskFactors: jsonb("risk_factors"), // Identified risk factors
+  
+  // Processing Information
+  processingStartDate: timestamp("processing_start_date"),
+  processingCompletedDate: timestamp("processing_completed_date"),
+  processingDuration: integer("processing_duration"), // Duration in hours
+  
+  // Validity
+  validFromDate: timestamp("valid_from_date"),
+  validUntilDate: timestamp("valid_until_date"),
+  isExpired: boolean("is_expired").notNull().default(false),
+  
+  // Quality Assurance
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  verificationDate: timestamp("verification_date"),
+  verificationNotes: text("verification_notes"),
+  
+  // Appeal Information
+  appealable: boolean("appealable").notNull().default(true),
+  appealDeadline: timestamp("appeal_deadline"),
+  appealSubmitted: boolean("appeal_submitted").notNull().default(false),
+  appealOutcome: text("appeal_outcome"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// ===================== DHA INSERT SCHEMAS =====================
+
+export const insertDhaApplicantSchema = createInsertSchema(dhaApplicants).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDhaApplicationSchema = createInsertSchema(dhaApplications).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDhaVerificationSchema = createInsertSchema(dhaVerifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDhaAuditEventSchema = createInsertSchema(dhaAuditEvents).omit({
+  id: true,
+});
+
+export const insertDhaConsentRecordSchema = createInsertSchema(dhaConsentRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDhaBackgroundCheckSchema = createInsertSchema(dhaBackgroundChecks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// ===================== DHA TYPES =====================
+
+export type DhaApplicant = typeof dhaApplicants.$inferSelect;
+export type InsertDhaApplicant = z.infer<typeof insertDhaApplicantSchema>;
+
+export type DhaApplication = typeof dhaApplications.$inferSelect;
+export type InsertDhaApplication = z.infer<typeof insertDhaApplicationSchema>;
+
+export type DhaVerification = typeof dhaVerifications.$inferSelect;
+export type InsertDhaVerification = z.infer<typeof insertDhaVerificationSchema>;
+
+export type DhaAuditEvent = typeof dhaAuditEvents.$inferSelect;
+export type InsertDhaAuditEvent = z.infer<typeof insertDhaAuditEventSchema>;
+
+export type DhaConsentRecord = typeof dhaConsentRecords.$inferSelect;
+export type InsertDhaConsentRecord = z.infer<typeof insertDhaConsentRecordSchema>;
+
+export type DhaBackgroundCheck = typeof dhaBackgroundChecks.$inferSelect;
+export type InsertDhaBackgroundCheck = z.infer<typeof insertDhaBackgroundCheckSchema>;
