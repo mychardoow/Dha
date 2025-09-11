@@ -10,6 +10,7 @@ import { documentProcessorService, documentUpload } from "./services/document-pr
 import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
+import { pdfGenerationService } from "./services/pdf-generation-service";
 import { notificationService } from "./services/notification-service";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
 import { auditTrailService } from "./services/audit-trail-service";
@@ -2699,6 +2700,260 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get DHA applicants error:", error);
       res.status(500).json({ error: "Failed to get applicants" });
+    }
+  });
+
+  // PDF Generation Routes
+  // Generate Work Permit PDF
+  app.post("/api/pdf/work-permit", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { 
+        personal, 
+        permitNumber, 
+        permitType, 
+        employer, 
+        occupation, 
+        validFrom, 
+        validUntil, 
+        conditions, 
+        endorsements,
+        portOfEntry,
+        dateOfEntry,
+        controlNumber 
+      } = req.body;
+
+      const pdfBuffer = await pdfGenerationService.generateWorkPermitPDF({
+        personal,
+        permitNumber: permitNumber || `WP-${Date.now()}`,
+        permitType: permitType || "Section 19(1)",
+        employer,
+        occupation,
+        validFrom,
+        validUntil,
+        conditions,
+        endorsements,
+        portOfEntry,
+        dateOfEntry,
+        controlNumber
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="work-permit-${permitNumber || Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Work permit PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate work permit PDF" });
+    }
+  });
+
+  // Generate Asylum Visa PDF
+  app.post("/api/pdf/asylum-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const {
+        personal,
+        permitNumber,
+        fileReference,
+        unhcrNumber,
+        countryOfOrigin,
+        dateOfApplication,
+        validFrom,
+        validUntil,
+        conditions,
+        dependents
+      } = req.body;
+
+      const pdfBuffer = await pdfGenerationService.generateAsylumVisaPDF({
+        personal,
+        permitNumber: permitNumber || `AS-${Date.now()}`,
+        fileReference: fileReference || `REF-${Date.now()}`,
+        unhcrNumber,
+        countryOfOrigin,
+        dateOfApplication,
+        validFrom,
+        validUntil,
+        conditions,
+        dependents
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="asylum-visa-${permitNumber || Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Asylum visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate asylum visa PDF" });
+    }
+  });
+
+  // Generate Residence Permit PDF
+  app.post("/api/pdf/residence-permit", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const {
+        personal,
+        permitNumber,
+        permitCategory,
+        validFrom,
+        validUntil,
+        conditions,
+        endorsements,
+        previousPermitNumber,
+        spouseName,
+        dependents
+      } = req.body;
+
+      const pdfBuffer = await pdfGenerationService.generateResidencePermitPDF({
+        personal,
+        permitNumber: permitNumber || `PR-${Date.now()}`,
+        permitCategory: permitCategory || "Permanent Residence",
+        validFrom,
+        validUntil,
+        conditions,
+        endorsements,
+        previousPermitNumber,
+        spouseName,
+        dependents
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="residence-permit-${permitNumber || Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Residence permit PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate residence permit PDF" });
+    }
+  });
+
+  // Generate Birth Certificate PDF
+  app.post("/api/pdf/birth-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const {
+        registrationNumber,
+        fullName,
+        dateOfBirth,
+        placeOfBirth,
+        gender,
+        idNumber,
+        mother,
+        father,
+        dateOfRegistration,
+        registrationOffice
+      } = req.body;
+
+      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF({
+        registrationNumber: registrationNumber || `BC-${Date.now()}`,
+        fullName,
+        dateOfBirth,
+        placeOfBirth,
+        gender,
+        idNumber,
+        mother,
+        father,
+        dateOfRegistration: dateOfRegistration || new Date().toLocaleDateString('en-ZA'),
+        registrationOffice: registrationOffice || "Pretoria Home Affairs"
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="birth-certificate-${registrationNumber || Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Birth certificate PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate birth certificate PDF" });
+    }
+  });
+
+  // Generate Passport PDF
+  app.post("/api/pdf/passport", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const {
+        personal,
+        passportNumber,
+        passportType,
+        dateOfIssue,
+        dateOfExpiry,
+        placeOfIssue,
+        machineReadableZone,
+        previousPassportNumber
+      } = req.body;
+
+      const pdfBuffer = await pdfGenerationService.generatePassportPDF({
+        personal,
+        passportNumber: passportNumber || `A${Math.floor(Math.random() * 90000000 + 10000000)}`,
+        passportType: passportType || "Ordinary",
+        dateOfIssue: dateOfIssue || new Date().toLocaleDateString('en-ZA'),
+        dateOfExpiry: dateOfExpiry || new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+        placeOfIssue: placeOfIssue || "Pretoria",
+        machineReadableZone,
+        previousPassportNumber
+      });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="passport-${passportNumber || Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Passport PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate passport PDF" });
+    }
+  });
+
+  // Generate Exceptional Skills Permit PDF
+  app.post("/api/pdf/exceptional-skills", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateExceptionalSkillsPermitPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="exceptional-skills-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Exceptional skills PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate exceptional skills permit PDF" });
+    }
+  });
+
+  // Generate Study Permit PDF
+  app.post("/api/pdf/study-permit", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateStudyPermitPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="study-permit-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Study permit PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate study permit PDF" });
     }
   });
 

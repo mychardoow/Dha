@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
 import DocumentServices from "./pages/DocumentServices";
+import PDFTestPage from "./pages/pdf-test";
 import NotFoundPage from "./pages/not-found";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
@@ -42,6 +43,7 @@ function App() {
             <Route path="/documents" component={DocumentGenerationPage} />
             <Route path="/document-services" component={DocumentServices} />
             <Route path="/document-generation" component={DocumentGenerationPage} />
+            <Route path="/pdf-test" component={PDFTestPage} />
             <Route path="/debug" component={DebugDashboard} />
             
             {/* Admin Routes - Protected with code splitting */}
