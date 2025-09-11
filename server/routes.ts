@@ -173,6 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/biometric/register", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    const user = req.user!; // Type assertion - user is guaranteed to be defined after authenticate middleware
     try {
       const { type, template } = req.body;
 
@@ -181,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const result = await biometricService.registerBiometric({
-        userId: req.user.id,
+        userId: user.id,
         type,
         template
       });

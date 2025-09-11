@@ -1,9 +1,9 @@
-import type { User } from "@shared/schema";
+import type { AuthenticatedUser } from "../middleware/auth";
 
 declare global {
   namespace Express {
     interface Request {
-      user: User;
+      user: AuthenticatedUser;
     }
   }
 }

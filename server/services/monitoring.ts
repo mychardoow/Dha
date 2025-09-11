@@ -262,30 +262,30 @@ export class MonitoringService extends EventEmitter {
   async getRegionalStatus(): Promise<RegionalStatus[]> {
     try {
       // In production, this would get real regional data
-      const regionalStatus = [
+      const regionalStatus: RegionalStatus[] = [
         {
           region: "North America",
           nodes: 47,
-          threatLevel: "LOW",
-          status: "online"
+          threatLevel: "LOW" as const,
+          status: "online" as const
         },
         {
           region: "Europe",
           nodes: 32,
-          threatLevel: "MEDIUM",
-          status: "warning"
+          threatLevel: "MEDIUM" as const,
+          status: "warning" as const
         },
         {
           region: "Asia Pacific",
           nodes: 28,
-          threatLevel: "LOW",
-          status: "online"
+          threatLevel: "LOW" as const,
+          status: "online" as const
         },
         {
           region: "Global Threat Intel",
           nodes: 107,
-          threatLevel: "HIGH",
-          status: "online"
+          threatLevel: "HIGH" as const,
+          status: "online" as const
         }
       ];
       return regionalStatus;

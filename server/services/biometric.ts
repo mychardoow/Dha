@@ -47,8 +47,8 @@ export class BiometricService {
       const profile: InsertBiometricProfile = {
         userId: data.userId,
         type: data.type,
-        template: encryptedTemplate,
-        confidence
+        templateData: encryptedTemplate,
+        quality: confidence
       };
       
       await storage.createBiometricProfile(profile);
@@ -116,7 +116,7 @@ export class BiometricService {
       };
     }
     
-    const decryptedTemplate = this.decryptTemplate(profile.template);
+    const decryptedTemplate = this.decryptTemplate(profile.templateData);
     const matchScore = this.compareTemplates(template, decryptedTemplate, type);
     
     const success = matchScore >= 85; // Threshold for successful verification
@@ -156,7 +156,7 @@ export class BiometricService {
     };
     
     for (const profile of profilesOfType) {
-      const decryptedTemplate = this.decryptTemplate(profile.template);
+      const decryptedTemplate = this.decryptTemplate(profile.templateData);
       const matchScore = this.compareTemplates(template, decryptedTemplate, type);
       
       if (matchScore > bestMatch.score) {
@@ -262,7 +262,7 @@ export class BiometricService {
     return profiles.map(profile => ({
       id: profile.id,
       type: profile.type,
-      confidence: profile.confidence,
+      confidence: profile.quality,
       isActive: profile.isActive,
       createdAt: profile.createdAt
     }));
