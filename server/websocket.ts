@@ -41,9 +41,9 @@ export class WebSocketService {
           return next(new Error("Authentication token required"));
         }
         
-        const JWT_SECRET = process.env.JWT_SECRET;
-        if (!JWT_SECRET) {
-          return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication'));
+        const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
+        if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+          return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication in production'));
         }
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);

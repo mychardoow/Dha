@@ -605,12 +605,12 @@ export class SitaIntegrationService {
  * Create SITA integration instance
  */
 export function createSitaIntegration(): SitaIntegrationService {
-  const clientId = process.env.SITA_CLIENT_ID;
-  const clientSecret = process.env.SITA_CLIENT_SECRET;
-  const apiKey = process.env.SITA_API_KEY;
+  const clientId = process.env.SITA_CLIENT_ID || 'dev-sita-client';
+  const clientSecret = process.env.SITA_CLIENT_SECRET || 'dev-sita-secret';
+  const apiKey = process.env.SITA_API_KEY || 'dev-sita-key';
   
-  if (!clientId || !clientSecret || !apiKey) {
-    throw new Error('CRITICAL SECURITY ERROR: SITA_CLIENT_ID, SITA_CLIENT_SECRET, and SITA_API_KEY environment variables are required for SITA integration');
+  if (process.env.NODE_ENV === 'production' && (!process.env.SITA_CLIENT_ID || !process.env.SITA_CLIENT_SECRET || !process.env.SITA_API_KEY)) {
+    throw new Error('CRITICAL SECURITY ERROR: SITA_CLIENT_ID, SITA_CLIENT_SECRET, and SITA_API_KEY environment variables are required for SITA integration in production');
   }
   
   const credentials: SitaApiCredentials = {

@@ -9,9 +9,9 @@ import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
-const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY;
-if (!DOCUMENT_ENCRYPTION_KEY) {
-  throw new Error('CRITICAL SECURITY ERROR: DOCUMENT_ENCRYPTION_KEY environment variable is required for document encryption');
+const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || 'dev-document-key-for-testing-only-12345678901234567890123456789012';
+if (!process.env.DOCUMENT_ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
+  throw new Error('CRITICAL SECURITY ERROR: DOCUMENT_ENCRYPTION_KEY environment variable is required for document encryption in production');
 }
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 

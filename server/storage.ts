@@ -27,6 +27,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<void>;
+  getAllUsers(): Promise<User[]>;
 
   // Conversation methods
   getConversations(userId: string): Promise<Conversation[]>;
@@ -41,6 +42,7 @@ export interface IStorage {
 
   // Document methods
   getDocuments(userId: string): Promise<Document[]>;
+  getAllDocuments(): Promise<Document[]>;
   getDocument(id: string): Promise<Document | undefined>;
   createDocument(document: InsertDocument): Promise<Document>;
   updateDocument(id: string, updates: Partial<Document>): Promise<void>;
@@ -315,6 +317,11 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
   async getConversations(userId: string): Promise<Conversation[]> {
     return Array.from(this.conversations.values())
       .filter(conv => conv.userId === userId)
@@ -381,6 +388,11 @@ export class MemStorage implements IStorage {
   async getDocuments(userId: string): Promise<Document[]> {
     return Array.from(this.documents.values())
       .filter(doc => doc.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAllDocuments(): Promise<Document[]> {
+    return Array.from(this.documents.values())
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 

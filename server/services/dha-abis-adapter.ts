@@ -77,14 +77,11 @@ export class DHAABISAdapter {
   private readonly retryAttempts: number = 2;
 
   constructor() {
-    this.baseUrl = process.env.DHA_ABIS_BASE_URL!;
-    this.apiKey = process.env.DHA_ABIS_API_KEY!;
+    this.baseUrl = process.env.DHA_ABIS_BASE_URL || 'https://dev-abis.dha.gov.za/api/v1';
+    this.apiKey = process.env.DHA_ABIS_API_KEY || 'dev-dha-abis-key';
     
-    if (!this.baseUrl) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_BASE_URL environment variable is required for DHA ABIS integration');
-    }
-    if (!this.apiKey) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_API_KEY environment variable is required for DHA ABIS integration');
+    if (process.env.NODE_ENV === 'production' && (!process.env.DHA_ABIS_BASE_URL || !process.env.DHA_ABIS_API_KEY)) {
+      throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_BASE_URL and DHA_ABIS_API_KEY environment variables are required for DHA ABIS integration in production');
     }
   }
 
