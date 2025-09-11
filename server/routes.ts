@@ -276,7 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wsService = getWebSocketService();
-      wsService?.sendToUser(req.user.id, "biometric:result", {
+      wsService?.sendToUser(user.id, "biometric:result", {
         type: "registration",
         success: true,
         biometricType: type
@@ -302,14 +302,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Biometric type and template required" });
       }
 
+      const user = req.user as { id: string; role: string; username: string; email: string };
       const result = await biometricService.verifyBiometric(
         template, 
         type, 
-        userId || req.user.id
+        userId || user.id
       );
 
       const wsService = getWebSocketService();
-      wsService?.sendToUser(req.user.id, "biometric:result", {
+      wsService?.sendToUser(user.id, "biometric:result", {
         verificationType: "verification",
         ...result
       });
@@ -327,7 +328,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const profiles = await biometricService.getUserBiometrics(req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const profiles = await biometricService.getUserBiometrics(user.id);
       res.json(profiles);
     } catch (error) {
       console.error("Get biometric profiles error:", error);
@@ -340,8 +342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
+      const user = req.user as { id: string; role: string; username: string; email: string };
       const { resolved } = req.query;
-      const userId = (req.user as any).role === "admin" ? undefined : req.user.id;
+      const userId = user.role === "admin" ? undefined : user.id;
 
       const alerts = await fraudDetectionService.getFraudAlerts(
         userId, 
@@ -360,13 +363,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      await fraudDetectionService.resolveFraudAlert(req.params.id, req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      await fraudDetectionService.resolveFraudAlert(req.params.id, user.id);
 
       const wsService = getWebSocketService();
       wsService?.sendToRole("admin", "fraud:alert", {
         type: "resolved",
         alertId: req.params.id,
-        resolvedBy: req.user.id
+        resolvedBy: user.id
       });
 
       res.json({ message: "Fraud alert resolved" });
@@ -392,9 +396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         encrypt: req.body.encrypt === "true"
       };
 
+      const user = req.user as { id: string; role: string; username: string; email: string };
       const result = await documentProcessorService.processDocument(
         req.file,
-        req.user.id,
+        user.id,
         options
       );
 
@@ -403,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wsService = getWebSocketService();
-      wsService?.sendToUser(req.user.id, "document:processed", {
+      wsService?.sendToUser(user.id, "document:processed", {
         documentId: result.documentId,
         success: true
       });
@@ -421,7 +426,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const documents = await documentProcessorService.getUserDocuments(req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const documents = await documentProcessorService.getUserDocuments(user.id);
       res.json(documents);
     } catch (error) {
       console.error("Get documents error:", error);
@@ -434,7 +440,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const result = await documentProcessorService.getDocument(req.params.id, req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const result = await documentProcessorService.getDocument(req.params.id, user.id);
 
       if (!result.success) {
         return res.status(404).json({ error: result.error });
@@ -1264,7 +1271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: req.query.type
       });
       
-      const templates = await storage.getDocumentTemplates(validatedQuery.type || undefined);
+      const templates = await storage.getDocumentTemplates(validatedQuery.type as any || undefined);
       res.json(templates);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1306,7 +1313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       switch (action) {
         case 'verify':
-          await storage.verifyAmsCertificate(certificateId, req.user!.id);
+          await storage.verifyAmsCertificate(certificateId, (req.user as any).id);
           break;
         case 'revoke':
           if (!reason) {
@@ -1382,7 +1389,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         permitId,
         previousStatus: statusChange.previousStatus,
         newStatus: statusChange.newStatus,
-        changedBy: req.user!.username
+        changedBy: (req.user as any).username || (req.user as any).email
       });
       
       res.json({ message: "Permit status changed", statusChange });
@@ -1446,7 +1453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentId,
         documentType,
         newStatus,
-        updatedBy: req.user!.username
+        updatedBy: (req.user as any).username || (req.user as any).email
       });
       
       res.json({ message: "Document status updated", status });
@@ -1556,7 +1563,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // Non-admin users can only see their own events
-      const userId = req.user.role === "admin" ? validatedQuery.userId : req.user.id;
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const userId = user.role === "admin" ? validatedQuery.userId : user.id;
 
       const events = await storage.getSecurityEvents(
         userId,
@@ -1581,8 +1589,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const validatedData = errorLogCreationSchema.parse(req.body);
 
+      const user = req.user as { id: string; role: string; username: string; email: string };
       await storage.createSecurityEvent({
-        userId: req.user.id,
+        userId: user.id,
         eventType: "client_error",
         severity: "medium",
         details: {
@@ -1621,7 +1630,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const result = await documentGenerator.generateCertificate(req.user.id, type, {
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const result = await documentGenerator.generateCertificate(user.id, type, {
         templateType,
         title,
         description,
@@ -1635,7 +1645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log certificate generation
       await storage.createSecurityEvent({
-        userId: req.user.id,
+        userId: user.id,
         eventType: "certificate_generated",
         severity: "low",
         details: { type, title, verificationCode: result.verificationCode },
@@ -1663,7 +1673,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const certificates = await storage.getCertificates(req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const certificates = await storage.getCertificates(user.id);
       res.json(certificates);
     } catch (error) {
       console.error("Get certificates error:", error);
@@ -1684,7 +1695,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check ownership or admin role
-      if (certificate.userId !== req.user.id && req.user.role !== "admin") {
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      if (certificate.userId !== user.id && user.role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -1707,7 +1719,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const result = await documentGenerator.generatePermit(req.user.id, type, {
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const result = await documentGenerator.generatePermit(user.id, type, {
         templateType,
         title,
         description,
@@ -1722,7 +1735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Log permit generation
       await storage.createSecurityEvent({
-        userId: req.user.id,
+        userId: user.id,
         eventType: "permit_generated",
         severity: "low",
         details: { type, title, verificationCode: result.verificationCode },
@@ -1750,7 +1763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.user) {
         return res.status(401).json({ error: "Authentication required" });
       }
-      const permits = await storage.getPermits(req.user.id);
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      const permits = await storage.getPermits(user.id);
       res.json(permits);
     } catch (error) {
       console.error("Get permits error:", error);
@@ -1771,7 +1785,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check ownership or admin role
-      if (permit.userId !== req.user.id && req.user.role !== "admin") {
+      const user = req.user as { id: string; role: string; username: string; email: string };
+      if (permit.userId !== user.id && user.role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -2409,7 +2424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await dhaWorkflowEngine.submitApplication(
         applicantId,
         req.user.id,
-        applicationType,
+        applicationType as any,
         applicationData
       );
 
@@ -2445,7 +2460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check access permissions
-      if (application.userId !== req.user.id && req.user.role !== "admin") {
+      if (application.userId !== req.user.id && (req.user as any).role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -2722,7 +2737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check permissions
-      if (application.userId !== req.user.id && req.user.role !== "admin") {
+      if (application.userId !== req.user.id && (req.user as any).role !== "admin") {
         return res.status(403).json({ error: "Access denied" });
       }
 
@@ -2734,7 +2749,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetState: targetState as any,
         triggerReason: reason || 'Manual transition',
         actorId: req.user.id,
-        actorName: req.user.username || req.user.email,
+        actorName: (req.user as any).username || (req.user as any).email,
         documentData: data || {}
       });
 
@@ -2880,10 +2895,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminId = (req as any).user.id;
       const notificationData = insertNotificationEventSchema.parse(req.body);
       
-      const notification = await notificationService.createNotification({
+      // Clean up null values for notification service
+      const cleanedData = {
         ...notificationData,
+        userId: notificationData.userId || undefined,
+        expiresAt: notificationData.expiresAt || undefined,
+        payload: notificationData.payload || undefined,
+        category: notificationData.category as any,
         createdBy: adminId
-      });
+      };
+      const notification = await notificationService.createNotification(cleanedData);
       
       res.status(201).json(notification);
     } catch (error) {
@@ -2902,8 +2923,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = systemNotificationSchema.parse(req.body);
       const { targetRole, ...notificationData } = validatedData;
       
+      // Clean up null values for notification service
+      const cleanedData = {
+        ...notificationData,
+        expiresAt: notificationData.expiresAt || undefined,
+        payload: notificationData.payload || undefined,
+        category: notificationData.category as any,
+        createdBy: adminId
+      };
       const notifications = await notificationService.sendSystemNotification(
-        { ...notificationData, createdBy: adminId },
+        cleanedData,
         targetRole
       );
       
@@ -2929,14 +2958,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set critical alert properties
       const notificationData = {
         ...validatedData,
-        priority: "critical" as const,
+        priority: "CRITICAL" as const,
         category: "SECURITY" as const
       };
       
-      const notification = await notificationService.sendCriticalAlert({
+      // Clean up payload for notification service
+      const cleanedData = {
         ...notificationData,
+        payload: (notificationData.payload || undefined) as any,
         createdBy: adminId
-      });
+      };
+      const notification = await notificationService.sendCriticalAlert(cleanedData);
       
       res.status(201).json(notification);
     } catch (error) {
