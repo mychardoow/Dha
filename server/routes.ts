@@ -53,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity: "low",
         details: { email: user.email },
         ipAddress: req.ip,
-        userAgent: req.get("User-Agent")
+        userAgent: req.get("User-Agent") || ""
       });
 
       res.status(201).json({
@@ -93,7 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           severity: "medium",
           details: { email },
           ipAddress: req.ip,
-          userAgent: req.get("User-Agent")
+          userAgent: req.get("User-Agent") || ""
         });
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -107,7 +107,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           severity: "medium",
           details: { email },
           ipAddress: req.ip,
-          userAgent: req.get("User-Agent")
+          userAgent: req.get("User-Agent") || ""
         });
         return res.status(401).json({ error: "Invalid credentials" });
       }
@@ -115,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Run fraud detection
       const fraudAnalysis = await fraudDetectionService.analyzeUserBehavior({
         userId: user.id,
-        ipAddress: req.ip,
+        ipAddress: req.ip || "unknown",
         userAgent: req.get("User-Agent") || "",
         location: req.get("CF-IPCountry") || "Unknown"
       });
@@ -127,8 +127,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Update last login
-      await storage.updateUser(user.id, { lastLogin: new Date() });
+      // Update last login - removed as lastLogin doesn't exist in User type
+      // await storage.updateUser(user.id, { lastLogin: new Date() });
 
       // Generate token
       const token = generateToken({
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fraudRiskScore: fraudAnalysis.riskScore 
         },
         ipAddress: req.ip,
-        userAgent: req.get("User-Agent")
+        userAgent: req.get("User-Agent") || ""
       });
 
       res.json({
@@ -191,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wsService = getWebSocketService();
-      wsService?.sendBiometricResult(req.user.id, {
+      wsService?.sendToUser(req.user.id, "biometric:result", {
         type: "registration",
         success: true,
         biometricType: type
@@ -220,8 +220,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       const wsService = getWebSocketService();
-      wsService?.sendBiometricResult(req.user.id, {
-        type: "verification",
+      wsService?.sendToUser(req.user.id, "biometric:result", {
+        verificationType: "verification",
         ...result
       });
 
@@ -265,9 +265,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await fraudDetectionService.resolveFraudAlert(req.params.id, req.user.id);
 
       const wsService = getWebSocketService();
-      wsService?.sendFraudAlert(req.user.id, {
+      wsService?.sendToRole("admin", "fraud:alert", {
         type: "resolved",
-        alertId: req.params.id
+        alertId: req.params.id,
+        resolvedBy: req.user.id
       });
 
       res.json({ message: "Fraud alert resolved" });
@@ -301,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wsService = getWebSocketService();
-      wsService?.sendDocumentProcessed(req.user.id, {
+      wsService?.sendToUser(req.user.id, "document:processed", {
         documentId: result.documentId,
         success: true
       });
@@ -490,11 +491,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-
-  // Initialize WebSocket
-  initializeWebSocket(httpServer);
-
   // Error logging endpoint
   app.post("/api/monitoring/error", authenticate, async (req: Request, res: Response) => {
     try {
@@ -522,8 +518,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to log error" });
     }
   });
-
-  // Security events routes
 
   const httpServer = createServer(app);
 
