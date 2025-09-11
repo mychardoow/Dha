@@ -47,11 +47,27 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes default stale time for better caching
+      gcTime: 10 * 60 * 1000, // 10 minutes garbage collection time
+      retry: (failureCount, error) => {
+        // Only retry on network errors, not client errors
+        if (error instanceof Error && error.message.includes('fetch')) {
+          return failureCount < 2;
+        }
+        return false;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
       retry: false,
+      // Add optimistic updates configuration
+      onError: (error, variables, context, mutation) => {
+        console.error('Mutation error:', error);
+        // Rollback optimistic updates if available
+        if (context?.rollback) {
+          context.rollback();
+        }
+      },
     },
   },
 });

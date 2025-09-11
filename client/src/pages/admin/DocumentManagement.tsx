@@ -19,7 +19,8 @@ import {
   Filter
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { api, queryClient } from "@/lib/queryClient";
+import { api } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface Document {

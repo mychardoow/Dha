@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { BiometricProfileSkeleton } from "@/components/ui/skeleton";
 
 interface BiometricProfile {
   id: string;
@@ -24,7 +25,7 @@ interface VerificationResult {
   error?: string;
 }
 
-export default function BiometricScanner() {
+function BiometricScanner() {
   const [isScanning, setIsScanning] = useState(false);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [selectedType, setSelectedType] = useState<"face" | "fingerprint" | "voice" | "iris">("face");
@@ -33,13 +34,15 @@ export default function BiometricScanner() {
   const { socket } = useWebSocket();
   const queryClient = useQueryClient();
 
-  // Get user's biometric profiles
+  // Get user's biometric profiles with optimized caching
   const { data: profilesData, isLoading } = useQuery({
     queryKey: ["/api/biometric/profiles"],
-    queryFn: () => api.get<BiometricProfile[]>("/api/biometric/profiles")
+    queryFn: () => api.get<BiometricProfile[]>("/api/biometric/profiles"),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache
   });
   
-  const profiles = Array.isArray(profilesData) ? profilesData : [];
+  const profiles = useMemo(() => Array.isArray(profilesData) ? profilesData : [], [profilesData]);
 
   // Biometric verification mutation
   const verifyMutation = useMutation({
@@ -94,7 +97,7 @@ export default function BiometricScanner() {
     }
   });
 
-  const simulateBiometricCapture = async (type: string): Promise<string> => {
+  const simulateBiometricCapture = useCallback(async (type: string): Promise<string> => {
     // Simulate biometric capture process
     // In production, this would interface with actual biometric hardware
     return new Promise((resolve) => {
@@ -104,9 +107,9 @@ export default function BiometricScanner() {
         resolve(template);
       }, 3000);
     });
-  };
+  }, []);
 
-  const handleBiometricScan = async () => {
+  const handleBiometricScan = useCallback(async () => {
     setIsScanning(true);
     setVerificationResult(null);
 
@@ -127,9 +130,9 @@ export default function BiometricScanner() {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedType, simulateBiometricCapture, verifyMutation, toast]);
 
-  const handleBiometricRegistration = async () => {
+  const handleBiometricRegistration = useCallback(async () => {
     try {
       // Check if this biometric type is already registered
       const existingProfile = profiles.find(p => p.type === selectedType && p.isActive);
@@ -162,14 +165,14 @@ export default function BiometricScanner() {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedType, profiles, simulateBiometricCapture, registerMutation, toast]);
 
-  const getBiometricStatus = (type: string) => {
+  const getBiometricStatus = useCallback((type: string) => {
     const profile = profiles.find(p => p.type === type && p.isActive);
     return profile ? "active" : "inactive";
-  };
+  }, [profiles]);
 
-  const getBiometricIcon = (type: string) => {
+  const getBiometricIcon = useCallback((type: string) => {
     switch (type) {
       case "face": return "👤";
       case "fingerprint": return "👆";
@@ -177,7 +180,7 @@ export default function BiometricScanner() {
       case "iris": return "👁️";
       default: return "🔒";
     }
-  };
+  }, []);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -337,8 +340,10 @@ export default function BiometricScanner() {
             </h4>
             
             {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="loading-spinner w-6 h-6" />
+              <div className="space-y-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <BiometricProfileSkeleton key={i} />
+                ))}
               </div>
             ) : profiles.length > 0 ? (
               <div className="space-y-2">
@@ -378,3 +383,6 @@ export default function BiometricScanner() {
     </div>
   );
 }
+
+// Export memoized component for better performance
+export default memo(BiometricScanner);
