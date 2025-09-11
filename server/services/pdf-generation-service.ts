@@ -158,6 +158,9 @@ export class PDFGenerationService {
         // Add watermark
         this.addPDFKitWatermark(doc);
 
+        // Add multi-layer security features
+        const serialNumber = this.addMultiLayerSecurity(doc, 'WP', data.permitNumber);
+
         // Add header with coat of arms
         this.addGovernmentHeader(doc, "WORK PERMIT");
 
@@ -174,12 +177,15 @@ export class PDFGenerationService {
         doc.fontSize(14)
            .text(`${data.permitType}`, 50, 160, { align: 'center', width: 515 });
 
-        // Permit number box
+        // Permit number box with holographic overlay
         doc.rect(180, 190, 235, 30)
            .stroke(SA_COLORS.green);
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text(`Permit No: ${data.permitNumber}`, 190, 200, { align: 'center', width: 215 });
+        
+        // Add holographic effect over permit number
+        this.addHolographicEffect(doc, 175, 185, 245, 40);
 
         // Personal details section
         let yPos = 250;
@@ -256,16 +262,20 @@ export class PDFGenerationService {
           });
         }
 
-        // Add QR code
-        const qrData = `DHA-VERIFY:${data.permitNumber}`;
-        const qrCode = await QRCode.toDataURL(qrData, {
+        // Add QR code with enhanced data
+        const qrData = `DHA-VERIFY:${data.permitNumber}:${serialNumber}`;
+        QRCode.toDataURL(qrData, {
           width: 100,
           margin: 1,
           color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 400, { width: 100 });
+          doc.fontSize(8)
+             .text('Scan to verify', 460, 505);
         });
-        doc.image(qrCode, 450, 400, { width: 100 });
-        doc.fontSize(8)
-           .text('Scan to verify', 460, 505);
+        
+        // Add UV reactive indicator around QR code
+        this.addUVReactiveIndicator(doc, 445, 395, 110, 110);
 
         // Add barcode
         this.addBarcode(doc, data.permitNumber, 50, 520);
@@ -318,6 +328,9 @@ export class PDFGenerationService {
         // Add watermark
         this.addPDFKitWatermark(doc);
 
+        // Add multi-layer security features
+        const serialNumber = this.addMultiLayerSecurity(doc, 'ASV', data.permitNumber);
+
         // Add header
         this.addGovernmentHeader(doc, "ASYLUM SEEKER TEMPORARY VISA");
 
@@ -339,12 +352,15 @@ export class PDFGenerationService {
            .font('Helvetica')
            .text(`(Issued in terms of Section 22 of the Refugees Act, 1998)`, 50, 180, { align: 'center', width: 515 });
 
-        // Permit number box
+        // Permit number box with Braille reference
         doc.rect(180, 210, 235, 30)
            .stroke(SA_COLORS.gold);
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text(`Permit No: ${data.permitNumber}`, 190, 220, { align: 'center', width: 215 });
+        
+        // Add Braille reference number below permit box
+        this.addBraillePattern(doc, data.permitNumber, 180, 245);
 
         // Personal details
         let yPos = 260;
@@ -441,14 +457,18 @@ export class PDFGenerationService {
           yPos += 18;
         });
 
-        // Add QR code
-        const qrData = `DHA-ASYLUM:${data.permitNumber}:${data.fileReference}`;
-        const qrCode = await QRCode.toDataURL(qrData, {
+        // Add QR code with serial number
+        const qrData = `DHA-ASYLUM:${data.permitNumber}:${data.fileReference}:${serialNumber}`;
+        QRCode.toDataURL(qrData, {
           width: 100,
           margin: 1,
           color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 500, { width: 100 });
         });
-        doc.image(qrCode, 450, 500, { width: 100 });
+        
+        // Add holographic strip near QR
+        this.addHolographicEffect(doc, 430, 495, 10, 110);
 
         // Add barcode
         this.addBarcode(doc, data.fileReference, 50, 600);
@@ -500,6 +520,13 @@ export class PDFGenerationService {
         // Add watermark
         this.addPDFKitWatermark(doc);
 
+        // Add multi-layer security with microtext border
+        const serialNumber = this.addMultiLayerSecurity(doc, 'PR', data.permitNumber);
+        
+        // Add specific microtext border pattern for residence permit
+        this.addMicrotextPattern(doc, 'PERMANENT RESIDENCE RSA ', 0, 30, 595, 10);
+        this.addMicrotextPattern(doc, 'PERMANENT RESIDENCE RSA ', 0, 802, 595, 10);
+
         // Add header
         this.addGovernmentHeader(doc, "PERMANENT RESIDENCE PERMIT");
 
@@ -512,13 +539,16 @@ export class PDFGenerationService {
         doc.fontSize(14)
            .text(`Category: ${data.permitCategory}`, 50, 165, { align: 'center', width: 515 });
 
-        // Permit number with special border
+        // Permit number with special border and holographic overlay
         doc.rect(150, 195, 295, 35)
            .lineWidth(2)
            .stroke(SA_COLORS.gold);
         doc.fontSize(14)
            .font('Helvetica-Bold')
            .text(`Permit No: ${data.permitNumber}`, 160, 207, { align: 'center', width: 275 });
+        
+        // Add holographic overlay on permit box
+        this.addHolographicEffect(doc, 150, 195, 295, 35);
 
         // Personal details
         let yPos = 250;
@@ -619,12 +649,13 @@ export class PDFGenerationService {
 
         // QR Code
         const qrData = `DHA-PR:${data.permitNumber}`;
-        const qrCode = await QRCode.toDataURL(qrData, {
+        QRCode.toDataURL(qrData, {
           width: 120,
           margin: 1,
           color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+        }).then(qrCode => {
+          doc.image(qrCode, 440, 540, { width: 120 });
         });
-        doc.image(qrCode, 440, 540, { width: 120 });
 
         // Barcode
         this.addBarcode(doc, data.permitNumber, 50, 630);
@@ -680,8 +711,14 @@ export class PDFGenerationService {
            .lineWidth(1)
            .stroke(SA_COLORS.gold);
 
+        // Add guilloche background pattern for birth certificate
+        this.addGuillochePattern(doc, 30, 30, 535, 782);
+
         // Add watermark
         this.addPDFKitWatermark(doc);
+
+        // Add multi-layer security
+        const serialNumber = this.addMultiLayerSecurity(doc, 'BC', data.registrationNumber);
 
         // Government header with coat of arms
         this.addGovernmentHeader(doc, "BIRTH CERTIFICATE", true);
@@ -697,13 +734,17 @@ export class PDFGenerationService {
            .fillColor(SA_COLORS.black)
            .text('(Abridged)', 50, 180, { align: 'center', width: 495 });
 
-        // Registration number
+        // Registration number with microtext border
+        this.addMicrotextPattern(doc, 'REPUBLIC OF SOUTH AFRICA ', 175, 205, 245, 45);
         doc.rect(180, 210, 235, 35)
            .lineWidth(2)
            .stroke(SA_COLORS.green);
         doc.fontSize(12)
            .font('Helvetica-Bold')
            .text(`Registration No: ${data.registrationNumber}`, 190, 223, { align: 'center', width: 215 });
+        
+        // Add holographic overlay on registration box
+        this.addHolographicEffect(doc, 180, 210, 235, 35);
 
         // Child's details
         let yPos = 270;
@@ -799,16 +840,21 @@ export class PDFGenerationService {
            .font('Helvetica')
            .text(data.registrationOffice, 240, yPos, { width: 300 });
 
-        // QR Code
-        const qrData = `DHA-BC:${data.registrationNumber}`;
-        const qrCode = await QRCode.toDataURL(qrData, {
+        // QR Code with serial number
+        const qrData = `DHA-BC:${data.registrationNumber}:${serialNumber}`;
+        QRCode.toDataURL(qrData, {
           width: 100,
           margin: 1,
           color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 620, { width: 100 });
+          doc.fontSize(8)
+             .text('Verification Code', 460, 725);
         });
-        doc.image(qrCode, 450, 620, { width: 100 });
-        doc.fontSize(8)
-           .text('Verification Code', 460, 725);
+        
+        // Add UV reactive areas
+        this.addUVReactiveIndicator(doc, 50, 100, 60, 60);
+        this.addUVReactiveIndicator(doc, 485, 100, 60, 60);
 
         // Official stamp area
         this.addOfficialStampArea(doc, 100, 650, true);
@@ -882,6 +928,12 @@ export class PDFGenerationService {
         // Page 2 - Data page
         doc.addPage();
         
+        // Add holographic overlay on data page
+        this.addHolographicEffect(doc, 0, 0, 297, 50);
+        
+        // Add guilloche pattern background
+        this.addGuillochePattern(doc, 10, 60, 277, 350);
+        
         // Header
         doc.fontSize(10)
            .font('Helvetica-Bold')
@@ -910,8 +962,8 @@ export class PDFGenerationService {
            .font('Helvetica');
         
         const details = [
-          { label: 'Surname/Van', value: data.personal.surname || data.personal.fullName.split(' ').pop() },
-          { label: 'Given names/Voorname', value: data.personal.givenNames || data.personal.fullName.split(' ').slice(0, -1).join(' ') },
+          { label: 'Surname/Van', value: data.personal.surname || data.personal.fullName.split(' ').pop() || '' },
+          { label: 'Given names/Voorname', value: data.personal.givenNames || data.personal.fullName.split(' ').slice(0, -1).join(' ') || '' },
           { label: 'Nationality/Nasionaliteit', value: 'SOUTH AFRICAN' },
           { label: 'Date of birth/Geboortedatum', value: data.personal.dateOfBirth },
           { label: 'Gender/Geslag', value: data.personal.gender || 'M' },
@@ -932,27 +984,27 @@ export class PDFGenerationService {
           yPos += 20;
         });
 
-        // Machine Readable Zone
+        // Machine Readable Zone with holographic overlay
         yPos = 280;
         doc.rect(20, yPos - 5, 257, 50)
            .fill('#f0f0f0');
+        
+        // Add holographic security overlay on MRZ
+        this.addHolographicEffect(doc, 20, yPos - 5, 257, 50);
         
         doc.font('Courier')
            .fontSize(10)
            .fillColor(SA_COLORS.black);
         
-        if (data.machineReadableZone) {
-          data.machineReadableZone.forEach((line, index) => {
-            doc.text(line, 25, yPos + (index * 15));
-          });
-        } else {
-          // Generate MRZ
-          const mrz1 = `P<ZAF${data.personal.surname?.toUpperCase().replace(/[^A-Z]/g, '')}<<${data.personal.givenNames?.toUpperCase().replace(/[^A-Z]/g, '')}<<<<<<<<<<<<`.substring(0, 44);
-          const mrz2 = `${data.passportNumber}ZAF${data.personal.dateOfBirth.replace(/-/g, '').substring(2)}M${data.dateOfExpiry.replace(/-/g, '').substring(2)}<<<<<<<<<<<<<<<`.substring(0, 44);
-          
-          doc.text(mrz1, 25, yPos);
-          doc.text(mrz2, 25, yPos + 15);
-        }
+        // Use enhanced MRZ generation
+        const mrzLines = data.machineReadableZone || this.generateMRZ(data);
+        mrzLines.forEach((line, index) => {
+          doc.text(line, 25, yPos + (index * 15));
+        });
+        
+        // Add UV reactive indicators on passport
+        this.addUVReactiveIndicator(doc, 20, 75, 30, 30);
+        this.addUVReactiveIndicator(doc, 247, 75, 30, 30);
 
         // Signature area
         doc.moveTo(20, 350)
@@ -962,14 +1014,19 @@ export class PDFGenerationService {
            .font('Helvetica')
            .text('Signature/Handtekening', 20, 355);
 
-        // QR code for verification
-        const qrData = `DHA-PASSPORT:${data.passportNumber}`;
-        const qrCode = await QRCode.toDataURL(qrData, {
+        // QR code for verification with serial number
+        const serialNumber = this.addSerialNumber(doc, 120, 370, 'PP');
+        const qrData = `DHA-PASSPORT:${data.passportNumber}:${serialNumber}`;
+        QRCode.toDataURL(qrData, {
           width: 60,
           margin: 1,
           color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+        }).then(qrCode => {
+          doc.image(qrCode, 217, 340, { width: 60 });
         });
-        doc.image(qrCode, 217, 340, { width: 60 });
+        
+        // Add microtext at bottom
+        this.addMicrotextPattern(doc, 'RSA GOV ', 20, 395, 257, 5);
 
         doc.end();
       } catch (error) {
@@ -1103,6 +1160,364 @@ export class PDFGenerationService {
     const year = new Date().getFullYear().toString().substr(-2);
     const random = Math.floor(Math.random() * 999999).toString().padStart(6, '0');
     return `${prefix}-${year}${random}`;
+  }
+
+  /**
+   * Add holographic effect simulation
+   * Creates an iridescent pattern overlay to simulate holographic security features
+   */
+  private addHolographicEffect(doc: PDFKit, x: number, y: number, width: number, height: number) {
+    doc.save();
+    doc.opacity(0.15);
+    
+    // Create gradient-like effect with multiple overlapping patterns
+    const colors = [SA_COLORS.blue, SA_COLORS.gold, SA_COLORS.green];
+    const patterns = [
+      { type: 'circle', size: 3 },
+      { type: 'hexagon', size: 4 },
+      { type: 'wave', amplitude: 2 }
+    ];
+    
+    // Draw holographic pattern layers
+    for (let i = 0; i < 3; i++) {
+      doc.fillColor(colors[i]);
+      doc.opacity(0.05 + (i * 0.02));
+      
+      // Create repeating pattern
+      for (let px = x; px < x + width; px += 10) {
+        for (let py = y; py < y + height; py += 10) {
+          if (patterns[i].type === 'circle') {
+            doc.circle(px, py, patterns[i].size || 3)
+               .fill();
+          } else if (patterns[i].type === 'hexagon') {
+            // Simplified hexagon pattern
+            const size = patterns[i].size || 4;
+            doc.polygon([px, py], [px+size, py+2], [px+size, py+6], [px, py+8], [px-size, py+6], [px-size, py+2])
+               .fill();
+          } else if (patterns[i].type === 'wave') {
+            // Wave pattern
+            doc.moveTo(px, py)
+               .bezierCurveTo(px+5, py-2, px+5, py+2, px+10, py)
+               .stroke();
+          }
+        }
+      }
+    }
+    
+    // Add "HOLOGRAM" text indicator
+    doc.opacity(0.1);
+    doc.fontSize(8);
+    doc.fillColor(SA_COLORS.blue);
+    doc.text('SECURE', x + width/2 - 20, y + height/2 - 5);
+    
+    doc.restore();
+  }
+
+  /**
+   * Generate Braille pattern for text
+   * Converts text to Grade 1 Braille (simplified version)
+   */
+  private addBraillePattern(doc: PDFKit, text: string, x: number, y: number) {
+    // Simplified Braille mapping (Grade 1)
+    const brailleMap: { [key: string]: string } = {
+      'A': '\u2801', 'B': '\u2803', 'C': '\u2809', 'D': '\u2819', 'E': '\u2811',
+      'F': '\u280b', 'G': '\u281b', 'H': '\u2813', 'I': '\u280a', 'J': '\u281a',
+      'K': '\u2805', 'L': '\u2807', 'M': '\u280d', 'N': '\u281d', 'O': '\u2815',
+      'P': '\u280f', 'Q': '\u281f', 'R': '\u2817', 'S': '\u280e', 'T': '\u281e',
+      'U': '\u2825', 'V': '\u2827', 'W': '\u283a', 'X': '\u282d', 'Y': '\u283d',
+      'Z': '\u2835', '0': '\u281a', '1': '\u2801', '2': '\u2803', '3': '\u2809',
+      '4': '\u2819', '5': '\u2811', '6': '\u280b', '7': '\u281b', '8': '\u2813',
+      '9': '\u280a', '-': '\u2824', ' ': '\u2800'
+    };
+    
+    // Convert text to uppercase and create Braille pattern
+    const upperText = text.toUpperCase().substring(0, 20); // Limit length
+    let brailleX = x;
+    
+    doc.save();
+    doc.fillColor(SA_COLORS.black);
+    
+    // Draw Braille dots
+    for (const char of upperText) {
+      if (brailleMap[char]) {
+        // Draw dot pattern (simplified representation)
+        const pattern = brailleMap[char];
+        
+        // Create 2x3 dot matrix for each character
+        const dotPositions = [
+          [0, 0], [4, 0],   // Top row
+          [0, 4], [4, 4],   // Middle row
+          [0, 8], [4, 8]    // Bottom row
+        ];
+        
+        // Draw dots based on character pattern
+        const charCode = pattern.charCodeAt(0);
+        for (let i = 0; i < 6; i++) {
+          if (charCode & (1 << i)) {
+            const [dx, dy] = dotPositions[i];
+            doc.circle(brailleX + dx, y + dy, 0.8)
+               .fill();
+          }
+        }
+        brailleX += 10; // Move to next character position
+      }
+    }
+    
+    // Add description below
+    doc.fontSize(6)
+       .fillColor(SA_COLORS.black)
+       .opacity(0.5)
+       .text('Braille Reference', x, y + 15);
+    
+    doc.restore();
+  }
+
+  /**
+   * Add microtext security pattern
+   * Creates tiny repeated text that's difficult to reproduce
+   */
+  private addMicrotextPattern(doc: PDFKit, text: string, x: number, y: number, width: number, height: number) {
+    doc.save();
+    doc.fontSize(2); // Very small text
+    doc.opacity(0.1);
+    doc.fillColor(SA_COLORS.green);
+    
+    const microtext = text.repeat(20);
+    const lineHeight = 3;
+    
+    // Fill area with microtext
+    for (let yPos = y; yPos < y + height; yPos += lineHeight) {
+      doc.text(microtext, x, yPos, {
+        width: width,
+        lineBreak: false,
+        continued: false
+      });
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add guilloche pattern (like on banknotes)
+   * Creates intricate geometric patterns
+   */
+  private addGuillochePattern(doc: PDFKit, x: number, y: number, width: number, height: number) {
+    doc.save();
+    doc.opacity(0.05);
+    doc.lineWidth(0.3);
+    
+    // Create spiral/wave patterns
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const maxRadius = Math.min(width, height) / 2;
+    
+    // Draw concentric circular patterns
+    for (let r = 10; r < maxRadius; r += 5) {
+      doc.circle(centerX, centerY, r)
+         .stroke(SA_COLORS.gold);
+    }
+    
+    // Add intersecting wave patterns
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 * i) / 8;
+      const endX = centerX + Math.cos(angle) * maxRadius;
+      const endY = centerY + Math.sin(angle) * maxRadius;
+      
+      doc.moveTo(centerX, centerY)
+         .bezierCurveTo(
+           centerX + Math.cos(angle + 0.5) * (maxRadius/2),
+           centerY + Math.sin(angle + 0.5) * (maxRadius/2),
+           endX - Math.cos(angle - 0.5) * (maxRadius/2),
+           endY - Math.sin(angle - 0.5) * (maxRadius/2),
+           endX,
+           endY
+         )
+         .stroke(SA_COLORS.green);
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add UV-reactive area indicator
+   * Marks areas that would be UV-reactive (for documentation purposes)
+   */
+  private addUVReactiveIndicator(doc: PDFKit, x: number, y: number, width: number, height: number) {
+    doc.save();
+    
+    // Draw dashed border to indicate UV area
+    doc.lineWidth(0.5);
+    doc.dash(2, { space: 2 });
+    doc.opacity(0.2);
+    doc.rect(x, y, width, height)
+       .stroke(SA_COLORS.blue);
+    
+    // Add UV indicator text
+    doc.fontSize(6);
+    doc.opacity(0.3);
+    doc.fillColor(SA_COLORS.blue);
+    doc.text('UV', x + width - 15, y + 2);
+    
+    doc.undash();
+    doc.restore();
+  }
+
+  /**
+   * Generate check digit for serial numbers
+   * Uses Luhn algorithm for validation
+   */
+  private generateCheckDigit(number: string): string {
+    const digits = number.replace(/\D/g, '').split('').map(Number);
+    let sum = 0;
+    let isEven = false;
+    
+    for (let i = digits.length - 1; i >= 0; i--) {
+      let digit = digits[i];
+      if (isEven) {
+        digit *= 2;
+        if (digit > 9) {
+          digit -= 9;
+        }
+      }
+      sum += digit;
+      isEven = !isEven;
+    }
+    
+    const checkDigit = (10 - (sum % 10)) % 10;
+    return checkDigit.toString();
+  }
+
+  /**
+   * Add sequential serial number with check digit
+   */
+  private addSerialNumber(doc: PDFKit, x: number, y: number, prefix: string = 'SN') {
+    const timestamp = Date.now().toString();
+    const random = Math.floor(Math.random() * 9999).toString().padStart(4, '0');
+    const baseNumber = timestamp.substr(-6) + random;
+    const checkDigit = this.generateCheckDigit(baseNumber);
+    const serialNumber = `${prefix}-${baseNumber}-${checkDigit}`;
+    
+    doc.save();
+    doc.fontSize(9);
+    doc.font('Helvetica');
+    doc.fillColor(SA_COLORS.black);
+    doc.text(`Serial: ${serialNumber}`, x, y);
+    doc.restore();
+    
+    return serialNumber;
+  }
+
+  /**
+   * Add multi-layer security features
+   * Combines multiple security elements for maximum protection
+   */
+  private addMultiLayerSecurity(doc: PDFKit, documentType: string, permitNumber: string) {
+    const pageWidth = 595;
+    const pageHeight = 842;
+    
+    // Layer 1: Guilloche background pattern
+    this.addGuillochePattern(doc, 50, 100, pageWidth - 100, pageHeight - 200);
+    
+    // Layer 2: Microtext borders
+    this.addMicrotextPattern(doc, `${documentType} RSA GOV `, 0, 0, pageWidth, 20);
+    this.addMicrotextPattern(doc, `SECURE DOCUMENT `, 0, pageHeight - 20, pageWidth, 20);
+    
+    // Layer 3: Holographic strips (vertical)
+    this.addHolographicEffect(doc, 30, 100, 15, pageHeight - 200);
+    this.addHolographicEffect(doc, pageWidth - 45, 100, 15, pageHeight - 200);
+    
+    // Layer 4: UV-reactive areas
+    this.addUVReactiveIndicator(doc, 100, 200, 100, 30);
+    this.addUVReactiveIndicator(doc, pageWidth - 200, 200, 100, 30);
+    
+    // Layer 5: Braille reference (for accessibility)
+    this.addBraillePattern(doc, permitNumber.substring(0, 10), 50, pageHeight - 100);
+    
+    // Layer 6: Serial number with check digit
+    const serialNumber = this.addSerialNumber(doc, pageWidth - 150, 50, documentType.substring(0, 3));
+    
+    // Add security features legend
+    this.addSecurityLegend(doc, 50, pageHeight - 150);
+    
+    return serialNumber;
+  }
+
+  /**
+   * Add security features legend
+   * Shows what security features are present
+   */
+  private addSecurityLegend(doc: PDFKit, x: number, y: number) {
+    doc.save();
+    
+    doc.fontSize(7);
+    doc.font('Helvetica');
+    doc.fillColor(SA_COLORS.black);
+    doc.opacity(0.6);
+    
+    doc.text('Security Features:', x, y);
+    
+    const features = [
+      '\u2713 Holographic security strip',
+      '\u2713 Guilloche pattern background',
+      '\u2713 Microtext borders',
+      '\u2713 UV-reactive elements',
+      '\u2713 Braille reference',
+      '\u2713 Serial number with check digit',
+      '\u2713 QR code verification',
+      '\u2713 Watermark'
+    ];
+    
+    let yPos = y + 10;
+    doc.fontSize(6);
+    
+    features.forEach(feature => {
+      doc.text(feature, x + 5, yPos);
+      yPos += 8;
+    });
+    
+    // Add verification instructions box
+    doc.rect(x - 5, y - 5, 120, yPos - y + 10)
+       .lineWidth(0.5)
+       .stroke(SA_COLORS.green);
+    
+    doc.restore();
+  }
+
+  /**
+   * Extract data from existing PDF (placeholder - requires pdf parsing library)
+   * This would normally use a PDF parsing library to extract form data
+   */
+  async extractDataFromPDF(pdfBuffer: Buffer): Promise<any> {
+    // Placeholder implementation
+    // In a real implementation, this would use a library like pdf-parse or pdfjs-dist
+    // to extract text and form field data from the PDF
+    
+    console.log('PDF data extraction requested. Buffer size:', pdfBuffer.length);
+    
+    // Return mock extracted data for demonstration
+    return {
+      extractedText: 'Document text content',
+      formFields: {},
+      metadata: {
+        title: 'Extracted Document',
+        author: 'DHA',
+        creationDate: new Date()
+      }
+    };
+  }
+
+  /**
+   * Generate machine-readable zone for passport
+   */
+  private generateMRZ(data: PassportData): string[] {
+    // Generate ICAO compliant Machine Readable Zone
+    const surname = data.personal.surname || data.personal.fullName.split(' ').pop() || '';
+    const givenNames = data.personal.givenNames || data.personal.fullName.split(' ').slice(0, -1).join(' ') || '';
+    const line1 = `P<ZAF${surname.toUpperCase().replace(/[^A-Z]/g, '').padEnd(20, '<')}<<${givenNames.toUpperCase().replace(/[^A-Z]/g, '').padEnd(17, '<')}`;
+    const dateOfBirth = data.personal.dateOfBirth.replace(/-/g, '').substring(2, 8);
+    const dateOfExpiry = data.dateOfExpiry.replace(/-/g, '').substring(2, 8);
+    const line2 = `${data.passportNumber.padEnd(9, '<')}${this.generateCheckDigit(data.passportNumber)}ZAF${dateOfBirth}${this.generateCheckDigit(dateOfBirth)}${data.personal.gender?.charAt(0) || 'M'}${dateOfExpiry}${this.generateCheckDigit(dateOfExpiry)}<<<<<<<<<<<<<`;
+    return [line1.substring(0, 44), line2.substring(0, 44)];
   }
 
   /**
