@@ -11,10 +11,14 @@ import {
   type DhaApplicant, type InsertDhaApplicant, type DhaApplication, type InsertDhaApplication,
   type DhaVerification, type InsertDhaVerification, type DhaAuditEvent, type InsertDhaAuditEvent,
   type DhaConsentRecord, type InsertDhaConsentRecord, type DhaBackgroundCheck, type InsertDhaBackgroundCheck,
+  type NotificationEvent, type InsertNotificationEvent, type UserNotificationPreferences, type InsertUserNotificationPreferences,
+  type StatusUpdate, type InsertStatusUpdate, type WebSocketSession, type InsertWebSocketSession,
+  type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications,
-  dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks
+  dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
+  notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -214,6 +218,64 @@ export interface IStorage {
   }): Promise<DhaBackgroundCheck[]>;
   createDhaBackgroundCheck(check: InsertDhaBackgroundCheck): Promise<DhaBackgroundCheck>;
   updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void>;
+
+  // ===================== NOTIFICATION METHODS =====================
+
+  // Notification Events
+  getNotifications(userId?: string, filters?: {
+    category?: string;
+    priority?: string;
+    isRead?: boolean;
+    isArchived?: boolean;
+    requiresAction?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<NotificationEvent[]>;
+  getNotification(id: string): Promise<NotificationEvent | undefined>;
+  createNotification(notification: InsertNotificationEvent): Promise<NotificationEvent>;
+  markNotificationAsRead(id: string): Promise<void>;
+  markAllNotificationsAsRead(userId: string): Promise<void>;
+  archiveNotification(id: string): Promise<void>;
+  deleteNotification(id: string): Promise<void>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  
+  // User Notification Preferences
+  getUserNotificationPreferences(userId: string): Promise<UserNotificationPreferences | undefined>;
+  createUserNotificationPreferences(preferences: InsertUserNotificationPreferences): Promise<UserNotificationPreferences>;
+  updateUserNotificationPreferences(userId: string, updates: Partial<UserNotificationPreferences>): Promise<void>;
+  
+  // Status Updates
+  getStatusUpdates(filters?: {
+    entityType?: string;
+    entityId?: string;
+    userId?: string;
+    isPublic?: boolean;
+    limit?: number;
+  }): Promise<StatusUpdate[]>;
+  getLatestStatusUpdate(entityType: string, entityId: string): Promise<StatusUpdate | undefined>;
+  createStatusUpdate(update: InsertStatusUpdate): Promise<StatusUpdate>;
+  
+  // WebSocket Sessions
+  getWebSocketSessions(userId?: string): Promise<WebSocketSession[]>;
+  getWebSocketSession(socketId: string): Promise<WebSocketSession | undefined>;
+  createWebSocketSession(session: InsertWebSocketSession): Promise<WebSocketSession>;
+  updateWebSocketSession(id: string, updates: Partial<WebSocketSession>): Promise<void>;
+  deactivateWebSocketSession(socketId: string): Promise<void>;
+  updateWebSocketLastSeen(socketId: string): Promise<void>;
+  
+  // Chat Sessions
+  getChatSessions(userId?: string, adminId?: string): Promise<ChatSession[]>;
+  getChatSession(id: string): Promise<ChatSession | undefined>;
+  createChatSession(session: InsertChatSession): Promise<ChatSession>;
+  updateChatSession(id: string, updates: Partial<ChatSession>): Promise<void>;
+  assignChatSessionToAdmin(sessionId: string, adminId: string): Promise<void>;
+  closeChatSession(sessionId: string): Promise<void>;
+  
+  // Chat Messages
+  getChatMessages(chatSessionId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  markChatMessageAsRead(messageId: string): Promise<void>;
+  markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -247,6 +309,14 @@ export class MemStorage implements IStorage {
   private dhaAuditEvents: Map<string, DhaAuditEvent>;
   private dhaConsentRecords: Map<string, DhaConsentRecord>;
   private dhaBackgroundChecks: Map<string, DhaBackgroundCheck>;
+  
+  // Notification system storage
+  private notificationEvents: Map<string, NotificationEvent>;
+  private userNotificationPreferences: Map<string, UserNotificationPreferences>;
+  private statusUpdates: Map<string, StatusUpdate>;
+  private webSocketSessions: Map<string, WebSocketSession>;
+  private chatSessions: Map<string, ChatSession>;
+  private chatMessages: Map<string, ChatMessage>;
 
   constructor() {
     this.users = new Map();
@@ -279,6 +349,14 @@ export class MemStorage implements IStorage {
     this.dhaAuditEvents = new Map();
     this.dhaConsentRecords = new Map();
     this.dhaBackgroundChecks = new Map();
+    
+    // Initialize notification system storage
+    this.notificationEvents = new Map();
+    this.userNotificationPreferences = new Map();
+    this.statusUpdates = new Map();
+    this.webSocketSessions = new Map();
+    this.chatSessions = new Map();
+    this.chatMessages = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -1510,6 +1588,333 @@ export class MemStorage implements IStorage {
     if (check) {
       this.dhaBackgroundChecks.set(id, { ...check, ...updates, updatedAt: new Date() });
     }
+  }
+
+  // ===================== NOTIFICATION METHODS IMPLEMENTATION =====================
+
+  // Notification Events
+  async getNotifications(userId?: string, filters?: {
+    category?: string;
+    priority?: string;
+    isRead?: boolean;
+    isArchived?: boolean;
+    requiresAction?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<NotificationEvent[]> {
+    const notifications = Array.from(this.notificationEvents.values())
+      .filter(notification => {
+        if (userId && notification.userId !== userId) return false;
+        if (filters?.category && notification.category !== filters.category) return false;
+        if (filters?.priority && notification.priority !== filters.priority) return false;
+        if (typeof filters?.isRead === 'boolean' && notification.isRead !== filters.isRead) return false;
+        if (typeof filters?.isArchived === 'boolean' && notification.isArchived !== filters.isArchived) return false;
+        if (typeof filters?.requiresAction === 'boolean' && notification.requiresAction !== filters.requiresAction) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Apply pagination
+    const offset = filters?.offset || 0;
+    const limit = filters?.limit || 50;
+    return notifications.slice(offset, offset + limit);
+  }
+
+  async getNotification(id: string): Promise<NotificationEvent | undefined> {
+    return this.notificationEvents.get(id);
+  }
+
+  async createNotification(insertNotification: InsertNotificationEvent): Promise<NotificationEvent> {
+    const id = randomUUID();
+    const notification: NotificationEvent = {
+      ...insertNotification,
+      id,
+      isRead: false,
+      isArchived: false,
+      createdAt: new Date(),
+    };
+    this.notificationEvents.set(id, notification);
+    return notification;
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    const notification = this.notificationEvents.get(id);
+    if (notification) {
+      this.notificationEvents.set(id, { 
+        ...notification, 
+        isRead: true,
+        readAt: new Date()
+      });
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    Array.from(this.notificationEvents.values())
+      .filter(notification => notification.userId === userId && !notification.isRead)
+      .forEach(notification => {
+        this.notificationEvents.set(notification.id, {
+          ...notification,
+          isRead: true,
+          readAt: new Date()
+        });
+      });
+  }
+
+  async archiveNotification(id: string): Promise<void> {
+    const notification = this.notificationEvents.get(id);
+    if (notification) {
+      this.notificationEvents.set(id, { 
+        ...notification, 
+        isArchived: true 
+      });
+    }
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    this.notificationEvents.delete(id);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notificationEvents.values())
+      .filter(notification => 
+        notification.userId === userId && 
+        !notification.isRead && 
+        !notification.isArchived
+      ).length;
+  }
+
+  // User Notification Preferences
+  async getUserNotificationPreferences(userId: string): Promise<UserNotificationPreferences | undefined> {
+    return Array.from(this.userNotificationPreferences.values())
+      .find(pref => pref.userId === userId);
+  }
+
+  async createUserNotificationPreferences(insertPreferences: InsertUserNotificationPreferences): Promise<UserNotificationPreferences> {
+    const id = randomUUID();
+    const preferences: UserNotificationPreferences = {
+      ...insertPreferences,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.userNotificationPreferences.set(id, preferences);
+    return preferences;
+  }
+
+  async updateUserNotificationPreferences(userId: string, updates: Partial<UserNotificationPreferences>): Promise<void> {
+    const existing = Array.from(this.userNotificationPreferences.values())
+      .find(pref => pref.userId === userId);
+    
+    if (existing) {
+      this.userNotificationPreferences.set(existing.id, {
+        ...existing,
+        ...updates,
+        updatedAt: new Date()
+      });
+    }
+  }
+
+  // Status Updates
+  async getStatusUpdates(filters?: {
+    entityType?: string;
+    entityId?: string;
+    userId?: string;
+    isPublic?: boolean;
+    limit?: number;
+  }): Promise<StatusUpdate[]> {
+    const updates = Array.from(this.statusUpdates.values())
+      .filter(update => {
+        if (filters?.entityType && update.entityType !== filters.entityType) return false;
+        if (filters?.entityId && update.entityId !== filters.entityId) return false;
+        if (filters?.userId && update.userId !== filters.userId) return false;
+        if (typeof filters?.isPublic === 'boolean' && update.isPublic !== filters.isPublic) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const limit = filters?.limit || 50;
+    return updates.slice(0, limit);
+  }
+
+  async getLatestStatusUpdate(entityType: string, entityId: string): Promise<StatusUpdate | undefined> {
+    return Array.from(this.statusUpdates.values())
+      .filter(update => update.entityType === entityType && update.entityId === entityId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  }
+
+  async createStatusUpdate(insertUpdate: InsertStatusUpdate): Promise<StatusUpdate> {
+    const id = randomUUID();
+    const update: StatusUpdate = {
+      ...insertUpdate,
+      id,
+      createdAt: new Date(),
+    };
+    this.statusUpdates.set(id, update);
+    return update;
+  }
+
+  // WebSocket Sessions
+  async getWebSocketSessions(userId?: string): Promise<WebSocketSession[]> {
+    return Array.from(this.webSocketSessions.values())
+      .filter(session => !userId || session.userId === userId)
+      .sort((a, b) => b.lastSeen.getTime() - a.lastSeen.getTime());
+  }
+
+  async getWebSocketSession(socketId: string): Promise<WebSocketSession | undefined> {
+    return Array.from(this.webSocketSessions.values())
+      .find(session => session.socketId === socketId);
+  }
+
+  async createWebSocketSession(insertSession: InsertWebSocketSession): Promise<WebSocketSession> {
+    const id = randomUUID();
+    const session: WebSocketSession = {
+      ...insertSession,
+      id,
+      isActive: true,
+      createdAt: new Date(),
+    };
+    this.webSocketSessions.set(id, session);
+    return session;
+  }
+
+  async updateWebSocketSession(id: string, updates: Partial<WebSocketSession>): Promise<void> {
+    const session = this.webSocketSessions.get(id);
+    if (session) {
+      this.webSocketSessions.set(id, { ...session, ...updates });
+    }
+  }
+
+  async deactivateWebSocketSession(socketId: string): Promise<void> {
+    const session = Array.from(this.webSocketSessions.values())
+      .find(s => s.socketId === socketId);
+    
+    if (session) {
+      this.webSocketSessions.set(session.id, {
+        ...session,
+        isActive: false
+      });
+    }
+  }
+
+  async updateWebSocketLastSeen(socketId: string): Promise<void> {
+    const session = Array.from(this.webSocketSessions.values())
+      .find(s => s.socketId === socketId);
+    
+    if (session) {
+      this.webSocketSessions.set(session.id, {
+        ...session,
+        lastSeen: new Date()
+      });
+    }
+  }
+
+  // Chat Sessions
+  async getChatSessions(userId?: string, adminId?: string): Promise<ChatSession[]> {
+    return Array.from(this.chatSessions.values())
+      .filter(session => {
+        if (userId && session.userId !== userId) return false;
+        if (adminId && session.adminId !== adminId) return false;
+        return true;
+      })
+      .sort((a, b) => b.lastMessageAt.getTime() - a.lastMessageAt.getTime());
+  }
+
+  async getChatSession(id: string): Promise<ChatSession | undefined> {
+    return this.chatSessions.get(id);
+  }
+
+  async createChatSession(insertSession: InsertChatSession): Promise<ChatSession> {
+    const id = randomUUID();
+    const session: ChatSession = {
+      ...insertSession,
+      id,
+      createdAt: new Date(),
+    };
+    this.chatSessions.set(id, session);
+    return session;
+  }
+
+  async updateChatSession(id: string, updates: Partial<ChatSession>): Promise<void> {
+    const session = this.chatSessions.get(id);
+    if (session) {
+      this.chatSessions.set(id, { ...session, ...updates });
+    }
+  }
+
+  async assignChatSessionToAdmin(sessionId: string, adminId: string): Promise<void> {
+    const session = this.chatSessions.get(sessionId);
+    if (session) {
+      this.chatSessions.set(sessionId, {
+        ...session,
+        adminId
+      });
+    }
+  }
+
+  async closeChatSession(sessionId: string): Promise<void> {
+    const session = this.chatSessions.get(sessionId);
+    if (session) {
+      this.chatSessions.set(sessionId, {
+        ...session,
+        status: 'closed',
+        closedAt: new Date()
+      });
+    }
+  }
+
+  // Chat Messages
+  async getChatMessages(chatSessionId: string): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter(message => message.chatSessionId === chatSessionId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
+  async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const id = randomUUID();
+    const message: ChatMessage = {
+      ...insertMessage,
+      id,
+      createdAt: new Date(),
+    };
+    this.chatMessages.set(id, message);
+    
+    // Update last message time in chat session
+    const session = this.chatSessions.get(insertMessage.chatSessionId);
+    if (session) {
+      this.chatSessions.set(session.id, {
+        ...session,
+        lastMessageAt: new Date()
+      });
+    }
+    
+    return message;
+  }
+
+  async markChatMessageAsRead(messageId: string): Promise<void> {
+    const message = this.chatMessages.get(messageId);
+    if (message) {
+      this.chatMessages.set(messageId, {
+        ...message,
+        isRead: true,
+        readAt: new Date()
+      });
+    }
+  }
+
+  async markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void> {
+    Array.from(this.chatMessages.values())
+      .filter(message => 
+        message.chatSessionId === chatSessionId && 
+        message.senderId !== userId && 
+        !message.isRead
+      )
+      .forEach(message => {
+        this.chatMessages.set(message.id, {
+          ...message,
+          isRead: true,
+          readAt: new Date()
+        });
+      });
   }
 }
 

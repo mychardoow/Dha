@@ -1051,3 +1051,262 @@ export type DhaIdentityVerification = z.infer<typeof dhaIdentityVerificationSche
 export type DhaPassportVerification = z.infer<typeof dhaPassportVerificationSchema>;
 export type DhaBackgroundCheckCreation = z.infer<typeof dhaBackgroundCheckCreationSchema>;
 export type DhaApplicationTransition = z.infer<typeof dhaApplicationTransitionSchema>;
+
+// ===================== ENHANCED NOTIFICATION SYSTEM =====================
+
+// Notification Events - Comprehensive real-time notification system
+export const notificationEvents = pgTable("notification_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // null for system-wide notifications
+  category: text("category").notNull(), // 'system', 'security', 'document', 'user', 'admin', 'fraud', 'biometric'
+  eventType: text("event_type").notNull(), // standardized event type naming
+  priority: text("priority").notNull(), // 'low', 'medium', 'high', 'critical'
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  payload: jsonb("payload"), // Additional event data
+  isRead: boolean("is_read").notNull().default(false),
+  isArchived: boolean("is_archived").notNull().default(false),
+  requiresAction: boolean("requires_action").notNull().default(false), // Whether user needs to take action
+  actionUrl: text("action_url"), // URL for action button
+  actionLabel: text("action_label"), // Label for action button
+  expiresAt: timestamp("expires_at"), // For time-sensitive notifications
+  relatedEntityType: text("related_entity_type"), // 'document', 'application', 'user', etc.
+  relatedEntityId: varchar("related_entity_id"), // ID of related entity
+  createdBy: varchar("created_by").references(() => users.id), // System user or admin who created
+  deliveredAt: timestamp("delivered_at"), // When notification was delivered
+  readAt: timestamp("read_at"), // When notification was read
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// User Notification Preferences - Allow users to configure notification settings
+export const userNotificationPreferences = pgTable("user_notification_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  pushNotifications: boolean("push_notifications").notNull().default(true),
+  smsNotifications: boolean("sms_notifications").notNull().default(false),
+  categories: jsonb("categories").notNull().default(sql`'{
+    "system": {"enabled": true, "priority": "medium"},
+    "security": {"enabled": true, "priority": "high"},
+    "document": {"enabled": true, "priority": "high"},
+    "fraud": {"enabled": true, "priority": "critical"},
+    "biometric": {"enabled": true, "priority": "medium"},
+    "admin": {"enabled": true, "priority": "medium"}
+  }'`), // Category-specific preferences
+  quietHours: jsonb("quiet_hours"), // {"start": "22:00", "end": "06:00", "enabled": true}
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Real-time Status Updates - Track live status changes for various entities
+export const statusUpdates = pgTable("status_updates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityType: text("entity_type").notNull(), // 'document', 'application', 'biometric_scan', 'system_health', etc.
+  entityId: varchar("entity_id").notNull(),
+  previousStatus: text("previous_status"),
+  currentStatus: text("current_status").notNull(),
+  statusDetails: jsonb("status_details"), // Additional status information
+  progressPercentage: integer("progress_percentage"), // 0-100 for progress tracking
+  estimatedCompletion: timestamp("estimated_completion"), // When process is expected to complete
+  userId: varchar("user_id").references(() => users.id), // Associated user
+  updatedBy: varchar("updated_by").references(() => users.id), // Who triggered the update
+  isPublic: boolean("is_public").notNull().default(false), // Whether status is visible to users
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// WebSocket Connection Sessions - Track active WebSocket connections
+export const webSocketSessions = pgTable("websocket_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  socketId: text("socket_id").notNull().unique(),
+  sessionData: jsonb("session_data"), // Browser info, device info, etc.
+  subscribedEvents: jsonb("subscribed_events").notNull().default('[]'), // Array of event types user subscribed to
+  lastSeen: timestamp("last_seen").notNull().default(sql`now()`),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Live Chat Sessions - Real-time chat support system
+export const chatSessions = pgTable("chat_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  adminId: varchar("admin_id").references(() => users.id), // Assigned admin support agent
+  sessionType: text("session_type").notNull().default("support"), // 'support', 'document_review', 'verification'
+  status: text("status").notNull().default("active"), // 'active', 'waiting', 'closed', 'escalated'
+  priority: text("priority").notNull().default("medium"), // 'low', 'medium', 'high', 'urgent'
+  subject: text("subject"), // Chat topic/subject
+  metadata: jsonb("metadata"), // Additional session data
+  lastMessageAt: timestamp("last_message_at").notNull().default(sql`now()`),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Chat Messages - Messages within chat sessions
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  chatSessionId: varchar("chat_session_id").notNull().references(() => chatSessions.id),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  messageType: text("message_type").notNull().default("text"), // 'text', 'file', 'system', 'action'
+  content: text("content").notNull(),
+  metadata: jsonb("metadata"), // File info, system action info, etc.
+  isRead: boolean("is_read").notNull().default(false),
+  readAt: timestamp("read_at"),
+  editedAt: timestamp("edited_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// ===================== NOTIFICATION SCHEMAS =====================
+
+export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+  deliveredAt: true,
+});
+
+// System notification schema for admin-to-users broadcasts
+export const systemNotificationSchema = insertNotificationEventSchema.extend({
+  targetRole: z.enum(["admin", "user"]).optional(), // Target role for broadcast
+}).omit({ userId: true, createdBy: true }); // These will be set by the server
+
+// Critical alert schema for urgent notifications
+export const criticalAlertSchema = insertNotificationEventSchema.extend({
+  alertType: z.string().min(1),
+  requiresImmediateAction: z.boolean().default(true),
+  escalationLevel: z.enum(["low", "medium", "high", "critical"]).default("critical")
+}).omit({ userId: true, createdBy: true, priority: true }); // Priority is auto-set to critical
+
+export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStatusUpdateSchema = createInsertSchema(statusUpdates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertWebSocketSessionSchema = createInsertSchema(webSocketSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+  editedAt: true,
+});
+
+// Update notification preferences schema
+export const updateNotificationPreferencesSchema = z.object({
+  emailNotifications: z.boolean().optional(),
+  pushNotifications: z.boolean().optional(),
+  smsNotifications: z.boolean().optional(),
+  categories: z.record(z.object({
+    enabled: z.boolean(),
+    priority: z.enum(["low", "medium", "high", "critical"])
+  })).optional(),
+  quietHours: z.object({
+    start: z.string(),
+    end: z.string(),
+    enabled: z.boolean()
+  }).optional(),
+});
+
+// ===================== NOTIFICATION TYPES =====================
+
+export type NotificationEvent = typeof notificationEvents.$inferSelect;
+export type InsertNotificationEvent = z.infer<typeof insertNotificationEventSchema>;
+export type SystemNotification = z.infer<typeof systemNotificationSchema>;
+export type CriticalAlert = z.infer<typeof criticalAlertSchema>;
+
+export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
+export type InsertUserNotificationPreferences = z.infer<typeof insertUserNotificationPreferencesSchema>;
+export type UpdateNotificationPreferences = z.infer<typeof updateNotificationPreferencesSchema>;
+
+export type StatusUpdate = typeof statusUpdates.$inferSelect;
+export type InsertStatusUpdate = z.infer<typeof insertStatusUpdateSchema>;
+
+export type WebSocketSession = typeof webSocketSessions.$inferSelect;
+export type InsertWebSocketSession = z.infer<typeof insertWebSocketSessionSchema>;
+
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = z.infer<typeof insertChatSessionSchema>;
+
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+// ===================== STANDARDIZED EVENT TYPES =====================
+
+export const NotificationCategory = {
+  SYSTEM: 'system',
+  SECURITY: 'security', 
+  DOCUMENT: 'document',
+  USER: 'user',
+  ADMIN: 'admin',
+  FRAUD: 'fraud',
+  BIOMETRIC: 'biometric',
+} as const;
+
+export const NotificationPriority = {
+  LOW: 'low',
+  MEDIUM: 'medium',
+  HIGH: 'high',
+  CRITICAL: 'critical',
+} as const;
+
+export const EventType = {
+  // System events
+  SYSTEM_HEALTH_ALERT: 'system.health_alert',
+  SYSTEM_MAINTENANCE: 'system.maintenance',
+  SYSTEM_UPDATE: 'system.update',
+  SYSTEM_DOWNTIME: 'system.downtime',
+  
+  // Security events  
+  SECURITY_BREACH: 'security.breach',
+  SECURITY_LOGIN: 'security.login',
+  SECURITY_FAILED_LOGIN: 'security.failed_login',
+  SECURITY_PASSWORD_CHANGED: 'security.password_changed',
+  SECURITY_SUSPICIOUS_ACTIVITY: 'security.suspicious_activity',
+  
+  // Document events
+  DOCUMENT_UPLOADED: 'document.uploaded',
+  DOCUMENT_PROCESSING: 'document.processing',
+  DOCUMENT_PROCESSED: 'document.processed',
+  DOCUMENT_VERIFIED: 'document.verified',
+  DOCUMENT_REJECTED: 'document.rejected',
+  DOCUMENT_EXPIRED: 'document.expired',
+  PROCESSING_FAILED: 'processing.failed',
+  PROCESSING_COMPLETED: 'processing.completed',
+  
+  // User events
+  USER_REGISTERED: 'user.registered',
+  USER_PROFILE_UPDATED: 'user.profile_updated',
+  USER_ACCOUNT_LOCKED: 'user.account_locked',
+  USER_ACCOUNT_UNLOCKED: 'user.account_unlocked',
+  
+  // Admin events
+  ADMIN_REVIEW_REQUIRED: 'admin.review_required',
+  ADMIN_ACTION_COMPLETED: 'admin.action_completed',
+  ADMIN_ESCALATION: 'admin.escalation',
+  
+  // Fraud events
+  FRAUD_DETECTED: 'fraud.detected',
+  FRAUD_RESOLVED: 'fraud.resolved',
+  FRAUD_HIGH_RISK: 'fraud.high_risk',
+  
+  // Biometric events
+  BIOMETRIC_ENROLLED: 'biometric.enrolled',
+  BIOMETRIC_VERIFIED: 'biometric.verified',
+  BIOMETRIC_FAILED: 'biometric.failed',
+  BIOMETRIC_UPDATED: 'biometric.updated',
+} as const;
