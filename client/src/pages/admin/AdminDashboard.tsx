@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Activity, 
   Users, 
@@ -18,13 +21,19 @@ import {
   Zap,
   Globe,
   UserCheck,
-  Plane
+  Plane,
+  Printer,
+  Download,
+  Eye,
+  RefreshCw
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { api } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/hooks/use-toast";
 import { CardSkeleton, TableSkeleton, ChartSkeleton } from "@/components/ui/skeleton";
+import { pdfService } from "@/services/pdf-service";
 
 interface SystemMetric {
   metricType: string;
@@ -61,6 +70,10 @@ interface SystemHealth {
 function AdminDashboard() {
   const { toast } = useToast();
   const { socket, isConnected } = useWebSocket();
+  const [showPDFGenerateDialog, setShowPDFGenerateDialog] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [pdfDocumentType, setPdfDocumentType] = useState<string>("");
 
   // Fetch system health with optimized caching
   const { data: systemHealth, isLoading: healthLoading, refetch: refetchHealth } = useQuery<SystemHealth>({
@@ -153,6 +166,76 @@ function AdminDashboard() {
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     return `${days}d ${hours}h ${minutes}m`;
+  }, []);
+
+  // PDF Generation handlers
+  const generateApprovedDocumentPDF = useCallback(async () => {
+    if (!selectedApplication || !pdfDocumentType) {
+      toast({
+        title: "Error",
+        description: "Please select a document type",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingPDF(true);
+    try {
+      const documentData = {
+        ...selectedApplication,
+        approvalDate: new Date().toISOString(),
+        approvedBy: "Admin Officer",
+        referenceNumber: `DHA-${Date.now()}`,
+      };
+
+      const result = await pdfService.generateDocument(pdfDocumentType, documentData);
+
+      if (result.success) {
+        toast({
+          title: "PDF Generated Successfully",
+          description: `${pdfDocumentType.replace(/_/g, " ")} has been generated and downloaded.`,
+          className: "bg-green-50 border-green-200",
+        });
+        
+        // Log the generation in audit trail
+        await apiRequest("/api/audit/log", {
+          method: "POST",
+          body: JSON.stringify({
+            action: "pdf_generated",
+            entityType: "application",
+            entityId: selectedApplication.id,
+            details: {
+              documentType: pdfDocumentType,
+              applicationId: selectedApplication.id,
+              timestamp: new Date().toISOString(),
+            },
+          }),
+        });
+        
+        setShowPDFGenerateDialog(false);
+      } else {
+        toast({
+          title: "PDF Generation Failed",
+          description: result.error || "Failed to generate PDF",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  }, [selectedApplication, pdfDocumentType, toast]);
+
+  const handleGeneratePDF = useCallback((application: any) => {
+    setSelectedApplication(application);
+    setPdfDocumentType("");
+    setShowPDFGenerateDialog(true);
   }, []);
 
   // Memoized calculations for performance
@@ -438,6 +521,129 @@ function AdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Applications Section with PDF Generation */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Recent Applications</CardTitle>
+            <CardDescription>
+              Approved applications ready for document generation
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Sample approved applications */}
+              <div className="flex items-center justify-between p-4 border rounded-lg" data-testid="application-item">
+                <div className="flex-1">
+                  <p className="font-medium">Passport Application - John Doe</p>
+                  <p className="text-sm text-muted-foreground">Approved on {new Date().toLocaleDateString()}</p>
+                  <Badge className="mt-1 bg-green-50 text-green-600">Approved</Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGeneratePDF({ 
+                    id: "1", 
+                    type: "passport", 
+                    fullName: "John Doe",
+                    status: "approved" 
+                  })}
+                  data-testid="button-generate-pdf-application"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Generate PDF
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between p-4 border rounded-lg" data-testid="application-item">
+                <div className="flex-1">
+                  <p className="font-medium">Work Permit - Jane Smith</p>
+                  <p className="text-sm text-muted-foreground">Approved on {new Date().toLocaleDateString()}</p>
+                  <Badge className="mt-1 bg-green-50 text-green-600">Approved</Badge>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleGeneratePDF({ 
+                    id: "2", 
+                    type: "work_permit", 
+                    fullName: "Jane Smith",
+                    status: "approved" 
+                  })}
+                  data-testid="button-generate-pdf-application"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Generate PDF
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* PDF Generation Dialog */}
+        <Dialog open={showPDFGenerateDialog} onOpenChange={setShowPDFGenerateDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Generate Official Document</DialogTitle>
+              <DialogDescription>
+                Select the document type to generate for this approved application
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div>
+                <p className="text-sm font-medium mb-2">Application Details:</p>
+                <div className="p-3 bg-muted rounded-lg text-sm">
+                  <p>Name: {selectedApplication?.fullName}</p>
+                  <p>Type: {selectedApplication?.type?.replace(/_/g, " ")}</p>
+                  <p>Status: {selectedApplication?.status}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Document Type</label>
+                <Select value={pdfDocumentType} onValueChange={setPdfDocumentType}>
+                  <SelectTrigger className="mt-2" data-testid="select-pdf-type">
+                    <SelectValue placeholder="Select document type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="passport">Passport</SelectItem>
+                    <SelectItem value="work_permit">Work Permit</SelectItem>
+                    <SelectItem value="birth_certificate">Birth Certificate</SelectItem>
+                    <SelectItem value="refugee_permit">Refugee Permit</SelectItem>
+                    <SelectItem value="asylum_visa">Asylum Visa</SelectItem>
+                    <SelectItem value="study_permit">Study Permit</SelectItem>
+                    <SelectItem value="diplomatic_passport">Diplomatic Passport</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPDFGenerateDialog(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={generateApprovedDocumentPDF}
+                disabled={isGeneratingPDF || !pdfDocumentType}
+                className="government-button"
+                data-testid="button-confirm-generate-pdf"
+              >
+                {isGeneratingPDF ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate & Download
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   );

@@ -16,10 +16,12 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { pdfService } from "@/services/pdf-service";
 import { 
   FileText, Download, Eye, Shield, CheckCircle, QrCode, Calendar, User, Hash,
   Baby, Heart, Plane, Skull, Briefcase, CreditCard, UserCheck, Search,
@@ -225,6 +227,10 @@ export default function DocumentServices() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("standard");
   const [showVerificationProgress, setShowVerificationProgress] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [previewPDFData, setPreviewPDFData] = useState<string | null>(null);
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string | null>(null);
   const [verificationSteps, setVerificationSteps] = useState([
     { id: "application_review", title: "Application Review", description: "Reviewing your application", status: "pending" as const, estimatedTime: "15 min" },
     { id: "biometric_capture", title: "Biometric Capture", description: "Capturing biometric data", status: "pending" as const, estimatedTime: "10 min" },
@@ -278,6 +284,121 @@ export default function DocumentServices() {
       },
     },
   });
+
+  // PDF Generation Handlers
+  const generatePDF = async (documentType: string, formData: any) => {
+    setIsGeneratingPDF(true);
+    try {
+      let result;
+      switch (documentType) {
+        case "birth_certificate":
+          result = await pdfService.generateBirthCertificate({
+            personal: {
+              fullName: formData.fullName,
+              dateOfBirth: formData.dateOfBirth || new Date().toISOString(),
+              nationality: "South African",
+              idNumber: formData.idNumber,
+            },
+            certificateNumber: `BC-${Date.now()}`,
+            placeOfBirth: "Johannesburg",
+            registrationDate: new Date().toISOString(),
+          });
+          break;
+        case "passport":
+          result = await pdfService.generatePassport({
+            personal: {
+              fullName: formData.fullName,
+              dateOfBirth: formData.dateOfBirth || new Date().toISOString(),
+              nationality: "South African",
+              passportNumber: `ZA${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+              idNumber: formData.idNumber,
+            },
+            passportNumber: `ZA${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+            issueDate: new Date().toISOString(),
+            expiryDate: new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+          break;
+        case "work_permit":
+          result = await pdfService.generateWorkPermit({
+            personal: {
+              fullName: formData.fullName,
+              dateOfBirth: formData.dateOfBirth || new Date().toISOString(),
+              nationality: formData.nationality || "Foreign National",
+              passportNumber: formData.passportNumber,
+            },
+            permitNumber: `WP-${Date.now()}`,
+            permitType: "Section 19(1)",
+            employer: {
+              name: formData.employerName || "Company Name",
+              address: formData.employerAddress || "Address",
+            },
+            occupation: formData.occupation || "Professional",
+            validFrom: new Date().toISOString(),
+            validUntil: new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+          break;
+        default:
+          result = await pdfService.generateDocument(documentType, formData);
+      }
+
+      if (result.success) {
+        toast({
+          title: "PDF Generated Successfully",
+          description: `Your ${documentType.replace(/_/g, " ")} has been downloaded.`,
+          className: "bg-green-50 border-green-200",
+        });
+      } else {
+        toast({
+          title: "PDF Generation Failed",
+          description: result.error || "An error occurred while generating the PDF.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("PDF generation error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
+  const previewPDF = async (documentType: string, formData: any) => {
+    setIsGeneratingPDF(true);
+    try {
+      const result = await pdfService.previewDocument(documentType, {
+        personal: {
+          fullName: formData.fullName,
+          dateOfBirth: formData.dateOfBirth || new Date().toISOString(),
+          nationality: "South African",
+          idNumber: formData.idNumber,
+        },
+      });
+
+      if (result.success && result.pdfData) {
+        setPreviewPDFData(result.pdfData);
+        setShowPDFPreview(true);
+      } else {
+        toast({
+          title: "Preview Failed",
+          description: result.error || "Could not generate preview.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("PDF preview error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to preview PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   // Submit handlers
   const submitStandardDocument = useMutation({
@@ -590,24 +711,65 @@ export default function DocumentServices() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-4">
-                    <Button type="button" variant="outline" className="government-button-secondary">
-                      <Save className="h-4 w-4 mr-2" />
-                      Save Draft
-                    </Button>
-                    <Button type="submit" className="government-button" disabled={submitStandardDocument.isPending}>
-                      {submitStandardDocument.isPending ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Submit Application
-                        </>
-                      )}
-                    </Button>
+                  <div className="flex justify-between">
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="government-button-secondary"
+                        onClick={() => {
+                          const formData = standardForm.getValues();
+                          previewPDF(formData.documentType, formData);
+                        }}
+                        disabled={isGeneratingPDF}
+                        data-testid="button-preview-pdf"
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Preview PDF
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="government-button-secondary"
+                        onClick={() => {
+                          const formData = standardForm.getValues();
+                          generatePDF(formData.documentType, formData);
+                        }}
+                        disabled={isGeneratingPDF}
+                        data-testid="button-generate-pdf"
+                      >
+                        {isGeneratingPDF ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Generate PDF
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex gap-4">
+                      <Button type="button" variant="outline" className="government-button-secondary">
+                        <Save className="h-4 w-4 mr-2" />
+                        Save Draft
+                      </Button>
+                      <Button type="submit" className="government-button" disabled={submitStandardDocument.isPending}>
+                        {submitStandardDocument.isPending ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Submit Application
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </Form>
@@ -759,9 +921,38 @@ export default function DocumentServices() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end gap-4">
-                    <Button type="submit" className="government-button" disabled={submitRefugeeDocument.isPending}>
-                      {submitRefugeeDocument.isPending ? (
+                  <div className="flex justify-between">
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="government-button-secondary"
+                        onClick={() => {
+                          const formData = refugeeForm.getValues();
+                          const documentType = formData.documentType === "section22_permit" ? "refugee_permit" : 
+                                             formData.documentType === "asylum_permit" ? "asylum_visa" : 
+                                             formData.documentType;
+                          generatePDF(documentType, formData);
+                        }}
+                        disabled={isGeneratingPDF}
+                        data-testid="button-generate-refugee-pdf"
+                      >
+                        {isGeneratingPDF ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Generate Document
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex gap-4">
+                      <Button type="submit" className="government-button" disabled={submitRefugeeDocument.isPending}>
+                        {submitRefugeeDocument.isPending ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                           Submitting...
@@ -1000,9 +1191,35 @@ export default function DocumentServices() {
                     />
                   </div>
 
-                  <div className="flex justify-end gap-4">
-                    <Button type="submit" className="government-button" disabled={submitDiplomaticPassport.isPending}>
-                      {submitDiplomaticPassport.isPending ? (
+                  <div className="flex justify-between">
+                    <div className="flex gap-2">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="government-button-secondary"
+                        onClick={() => {
+                          const formData = diplomaticForm.getValues();
+                          generatePDF("diplomatic_passport", formData);
+                        }}
+                        disabled={isGeneratingPDF}
+                        data-testid="button-generate-diplomatic-pdf"
+                      >
+                        {isGeneratingPDF ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Printer className="h-4 w-4 mr-2" />
+                            Generate Diplomatic Passport
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <div className="flex gap-4">
+                      <Button type="submit" className="government-button" disabled={submitDiplomaticPassport.isPending}>
+                        {submitDiplomaticPassport.isPending ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                           Submitting...
@@ -1021,6 +1238,47 @@ export default function DocumentServices() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
+        <DialogContent className="max-w-4xl h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Document Preview</DialogTitle>
+            <DialogDescription>
+              Review your document before downloading
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            {previewPDFData && (
+              <iframe
+                src={`data:application/pdf;base64,${previewPDFData}`}
+                className="w-full h-full min-h-[60vh]"
+                title="PDF Preview"
+              />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPDFPreview(false)}>
+              Close
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedDocumentType) {
+                  const formData = activeTab === "standard" ? standardForm.getValues() :
+                                  activeTab === "refugee" ? refugeeForm.getValues() :
+                                  diplomaticForm.getValues();
+                  generatePDF(selectedDocumentType, formData);
+                  setShowPDFPreview(false);
+                }
+              }}
+              className="government-button"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Print Queue Status */}
       <Card className="government-card mt-6">
