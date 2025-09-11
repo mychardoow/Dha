@@ -47,13 +47,24 @@ args = "Start application"
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Project"
+
+[[workflows.workflow]]
+name = "H"
+mode = "parallel"
+author = 47427735
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "Install "
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
+args = "Run "
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
