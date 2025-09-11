@@ -590,7 +590,7 @@ export class ProductionReadinessService {
   private async validateCertificateHealth(): Promise<void> {
     const now = new Date();
     
-    for (const [id, cert] of this.certificateStore) {
+    for (const [id, cert] of Array.from(this.certificateStore.entries())) {
       const daysUntilExpiry = Math.floor((cert.validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       
       if (daysUntilExpiry <= cert.renewalThresholdDays) {

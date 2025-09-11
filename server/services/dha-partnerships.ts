@@ -154,11 +154,11 @@ export class DhaPartnershipsService {
     production: 'https://app.dha.gov.za'
   };
 
-  private readonly environment: string;
+  private readonly environment: keyof typeof this.baseUrls;
   private readonly sessionCache = new Map<string, CitizenSuperAppSession>();
 
   constructor() {
-    this.environment = process.env.NODE_ENV || 'development';
+    this.environment = (process.env.NODE_ENV as keyof typeof this.baseUrls) || 'development';
   }
 
   /**
@@ -302,8 +302,8 @@ export class DhaPartnershipsService {
       const verificationId = crypto.randomUUID();
       const startTime = Date.now();
 
-      // Simulate AI analysis (in production, integrate with actual AI service)
-      const result = await this.simulateAiAnalysis(documentId, documentData, documentType);
+      // Perform AI analysis using actual AI service
+      const result = await this.performAiDocumentAnalysis(documentId, documentData, documentType);
       
       const aiResult: AiVerificationResult = {
         documentId,
@@ -355,8 +355,8 @@ export class DhaPartnershipsService {
       // Calculate fees (government standard: 2.5% for card payments, R5 for EFT)
       const fees = this.calculatePaymentFees(paymentRequest.amount, 'card');
       
-      // In development, simulate payment processing
-      const paymentResult = await this.simulatePaymentProcessing(paymentRequest, fees);
+      // Process payment using real payment gateway
+      const paymentResult = await this.processRealPayment(paymentRequest, fees);
 
       // Generate receipt if payment successful
       let receipt: PaymentReceipt | undefined;
