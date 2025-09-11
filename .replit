@@ -51,3 +51,12 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "packager.installForAll"
+
+[[workflows.workflow]]
+name = "Simple "
+mode = "sequential"
+author = 47427735
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
