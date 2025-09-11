@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
+import DocumentServices from "./pages/DocumentServices";
 import NotFoundPage from "./pages/not-found";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
@@ -39,6 +40,8 @@ function App() {
             <Route path="/" component={DocumentGenerationPage} />
             <Route path="/ai-assistant" component={AIAssistantPage} />
             <Route path="/documents" component={DocumentGenerationPage} />
+            <Route path="/document-services" component={DocumentServices} />
+            <Route path="/document-generation" component={DocumentGenerationPage} />
             <Route path="/debug" component={DebugDashboard} />
             
             {/* Admin Routes - Protected with code splitting */}

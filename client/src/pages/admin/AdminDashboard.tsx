@@ -15,7 +15,10 @@ import {
   Clock,
   Database,
   Server,
-  Zap
+  Zap,
+  Globe,
+  UserCheck,
+  Plane
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { api } from "@/lib/api";

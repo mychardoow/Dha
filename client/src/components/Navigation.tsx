@@ -1,27 +1,21 @@
 import { useState } from "react";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Shield, User } from "lucide-react";
+import { Menu, Shield, User, FileText, Users, Globe } from "lucide-react";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const [location] = useLocation();
 
   const navigationLinks = [
-    { href: "#dashboard", label: "Dashboard", icon: "📊" },
-    { href: "#security", label: "Security", icon: "🛡️" },
-    { href: "#biometric", label: "Biometric", icon: "👁️" },
-    { href: "#documents", label: "Documents", icon: "📄" },
-    { href: "#monitoring", label: "Monitoring", icon: "📈" },
+    { href: "/", label: "Dashboard", icon: "📊" },
+    { href: "/document-services", label: "Document Services", icon: "📑", badge: "New" },
+    { href: "/document-generation", label: "Generate Documents", icon: "📄" },
+    { href: "/visa-management", label: "Visa Management", icon: "✈️" },
+    { href: "/admin", label: "Admin", icon: "⚙️" },
   ];
-
-  const scrollToSection = (href: string) => {
-    const element = document.querySelector(href);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-    setIsOpen(false);
-  };
 
   return (
     <nav className="sticky top-0 z-40 dha-header shadow-lg" data-testid="navigation">
@@ -44,15 +38,22 @@ export default function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
             {navigationLinks.map((link) => (
-              <button
+              <Link
                 key={link.href}
-                onClick={() => scrollToSection(link.href)}
-                className="text-white hover:text-white/80 transition-colors duration-200 flex items-center space-x-1"
-                data-testid={`nav-link-${link.label.toLowerCase()}`}
+                href={link.href}
+                className={`text-white hover:text-white/80 transition-colors duration-200 flex items-center space-x-1 ${
+                  location === link.href ? 'border-b-2 border-yellow-400' : ''
+                }`}
+                data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <span>{link.icon}</span>
                 <span>{link.label}</span>
-              </button>
+                {link.badge && (
+                  <Badge className="ml-1 bg-yellow-400 text-black text-xs">
+                    {link.badge}
+                  </Badge>
+                )}
+              </Link>
             ))}
 
             <div className="flex items-center space-x-2">
@@ -91,15 +92,23 @@ export default function Navigation() {
                 </div>
 
                 {navigationLinks.map((link) => (
-                  <button
+                  <Link
                     key={link.href}
-                    onClick={() => scrollToSection(link.href)}
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left"
-                    data-testid={`mobile-nav-link-${link.label.toLowerCase()}`}
+                    href={link.href}
+                    onClick={() => setIsOpen(false)}
+                    className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/30 transition-colors text-left ${
+                      location === link.href ? 'bg-primary/10 border-l-4 border-primary' : ''
+                    }`}
+                    data-testid={`mobile-nav-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <span className="text-xl">{link.icon}</span>
                     <span className="font-medium">{link.label}</span>
-                  </button>
+                    {link.badge && (
+                      <Badge className="ml-auto bg-yellow-400 text-black text-xs">
+                        {link.badge}
+                      </Badge>
+                    )}
+                  </Link>
                 ))}
 
                 <div className="pt-6 border-t border-border">

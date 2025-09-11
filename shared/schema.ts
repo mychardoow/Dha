@@ -113,6 +113,225 @@ export const errorLogs = pgTable("error_logs", {
   errorCount: integer("error_count").notNull().default(1), // For tracking repeated errors
 });
 
+// Refugee and Asylum Documentation Tables
+export const refugeeDocuments = pgTable("refugee_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  documentType: text("document_type").notNull(), // 'section22_permit', 'asylum_permit', 'refugee_id', 'refugee_travel'
+  unhcrNumber: text("unhcr_number"),
+  countryOfOrigin: text("country_of_origin").notNull(),
+  dateOfEntry: timestamp("date_of_entry").notNull(),
+  campLocation: text("camp_location"),
+  dependents: jsonb("dependents"), // Array of dependent information
+  permitNumber: text("permit_number"),
+  permitExpiryDate: timestamp("permit_expiry_date"),
+  maroonPassportNumber: text("maroon_passport_number"),
+  integrationStatus: text("integration_status"), // 'pending', 'approved', 'rejected'
+  biometricCaptured: boolean("biometric_captured").notNull().default(false),
+  verificationStatus: text("verification_status").notNull().default("pending"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Diplomatic Passport Table
+export const diplomaticPassports = pgTable("diplomatic_passports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  passportNumber: text("passport_number").unique(),
+  diplomaticNoteNumber: text("diplomatic_note_number").notNull(),
+  embassy: text("embassy").notNull(),
+  consulate: text("consulate"),
+  diplomaticRank: text("diplomatic_rank").notNull(),
+  immunityStatus: text("immunity_status").notNull(), // 'full', 'partial', 'none'
+  viennaConventionCompliant: boolean("vienna_convention_compliant").notNull().default(true),
+  specialClearance: jsonb("special_clearance"), // Security clearance details
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date"),
+  countryOfAccreditation: text("country_of_accreditation").notNull(),
+  previousDiplomaticPassports: jsonb("previous_diplomatic_passports"),
+  emergencyContactEmbassy: text("emergency_contact_embassy"),
+  status: text("status").notNull().default("pending"), // 'pending', 'approved', 'active', 'revoked'
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Document Delivery Tracking Table
+export const documentDelivery = pgTable("document_delivery", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  documentType: text("document_type").notNull(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  deliveryMethod: text("delivery_method").notNull(), // 'collection', 'courier', 'registered_mail'
+  collectionPoint: text("collection_point"), // DHA office location
+  courierTrackingNumber: text("courier_tracking_number"),
+  deliveryAddress: jsonb("delivery_address"),
+  printStatus: text("print_status").notNull().default("queued"), // 'queued', 'printing', 'printed', 'quality_check', 'ready'
+  printQueuePosition: integer("print_queue_position"),
+  printedAt: timestamp("printed_at"),
+  qualityCheckPassed: boolean("quality_check_passed"),
+  estimatedDeliveryDate: timestamp("estimated_delivery_date"),
+  actualDeliveryDate: timestamp("actual_delivery_date"),
+  deliveryStatus: text("delivery_status").notNull().default("pending"), // 'pending', 'in_transit', 'delivered', 'failed'
+  recipientName: text("recipient_name"),
+  recipientIdNumber: text("recipient_id_number"),
+  recipientSignature: text("recipient_signature"), // Base64 encoded signature
+  notificationPreferences: jsonb("notification_preferences"), // SMS, Email preferences
+  deliveryAttempts: integer("delivery_attempts").notNull().default(0),
+  deliveryNotes: text("delivery_notes"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at"),
+});
+
+// AMS Certificate Table (Asylum Management System)
+export const amsCertificates = pgTable("ams_certificates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  certificateNumber: text("certificate_number").unique(),
+  certificateType: text("certificate_type").notNull(), // 'refugee_status', 'asylum_seeker', 'temporary_protection', 'permanent_protection'
+  applicantName: text("applicant_name").notNull(),
+  nationality: text("nationality").notNull(),
+  unhcrNumber: text("unhcr_number"),
+  asylumClaimNumber: text("asylum_claim_number"),
+  status: text("status").notNull().default("pending_verification"), // 'pending_verification', 'verified', 'expired', 'revoked', 'suspended'
+  issueDate: timestamp("issue_date"),
+  expiryDate: timestamp("expiry_date"),
+  verificationDate: timestamp("verification_date"),
+  verifiedBy: varchar("verified_by").references(() => users.id),
+  rejectionReason: text("rejection_reason"),
+  suspensionReason: text("suspension_reason"),
+  revocationReason: text("revocation_reason"),
+  documentUrl: text("document_url"),
+  qrCodeUrl: text("qr_code_url"),
+  digitalSignature: text("digital_signature"),
+  biometricData: jsonb("biometric_data"),
+  endorsements: jsonb("endorsements"),
+  restrictions: jsonb("restrictions"),
+  renewalEligible: boolean("renewal_eligible").notNull().default(false),
+  renewalDate: timestamp("renewal_date"),
+  previousCertificateId: varchar("previous_certificate_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Permit Status Change Table
+export const permitStatusChanges = pgTable("permit_status_changes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  permitId: varchar("permit_id").notNull(),
+  permitType: text("permit_type").notNull(), // 'work', 'study', 'visitor', 'permanent_residence', 'refugee'
+  previousStatus: text("previous_status").notNull(),
+  newStatus: text("new_status").notNull(), // 'applied', 'processing', 'approved', 'rejected', 'issued', 'active', 'expired', 'renewed'
+  changedBy: varchar("changed_by").notNull().references(() => users.id),
+  changeReason: text("change_reason").notNull(),
+  changeNotes: text("change_notes"),
+  endorsementsAdded: jsonb("endorsements_added"),
+  endorsementsRemoved: jsonb("endorsements_removed"),
+  conditionsModified: jsonb("conditions_modified"),
+  gracePeriodDays: integer("grace_period_days"),
+  renewalStatus: text("renewal_status"), // 'eligible', 'pending', 'approved', 'rejected'
+  renewalDeadline: timestamp("renewal_deadline"),
+  effectiveDate: timestamp("effective_date").notNull(),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Document Verification Status Table
+export const documentVerificationStatus = pgTable("document_verification_status", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  documentType: text("document_type").notNull(),
+  currentStatus: text("current_status").notNull(), // 'submitted', 'validated', 'authenticated', 'approved', 'printed', 'delivered', 'rejected'
+  previousStatus: text("previous_status"),
+  statusChangeReason: text("status_change_reason"),
+  verificationStage: text("verification_stage").notNull(), // 'initial', 'document_check', 'biometric_check', 'background_check', 'final_review'
+  verificationScore: integer("verification_score"),
+  authenticityCheckPassed: boolean("authenticity_check_passed"),
+  biometricCheckPassed: boolean("biometric_check_passed"),
+  backgroundCheckPassed: boolean("background_check_passed"),
+  rejectionReasons: jsonb("rejection_reasons"),
+  resubmissionAllowed: boolean("resubmission_allowed").notNull().default(true),
+  resubmissionCount: integer("resubmission_count").notNull().default(0),
+  qrCodeVerified: boolean("qr_code_verified"),
+  qrCodeVerificationDate: timestamp("qr_code_verification_date"),
+  estimatedCompletionDate: timestamp("estimated_completion_date"),
+  actualCompletionDate: timestamp("actual_completion_date"),
+  notificationsSent: jsonb("notifications_sent"),
+  updatedBy: varchar("updated_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at"),
+});
+
+// Document Verification History Table
+export const documentVerificationHistory = pgTable("document_verification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  documentType: text("document_type").notNull(),
+  action: text("action").notNull(), // 'status_change', 'verification_complete', 'rejection', 'resubmission', 'approval'
+  previousValue: text("previous_value"),
+  newValue: text("new_value"),
+  actionBy: varchar("action_by").references(() => users.id),
+  actionReason: text("action_reason"),
+  actionNotes: text("action_notes"),
+  metadata: jsonb("metadata"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Document Verification Workflow Table
+export const verificationWorkflow = pgTable("verification_workflow", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull(),
+  documentType: text("document_type").notNull(),
+  currentStep: text("current_step").notNull(), // 'application_review', 'biometric_capture', 'document_verification', 'security_clearance', 'quality_check', 'approval'
+  applicationReviewStatus: text("application_review_status"),
+  applicationReviewNotes: text("application_review_notes"),
+  applicationReviewedBy: varchar("application_reviewed_by").references(() => users.id),
+  applicationReviewedAt: timestamp("application_reviewed_at"),
+  biometricCaptureStatus: text("biometric_capture_status"),
+  biometricQualityScore: integer("biometric_quality_score"),
+  biometricCapturedAt: timestamp("biometric_captured_at"),
+  documentVerificationStatus: text("document_verification_status"),
+  documentVerificationScore: integer("document_verification_score"),
+  documentVerifiedBy: varchar("document_verified_by").references(() => users.id),
+  documentVerifiedAt: timestamp("document_verified_at"),
+  securityClearanceStatus: text("security_clearance_status"),
+  securityClearanceLevel: text("security_clearance_level"),
+  securityClearedBy: varchar("security_cleared_by").references(() => users.id),
+  securityClearedAt: timestamp("security_cleared_at"),
+  qualityCheckStatus: text("quality_check_status"),
+  qualityCheckScore: integer("quality_check_score"),
+  qualityCheckedBy: varchar("quality_checked_by").references(() => users.id),
+  qualityCheckedAt: timestamp("quality_checked_at"),
+  approvalStatus: text("approval_status"),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectionReason: text("rejection_reason"),
+  estimatedCompletionTime: timestamp("estimated_completion_time"),
+  actualCompletionTime: timestamp("actual_completion_time"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at"),
+});
+
+// DHA Office Locations Table
+export const dhaOffices = pgTable("dha_offices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeName: text("office_name").notNull(),
+  officeCode: text("office_code").notNull().unique(),
+  province: text("province").notNull(),
+  city: text("city").notNull(),
+  address: text("address").notNull(),
+  postalCode: text("postal_code"),
+  phoneNumber: text("phone_number"),
+  emailAddress: text("email_address"),
+  operatingHours: jsonb("operating_hours"), // Mon-Fri hours
+  servicesOffered: text().array(), // Array of services
+  hasRefugeeServices: boolean("has_refugee_services").notNull().default(false),
+  hasDiplomaticServices: boolean("has_diplomatic_services").notNull().default(false),
+  collectionAvailable: boolean("collection_available").notNull().default(true),
+  wheelchairAccessible: boolean("wheelchair_accessible").notNull().default(false),
+  coordinates: jsonb("coordinates"), // Lat/Long for mapping
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 export const biometricProfiles = pgTable("biometric_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
@@ -517,6 +736,53 @@ export const insertDocumentVerificationSchema = createInsertSchema(documentVerif
   id: true,
 });
 
+// New table insert schemas
+export const insertRefugeeDocumentSchema = createInsertSchema(refugeeDocuments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDiplomaticPassportSchema = createInsertSchema(diplomaticPassports).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentDeliverySchema = createInsertSchema(documentDelivery).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertVerificationWorkflowSchema = createInsertSchema(verificationWorkflow).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDhaOfficeSchema = createInsertSchema(dhaOffices).omit({
+  id: true,
+  createdAt: true,
+});
+
+// AMS Certificate and Status Management insert schemas
+export const insertAmsCertificateSchema = createInsertSchema(amsCertificates).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPermitStatusChangeSchema = createInsertSchema(permitStatusChanges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentVerificationStatusSchema = createInsertSchema(documentVerificationStatus).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertDocumentVerificationHistorySchema = createInsertSchema(documentVerificationHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -583,6 +849,35 @@ export type InsertIdCard = z.infer<typeof insertIdCardSchema>;
 
 export type DocumentVerification = typeof documentVerifications.$inferSelect;
 export type InsertDocumentVerification = z.infer<typeof insertDocumentVerificationSchema>;
+
+// New table types
+export type RefugeeDocument = typeof refugeeDocuments.$inferSelect;
+export type InsertRefugeeDocument = z.infer<typeof insertRefugeeDocumentSchema>;
+
+export type DiplomaticPassport = typeof diplomaticPassports.$inferSelect;
+export type InsertDiplomaticPassport = z.infer<typeof insertDiplomaticPassportSchema>;
+
+export type DocumentDelivery = typeof documentDelivery.$inferSelect;
+export type InsertDocumentDelivery = z.infer<typeof insertDocumentDeliverySchema>;
+
+export type VerificationWorkflow = typeof verificationWorkflow.$inferSelect;
+export type InsertVerificationWorkflow = z.infer<typeof insertVerificationWorkflowSchema>;
+
+export type DhaOffice = typeof dhaOffices.$inferSelect;
+export type InsertDhaOffice = z.infer<typeof insertDhaOfficeSchema>;
+
+// AMS Certificate and Status Management types
+export type AmsCertificate = typeof amsCertificates.$inferSelect;
+export type InsertAmsCertificate = z.infer<typeof insertAmsCertificateSchema>;
+
+export type PermitStatusChange = typeof permitStatusChanges.$inferSelect;
+export type InsertPermitStatusChange = z.infer<typeof insertPermitStatusChangeSchema>;
+
+export type DocumentVerificationStatus = typeof documentVerificationStatus.$inferSelect;
+export type InsertDocumentVerificationStatus = z.infer<typeof insertDocumentVerificationStatusSchema>;
+
+export type DocumentVerificationHistory = typeof documentVerificationHistory.$inferSelect;
+export type InsertDocumentVerificationHistory = z.infer<typeof insertDocumentVerificationHistorySchema>;
 
 // ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
 
