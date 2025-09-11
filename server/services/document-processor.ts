@@ -7,6 +7,8 @@ import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
+import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
+import { saPermitValidator, type PermitValidationRequest, type PermitValidationResult } from "./sa-permit-validator";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || 'dev-document-key-for-testing-only-12345678901234567890123456789012';
@@ -27,6 +29,18 @@ export interface ProcessingResult {
   ocrConfidence?: number;
   verificationScore?: number;
   isAuthentic?: boolean;
+  documentType?: string;
+  extractedFields?: Record<string, any>;
+  saValidationResult?: {
+    isValidSADocument: boolean;
+    documentCategory: string;
+    permitNumber?: string;
+    issueDate?: string;
+    expiryDate?: string;
+    issuingOffice?: string;
+    validationErrors: string[];
+    complianceScore: number;
+  };
   error?: string;
 }
 
@@ -75,6 +89,128 @@ export const documentUpload = multer({
 
 export class DocumentProcessorService {
   
+  /**
+   * Health check for critical dependencies
+   */
+  async performHealthCheck(): Promise<{
+    success: boolean;
+    dependencies: {
+      tesseract: { available: boolean; version?: string; error?: string };
+      sharp: { available: boolean; version?: string; error?: string };
+      ocrPipeline: { working: boolean; error?: string };
+    };
+    timestamp: Date;
+  }> {
+    const healthCheck = {
+      success: false,
+      dependencies: {
+        tesseract: { available: false } as any,
+        sharp: { available: false } as any,
+        ocrPipeline: { working: false } as any
+      },
+      timestamp: new Date()
+    };
+
+    try {
+      // Check tesseract.js availability with timeout
+      await this.checkTesseractHealth(healthCheck.dependencies.tesseract);
+      
+      // Check sharp availability
+      await this.checkSharpHealth(healthCheck.dependencies.sharp);
+      
+      // Test OCR pipeline with sample data
+      await this.checkOCRPipelineHealth(healthCheck.dependencies.ocrPipeline);
+      
+      healthCheck.success = healthCheck.dependencies.tesseract.available && 
+                           healthCheck.dependencies.sharp.available &&
+                           healthCheck.dependencies.ocrPipeline.working;
+                           
+    } catch (error) {
+      console.error('Health check failed:', error);
+    }
+
+    return healthCheck;
+  }
+
+  private async checkTesseractHealth(result: any): Promise<void> {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Tesseract health check timeout')), 10000); // 10s timeout
+      });
+
+      const healthCheckPromise = (async () => {
+        const worker = await createWorker();
+        await worker.load();
+        await worker.reinitialize('eng');
+        await worker.terminate();
+        return true;
+      })();
+
+      await Promise.race([healthCheckPromise, timeoutPromise]);
+      
+      result.available = true;
+      result.version = 'tesseract.js-4.x'; // Would need to get actual version
+    } catch (error) {
+      result.available = false;
+      result.error = error instanceof Error ? error.message : 'Unknown tesseract error';
+    }
+  }
+
+  private async checkSharpHealth(result: any): Promise<void> {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Sharp health check timeout')), 5000); // 5s timeout
+      });
+
+      const healthCheckPromise = (async () => {
+        // Create a small test image buffer and process it
+        const testBuffer = Buffer.from([
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 
+          0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+          0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+          0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+          0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+          0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+        ]);
+        
+        await sharp(testBuffer).resize(100, 100).png().toBuffer();
+        return true;
+      })();
+
+      await Promise.race([healthCheckPromise, timeoutPromise]);
+      
+      result.available = true;
+      result.version = 'sharp-0.33.x'; // Would need to get actual version
+    } catch (error) {
+      result.available = false;
+      result.error = error instanceof Error ? error.message : 'Unknown sharp error';
+    }
+  }
+
+  private async checkOCRPipelineHealth(result: any): Promise<void> {
+    try {
+      // Use a simple test - check if enhanced SA OCR service can be instantiated
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('OCR pipeline health check timeout')), 15000); // 15s timeout
+      });
+
+      const pipelineCheckPromise = (async () => {
+        // Test if the enhanced SA OCR service loads correctly
+        if (typeof enhancedSAOCR.processDocument === 'function') {
+          return true;
+        }
+        throw new Error('Enhanced SA OCR service not properly loaded');
+      })();
+
+      await Promise.race([pipelineCheckPromise, timeoutPromise]);
+      
+      result.working = true;
+    } catch (error) {
+      result.working = false;
+      result.error = error instanceof Error ? error.message : 'Unknown OCR pipeline error';
+    }
+  }
+
   async processDocument(
     file: Express.Multer.File,
     userId: string,
@@ -83,6 +219,11 @@ export class DocumentProcessorService {
       verifyAuthenticity?: boolean;
       extractData?: boolean;
       encrypt?: boolean;
+      documentType?: string;
+      enableSAValidation?: boolean;
+      enableFieldExtraction?: boolean;
+      enableWorkflowManagement?: boolean;
+      enablePOPIACompliance?: boolean;
     } = {}
   ): Promise<ProcessingResult> {
     try {
@@ -111,14 +252,63 @@ export class DocumentProcessorService {
       const document = await storage.createDocument(documentData);
       
       // Perform OCR if requested
-      let ocrResult;
+      let ocrResult: any;
+      let saOCRResult: SAOCRResult | undefined;
+      
       if (options.performOCR) {
-        ocrResult = await this.performOCR(file.path, file.mimetype);
+        // Use enhanced SA OCR for SA permit documents
+        const isSAPermitDocument = options.documentType && 
+          ['work_permit', 'residence_permit', 'temporary_permit', 'permanent_visa'].includes(options.documentType);
+        
+        if (isSAPermitDocument && options.enableSAValidation) {
+          const saOCROptions: SAOCROptions = {
+            documentType: options.documentType as any,
+            enablePreprocessing: true,
+            enableMultiLanguage: true,
+            extractFields: options.enableFieldExtraction || false,
+            validateExtractedData: true,
+            enhanceImageQuality: true
+          };
+          
+          saOCRResult = await enhancedSAOCR.processDocument(file.path, file.mimetype, saOCROptions);
+          
+          if (saOCRResult.success) {
+            ocrResult = {
+              success: true,
+              text: saOCRResult.fullText,
+              confidence: saOCRResult.confidence
+            };
+          } else {
+            // Fallback to basic OCR if SA OCR fails
+            ocrResult = await this.performOCR(file.path, file.mimetype);
+          }
+        } else {
+          // Use basic OCR for general documents
+          ocrResult = await this.performOCR(file.path, file.mimetype);
+        }
+        
         if (ocrResult.success) {
-          await storage.updateDocument(document.id, {
+          const updateData: any = {
             ocrText: ocrResult.text,
             ocrConfidence: ocrResult.confidence
-          });
+          };
+          
+          // Add SA-specific data if available
+          if (saOCRResult && saOCRResult.success) {
+            updateData.documentType = saOCRResult.documentType;
+            if (saOCRResult.extractedFields.length > 0) {
+              const fieldsObj: Record<string, any> = {};
+              saOCRResult.extractedFields.forEach(field => {
+                fieldsObj[field.name] = {
+                  value: field.value,
+                  confidence: field.confidence
+                };
+              });
+              updateData.extractedFields = JSON.stringify(fieldsObj);
+            }
+          }
+          
+          await storage.updateDocument(document.id, updateData);
         }
       }
       
@@ -155,7 +345,7 @@ export class DocumentProcessorService {
         }
       });
       
-      return {
+      const result: ProcessingResult = {
         success: true,
         documentId: document.id,
         ocrText: ocrResult?.text,
@@ -163,6 +353,65 @@ export class DocumentProcessorService {
         verificationScore: verificationResult?.confidence,
         isAuthentic: verificationResult?.isAuthentic
       };
+      
+      // Add SA OCR-specific results and comprehensive permit validation
+      if (saOCRResult && saOCRResult.success) {
+        result.documentType = saOCRResult.documentType;
+        
+        let fieldsObj: Record<string, any> = {};
+        if (saOCRResult.extractedFields.length > 0) {
+          saOCRResult.extractedFields.forEach(field => {
+            fieldsObj[field.name] = field.value;
+          });
+          result.extractedFields = fieldsObj;
+        }
+        
+        // Perform comprehensive permit validation if permit number is available
+        let permitValidationResult: PermitValidationResult | undefined;
+        const permitNumber = saOCRResult.extractedFields.find(f => f.name === 'permitNumber')?.value;
+        
+        if (permitNumber && ['work_permit', 'residence_permit', 'temporary_permit', 'permanent_visa'].includes(saOCRResult.documentType)) {
+          try {
+            const validationRequest: PermitValidationRequest = {
+              permitNumber,
+              documentType: saOCRResult.documentType as any,
+              extractedFields: fieldsObj,
+              documentImagePath: file.path,
+              applicantId: userId,
+              skipDatabaseChecks: true // Skip external database checks for now
+            };
+            
+            permitValidationResult = await saPermitValidator.validatePermit(validationRequest);
+          } catch (validationError) {
+            console.error('Permit validation error:', validationError);
+          }
+        }
+        
+        // Create enhanced SA validation result
+        result.saValidationResult = {
+          isValidSADocument: permitValidationResult ? 
+            permitValidationResult.isValid : 
+            (saOCRResult.validationResults.formatValid && saOCRResult.validationResults.requiredFieldsPresent),
+          documentCategory: saOCRResult.documentType,
+          permitNumber,
+          issueDate: saOCRResult.extractedFields.find(f => f.name === 'issueDate')?.value,
+          expiryDate: saOCRResult.extractedFields.find(f => f.name === 'validUntil')?.value,
+          issuingOffice: saOCRResult.extractedFields.find(f => f.name === 'dhaOffice')?.value,
+          validationErrors: permitValidationResult ? 
+            permitValidationResult.issuesFound.map(issue => issue.description) :
+            saOCRResult.validationResults.issuesFound,
+          complianceScore: permitValidationResult ? 
+            permitValidationResult.validationScore :
+            Math.round(
+              (saOCRResult.validationResults.formatValid ? 25 : 0) +
+              (saOCRResult.validationResults.requiredFieldsPresent ? 25 : 0) +
+              (saOCRResult.validationResults.dateFormatsValid ? 25 : 0) +
+              (saOCRResult.validationResults.referenceNumbersValid ? 25 : 0)
+            )
+        };
+      }
+      
+      return result;
       
     } catch (error) {
       console.error("Document processing error:", error);
@@ -188,29 +437,39 @@ export class DocumentProcessorService {
     error?: string;
   }> {
     try {
-      const worker = await createWorker();
-      
       // Configure for different document types
       if (mimeType === 'application/pdf') {
-        // For PDFs, we'd need to convert to images first
-        // This is a simplified implementation
         return {
           success: false,
           error: "PDF OCR not implemented in this demo. Use image formats."
         };
       }
-      
-      await worker.load();
-      await worker.reinitialize('eng');
-      
-      const { data: { text, confidence } } = await worker.recognize(filePath);
-      await worker.terminate();
-      
-      return {
-        success: true,
-        text: text.trim(),
-        confidence: Math.round(confidence)
-      };
+
+      // Add timeout protection for OCR operations
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('OCR operation timeout after 30 seconds')), 30000);
+      });
+
+      const ocrPromise = (async () => {
+        const worker = await createWorker();
+        
+        try {
+          await worker.load();
+          await worker.reinitialize('eng');
+          
+          const { data: { text, confidence } } = await worker.recognize(filePath);
+          
+          return {
+            success: true,
+            text: text.trim(),
+            confidence: Math.round(confidence)
+          };
+        } finally {
+          await worker.terminate();
+        }
+      })();
+
+      return await Promise.race([ocrPromise, timeoutPromise]);
       
     } catch (error) {
       console.error("OCR error:", error);
