@@ -7,7 +7,7 @@
  * All services operate in production mode with real government connectivity.
  */
 
-export type ProviderMode = 'live';
+export type ProviderMode = 'live' | 'mock' | 'shadow';
 export type ServiceProvider = 'dha-npr' | 'dha-abis' | 'saps-crc' | 'icao-pkd' | 'sita-eservices';
 
 export interface ProviderConfig {
