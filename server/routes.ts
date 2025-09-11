@@ -16,6 +16,12 @@ import { dhaMRZParser } from "./services/dha-mrz-parser";
 import { dhaPKDAdapter } from "./services/dha-pkd-adapter";
 import { dhaNPRAdapter } from "./services/dha-npr-adapter";
 import { dhaSAPSAdapter } from "./services/dha-saps-adapter";
+import { sitaIntegration } from "./services/sita-integration";
+import { dhaPartnerships } from "./services/dha-partnerships";
+import { icaoPkdIntegration } from "./services/icao-pkd-integration";
+import { sapsIntegration } from "./services/saps-integration";
+import { nprIntegration } from "./services/npr-integration";
+import { productionReadiness } from "./services/production-readiness";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -426,6 +432,576 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Get quantum status error:", error);
       res.status(500).json({ error: "Failed to get quantum status" });
+    }
+  });
+
+  // SITA Integration API Routes
+  app.post("/api/sita/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const result = await sitaIntegration.initialize();
+      
+      if (result.success) {
+        res.json({ message: "SITA integration initialized successfully" });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("SITA initialization error:", error);
+      res.status(500).json({ error: "SITA initialization failed" });
+    }
+  });
+
+  app.get("/api/sita/services", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const services = await sitaIntegration.discoverServices();
+      res.json({ services });
+    } catch (error) {
+      console.error("SITA service discovery error:", error);
+      res.status(500).json({ error: "Failed to discover SITA services" });
+    }
+  });
+
+  app.get("/api/sita/service/:serviceId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { serviceId } = req.params;
+      const serviceInfo = sitaIntegration.getServiceInfo(serviceId);
+      
+      if (!serviceInfo) {
+        return res.status(404).json({ error: "Service not found" });
+      }
+      
+      res.json(serviceInfo);
+    } catch (error) {
+      console.error("SITA service info error:", error);
+      res.status(500).json({ error: "Failed to get service information" });
+    }
+  });
+
+  app.post("/api/sita/eservices/integration", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { serviceType } = req.body;
+      
+      if (!serviceType) {
+        return res.status(400).json({ error: "Service type is required" });
+      }
+      
+      const result = await sitaIntegration.getEServicesIntegration(serviceType);
+      
+      if (result.success) {
+        res.json({
+          integrationUrl: result.integrationUrl,
+          sessionToken: result.sessionToken
+        });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("eServices integration error:", error);
+      res.status(500).json({ error: "eServices integration failed" });
+    }
+  });
+
+  app.post("/api/sita/validate-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { certificateData } = req.body;
+      
+      if (!certificateData) {
+        return res.status(400).json({ error: "Certificate data is required" });
+      }
+      
+      const result = await sitaIntegration.validateGovernmentCertificate(certificateData);
+      res.json(result);
+    } catch (error) {
+      console.error("Certificate validation error:", error);
+      res.status(500).json({ error: "Certificate validation failed" });
+    }
+  });
+
+  // DHA Strategic Partnerships API Routes (2025)
+  app.post("/api/dha/citizen/initialize", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber, biometricData } = req.body;
+      
+      if (!idNumber) {
+        return res.status(400).json({ error: "ID number is required" });
+      }
+      
+      const result = await dhaPartnerships.initializeCitizenProfile(idNumber, biometricData);
+      
+      if (result.success) {
+        res.json({ profile: result.profile });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Citizen profile initialization error:", error);
+      res.status(500).json({ error: "Profile initialization failed" });
+    }
+  });
+
+  app.post("/api/dha/superapp/session", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { citizenId, applicationId, serviceType } = req.body;
+      
+      if (!citizenId || !applicationId || !serviceType) {
+        return res.status(400).json({ error: "Citizen ID, application ID, and service type are required" });
+      }
+      
+      const result = await dhaPartnerships.createSuperAppSession(citizenId, applicationId, serviceType);
+      
+      if (result.success) {
+        res.json({ session: result.session });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Super App session creation error:", error);
+      res.status(500).json({ error: "Session creation failed" });
+    }
+  });
+
+  app.put("/api/dha/superapp/session/:sessionId/progress", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { sessionId } = req.params;
+      const { progress, nextSteps, notification } = req.body;
+      
+      if (progress === undefined || !nextSteps) {
+        return res.status(400).json({ error: "Progress and next steps are required" });
+      }
+      
+      const result = await dhaPartnerships.updateSessionProgress(sessionId, progress, nextSteps, notification);
+      
+      if (result.success) {
+        res.json({ message: "Session updated successfully" });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Session update error:", error);
+      res.status(500).json({ error: "Session update failed" });
+    }
+  });
+
+  app.post("/api/dha/ai/verify-document", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId, documentData, documentType } = req.body;
+      
+      if (!documentId || !documentData || !documentType) {
+        return res.status(400).json({ error: "Document ID, data, and type are required" });
+      }
+      
+      const result = await dhaPartnerships.performAiDocumentVerification(documentId, documentData, documentType);
+      
+      if (result.success) {
+        res.json({ verification: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("AI document verification error:", error);
+      res.status(500).json({ error: "AI verification failed" });
+    }
+  });
+
+  app.post("/api/dha/payment/process", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const paymentRequest = req.body;
+      
+      if (!paymentRequest.citizenId || !paymentRequest.amount || !paymentRequest.serviceType) {
+        return res.status(400).json({ error: "Citizen ID, amount, and service type are required" });
+      }
+      
+      const result = await dhaPartnerships.processDigitalPayment(paymentRequest);
+      
+      if (result.success) {
+        res.json({ payment: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Digital payment error:", error);
+      res.status(500).json({ error: "Payment processing failed" });
+    }
+  });
+
+  app.get("/api/dha/localization/:messageKey/:language", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { messageKey, language } = req.params;
+      const variables = req.query as Record<string, string>;
+      
+      const message = await dhaPartnerships.getLocalizedMessage(messageKey, language, variables);
+      res.json({ message });
+    } catch (error) {
+      console.error("Localization error:", error);
+      res.status(500).json({ error: "Localization failed" });
+    }
+  });
+
+  // ICAO PKD Integration API Routes
+  app.post("/api/icao/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const result = await icaoPkdIntegration.initialize();
+      
+      if (result.success) {
+        res.json({ message: "ICAO PKD integration initialized successfully" });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("ICAO PKD initialization error:", error);
+      res.status(500).json({ error: "ICAO PKD initialization failed" });
+    }
+  });
+
+  app.post("/api/icao/passport/passive-auth", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ePassportData, chipSignature } = req.body;
+      
+      if (!ePassportData || !chipSignature) {
+        return res.status(400).json({ error: "ePassport data and chip signature are required" });
+      }
+      
+      const result = await icaoPkdIntegration.performPassiveAuthentication(ePassportData, chipSignature);
+      res.json(result);
+    } catch (error) {
+      console.error("Passive authentication error:", error);
+      res.status(500).json({ error: "Passive authentication failed" });
+    }
+  });
+
+  app.post("/api/icao/passport/active-auth", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ePassportData, challenge } = req.body;
+      
+      if (!ePassportData || !challenge) {
+        return res.status(400).json({ error: "ePassport data and challenge are required" });
+      }
+      
+      const result = await icaoPkdIntegration.performActiveAuthentication(ePassportData, challenge);
+      res.json(result);
+    } catch (error) {
+      console.error("Active authentication error:", error);
+      res.status(500).json({ error: "Active authentication failed" });
+    }
+  });
+
+  app.get("/api/icao/certificates/:countryCode", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { countryCode } = req.params;
+      const certificateInfo = icaoPkdIntegration.getCertificateInfo(countryCode);
+      res.json(certificateInfo);
+    } catch (error) {
+      console.error("Certificate info error:", error);
+      res.status(500).json({ error: "Failed to get certificate information" });
+    }
+  });
+
+  app.post("/api/icao/validate/csca", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { countryCode } = req.body;
+      
+      if (!countryCode) {
+        return res.status(400).json({ error: "Country code is required" });
+      }
+      
+      const result = await icaoPkdIntegration.validateCscaCertificate(countryCode);
+      res.json(result);
+    } catch (error) {
+      console.error("CSCA validation error:", error);
+      res.status(500).json({ error: "CSCA validation failed" });
+    }
+  });
+
+  app.post("/api/icao/validate/dsc", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { countryCode, documentType } = req.body;
+      
+      if (!countryCode || !documentType) {
+        return res.status(400).json({ error: "Country code and document type are required" });
+      }
+      
+      const result = await icaoPkdIntegration.validateDscCertificate(countryCode, documentType);
+      res.json(result);
+    } catch (error) {
+      console.error("DSC validation error:", error);
+      res.status(500).json({ error: "DSC validation failed" });
+    }
+  });
+
+  // SAPS Criminal Record Centre API Routes
+  app.post("/api/saps/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const result = await sapsIntegration.initialize();
+      
+      if (result.success) {
+        res.json({ message: "SAPS CRC integration initialized successfully" });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("SAPS initialization error:", error);
+      res.status(500).json({ error: "SAPS initialization failed" });
+    }
+  });
+
+  app.post("/api/saps/criminal-record/submit", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const request = req.body;
+      
+      if (!request.idNumber || !request.consentRecord) {
+        return res.status(400).json({ error: "ID number and consent record are required" });
+      }
+      
+      const result = await sapsIntegration.submitCriminalRecordRequest(request);
+      
+      if (result.success) {
+        res.json({ requestId: result.requestId });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Criminal record submission error:", error);
+      res.status(500).json({ error: "Criminal record request failed" });
+    }
+  });
+
+  app.get("/api/saps/criminal-record/status/:requestId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { requestId } = req.params;
+      const result = await sapsIntegration.checkRequestStatus(requestId);
+      
+      if (result.success) {
+        res.json({
+          status: result.status,
+          estimatedCompletion: result.estimatedCompletion
+        });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Status check error:", error);
+      res.status(500).json({ error: "Status check failed" });
+    }
+  });
+
+  app.get("/api/saps/criminal-record/results/:requestId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { requestId } = req.params;
+      const result = await sapsIntegration.retrieveCriminalRecord(requestId);
+      
+      if (result.success) {
+        res.json({ criminalRecord: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Criminal record retrieval error:", error);
+      res.status(500).json({ error: "Criminal record retrieval failed" });
+    }
+  });
+
+  app.post("/api/saps/background-check/enhanced", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber, fingerprints, consentRecord } = req.body;
+      
+      if (!idNumber || !fingerprints || !consentRecord) {
+        return res.status(400).json({ error: "ID number, fingerprints, and consent record are required" });
+      }
+      
+      const result = await sapsIntegration.performEnhancedBackgroundCheck(idNumber, fingerprints, consentRecord);
+      
+      if (result.success) {
+        res.json({ backgroundCheck: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Enhanced background check error:", error);
+      res.status(500).json({ error: "Enhanced background check failed" });
+    }
+  });
+
+  app.post("/api/saps/consent/validate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { consentRecord } = req.body;
+      
+      if (!consentRecord) {
+        return res.status(400).json({ error: "Consent record is required" });
+      }
+      
+      const result = await sapsIntegration.validateConsentCompliance(consentRecord);
+      res.json(result);
+    } catch (error) {
+      console.error("Consent validation error:", error);
+      res.status(500).json({ error: "Consent validation failed" });
+    }
+  });
+
+  // NPR (National Population Register) API Routes
+  app.post("/api/npr/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const result = await nprIntegration.initialize();
+      
+      if (result.success) {
+        res.json({ message: "NPR integration initialized successfully" });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("NPR initialization error:", error);
+      res.status(500).json({ error: "NPR initialization failed" });
+    }
+  });
+
+  app.post("/api/npr/id/validate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber } = req.body;
+      
+      if (!idNumber) {
+        return res.status(400).json({ error: "ID number is required" });
+      }
+      
+      const result = await nprIntegration.validateIdNumber(idNumber);
+      
+      if (result.success) {
+        res.json({ validation: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("ID validation error:", error);
+      res.status(500).json({ error: "ID validation failed" });
+    }
+  });
+
+  app.post("/api/npr/citizen/lookup", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber, verificationLevel = 'standard' } = req.body;
+      
+      if (!idNumber) {
+        return res.status(400).json({ error: "ID number is required" });
+      }
+      
+      const result = await nprIntegration.getCitizenRecord(idNumber, verificationLevel);
+      
+      if (result.success) {
+        res.json({ citizenRecord: result.record });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Citizen lookup error:", error);
+      res.status(500).json({ error: "Citizen lookup failed" });
+    }
+  });
+
+  app.post("/api/npr/biographic/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber, providedData } = req.body;
+      
+      if (!idNumber || !providedData) {
+        return res.status(400).json({ error: "ID number and provided data are required" });
+      }
+      
+      const result = await nprIntegration.verifyBiographicData(idNumber, {
+        firstName: providedData.firstName,
+        surname: providedData.surname,
+        dateOfBirth: new Date(providedData.dateOfBirth),
+        placeOfBirth: providedData.placeOfBirth,
+        sex: providedData.sex
+      });
+      
+      if (result.success) {
+        res.json({ verification: result.result });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Biographic verification error:", error);
+      res.status(500).json({ error: "Biographic verification failed" });
+    }
+  });
+
+  app.post("/api/npr/citizenship/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { idNumber } = req.body;
+      
+      if (!idNumber) {
+        return res.status(400).json({ error: "ID number is required" });
+      }
+      
+      const result = await nprIntegration.verifyCitizenshipStatus(idNumber);
+      
+      if (result.success) {
+        res.json({ citizenship: result.citizenship });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Citizenship verification error:", error);
+      res.status(500).json({ error: "Citizenship verification failed" });
+    }
+  });
+
+  // Production Readiness API Routes
+  app.get("/api/production/config", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const config = productionReadiness.getEnvironmentConfig();
+      res.json({ configuration: config });
+    } catch (error) {
+      console.error("Configuration retrieval error:", error);
+      res.status(500).json({ error: "Failed to retrieve configuration" });
+    }
+  });
+
+  app.get("/api/production/certificates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const result = await productionReadiness.loadGovernmentCertificates();
+      
+      if (result.success) {
+        res.json({ certificates: result.certificates });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Certificate loading error:", error);
+      res.status(500).json({ error: "Failed to load certificates" });
+    }
+  });
+
+  app.post("/api/production/backup", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { backupType = 'incremental' } = req.body;
+      const result = await productionReadiness.createBackup(backupType);
+      
+      if (result.success) {
+        res.json({ backupId: result.backupId, message: "Backup created successfully" });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Backup creation error:", error);
+      res.status(500).json({ error: "Backup creation failed" });
+    }
+  });
+
+  app.get("/api/production/compliance", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const complianceStatus = await productionReadiness.verifyComplianceStatus();
+      res.json({ compliance: complianceStatus });
+    } catch (error) {
+      console.error("Compliance verification error:", error);
+      res.status(500).json({ error: "Compliance verification failed" });
+    }
+  });
+
+  app.get("/api/production/performance", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const metrics = await productionReadiness.monitorPerformance();
+      res.json({ performanceMetrics: metrics });
+    } catch (error) {
+      console.error("Performance monitoring error:", error);
+      res.status(500).json({ error: "Performance monitoring failed" });
     }
   });
 
