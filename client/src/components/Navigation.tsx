@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Shield, User, FileText, Users, Globe } from "lucide-react";
+import { Menu, Shield, User, FileText, Users, Globe, Phone, Clock, HelpCircle } from "lucide-react";
+import { SouthAfricanCoatOfArms, DHALogo, SecurityClassificationBanner } from "@/components/GovernmentAssets";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const navigationLinks = [
     { href: "/", label: "Dashboard", icon: "📊" },
@@ -17,60 +24,101 @@ export default function Navigation() {
     { href: "/admin", label: "Admin", icon: "⚙️" },
   ];
 
+  const isOfficeHours = () => {
+    const hours = currentTime.getHours();
+    const day = currentTime.getDay();
+    return day >= 1 && day <= 5 && hours >= 8 && hours < 16;
+  };
+
   return (
-    <nav className="sticky top-0 z-40 dha-header shadow-lg" data-testid="navigation">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Shield className="text-white text-2xl" />
-              <span className="text-xl font-bold text-white" data-testid="brand-title">
-                🇿🇦 Department of Home Affairs
-              </span>
-            </div>
-            <div className="hidden md:flex items-center space-x-1">
-              <span className="status-indicator status-online" data-testid="status-indicator"></span>
-              <span className="text-sm text-white/80">Government Services</span>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            {navigationLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`text-white hover:text-white/80 transition-colors duration-200 flex items-center space-x-1 ${
-                  location === link.href ? 'border-b-2 border-yellow-400' : ''
-                }`}
-                data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
-              >
-                <span>{link.icon}</span>
-                <span>{link.label}</span>
-                {link.badge && (
-                  <Badge className="ml-1 bg-yellow-400 text-black text-xs">
-                    {link.badge}
-                  </Badge>
+    <>
+      <SecurityClassificationBanner level="OFFICIAL" />
+      <nav className="sticky top-0 z-40 dha-header shadow-lg" data-testid="navigation">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            {/* Logo and Brand */}
+            <div className="flex items-center space-x-4">
+              <SouthAfricanCoatOfArms className="h-14 w-14" />
+              <DHALogo className="h-12 w-12" />
+              <div>
+                <span className="text-xl font-bold text-white block" data-testid="brand-title">
+                  Department of Home Affairs
+                </span>
+                <span className="text-xs text-white/70">Republic of South Africa</span>
+              </div>
+              <div className="hidden lg:flex items-center space-x-3 ml-6 pl-6 border-l border-white/20">
+                <Clock className="h-4 w-4 text-white/70" />
+                <span className="text-sm text-white/70">
+                  {currentTime.toLocaleDateString('en-ZA', { 
+                    weekday: 'short', 
+                    day: 'numeric', 
+                    month: 'short' 
+                  })}
+                </span>
+                {isOfficeHours() ? (
+                  <Badge className="bg-green-500 text-white text-xs">Office Hours</Badge>
+                ) : (
+                  <Badge className="bg-orange-500 text-white text-xs">After Hours</Badge>
                 )}
-              </Link>
-            ))}
-
-            <div className="flex items-center space-x-2">
-              <Badge className="dha-badge" data-testid="security-level-badge">
-                <span>🏛️</span>
-                <span className="ml-1">Official</span>
-              </Badge>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-white hover:text-white/80 transition-colors"
-                data-testid="user-menu-button"
-              >
-                <User className="h-5 w-5" />
-              </Button>
+              </div>
             </div>
-          </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center space-x-6">
+              {navigationLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-white hover:text-white/80 transition-colors duration-200 flex items-center space-x-1 ${
+                    location === link.href ? 'border-b-2 border-yellow-400' : ''
+                  }`}
+                  data-testid={`nav-link-${link.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  <span>{link.icon}</span>
+                  <span>{link.label}</span>
+                  {link.badge && (
+                    <Badge className="ml-1 bg-yellow-400 text-black text-xs">
+                      {link.badge}
+                    </Badge>
+                  )}
+                </Link>
+              ))}
+
+              <div className="flex items-center space-x-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/80 hover:text-white flex items-center space-x-1"
+                  data-testid="helpline-button"
+                >
+                  <Phone className="h-4 w-4" />
+                  <span className="text-xs">0800 60 11 90</span>
+                </Button>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/80 hover:text-white"
+                  data-testid="help-button"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+                
+                <Badge className="dha-badge" data-testid="security-level-badge">
+                  <span>🏛️</span>
+                  <span className="ml-1">Government Portal</span>
+                </Badge>
+                
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-white hover:text-white/80 transition-colors"
+                  data-testid="user-menu-button"
+                >
+                  <User className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
 
           {/* Mobile Navigation */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -87,8 +135,8 @@ export default function Navigation() {
             <SheetContent side="right" className="w-80 bg-white border-l border-border">
               <div className="flex flex-col space-y-4 mt-8">
                 <div className="flex items-center space-x-2 mb-6">
-                  <Shield className="text-primary text-xl" />
-                  <span className="text-lg font-bold text-primary">🇿🇦 DHA Services</span>
+                  <DHALogo className="h-10 w-10" />
+                  <span className="text-lg font-bold text-primary">DHA Services</span>
                 </div>
 
                 {navigationLinks.map((link) => (
@@ -124,6 +172,13 @@ export default function Navigation() {
                     <span className="status-indicator status-online"></span>
                     <span className="text-sm text-muted-foreground">Government Services Online</span>
                   </div>
+                  
+                  <div className="mt-4 text-xs text-muted-foreground">
+                    <div className="flex items-center space-x-1">
+                      <Phone className="h-3 w-3" />
+                      <span>Helpline: 0800 60 11 90</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </SheetContent>
@@ -131,5 +186,6 @@ export default function Navigation() {
         </div>
       </div>
     </nav>
+    </>
   );
 }
