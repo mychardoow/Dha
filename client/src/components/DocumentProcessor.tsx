@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +23,20 @@ interface Document {
   ocrConfidence?: number;
   processingStatus: string;
   createdAt: string;
+  documentType?: string;
+  extractedFields?: Record<string, any>;
+  saValidationResult?: SAValidationResult;
+}
+
+interface SAValidationResult {
+  isValidSADocument: boolean;
+  documentCategory: 'work_permit' | 'residence_permit' | 'temporary_permit' | 'permanent_visa' | 'unknown';
+  permitNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  issuingOffice?: string;
+  validationErrors: string[];
+  complianceScore: number;
 }
 
 interface ProcessingOptions {
@@ -28,6 +44,11 @@ interface ProcessingOptions {
   verifyAuthenticity: boolean;
   extractData: boolean;
   encrypt: boolean;
+  documentType: 'general' | 'work_permit' | 'residence_permit' | 'temporary_permit' | 'permanent_visa';
+  enableSAValidation: boolean;
+  enableFieldExtraction: boolean;
+  enableWorkflowManagement: boolean;
+  enablePOPIACompliance: boolean;
 }
 
 export default function DocumentProcessor() {
@@ -35,8 +56,13 @@ export default function DocumentProcessor() {
   const [processingOptions, setProcessingOptions] = useState<ProcessingOptions>({
     performOCR: true,
     verifyAuthenticity: true,
-    extractData: false,
-    encrypt: true
+    extractData: true,
+    encrypt: true,
+    documentType: 'general',
+    enableSAValidation: true,
+    enableFieldExtraction: true,
+    enableWorkflowManagement: false,
+    enablePOPIACompliance: true
   });
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -164,6 +190,11 @@ export default function DocumentProcessor() {
     formData.append('verifyAuthenticity', processingOptions.verifyAuthenticity.toString());
     formData.append('extractData', processingOptions.extractData.toString());
     formData.append('encrypt', processingOptions.encrypt.toString());
+    formData.append('documentType', processingOptions.documentType);
+    formData.append('enableSAValidation', processingOptions.enableSAValidation.toString());
+    formData.append('enableFieldExtraction', processingOptions.enableFieldExtraction.toString());
+    formData.append('enableWorkflowManagement', processingOptions.enableWorkflowManagement.toString());
+    formData.append('enablePOPIACompliance', processingOptions.enablePOPIACompliance.toString());
 
     setProcessingProgress(5);
     uploadMutation.mutate(formData);
@@ -235,9 +266,9 @@ export default function DocumentProcessor() {
               ) : (
                 <>
                   <span className="text-4xl text-muted-foreground mb-4 block">☁️</span>
-                  <div className="text-lg font-medium mb-2">Drop documents here</div>
+                  <div className="text-lg font-medium mb-2">Drop SA permit documents here</div>
                   <div className="text-sm text-muted-foreground mb-4">
-                    Supports PDF, JPG, PNG, TIFF, DOCX formats
+                    Supports PDF, JPG, PNG, TIFF, DOCX • Optimized for SA Government Documents
                   </div>
                   <Button className="btn-enhanced bg-primary hover:bg-primary/90 text-primary-foreground">
                     <span>📂</span>
@@ -249,87 +280,176 @@ export default function DocumentProcessor() {
           </div>
 
           {/* Processing Options */}
-          <div className="space-y-4">
-            <h4 className="font-medium">Processing Options</h4>
+          <Tabs defaultValue="basic" className="space-y-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic" data-testid="tab-basic-options">Basic Options</TabsTrigger>
+              <TabsTrigger value="sa-permits" data-testid="tab-sa-options">SA Permit Features</TabsTrigger>
+            </TabsList>
             
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-                <Checkbox
-                  id="ocr"
-                  checked={processingOptions.performOCR}
-                  onCheckedChange={(checked) =>
-                    setProcessingOptions(prev => ({ ...prev, performOCR: checked as boolean }))
-                  }
-                  data-testid="checkbox-ocr"
-                />
-                <div className="flex-1">
-                  <label htmlFor="ocr" className="font-medium cursor-pointer">
-                    OCR Text Extraction
-                  </label>
-                  <div className="text-sm text-muted-foreground">
-                    Extract text content using advanced OCR technology
+            <TabsContent value="basic" className="space-y-4">
+              <h4 className="font-medium">Document Processing</h4>
+              
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="ocr"
+                    checked={processingOptions.performOCR}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, performOCR: checked as boolean }))
+                    }
+                    data-testid="checkbox-ocr"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="ocr" className="font-medium cursor-pointer">
+                      Enhanced OCR Text Extraction
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      SA government document-optimized OCR with field recognition
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-                <Checkbox
-                  id="verification"
-                  checked={processingOptions.verifyAuthenticity}
-                  onCheckedChange={(checked) =>
-                    setProcessingOptions(prev => ({ ...prev, verifyAuthenticity: checked as boolean }))
-                  }
-                  data-testid="checkbox-verification"
-                />
-                <div className="flex-1">
-                  <label htmlFor="verification" className="font-medium cursor-pointer">
-                    Authenticity Verification
-                  </label>
-                  <div className="text-sm text-muted-foreground">
-                    Verify document authenticity and detect tampering
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="verification"
+                    checked={processingOptions.verifyAuthenticity}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, verifyAuthenticity: checked as boolean }))
+                    }
+                    data-testid="checkbox-verification"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="verification" className="font-medium cursor-pointer">
+                      Document Authenticity Verification
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Verify authenticity and detect tampering using advanced algorithms
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-                <Checkbox
-                  id="extraction"
-                  checked={processingOptions.extractData}
-                  onCheckedChange={(checked) =>
-                    setProcessingOptions(prev => ({ ...prev, extractData: checked as boolean }))
-                  }
-                  data-testid="checkbox-extraction"
-                />
-                <div className="flex-1">
-                  <label htmlFor="extraction" className="font-medium cursor-pointer">
-                    Data Extraction
-                  </label>
-                  <div className="text-sm text-muted-foreground">
-                    Extract structured data fields automatically
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="encryption"
+                    checked={processingOptions.encrypt}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, encrypt: checked as boolean }))
+                    }
+                    data-testid="checkbox-encryption"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="encryption" className="font-medium cursor-pointer">
+                      Quantum-Grade Encryption
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Secure document storage with military-grade encryption
+                    </div>
                   </div>
                 </div>
               </div>
+            </TabsContent>
+            
+            <TabsContent value="sa-permits" className="space-y-4">
+              <div className="space-y-4">
+                {/* Document Type Selection */}
+                <div className="space-y-2">
+                  <label className="font-medium text-sm">Document Type</label>
+                  <Select 
+                    value={processingOptions.documentType} 
+                    onValueChange={(value: any) => setProcessingOptions(prev => ({ ...prev, documentType: value }))}
+                  >
+                    <SelectTrigger data-testid="select-document-type">
+                      <SelectValue placeholder="Select document type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="general">General Document</SelectItem>
+                      <SelectItem value="work_permit">🏢 Work Permit</SelectItem>
+                      <SelectItem value="residence_permit">🏠 Residence Permit</SelectItem>
+                      <SelectItem value="temporary_permit">⏱️ Temporary Permit</SelectItem>
+                      <SelectItem value="permanent_visa">🇿🇦 Permanent Residence Visa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* SA-Specific Features */}
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="sa-validation"
+                    checked={processingOptions.enableSAValidation}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, enableSAValidation: checked as boolean }))
+                    }
+                    data-testid="checkbox-sa-validation"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="sa-validation" className="font-medium cursor-pointer">
+                      SA Government Document Validation
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Validate against DHA document formats and reference numbers
+                    </div>
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
-                <Checkbox
-                  id="encryption"
-                  checked={processingOptions.encrypt}
-                  onCheckedChange={(checked) =>
-                    setProcessingOptions(prev => ({ ...prev, encrypt: checked as boolean }))
-                  }
-                  data-testid="checkbox-encryption"
-                />
-                <div className="flex-1">
-                  <label htmlFor="encryption" className="font-medium cursor-pointer">
-                    Quantum Encryption
-                  </label>
-                  <div className="text-sm text-muted-foreground">
-                    Encrypt document with quantum-grade security
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="field-extraction"
+                    checked={processingOptions.enableFieldExtraction}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, enableFieldExtraction: checked as boolean }))
+                    }
+                    data-testid="checkbox-field-extraction"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="field-extraction" className="font-medium cursor-pointer">
+                      Structured Field Extraction
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Extract permit numbers, dates, employer details, and conditions
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="workflow-management"
+                    checked={processingOptions.enableWorkflowManagement}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, enableWorkflowManagement: checked as boolean }))
+                    }
+                    data-testid="checkbox-workflow-management"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="workflow-management" className="font-medium cursor-pointer">
+                      Workflow Management
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Route to review queues and enable approval workflows
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-lg">
+                  <Checkbox
+                    id="popia-compliance"
+                    checked={processingOptions.enablePOPIACompliance}
+                    onCheckedChange={(checked) =>
+                      setProcessingOptions(prev => ({ ...prev, enablePOPIACompliance: checked as boolean }))
+                    }
+                    data-testid="checkbox-popia-compliance"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="popia-compliance" className="font-medium cursor-pointer">
+                      POPIA Compliance Processing
+                    </label>
+                    <div className="text-sm text-muted-foreground">
+                      Apply data protection measures and privacy safeguards
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </TabsContent>
+          </Tabs>
 
           {/* Processing Progress */}
           {processingProgress > 0 && (
@@ -439,7 +559,43 @@ export default function DocumentProcessor() {
                       </div>
                     )}
 
-                    {doc.ocrText && (
+                    {doc.extractedFields && Object.keys(doc.extractedFields).length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-sm font-medium mb-2">Extracted Fields:</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          {Object.entries(doc.extractedFields).map(([key, value]) => (
+                            <div key={key} className="bg-background/50 p-2 rounded border">
+                              <div className="font-medium text-muted-foreground">{key}:</div>
+                              <div className="truncate">{String(value)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                  {doc.saValidationResult && (
+                      <div className="mt-3">
+                        <div className="text-sm font-medium mb-2">SA Document Validation:</div>
+                        <div className="space-y-1">
+                          <Badge className={
+                            doc.saValidationResult.isValidSADocument ? "security-level-1" : "security-level-3"
+                          }>
+                            {doc.saValidationResult.isValidSADocument ? '✅ Valid SA Document' : '❌ Invalid Document'}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground">
+                            Category: {doc.saValidationResult.documentCategory} • 
+                            Compliance Score: {doc.saValidationResult.complianceScore}%
+                          </div>
+                          {doc.saValidationResult.validationErrors.length > 0 && (
+                            <div className="text-xs text-destructive">
+                              Issues: {doc.saValidationResult.validationErrors.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                  {doc.ocrText && (
                       <div className="mt-3">
                         <div className="text-sm font-medium mb-2">Extracted Text (Preview):</div>
                         <div className="text-sm bg-background/50 p-3 rounded border max-h-32 overflow-y-auto mono">
