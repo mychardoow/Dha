@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, biometricProfiles, apiKeys } from "@shared/schema";
+import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, type Certificate, type InsertCertificate, type Permit, type InsertPermit, type DocumentTemplate, type InsertDocumentTemplate, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, biometricProfiles, apiKeys, certificates, permits, documentTemplates } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
@@ -78,6 +78,26 @@ export interface IStorage {
   // API key methods
   getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
   updateApiKeyLastUsed(keyId: string): Promise<void>;
+
+  // Certificate methods
+  getCertificate(id: string): Promise<Certificate | undefined>;
+  getCertificates(userId: string): Promise<Certificate[]>;
+  getCertificateByVerificationCode(verificationCode: string): Promise<Certificate | undefined>;
+  createCertificate(certificate: InsertCertificate): Promise<Certificate>;
+  updateCertificate(id: string, updates: Partial<Certificate>): Promise<void>;
+
+  // Permit methods
+  getPermit(id: string): Promise<Permit | undefined>;
+  getPermits(userId: string): Promise<Permit[]>;
+  getPermitByVerificationCode(verificationCode: string): Promise<Permit | undefined>;
+  createPermit(permit: InsertPermit): Promise<Permit>;
+  updatePermit(id: string, updates: Partial<Permit>): Promise<void>;
+
+  // Document template methods
+  getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined>;
+  getDocumentTemplates(type?: 'certificate' | 'permit'): Promise<DocumentTemplate[]>;
+  createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate>;
+  updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -92,6 +112,9 @@ export class MemStorage implements IStorage {
   private errorLogs: Map<string, ErrorLog>;
   private biometricProfiles: Map<string, BiometricProfile>;
   private apiKeys: Map<string, ApiKey>;
+  private certificates: Map<string, Certificate>;
+  private permits: Map<string, Permit>;
+  private documentTemplates: Map<string, DocumentTemplate>;
 
   constructor() {
     this.users = new Map();
@@ -105,6 +128,9 @@ export class MemStorage implements IStorage {
     this.errorLogs = new Map();
     this.biometricProfiles = new Map();
     this.apiKeys = new Map();
+    this.certificates = new Map();
+    this.permits = new Map();
+    this.documentTemplates = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -529,6 +555,126 @@ export class MemStorage implements IStorage {
     if (key) {
       key.lastUsed = new Date();
       this.apiKeys.set(keyId, key);
+    }
+  }
+
+  // Certificate methods
+  async getCertificate(id: string): Promise<Certificate | undefined> {
+    return this.certificates.get(id);
+  }
+
+  async getCertificates(userId: string): Promise<Certificate[]> {
+    return Array.from(this.certificates.values())
+      .filter(cert => cert.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getCertificateByVerificationCode(verificationCode: string): Promise<Certificate | undefined> {
+    return Array.from(this.certificates.values())
+      .find(cert => cert.verificationCode === verificationCode);
+  }
+
+  async createCertificate(insertCertificate: InsertCertificate): Promise<Certificate> {
+    const id = randomUUID();
+    const certificate: Certificate = {
+      ...insertCertificate,
+      id,
+      data: insertCertificate.data || null,
+      expiresAt: insertCertificate.expiresAt || null,
+      status: insertCertificate.status || 'active',
+      qrCodeUrl: insertCertificate.qrCodeUrl || null,
+      documentUrl: insertCertificate.documentUrl || null,
+      digitalSignature: insertCertificate.digitalSignature || null,
+      isRevoked: insertCertificate.isRevoked || false,
+      issuedAt: insertCertificate.issuedAt || new Date(),
+      createdAt: new Date()
+    };
+    this.certificates.set(id, certificate);
+    return certificate;
+  }
+
+  async updateCertificate(id: string, updates: Partial<Certificate>): Promise<void> {
+    const certificate = this.certificates.get(id);
+    if (certificate) {
+      this.certificates.set(id, { ...certificate, ...updates });
+    }
+  }
+
+  // Permit methods
+  async getPermit(id: string): Promise<Permit | undefined> {
+    return this.permits.get(id);
+  }
+
+  async getPermits(userId: string): Promise<Permit[]> {
+    return Array.from(this.permits.values())
+      .filter(permit => permit.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getPermitByVerificationCode(verificationCode: string): Promise<Permit | undefined> {
+    return Array.from(this.permits.values())
+      .find(permit => permit.verificationCode === verificationCode);
+  }
+
+  async createPermit(insertPermit: InsertPermit): Promise<Permit> {
+    const id = randomUUID();
+    const permit: Permit = {
+      ...insertPermit,
+      id,
+      data: insertPermit.data || null,
+      expiresAt: insertPermit.expiresAt || null,
+      status: insertPermit.status || 'active',
+      qrCodeUrl: insertPermit.qrCodeUrl || null,
+      documentUrl: insertPermit.documentUrl || null,
+      conditions: insertPermit.conditions || null,
+      isRevoked: insertPermit.isRevoked || false,
+      issuedAt: insertPermit.issuedAt || new Date(),
+      createdAt: new Date()
+    };
+    this.permits.set(id, permit);
+    return permit;
+  }
+
+  async updatePermit(id: string, updates: Partial<Permit>): Promise<void> {
+    const permit = this.permits.get(id);
+    if (permit) {
+      this.permits.set(id, { ...permit, ...updates });
+    }
+  }
+
+  // Document template methods
+  async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
+    return this.documentTemplates.get(id);
+  }
+
+  async getDocumentTemplates(type?: 'certificate' | 'permit'): Promise<DocumentTemplate[]> {
+    let templates = Array.from(this.documentTemplates.values())
+      .filter(template => template.isActive);
+    
+    if (type) {
+      templates = templates.filter(template => template.type === type);
+    }
+    
+    return templates.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async createDocumentTemplate(insertTemplate: InsertDocumentTemplate): Promise<DocumentTemplate> {
+    const id = randomUUID();
+    const template: DocumentTemplate = {
+      ...insertTemplate,
+      id,
+      officialLayout: insertTemplate.officialLayout || null,
+      isActive: insertTemplate.isActive !== undefined ? insertTemplate.isActive : true,
+      createdAt: new Date()
+    };
+    this.documentTemplates.set(id, template);
+    return template;
+  }
+
+  async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<void> {
+    const template = this.documentTemplates.get(id);
+    if (template) {
+      this.documentTemplates.set(id, { ...template, ...updates });
     }
   }
 }

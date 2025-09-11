@@ -8,6 +8,7 @@ import { fraudDetectionService } from "./services/fraud-detection";
 import { documentProcessorService, documentUpload } from "./services/document-processor";
 import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
+import { documentGenerator } from "./services/document-generator";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
 import { insertUserSchema, insertSecurityEventSchema } from "@shared/schema";
 import { z } from "zod";
@@ -517,6 +518,273 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error logging client error:", error);
       res.status(500).json({ error: "Failed to log error" });
+    }
+  });
+
+  // Document generation routes
+  
+  // Generate certificate
+  app.post("/api/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { type, templateType, title, description, data, expiresAt } = req.body;
+
+      if (!type || !templateType || !title || !description) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const result = await documentGenerator.generateCertificate(req.user.id, type, {
+        templateType,
+        title,
+        description,
+        data: data || {},
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Certificate generation failed" });
+      }
+
+      // Log certificate generation
+      await storage.createSecurityEvent({
+        userId: req.user.id,
+        eventType: "certificate_generated",
+        severity: "low",
+        details: { type, title, verificationCode: result.verificationCode },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({
+        message: "Certificate generated successfully",
+        certificateId: result.documentId,
+        verificationCode: result.verificationCode,
+        documentUrl: result.documentUrl,
+        qrCodeUrl: result.qrCodeUrl
+      });
+
+    } catch (error) {
+      console.error("Certificate generation error:", error);
+      res.status(500).json({ error: "Certificate generation failed" });
+    }
+  });
+
+  // Get user certificates
+  app.get("/api/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const certificates = await storage.getCertificates(req.user.id);
+      res.json(certificates);
+    } catch (error) {
+      console.error("Get certificates error:", error);
+      res.status(500).json({ error: "Failed to retrieve certificates" });
+    }
+  });
+
+  // Get specific certificate
+  app.get("/api/certificates/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const certificate = await storage.getCertificate(req.params.id);
+      
+      if (!certificate) {
+        return res.status(404).json({ error: "Certificate not found" });
+      }
+
+      // Check ownership or admin role
+      if (certificate.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(certificate);
+    } catch (error) {
+      console.error("Get certificate error:", error);
+      res.status(500).json({ error: "Failed to retrieve certificate" });
+    }
+  });
+
+  // Generate permit
+  app.post("/api/permits", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { type, templateType, title, description, data, conditions, expiresAt } = req.body;
+
+      if (!type || !templateType || !title || !description) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const result = await documentGenerator.generatePermit(req.user.id, type, {
+        templateType,
+        title,
+        description,
+        data: data || {},
+        conditions: conditions || {},
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Permit generation failed" });
+      }
+
+      // Log permit generation
+      await storage.createSecurityEvent({
+        userId: req.user.id,
+        eventType: "permit_generated",
+        severity: "low",
+        details: { type, title, verificationCode: result.verificationCode },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({
+        message: "Permit generated successfully",
+        permitId: result.documentId,
+        verificationCode: result.verificationCode,
+        documentUrl: result.documentUrl,
+        qrCodeUrl: result.qrCodeUrl
+      });
+
+    } catch (error) {
+      console.error("Permit generation error:", error);
+      res.status(500).json({ error: "Permit generation failed" });
+    }
+  });
+
+  // Get user permits
+  app.get("/api/permits", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const permits = await storage.getPermits(req.user.id);
+      res.json(permits);
+    } catch (error) {
+      console.error("Get permits error:", error);
+      res.status(500).json({ error: "Failed to retrieve permits" });
+    }
+  });
+
+  // Get specific permit
+  app.get("/api/permits/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const permit = await storage.getPermit(req.params.id);
+      
+      if (!permit) {
+        return res.status(404).json({ error: "Permit not found" });
+      }
+
+      // Check ownership or admin role
+      if (permit.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(permit);
+    } catch (error) {
+      console.error("Get permit error:", error);
+      res.status(500).json({ error: "Failed to retrieve permit" });
+    }
+  });
+
+  // Document verification endpoint (public)
+  app.get("/api/verify/:verificationCode", async (req: Request, res: Response) => {
+    try {
+      const { verificationCode } = req.params;
+
+      if (!verificationCode || verificationCode.length !== 32) {
+        return res.status(400).json({ error: "Invalid verification code format" });
+      }
+
+      const verificationResult = await documentGenerator.verifyDocument(verificationCode);
+
+      if (!verificationResult.isValid) {
+        return res.status(404).json({ error: verificationResult.error || "Document not found or invalid" });
+      }
+
+      // Log verification attempt
+      await storage.createSecurityEvent({
+        eventType: "document_verified",
+        severity: "low",
+        details: { 
+          verificationCode, 
+          documentType: verificationResult.type,
+          documentId: verificationResult.document?.id
+        },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({
+        isValid: true,
+        type: verificationResult.type,
+        document: {
+          title: verificationResult.document?.title,
+          description: verificationResult.document?.description,
+          issuedAt: verificationResult.document?.issuedAt,
+          expiresAt: verificationResult.document?.expiresAt,
+          status: verificationResult.document?.status
+        }
+      });
+
+    } catch (error) {
+      console.error("Document verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  // Document template management
+  app.get("/api/templates", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { type } = req.query;
+      const templates = await documentGenerator.getDocumentTemplates(type as 'certificate' | 'permit');
+      res.json(templates);
+    } catch (error) {
+      console.error("Get templates error:", error);
+      res.status(500).json({ error: "Failed to retrieve templates" });
+    }
+  });
+
+  // Create document template (admin only)
+  app.post("/api/templates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { name, type, htmlTemplate, cssStyles, officialLayout } = req.body;
+
+      if (!name || !type || !htmlTemplate || !cssStyles) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const template = await documentGenerator.createDocumentTemplate(
+        name,
+        type,
+        htmlTemplate,
+        cssStyles,
+        officialLayout || {}
+      );
+
+      res.json({
+        message: "Template created successfully",
+        template
+      });
+
+    } catch (error) {
+      console.error("Create template error:", error);
+      res.status(500).json({ error: "Template creation failed" });
+    }
+  });
+
+  // Serve generated documents and QR codes
+  app.get("/documents/:filename", (req: Request, res: Response) => {
+    try {
+      const filename = req.params.filename;
+      
+      // Basic security check for filename
+      if (filename.includes("..") || filename.includes("/")) {
+        return res.status(400).json({ error: "Invalid filename" });
+      }
+
+      const filePath = `./documents/${filename}`;
+      res.sendFile(filePath, { root: "." }, (err) => {
+        if (err) {
+          console.error("File serving error:", err);
+          res.status(404).json({ error: "Document not found" });
+        }
+      });
+
+    } catch (error) {
+      console.error("Document serving error:", error);
+      res.status(500).json({ error: "Document serving failed" });
     }
   });
 
