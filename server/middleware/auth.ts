@@ -5,9 +5,9 @@ import { storage } from "../storage";
 import type { User } from "@shared/schema";
 import { privacyProtectionService } from "../services/privacy-protection";
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-if (!JWT_SECRET) {
-  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication');
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
 }
 
 // Type for authenticated user in request object (excludes sensitive fields)

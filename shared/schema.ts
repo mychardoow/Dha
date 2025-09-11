@@ -966,3 +966,88 @@ export type InsertDhaConsentRecord = z.infer<typeof insertDhaConsentRecordSchema
 
 export type DhaBackgroundCheck = typeof dhaBackgroundChecks.$inferSelect;
 export type InsertDhaBackgroundCheck = z.infer<typeof insertDhaBackgroundCheckSchema>;
+
+// ===================== ADDITIONAL INSERT SCHEMAS FOR API VALIDATION =====================
+
+// User update schema for admin endpoints
+export const updateUserSchema = z.object({
+  username: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  role: z.enum(["user", "admin"]).optional(),
+  isActive: z.boolean().optional(),
+});
+
+// Document verification schema for admin endpoints
+export const documentVerificationSchema = z.object({
+  isApproved: z.boolean(),
+  notes: z.string().optional(),
+});
+
+// Production backup schema
+export const productionBackupSchema = z.object({
+  backupType: z.enum(["full", "incremental"]).default("incremental"),
+});
+
+// Document template schema for admin endpoints
+export const documentTemplateSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["certificate", "permit"]),
+  htmlTemplate: z.string().min(1),
+  cssStyles: z.string().min(1),
+  officialLayout: z.record(z.any()).optional().default({}),
+});
+
+// DHA application creation schema
+export const dhaApplicationCreationSchema = z.object({
+  applicantId: z.string().min(1),
+  applicationType: z.string().min(1),
+  applicationData: z.record(z.any()).optional().default({}),
+});
+
+// DHA identity verification schema
+export const dhaIdentityVerificationSchema = z.object({
+  applicantId: z.string().min(1),
+  applicationId: z.string().min(1),
+  idNumber: z.string().min(1),
+  fullName: z.string().min(1),
+  dateOfBirth: z.string().optional(),
+  placeOfBirth: z.string().optional(),
+});
+
+// DHA passport verification schema
+export const dhaPassportVerificationSchema = z.object({
+  applicantId: z.string().min(1),
+  applicationId: z.string().min(1),
+  mrzLine1: z.string().min(1),
+  mrzLine2: z.string().min(1),
+  passportImage: z.string().optional(),
+});
+
+// DHA background check schema
+export const dhaBackgroundCheckCreationSchema = z.object({
+  applicantId: z.string().min(1),
+  applicationId: z.string().min(1),
+  purpose: z.string().min(1),
+  consentGiven: z.boolean(),
+});
+
+// DHA application transition schema
+export const dhaApplicationTransitionSchema = z.object({
+  targetState: z.string().min(1),
+  reason: z.string().optional(),
+  data: z.record(z.any()).optional(),
+});
+
+// Note: insertSecurityEventSchema is already defined above
+
+// ===================== ADDITIONAL TYPES =====================
+
+export type UpdateUser = z.infer<typeof updateUserSchema>;
+export type DocumentVerificationRequest = z.infer<typeof documentVerificationSchema>;
+export type ProductionBackup = z.infer<typeof productionBackupSchema>;
+export type DocumentTemplateRequest = z.infer<typeof documentTemplateSchema>;
+export type DhaApplicationCreation = z.infer<typeof dhaApplicationCreationSchema>;
+export type DhaIdentityVerification = z.infer<typeof dhaIdentityVerificationSchema>;
+export type DhaPassportVerification = z.infer<typeof dhaPassportVerificationSchema>;
+export type DhaBackgroundCheckCreation = z.infer<typeof dhaBackgroundCheckCreationSchema>;
+export type DhaApplicationTransition = z.infer<typeof dhaApplicationTransitionSchema>;

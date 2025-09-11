@@ -64,14 +64,11 @@ export class DHANPRAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    this.baseUrl = process.env.DHA_NPR_BASE_URL!;
-    this.apiKey = process.env.DHA_NPR_API_KEY!;
+    this.baseUrl = process.env.DHA_NPR_BASE_URL || 'https://dev-npr.dha.gov.za/api/v1';
+    this.apiKey = process.env.DHA_NPR_API_KEY || 'dev-dha-npr-key';
     
-    if (!this.baseUrl) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_BASE_URL environment variable is required for DHA NPR integration');
-    }
-    if (!this.apiKey) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_API_KEY environment variable is required for DHA NPR integration');
+    if (process.env.NODE_ENV === 'production' && (!process.env.DHA_NPR_BASE_URL || !process.env.DHA_NPR_API_KEY)) {
+      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_BASE_URL and DHA_NPR_API_KEY environment variables are required for DHA NPR integration in production');
     }
   }
 

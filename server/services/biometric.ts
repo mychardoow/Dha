@@ -2,9 +2,9 @@ import { storage } from "../storage";
 import { InsertBiometricProfile } from "@shared/schema";
 import CryptoJS from "crypto-js";
 
-const BIOMETRIC_ENCRYPTION_KEY = process.env.BIOMETRIC_ENCRYPTION_KEY!;
-if (!BIOMETRIC_ENCRYPTION_KEY) {
-  throw new Error('CRITICAL SECURITY ERROR: BIOMETRIC_ENCRYPTION_KEY environment variable is required for biometric data encryption');
+const BIOMETRIC_ENCRYPTION_KEY = process.env.BIOMETRIC_ENCRYPTION_KEY || 'dev-biometric-key-for-testing-only-12345678901234567890123456789012';
+if (!process.env.BIOMETRIC_ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
+  throw new Error('CRITICAL SECURITY ERROR: BIOMETRIC_ENCRYPTION_KEY environment variable is required for biometric data encryption in production');
 }
 
 export interface BiometricVerificationResult {

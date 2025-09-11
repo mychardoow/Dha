@@ -10,7 +10,21 @@ import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
-import { insertUserSchema, insertSecurityEventSchema, insertDhaApplicationSchema, insertDhaApplicantSchema } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  insertSecurityEventSchema, 
+  insertDhaApplicationSchema, 
+  insertDhaApplicantSchema,
+  updateUserSchema,
+  documentVerificationSchema,
+  productionBackupSchema,
+  documentTemplateSchema,
+  dhaApplicationCreationSchema,
+  dhaIdentityVerificationSchema,
+  dhaPassportVerificationSchema,
+  dhaBackgroundCheckCreationSchema,
+  dhaApplicationTransitionSchema
+} from "@shared/schema";
 import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
 import { dhaMRZParser } from "./services/dha-mrz-parser";
 import { dhaPKDAdapter } from "./services/dha-pkd-adapter";
@@ -32,6 +46,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(securityHeaders);
   app.use(ipFilter);
   app.use(securityLogger);
+
+  // Public health endpoint for testing (Phase 0)
+  app.get("/api/health", (req: Request, res: Response) => {
+    res.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      environment: process.env.NODE_ENV || "development",
+      version: "1.0.0"
+    });
+  });
 
   // Registration
   app.post("/api/auth/register", authLimiter, async (req: Request, res: Response) => {
@@ -971,7 +996,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/production/backup", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { backupType = 'incremental' } = req.body;
+      const validatedData = productionBackupSchema.parse(req.body);
+      const { backupType } = validatedData;
       const result = await productionReadiness.createBackup(backupType);
       
       if (result.success) {
@@ -980,6 +1006,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(500).json({ error: result.error });
       }
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("Backup creation error:", error);
       res.status(500).json({ error: "Backup creation failed" });
     }
@@ -1056,6 +1085,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Generate report error:", error);
       res.status(500).json({ error: "Failed to generate report" });
+    }
+  });
+
+  // Admin routes - User Management
+  app.get("/api/admin/users", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Get admin users error:", error);
+      res.status(500).json({ error: "Failed to get users" });
+    }
+  });
+
+  app.patch("/api/admin/users/:id", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validatedUpdates = updateUserSchema.parse(req.body);
+      
+      // Check if user exists
+      const existingUser = await storage.getUser(id);
+      if (!existingUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Update user
+      await storage.updateUser(id, validatedUpdates);
+      res.json({ message: "User updated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Update user error:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  // Admin routes - Document Management
+  app.get("/api/admin/documents", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const documents = await storage.getAllDocuments();
+      res.json(documents);
+    } catch (error) {
+      console.error("Get admin documents error:", error);
+      res.status(500).json({ error: "Failed to get documents" });
+    }
+  });
+
+  app.post("/api/admin/documents/:id/verify", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const validatedData = documentVerificationSchema.parse(req.body);
+      const { isApproved, notes } = validatedData;
+      
+      // Check if document exists
+      const existingDocument = await storage.getDocument(id);
+      if (!existingDocument) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Update document verification status
+      await storage.updateDocument(id, {
+        isVerified: isApproved,
+        verificationScore: isApproved ? 95 : 0,
+        // Add notes to metadata if available
+      });
+      
+      res.json({ message: "Document verification updated" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Verify document error:", error);
+      res.status(500).json({ error: "Failed to verify document" });
+    }
+  });
+
+  // Admin routes - Document Verifications
+  app.get("/api/admin/document-verifications", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentType, documentId } = req.query;
+      const verifications = await storage.getDocumentVerifications(
+        documentType as string,
+        documentId as string
+      );
+      res.json(verifications);
+    } catch (error) {
+      console.error("Get document verifications error:", error);
+      res.status(500).json({ error: "Failed to get document verifications" });
+    }
+  });
+
+  // Admin routes - Document Templates
+  app.get("/api/admin/document-templates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { type } = req.query;
+      const templates = await storage.getDocumentTemplates(type as any);
+      res.json(templates);
+    } catch (error) {
+      console.error("Get document templates error:", error);
+      res.status(500).json({ error: "Failed to get document templates" });
+    }
+  });
+
+  // Admin routes - Error Logs
+  app.get("/api/admin/error-logs", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { limit, severity, errorType, isResolved } = req.query;
+      const errorLogs = await storage.getErrorLogs({
+        severity: severity as string,
+        errorType: errorType as string, 
+        isResolved: isResolved === 'true' ? true : isResolved === 'false' ? false : undefined,
+        limit: limit ? parseInt(limit as string) : 20
+      });
+      res.json(errorLogs);
+    } catch (error) {
+      console.error("Get error logs error:", error);
+      res.status(500).json({ error: "Failed to get error logs" });
     }
   });
 
@@ -1323,18 +1470,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create document template (admin only)
   app.post("/api/templates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { name, type, htmlTemplate, cssStyles, officialLayout } = req.body;
-
-      if (!name || !type || !htmlTemplate || !cssStyles) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
+      const validatedData = documentTemplateSchema.parse(req.body);
+      const { name, type, htmlTemplate, cssStyles, officialLayout } = validatedData;
 
       const template = await documentGenerator.createDocumentTemplate(
         name,
         type,
         htmlTemplate,
         cssStyles,
-        officialLayout || {}
+        officialLayout
       );
 
       res.json({
@@ -1343,6 +1487,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("Create template error:", error);
       res.status(500).json({ error: "Template creation failed" });
     }
@@ -1871,11 +2018,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create DHA application
   app.post("/api/dha/applications", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { applicantId, applicationType, applicationData } = req.body;
-
-      if (!applicantId || !applicationType) {
-        return res.status(400).json({ error: "Applicant ID and application type are required" });
-      }
+      const validatedData = dhaApplicationCreationSchema.parse(req.body);
+      const { applicantId, applicationType, applicationData } = validatedData;
 
       // Verify applicant belongs to user
       const applicant = await storage.getDhaApplicant(applicantId);
@@ -1887,7 +2031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         applicantId,
         req.user.id,
         applicationType,
-        applicationData || {}
+        applicationData
       );
 
       if (!result.success) {
@@ -1900,6 +2044,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("Create DHA application error:", error);
       res.status(500).json({ error: "Failed to create application" });
     }
@@ -1944,11 +2091,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // NPR Identity Verification
   app.post("/api/dha/verify/identity", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { applicantId, applicationId, idNumber, fullName, dateOfBirth, placeOfBirth } = req.body;
-
-      if (!applicantId || !applicationId || !idNumber || !fullName) {
-        return res.status(400).json({ error: "Required fields missing" });
-      }
+      const validatedData = dhaIdentityVerificationSchema.parse(req.body);
+      const { applicantId, applicationId, idNumber, fullName, dateOfBirth, placeOfBirth } = validatedData;
 
       const result = await dhaNPRAdapter.verifyPerson({
         applicantId,
@@ -1956,8 +2100,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         idNumber,
         fullName,
         surname: fullName.split(' ').pop() || '',
-        dateOfBirth: new Date(dateOfBirth),
-        placeOfBirth,
+        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : new Date(),
+        placeOfBirth: placeOfBirth || '',
         verificationMethod: 'combined'
       });
 
@@ -1968,6 +2112,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("NPR identity verification error:", error);
       res.status(500).json({ error: "Identity verification failed" });
     }
@@ -1976,11 +2123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Passport MRZ and PKD Verification  
   app.post("/api/dha/verify/passport", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { applicantId, applicationId, mrzLine1, mrzLine2, passportImage } = req.body;
-
-      if (!applicantId || !applicationId || !mrzLine1 || !mrzLine2) {
-        return res.status(400).json({ error: "MRZ data required" });
-      }
+      const validatedData = dhaPassportVerificationSchema.parse(req.body);
+      const { applicantId, applicationId, mrzLine1, mrzLine2, passportImage } = validatedData;
 
       // Parse MRZ data
       const mrzResult = await dhaMRZParser.parseMRZ({
@@ -2014,6 +2158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("Passport verification error:", error);
       res.status(500).json({ error: "Passport verification failed" });
     }
@@ -2022,11 +2169,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // SAPS Background Check
   app.post("/api/dha/background-check", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { applicantId, applicationId, purpose, consentGiven } = req.body;
-
-      if (!applicantId || !applicationId || !purpose) {
-        return res.status(400).json({ error: "Required fields missing" });
-      }
+      const validatedData = dhaBackgroundCheckCreationSchema.parse(req.body);
+      const { applicantId, applicationId, purpose, consentGiven } = validatedData;
 
       if (!consentGiven) {
         return res.status(400).json({ error: "Consent required for background check" });
@@ -2051,6 +2195,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("Background check error:", error);
       res.status(500).json({ error: "Background check failed" });
     }
@@ -2172,7 +2319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dha/applications/:id/transition", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { targetState, reason, data } = req.body;
+      const validatedData = dhaApplicationTransitionSchema.parse(req.body);
+      const { targetState, reason, data } = validatedData;
 
       const application = await storage.getDhaApplication(id);
       if (!application) {
@@ -2193,7 +2341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         triggerReason: reason || 'Manual transition',
         actorId: req.user.id,
         actorName: req.user.username,
-        documentData: data
+        documentData: data || {}
       });
 
       if (!result.success) {
@@ -2208,6 +2356,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
       console.error("DHA workflow transition error:", error);
       res.status(500).json({ error: "Workflow transition failed" });
     }
