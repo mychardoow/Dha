@@ -2,25 +2,18 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { storage } from "../storage";
+import type { User } from "@shared/schema";
 
 const JWT_SECRET = process.env.JWT_SECRET || "military-grade-jwt-secret-change-in-production";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+// Type for authenticated user in request object (excludes sensitive fields)
+export type AuthenticatedUser = {
+  id: string;
+  username: string;
+  email: string;
+  role: string;
+};
 
-export interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    username: string;
-    email: string;
-    role: string;
-  };
-}
 
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, 12);

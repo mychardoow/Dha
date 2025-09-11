@@ -77,7 +77,7 @@ export const securityHeaders = helmet({
 // Fraud detection middleware
 export async function fraudDetection(req: Request, res: Response, next: NextFunction) {
   try {
-    const suspiciousIndicators = [];
+    const suspiciousIndicators: string[] = [];
     const riskScore = calculateRiskScore(req, suspiciousIndicators);
     
     // Log the request for analysis
@@ -99,18 +99,20 @@ export async function fraudDetection(req: Request, res: Response, next: NextFunc
     
     // Create fraud alert if risk is high
     if (riskScore > 70) {
-      await storage.createFraudAlert({
-        userId: req.user?.id,
-        alertType: "high_risk_request",
-        riskScore,
-        details: {
-          path: req.path,
-          method: req.method,
-          indicators: suspiciousIndicators,
-          ipAddress: req.ip,
-          userAgent: req.get("User-Agent")
-        }
-      });
+      if (req.user?.id) {
+        await storage.createFraudAlert({
+          userId: req.user.id,
+          alertType: "high_risk_request",
+          riskScore,
+          details: {
+            path: req.path,
+            method: req.method,
+            indicators: suspiciousIndicators,
+            ipAddress: req.ip,
+            userAgent: req.get("User-Agent")
+          }
+        });
+      }
       
       // Optionally block high-risk requests
       if (riskScore > 90) {
@@ -174,7 +176,7 @@ export function ipFilter(req: Request, res: Response, next: NextFunction) {
   const blacklistedIPs = (process.env.BLACKLISTED_IPS || "").split(",").filter(Boolean);
   const whitelistedIPs = (process.env.WHITELISTED_IPS || "").split(",").filter(Boolean);
   
-  if (blacklistedIPs.includes(ip)) {
+  if (ip && blacklistedIPs.includes(ip)) {
     storage.createSecurityEvent({
       eventType: "blacklisted_ip_access",
       severity: "high",

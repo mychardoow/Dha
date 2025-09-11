@@ -113,6 +113,32 @@ export const errorLogs = pgTable("error_logs", {
   errorCount: integer("error_count").notNull().default(1), // For tracking repeated errors
 });
 
+export const biometricProfiles = pgTable("biometric_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // 'fingerprint', 'faceprint', 'voiceprint', etc.
+  templateData: text("template_data").notNull(),
+  quality: integer("quality").notNull(), // 0-100 quality score
+  isVerified: boolean("is_verified").notNull().default(false),
+  enrollmentDate: timestamp("enrollment_date").notNull().default(sql`now()`),
+  lastUsed: timestamp("last_used"),
+  isActive: boolean("is_active").notNull().default(true),
+  metadata: jsonb("metadata"), // Additional biometric metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  keyHash: text("key_hash").notNull().unique(),
+  name: text("name").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  permissions: jsonb("permissions"), // JSON array of permissions
+  isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  lastUsed: timestamp("last_used"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -164,6 +190,16 @@ export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
   resolvedAt: true,
 });
 
+export const insertBiometricProfileSchema = createInsertSchema(biometricProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -191,3 +227,9 @@ export type InsertQuantumKey = z.infer<typeof insertQuantumKeySchema>;
 
 export type ErrorLog = typeof errorLogs.$inferSelect;
 export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
+
+export type BiometricProfile = typeof biometricProfiles.$inferSelect;
+export type InsertBiometricProfile = z.infer<typeof insertBiometricProfileSchema>;
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;

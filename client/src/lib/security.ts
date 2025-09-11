@@ -164,14 +164,14 @@ export const security = {
         screen.colorDepth,
         new Date().getTimezoneOffset(),
         navigator.hardwareConcurrency || 'unknown',
-        navigator.deviceMemory || 'unknown'
+        (navigator as any).deviceMemory || 'unknown'
       ];
 
       // Add WebGL fingerprint if available
       try {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (gl) {
+        if (gl && gl instanceof WebGLRenderingContext) {
           const renderer = gl.getParameter(gl.RENDERER);
           const vendor = gl.getParameter(gl.VENDOR);
           components.push(renderer, vendor);

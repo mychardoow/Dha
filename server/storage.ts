@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs } from "@shared/schema";
+import { type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, biometricProfiles, apiKeys } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
@@ -69,6 +69,15 @@ export interface IStorage {
     low: number;
     byType: Record<string, number>;
   }>;
+
+  // Biometric profile methods
+  getBiometricProfile(userId: string, type: string): Promise<BiometricProfile | undefined>;
+  getBiometricProfiles(userId: string): Promise<BiometricProfile[]>;
+  createBiometricProfile(profile: InsertBiometricProfile): Promise<BiometricProfile>;
+
+  // API key methods
+  getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+  updateApiKeyLastUsed(keyId: string): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -81,6 +90,8 @@ export class MemStorage implements IStorage {
   private systemMetrics: Map<string, SystemMetric>;
   private quantumKeys: Map<string, QuantumKey>;
   private errorLogs: Map<string, ErrorLog>;
+  private biometricProfiles: Map<string, BiometricProfile>;
+  private apiKeys: Map<string, ApiKey>;
 
   constructor() {
     this.users = new Map();
@@ -92,6 +103,8 @@ export class MemStorage implements IStorage {
     this.systemMetrics = new Map();
     this.quantumKeys = new Map();
     this.errorLogs = new Map();
+    this.biometricProfiles = new Map();
+    this.apiKeys = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -475,6 +488,48 @@ export class MemStorage implements IStorage {
     });
     
     return stats;
+  }
+
+  // Biometric profile methods
+  async getBiometricProfile(userId: string, type: string): Promise<BiometricProfile | undefined> {
+    return Array.from(this.biometricProfiles.values())
+      .find(profile => profile.userId === userId && profile.type === type && profile.isActive);
+  }
+
+  async getBiometricProfiles(userId: string): Promise<BiometricProfile[]> {
+    return Array.from(this.biometricProfiles.values())
+      .filter(profile => profile.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createBiometricProfile(insertProfile: InsertBiometricProfile): Promise<BiometricProfile> {
+    const id = randomUUID();
+    const profile: BiometricProfile = {
+      ...insertProfile,
+      id,
+      isVerified: insertProfile.isVerified || false,
+      lastUsed: insertProfile.lastUsed || null,
+      isActive: insertProfile.isActive !== undefined ? insertProfile.isActive : true,
+      metadata: insertProfile.metadata || null,
+      enrollmentDate: insertProfile.enrollmentDate || new Date(),
+      createdAt: new Date()
+    };
+    this.biometricProfiles.set(id, profile);
+    return profile;
+  }
+
+  // API key methods
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
+    return Array.from(this.apiKeys.values())
+      .find(key => key.keyHash === keyHash && key.isActive);
+  }
+
+  async updateApiKeyLastUsed(keyId: string): Promise<void> {
+    const key = this.apiKeys.get(keyId);
+    if (key) {
+      key.lastUsed = new Date();
+      this.apiKeys.set(keyId, key);
+    }
   }
 }
 
