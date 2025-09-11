@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { authenticate, hashPassword, verifyPassword, generateToken, requireRole, requireApiKey } from "./middleware/auth";
 import { authLimiter, apiLimiter, uploadLimiter, securityHeaders, fraudDetection, ipFilter, securityLogger } from "./middleware/security";
+import { auditTrailMiddleware } from "./middleware/audit-trail-middleware";
 import { biometricService } from "./services/biometric";
 import { fraudDetectionService } from "./services/fraud-detection";
 import { documentProcessorService, documentUpload } from "./services/document-processor";
@@ -11,6 +12,10 @@ import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
 import { notificationService } from "./services/notification-service";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
+import { auditTrailService } from "./services/audit-trail-service";
+import { securityCorrelationEngine } from "./services/security-correlation-engine";
+import { enhancedMonitoringService } from "./services/enhanced-monitoring-service";
+import { intelligentAlertingService } from "./services/intelligent-alerting-service";
 import { 
   insertUserSchema, 
   insertSecurityEventSchema, 
@@ -28,7 +33,33 @@ import {
   insertNotificationEventSchema,
   updateNotificationPreferencesSchema,
   systemNotificationSchema,
-  criticalAlertSchema
+  criticalAlertSchema,
+  // Security monitoring validation schemas
+  securityMetricsQuerySchema,
+  errorLogCreationSchema,
+  securityEventsQuerySchema,
+  errorLogsQuerySchema,
+  alertFilterSchema,
+  alertActionSchema,
+  alertRuleCreationSchema,
+  alertRuleUpdateSchema,
+  incidentFilterSchema,
+  incidentActionSchema,
+  auditLogQuerySchema,
+  complianceReportQuerySchema,
+  securityRulesQuerySchema,
+  securityRuleToggleSchema,
+  dashboardQuerySchema,
+  fraudStatisticsQuerySchema,
+  userBehaviorQuerySchema,
+  alertStatisticsQuerySchema,
+  complianceEventsQuerySchema,
+  systemHealthQuerySchema,
+  documentTemplateQuerySchema,
+  documentVerificationQuerySchema,
+  complianceReportParamsSchema,
+  sanitizedStringSchema,
+  sanitizedOptionalStringSchema
 } from "@shared/schema";
 import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
 import { dhaMRZParser } from "./services/dha-mrz-parser";
@@ -51,6 +82,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(securityHeaders);
   app.use(ipFilter);
   app.use(securityLogger);
+  
+  // Apply audit trail middleware for comprehensive action logging
+  app.use(auditTrailMiddleware.auditRequestMiddleware);
 
   // Public health endpoint for testing (Phase 0)
   app.get("/api/health", (req: Request, res: Response) => {
@@ -1051,13 +1085,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/monitoring/metrics", authenticate, async (req: Request, res: Response) => {
     try {
-      const { type, hours } = req.query;
+      const validatedQuery = securityMetricsQuerySchema.parse({
+        type: req.query.type,
+        hours: req.query.hours ? parseInt(req.query.hours as string) : undefined
+      });
+      
       const metrics = await monitoringService.getMetricsHistory(
-        type as string,
-        hours ? parseInt(hours as string) : 24
+        validatedQuery.type || '',
+        validatedQuery.hours || 24
       );
       res.json(metrics);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
       console.error("Get metrics error:", error);
       res.status(500).json({ error: "Failed to get metrics" });
     }
@@ -1170,13 +1211,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes - Document Verifications
   app.get("/api/admin/document-verifications", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { documentType, documentId } = req.query;
+      const validatedQuery = documentVerificationQuerySchema.parse({
+        documentType: req.query.documentType,
+        documentId: req.query.documentId
+      });
+      
       const verifications = await storage.getDocumentVerifications(
-        documentType as string,
-        documentId as string
+        validatedQuery.documentType || undefined,
+        validatedQuery.documentId || undefined
       );
       res.json(verifications);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
       console.error("Get document verifications error:", error);
       res.status(500).json({ error: "Failed to get document verifications" });
     }
@@ -1185,10 +1233,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes - Document Templates
   app.get("/api/admin/document-templates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { type } = req.query;
-      const templates = await storage.getDocumentTemplates(type as any);
+      const validatedQuery = documentTemplateQuerySchema.parse({
+        type: req.query.type
+      });
+      
+      const templates = await storage.getDocumentTemplates(validatedQuery.type || undefined);
       res.json(templates);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
       console.error("Get document templates error:", error);
       res.status(500).json({ error: "Failed to get document templates" });
     }
@@ -1197,15 +1251,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin routes - Error Logs
   app.get("/api/admin/error-logs", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { limit, severity, errorType, isResolved } = req.query;
+      const validatedQuery = errorLogsQuerySchema.parse({
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        severity: req.query.severity,
+        errorType: req.query.errorType,
+        isResolved: req.query.isResolved === 'true' ? true : req.query.isResolved === 'false' ? false : undefined,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate
+      });
+      
       const errorLogs = await storage.getErrorLogs({
-        severity: severity as string,
-        errorType: errorType as string, 
-        isResolved: isResolved === 'true' ? true : isResolved === 'false' ? false : undefined,
-        limit: limit ? parseInt(limit as string) : 20
+        severity: validatedQuery.severity,
+        errorType: validatedQuery.errorType, 
+        isResolved: validatedQuery.isResolved,
+        limit: validatedQuery.limit || 20
       });
       res.json(errorLogs);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
       console.error("Get error logs error:", error);
       res.status(500).json({ error: "Failed to get error logs" });
     }
@@ -1214,16 +1279,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Security events routes
   app.get("/api/security/events", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
-      const { limit } = req.query;
-      const userId = req.user.role === "admin" ? undefined : req.user.id;
+      const validatedQuery = securityEventsQuerySchema.parse({
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        severity: req.query.severity,
+        eventType: req.query.eventType,
+        userId: req.query.userId,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate
+      });
+      
+      // Non-admin users can only see their own events
+      const userId = req.user.role === "admin" ? validatedQuery.userId : req.user.id;
 
       const events = await storage.getSecurityEvents(
         userId,
-        limit ? parseInt(limit as string) : 50
+        validatedQuery.limit || 50
       );
 
       res.json(events);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
       console.error("Get security events error:", error);
       res.status(500).json({ error: "Failed to get security events" });
     }
@@ -1232,26 +1309,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Error logging endpoint
   app.post("/api/monitoring/error", authenticate, async (req: Request, res: Response) => {
     try {
-      const { message, stack, componentStack, timestamp, userAgent, url } = req.body;
+      const validatedData = errorLogCreationSchema.parse(req.body);
 
       await storage.createSecurityEvent({
         userId: req.user.id,
         eventType: "client_error",
         severity: "medium",
         details: {
-          message,
-          stack,
-          componentStack,
-          timestamp,
-          url,
-          browser: userAgent
+          message: validatedData.message,
+          stack: validatedData.stack,
+          componentStack: validatedData.componentStack,
+          timestamp: validatedData.timestamp,
+          url: validatedData.url,
+          browser: validatedData.userAgent
         },
         ipAddress: req.ip,
-        userAgent
+        userAgent: validatedData.userAgent || req.get("User-Agent") || ""
       });
 
       res.json({ message: "Error logged successfully" });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid error data", details: error.errors });
+      }
       console.error("Error logging client error:", error);
       res.status(500).json({ error: "Failed to log error" });
     }
@@ -2724,6 +2804,665 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to send message" });
     }
   });
+
+  // =================== COMPREHENSIVE SECURITY MONITORING API ROUTES ===================
+
+  // Security Dashboard - Get comprehensive security dashboard data
+  app.get("/api/security/dashboard", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const dashboard = await enhancedMonitoringService.getSecurityDashboard();
+      res.json(dashboard);
+    } catch (error) {
+      console.error("Security dashboard error:", error);
+      res.status(500).json({ error: "Failed to get security dashboard data" });
+    }
+  });
+
+  // Security Metrics - Get current security metrics
+  app.get("/api/security/metrics", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const metrics = await enhancedMonitoringService.getSecurityMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Security metrics error:", error);
+      res.status(500).json({ error: "Failed to get security metrics" });
+    }
+  });
+
+  // Security Trends - Get security trends for specified timeframe
+  app.get("/api/security/trends/:timeframe", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { timeframe } = req.params;
+      if (!['1h', '24h', '7d', '30d'].includes(timeframe)) {
+        return res.status(400).json({ error: "Invalid timeframe. Use: 1h, 24h, 7d, or 30d" });
+      }
+      
+      const trends = await enhancedMonitoringService.getSecurityTrends(timeframe as any);
+      res.json(trends);
+    } catch (error) {
+      console.error("Security trends error:", error);
+      res.status(500).json({ error: "Failed to get security trends" });
+    }
+  });
+
+  // Security Alerts - Get security alerts with filtering
+  app.get("/api/security/alerts", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = alertFilterSchema.parse({
+        severity: req.query.severity,
+        status: req.query.status,
+        userId: req.query.userId,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
+      });
+      
+      const alertsData = await intelligentAlertingService.getAlerts(validatedQuery);
+      res.json(alertsData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Security alerts error:", error);
+      res.status(500).json({ error: "Failed to get security alerts" });
+    }
+  });
+
+  // Acknowledge Alert
+  app.post("/api/security/alerts/:alertId/acknowledge", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { alertId } = req.params;
+      const validatedData = alertActionSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
+        return res.status(400).json({ error: "Invalid alert ID format" });
+      }
+      
+      await intelligentAlertingService.acknowledgeAlert(alertId, userId, validatedData.notes);
+      res.json({ message: "Alert acknowledged successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Acknowledge alert error:", error);
+      res.status(500).json({ error: "Failed to acknowledge alert" });
+    }
+  });
+
+  // Resolve Alert
+  app.post("/api/security/alerts/:alertId/resolve", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { alertId } = req.params;
+      const validatedData = alertActionSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
+        return res.status(400).json({ error: "Invalid alert ID format" });
+      }
+      
+      if (!validatedData.resolution) {
+        return res.status(400).json({ error: "Resolution description is required" });
+      }
+      
+      await intelligentAlertingService.resolveAlert(alertId, userId, validatedData.resolution);
+      res.json({ message: "Alert resolved successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Resolve alert error:", error);
+      res.status(500).json({ error: "Failed to resolve alert" });
+    }
+  });
+
+  // Escalate Alert
+  app.post("/api/security/alerts/:alertId/escalate", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { alertId } = req.params;
+      const validatedData = alertActionSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
+        return res.status(400).json({ error: "Invalid alert ID format" });
+      }
+      
+      if (!validatedData.reason) {
+        return res.status(400).json({ error: "Escalation reason is required" });
+      }
+      
+      await intelligentAlertingService.escalateAlert(alertId, userId, validatedData.reason);
+      res.json({ message: "Alert escalated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Escalate alert error:", error);
+      res.status(500).json({ error: "Failed to escalate alert" });
+    }
+  });
+
+  // Audit Trail - Get audit logs with comprehensive filtering
+  app.get("/api/security/audit", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = auditLogQuerySchema.parse({
+        userId: req.query.userId,
+        action: req.query.action,
+        entityType: req.query.entityType,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+        outcome: req.query.outcome
+      });
+      
+      const filters = {
+        userId: validatedQuery.userId,
+        action: validatedQuery.action,
+        entityType: validatedQuery.entityType,
+        dateRange: validatedQuery.startDate && validatedQuery.endDate ? {
+          start: new Date(validatedQuery.startDate),
+          end: new Date(validatedQuery.endDate)
+        } : undefined,
+        limit: validatedQuery.limit || 100
+      };
+      
+      const auditLogs = await auditTrailService.getAuditLogs(filters);
+      res.json(auditLogs);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Audit trail error:", error);
+      res.status(500).json({ error: "Failed to get audit logs" });
+    }
+  });
+
+  // Compliance Reports - Get POPIA compliance report
+  app.get("/api/security/compliance/:regulation", authenticate, requireRole(['admin', 'security_officer', 'compliance_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedParams = complianceReportParamsSchema.parse({
+        regulation: req.params.regulation?.toUpperCase(),
+        startDate: req.query.startDate,
+        endDate: req.query.endDate
+      });
+      
+      const period = {
+        start: new Date(validatedParams.startDate),
+        end: new Date(validatedParams.endDate)
+      };
+      
+      const report = await auditTrailService.generateComplianceReport(validatedParams.regulation as any, period);
+      res.json(report);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request parameters", details: error.errors });
+      }
+      console.error("Compliance report error:", error);
+      res.status(500).json({ error: "Failed to generate compliance report" });
+    }
+  });
+
+  // Security Incidents - Get security incidents with filtering
+  app.get("/api/security/incidents", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = incidentFilterSchema.parse({
+        status: req.query.status,
+        severity: req.query.severity,
+        assignedTo: req.query.assignedTo,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate
+      });
+      
+      const incidents = await storage.getSecurityIncidents({
+        status: validatedQuery.status,
+        severity: validatedQuery.severity,
+        assignedTo: validatedQuery.assignedTo,
+        limit: validatedQuery.limit || 50
+      });
+      res.json(incidents);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Security incidents error:", error);
+      res.status(500).json({ error: "Failed to get security incidents" });
+    }
+  });
+
+  // Get Security Incident Details
+  app.get("/api/security/incidents/:incidentId", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { incidentId } = req.params;
+      const incident = await storage.getSecurityIncident(incidentId);
+      
+      if (!incident) {
+        return res.status(404).json({ error: "Security incident not found" });
+      }
+      
+      res.json(incident);
+    } catch (error) {
+      console.error("Get security incident error:", error);
+      res.status(500).json({ error: "Failed to get security incident" });
+    }
+  });
+
+  // Assign Security Incident
+  app.post("/api/security/incidents/:incidentId/assign", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { incidentId } = req.params;
+      const validatedData = incidentActionSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!incidentId || !/^[a-zA-Z0-9_-]+$/.test(incidentId)) {
+        return res.status(400).json({ error: "Invalid incident ID format" });
+      }
+      
+      if (!validatedData.assignedTo) {
+        return res.status(400).json({ error: "Assigned user ID is required" });
+      }
+      
+      await storage.assignIncidentTo(incidentId, validatedData.assignedTo);
+      
+      // Log the assignment
+      await auditTrailService.logAdminAction(
+        'security_incident_assigned',
+        userId,
+        'security_incident',
+        incidentId,
+        { actionDetails: { assignedTo: validatedData.assignedTo } }
+      );
+      
+      res.json({ message: "Security incident assigned successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Assign security incident error:", error);
+      res.status(500).json({ error: "Failed to assign security incident" });
+    }
+  });
+
+  // Resolve Security Incident
+  app.post("/api/security/incidents/:incidentId/resolve", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { incidentId } = req.params;
+      const validatedData = incidentActionSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!incidentId || !/^[a-zA-Z0-9_-]+$/.test(incidentId)) {
+        return res.status(400).json({ error: "Invalid incident ID format" });
+      }
+      
+      if (!validatedData.resolution) {
+        return res.status(400).json({ error: "Resolution description is required" });
+      }
+      
+      await storage.resolveIncident(incidentId, validatedData.resolution, userId);
+      res.json({ message: "Security incident resolved successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: error.errors });
+      }
+      console.error("Resolve security incident error:", error);
+      res.status(500).json({ error: "Failed to resolve security incident" });
+    }
+  });
+
+  // Fraud Detection - Get fraud statistics and trends
+  app.get("/api/security/fraud/statistics", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = fraudStatisticsQuerySchema.parse({
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        userId: req.query.userId,
+        riskThreshold: req.query.riskThreshold ? parseInt(req.query.riskThreshold as string) : undefined
+      });
+      
+      const timeRange = {
+        start: validatedQuery.startDate ? new Date(validatedQuery.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        end: validatedQuery.endDate ? new Date(validatedQuery.endDate) : new Date()
+      };
+      
+      const statistics = await fraudDetectionService.getFraudStatistics(timeRange);
+      res.json(statistics);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Fraud statistics error:", error);
+      res.status(500).json({ error: "Failed to get fraud statistics" });
+    }
+  });
+
+  // Get User Behavior Analysis
+  app.get("/api/security/users/:userId/behavior", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.params;
+      const validatedQuery = userBehaviorQuerySchema.parse({
+        userId,
+        includeProfile: req.query.includeProfile === 'true',
+        includeAnalysis: req.query.includeAnalysis === 'true',
+        includeDevicePatterns: req.query.includeDevicePatterns === 'true',
+        timeframe: req.query.timeframe
+      });
+      
+      if (!validatedQuery.userId || !/^[a-zA-Z0-9_-]+$/.test(validatedQuery.userId)) {
+        return res.status(400).json({ error: "Invalid user ID format" });
+      }
+      
+      const results: any = {};
+      
+      if (validatedQuery.includeProfile !== false) {
+        results.profile = await storage.getUserBehaviorProfile(validatedQuery.userId);
+      }
+      
+      if (validatedQuery.includeAnalysis !== false) {
+        results.analysis = await storage.analyzeUserBehavior(validatedQuery.userId);
+      }
+      
+      if (validatedQuery.includeDevicePatterns !== false) {
+        results.devicePatterns = await fraudDetectionService.analyzeDevicePatterns(validatedQuery.userId);
+      }
+      
+      res.json(results);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("User behavior analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze user behavior" });
+    }
+  });
+
+  // Security Rules - Get security rules and patterns
+  app.get("/api/security/rules", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { category, isActive, ruleType } = req.query;
+      
+      const filters = {
+        category: category as string,
+        isActive: isActive !== undefined ? isActive === 'true' : undefined,
+        ruleType: ruleType as string
+      };
+      
+      const rules = await storage.getSecurityRules(filters);
+      res.json(rules);
+    } catch (error) {
+      console.error("Security rules error:", error);
+      res.status(500).json({ error: "Failed to get security rules" });
+    }
+  });
+
+  // Toggle Security Rule
+  app.post("/api/security/rules/:ruleId/toggle", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ruleId } = req.params;
+      const { enabled } = req.body;
+      const userId = (req as any).user.id;
+      
+      if (enabled) {
+        await storage.activateSecurityRule(ruleId);
+      } else {
+        await storage.deactivateSecurityRule(ruleId);
+      }
+      
+      // Log the rule toggle
+      await auditTrailService.logAdminAction(
+        'security_rule_toggled',
+        userId,
+        'security_rule',
+        ruleId,
+        { actionDetails: { enabled, timestamp: new Date().toISOString() } }
+      );
+      
+      res.json({ message: `Security rule ${enabled ? 'activated' : 'deactivated'} successfully` });
+    } catch (error) {
+      console.error("Toggle security rule error:", error);
+      res.status(500).json({ error: "Failed to toggle security rule" });
+    }
+  });
+
+  // Alert Statistics - Get alert statistics and trends
+  app.get("/api/security/alerts/statistics", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = alertStatisticsQuerySchema.parse({
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        severity: req.query.severity,
+        status: req.query.status
+      });
+      
+      const timeRange = validatedQuery.startDate && validatedQuery.endDate ? {
+        start: new Date(validatedQuery.startDate),
+        end: new Date(validatedQuery.endDate)
+      } : undefined;
+      
+      const statistics = await intelligentAlertingService.getAlertStatistics(timeRange);
+      res.json(statistics);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Alert statistics error:", error);
+      res.status(500).json({ error: "Failed to get alert statistics" });
+    }
+  });
+
+  // ===================== ALERT RULE MANAGEMENT ENDPOINTS =====================
+
+  // Create Alert Rule
+  app.post("/api/security/alert-rules", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedData = alertRuleCreationSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      // Create a new alert rule in the intelligent alerting service
+      const ruleId = `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const alertRule = {
+        id: ruleId,
+        ...validatedData,
+        createdBy: userId,
+        createdAt: new Date()
+      };
+      
+      // Add rule to intelligent alerting service
+      await intelligentAlertingService.addAlertRule(alertRule);
+      
+      // Log the rule creation
+      await auditTrailService.logAdminAction(
+        'alert_rule_created',
+        userId,
+        'alert_rule',
+        ruleId,
+        { actionDetails: { name: validatedData.name, severity: validatedData.severity } }
+      );
+      
+      res.status(201).json({
+        message: "Alert rule created successfully",
+        ruleId,
+        rule: alertRule
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid alert rule data", details: error.errors });
+      }
+      console.error("Create alert rule error:", error);
+      res.status(500).json({ error: "Failed to create alert rule" });
+    }
+  });
+
+  // Get Alert Rules
+  app.get("/api/security/alert-rules", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = securityRulesQuerySchema.parse({
+        category: req.query.category,
+        isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined,
+        ruleType: req.query.ruleType,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
+      });
+      
+      const rules = await intelligentAlertingService.getAlertRules(validatedQuery);
+      res.json(rules);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Get alert rules error:", error);
+      res.status(500).json({ error: "Failed to get alert rules" });
+    }
+  });
+
+  // Update Alert Rule
+  app.put("/api/security/alert-rules/:ruleId", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ruleId } = req.params;
+      const validatedData = alertRuleUpdateSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
+        return res.status(400).json({ error: "Invalid rule ID format" });
+      }
+      
+      await intelligentAlertingService.updateAlertRule(ruleId, validatedData);
+      
+      // Log the rule update
+      await auditTrailService.logAdminAction(
+        'alert_rule_updated',
+        userId,
+        'alert_rule',
+        ruleId,
+        { actionDetails: validatedData }
+      );
+      
+      res.json({ message: "Alert rule updated successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid alert rule data", details: error.errors });
+      }
+      console.error("Update alert rule error:", error);
+      res.status(500).json({ error: "Failed to update alert rule" });
+    }
+  });
+
+  // Delete Alert Rule
+  app.delete("/api/security/alert-rules/:ruleId", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ruleId } = req.params;
+      const userId = (req as any).user.id;
+      
+      if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
+        return res.status(400).json({ error: "Invalid rule ID format" });
+      }
+      
+      await intelligentAlertingService.deleteAlertRule(ruleId);
+      
+      // Log the rule deletion
+      await auditTrailService.logAdminAction(
+        'alert_rule_deleted',
+        userId,
+        'alert_rule',
+        ruleId,
+        { actionDetails: { deletedAt: new Date().toISOString() } }
+      );
+      
+      res.json({ message: "Alert rule deleted successfully" });
+    } catch (error) {
+      console.error("Delete alert rule error:", error);
+      res.status(500).json({ error: "Failed to delete alert rule" });
+    }
+  });
+
+  // Toggle Alert Rule Status
+  app.post("/api/security/alert-rules/:ruleId/toggle", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { ruleId } = req.params;
+      const validatedData = securityRuleToggleSchema.parse(req.body);
+      const userId = (req as any).user.id;
+      
+      if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
+        return res.status(400).json({ error: "Invalid rule ID format" });
+      }
+      
+      await intelligentAlertingService.toggleAlertRule(ruleId, validatedData.enabled);
+      
+      // Log the rule toggle
+      await auditTrailService.logAdminAction(
+        'alert_rule_toggled',
+        userId,
+        'alert_rule',
+        ruleId,
+        { actionDetails: { enabled: validatedData.enabled, timestamp: new Date().toISOString() } }
+      );
+      
+      res.json({ message: `Alert rule ${validatedData.enabled ? 'enabled' : 'disabled'} successfully` });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid toggle data", details: error.errors });
+      }
+      console.error("Toggle alert rule error:", error);
+      res.status(500).json({ error: "Failed to toggle alert rule" });
+    }
+  });
+
+  // Compliance Events - Get compliance events with filtering
+  app.get("/api/security/compliance/events", authenticate, requireRole(['admin', 'security_officer', 'compliance_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const validatedQuery = complianceEventsQuerySchema.parse({
+        regulation: req.query.regulation,
+        eventType: req.query.eventType,
+        complianceStatus: req.query.complianceStatus,
+        startDate: req.query.startDate,
+        endDate: req.query.endDate,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
+      });
+      
+      const filters = {
+        regulation: validatedQuery.regulation,
+        eventType: validatedQuery.eventType,
+        complianceStatus: validatedQuery.complianceStatus,
+        startDate: validatedQuery.startDate ? new Date(validatedQuery.startDate) : undefined,
+        endDate: validatedQuery.endDate ? new Date(validatedQuery.endDate) : undefined,
+        limit: validatedQuery.limit || 100
+      };
+      
+      const events = await storage.getComplianceEvents(filters);
+      res.json(events);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid query parameters", details: error.errors });
+      }
+      console.error("Compliance events error:", error);
+      res.status(500).json({ error: "Failed to get compliance events" });
+    }
+  });
+
+  // System Health - Get comprehensive system health status
+  app.get("/api/security/system/health", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const dashboard = await enhancedMonitoringService.getSecurityDashboard();
+      
+      const healthStatus = {
+        status: dashboard.systemStatus,
+        metrics: dashboard.metrics.system,
+        uptime: process.uptime(),
+        memory: process.memoryUsage(),
+        lastUpdated: dashboard.lastUpdated,
+        integrations: dashboard.metrics.system.integrationStatus,
+        performanceScore: dashboard.metrics.system.performanceScore
+      };
+      
+      res.json(healthStatus);
+    } catch (error) {
+      console.error("System health error:", error);
+      res.status(500).json({ error: "Failed to get system health status" });
+    }
+  });
+
+  // =================== END SECURITY MONITORING API ROUTES ===================
 
   const httpServer = createServer(app);
 
