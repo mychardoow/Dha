@@ -8,9 +8,13 @@ import {
   type Passport, type InsertPassport, type DeathCertificate, type InsertDeathCertificate,
   type WorkPermit, type InsertWorkPermit, type PermanentVisa, type InsertPermanentVisa,
   type IdCard, type InsertIdCard, type DocumentVerification, type InsertDocumentVerification,
+  type DhaApplicant, type InsertDhaApplicant, type DhaApplication, type InsertDhaApplication,
+  type DhaVerification, type InsertDhaVerification, type DhaAuditEvent, type InsertDhaAuditEvent,
+  type DhaConsentRecord, type InsertDhaConsentRecord, type DhaBackgroundCheck, type InsertDhaBackgroundCheck,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
-  passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications
+  passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications,
+  dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -165,6 +169,48 @@ export interface IStorage {
   getDocumentVerification(id: string): Promise<DocumentVerification | undefined>;
   getDocumentVerifications(documentType?: string, documentId?: string): Promise<DocumentVerification[]>;
   createDocumentVerification(verification: InsertDocumentVerification): Promise<DocumentVerification>;
+
+  // DHA integration methods
+  getDhaApplicant(id: string): Promise<DhaApplicant | undefined>;
+  getDhaApplicants(userId: string): Promise<DhaApplicant[]>;
+  createDhaApplicant(applicant: InsertDhaApplicant): Promise<DhaApplicant>;
+  updateDhaApplicant(id: string, updates: Partial<DhaApplicant>): Promise<void>;
+
+  getDhaApplication(id: string): Promise<DhaApplication | undefined>;
+  getDhaApplications(applicantId?: string, userId?: string): Promise<DhaApplication[]>;
+  createDhaApplication(application: InsertDhaApplication): Promise<DhaApplication>;
+  updateDhaApplication(id: string, updates: Partial<DhaApplication>): Promise<void>;
+
+  getDhaVerification(id: string): Promise<DhaVerification | undefined>;
+  getDhaVerifications(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    verificationType?: string;
+  }): Promise<DhaVerification[]>;
+  createDhaVerification(verification: InsertDhaVerification): Promise<DhaVerification>;
+
+  getDhaAuditEvents(filters?: {
+    applicationId?: string;
+    applicantId?: string;
+    userId?: string;
+    eventType?: string;
+    limit?: number;
+  }): Promise<DhaAuditEvent[]>;
+  createDhaAuditEvent(event: InsertDhaAuditEvent): Promise<DhaAuditEvent>;
+
+  getDhaConsentRecord(id: string): Promise<DhaConsentRecord | undefined>;
+  getDhaConsentRecords(applicantId: string): Promise<DhaConsentRecord[]>;
+  createDhaConsentRecord(record: InsertDhaConsentRecord): Promise<DhaConsentRecord>;
+  updateDhaConsentRecord(id: string, updates: Partial<DhaConsentRecord>): Promise<void>;
+
+  getDhaBackgroundCheck(id: string): Promise<DhaBackgroundCheck | undefined>;
+  getDhaBackgroundChecks(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    checkType?: string;
+  }): Promise<DhaBackgroundCheck[]>;
+  createDhaBackgroundCheck(check: InsertDhaBackgroundCheck): Promise<DhaBackgroundCheck>;
+  updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -190,6 +236,14 @@ export class MemStorage implements IStorage {
   private permanentVisas: Map<string, PermanentVisa>;
   private idCards: Map<string, IdCard>;
   private documentVerifications: Map<string, DocumentVerification>;
+  
+  // DHA integration storage
+  private dhaApplicants: Map<string, DhaApplicant>;
+  private dhaApplications: Map<string, DhaApplication>;
+  private dhaVerifications: Map<string, DhaVerification>;
+  private dhaAuditEvents: Map<string, DhaAuditEvent>;
+  private dhaConsentRecords: Map<string, DhaConsentRecord>;
+  private dhaBackgroundChecks: Map<string, DhaBackgroundCheck>;
 
   constructor() {
     this.users = new Map();
@@ -214,6 +268,14 @@ export class MemStorage implements IStorage {
     this.permanentVisas = new Map();
     this.idCards = new Map();
     this.documentVerifications = new Map();
+    
+    // Initialize DHA storage
+    this.dhaApplicants = new Map();
+    this.dhaApplications = new Map();
+    this.dhaVerifications = new Map();
+    this.dhaAuditEvents = new Map();
+    this.dhaConsentRecords = new Map();
+    this.dhaBackgroundChecks = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -1059,6 +1121,319 @@ export class MemStorage implements IStorage {
     };
     this.documentVerifications.set(id, verification);
     return verification;
+  }
+
+  // ===================== DHA INTEGRATION METHODS =====================
+
+  // DHA Applicant methods
+  async getDhaApplicant(id: string): Promise<DhaApplicant | undefined> {
+    return this.dhaApplicants.get(id);
+  }
+
+  async getDhaApplicants(userId: string): Promise<DhaApplicant[]> {
+    return Array.from(this.dhaApplicants.values())
+      .filter(applicant => applicant.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDhaApplicant(insertApplicant: InsertDhaApplicant): Promise<DhaApplicant> {
+    const id = randomUUID();
+    const applicant: DhaApplicant = {
+      ...insertApplicant,
+      id,
+      postalAddress: insertApplicant.postalAddress || null,
+      idNumber: insertApplicant.idNumber || null,
+      passportNumber: insertApplicant.passportNumber || null,
+      previousPassportNumbers: insertApplicant.previousPassportNumbers || null,
+      citizenshipAcquisitionDate: insertApplicant.citizenshipAcquisitionDate || null,
+      citizenshipAcquisitionMethod: insertApplicant.citizenshipAcquisitionMethod || null,
+      motherFullName: insertApplicant.motherFullName || null,
+      motherMaidenName: insertApplicant.motherMaidenName || null,
+      motherIdNumber: insertApplicant.motherIdNumber || null,
+      fatherFullName: insertApplicant.fatherFullName || null,
+      fatherIdNumber: insertApplicant.fatherIdNumber || null,
+      biometricTemplates: insertApplicant.biometricTemplates || null,
+      biometricQualityScores: insertApplicant.biometricQualityScores || null,
+      photoUrl: insertApplicant.photoUrl || null,
+      signatureUrl: insertApplicant.signatureUrl || null,
+      verificationScore: insertApplicant.verificationScore || null,
+      verificationNotes: insertApplicant.verificationNotes || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.dhaApplicants.set(id, applicant);
+    return applicant;
+  }
+
+  async updateDhaApplicant(id: string, updates: Partial<DhaApplicant>): Promise<void> {
+    const applicant = this.dhaApplicants.get(id);
+    if (applicant) {
+      this.dhaApplicants.set(id, { ...applicant, ...updates, updatedAt: new Date() });
+    }
+  }
+
+  // DHA Application methods
+  async getDhaApplication(id: string): Promise<DhaApplication | undefined> {
+    return this.dhaApplications.get(id);
+  }
+
+  async getDhaApplications(applicantId?: string, userId?: string): Promise<DhaApplication[]> {
+    return Array.from(this.dhaApplications.values())
+      .filter(application => {
+        if (applicantId && application.applicantId !== applicantId) return false;
+        if (userId && application.userId !== userId) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDhaApplication(insertApplication: InsertDhaApplication): Promise<DhaApplication> {
+    const id = randomUUID();
+    const application: DhaApplication = {
+      ...insertApplication,
+      id,
+      applicationSubtype: insertApplication.applicationSubtype || null,
+      previousStates: insertApplication.previousStates || null,
+      documentsSubmitted: insertApplication.documentsSubmitted || null,
+      processingFee: insertApplication.processingFee || null,
+      paymentStatus: insertApplication.paymentStatus || "pending",
+      paymentReference: insertApplication.paymentReference || null,
+      assignedOfficer: insertApplication.assignedOfficer || null,
+      assignedOffice: insertApplication.assignedOffice || null,
+      assignedDate: insertApplication.assignedDate || null,
+      identityVerificationResult: insertApplication.identityVerificationResult || null,
+      eligibilityCheckResult: insertApplication.eligibilityCheckResult || null,
+      backgroundVerificationResult: insertApplication.backgroundVerificationResult || null,
+      decisionStatus: insertApplication.decisionStatus || null,
+      decisionDate: insertApplication.decisionDate || null,
+      decisionReason: insertApplication.decisionReason || null,
+      decisionNotes: insertApplication.decisionNotes || null,
+      issuedDocumentNumber: insertApplication.issuedDocumentNumber || null,
+      issuedDate: insertApplication.issuedDate || null,
+      expiryDate: insertApplication.expiryDate || null,
+      collectionMethod: insertApplication.collectionMethod || null,
+      collectionOffice: insertApplication.collectionOffice || null,
+      collectionDate: insertApplication.collectionDate || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.dhaApplications.set(id, application);
+    return application;
+  }
+
+  async updateDhaApplication(id: string, updates: Partial<DhaApplication>): Promise<void> {
+    const application = this.dhaApplications.get(id);
+    if (application) {
+      this.dhaApplications.set(id, { ...application, ...updates, updatedAt: new Date() });
+    }
+  }
+
+  // DHA Verification methods
+  async getDhaVerification(id: string): Promise<DhaVerification | undefined> {
+    return this.dhaVerifications.get(id);
+  }
+
+  async getDhaVerifications(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    verificationType?: string;
+  }): Promise<DhaVerification[]> {
+    return Array.from(this.dhaVerifications.values())
+      .filter(verification => {
+        if (filters?.applicantId && verification.applicantId !== filters.applicantId) return false;
+        if (filters?.applicationId && verification.applicationId !== filters.applicationId) return false;
+        if (filters?.verificationType && verification.verificationType !== filters.verificationType) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDhaVerification(insertVerification: InsertDhaVerification): Promise<DhaVerification> {
+    const id = randomUUID();
+    const verification: DhaVerification = {
+      ...insertVerification,
+      id,
+      verificationMethod: insertVerification.verificationMethod || null,
+      requestData: insertVerification.requestData || null,
+      responseData: insertVerification.responseData || null,
+      responseTimestamp: insertVerification.responseTimestamp || null,
+      responseTime: insertVerification.responseTime || null,
+      verificationResult: insertVerification.verificationResult || null,
+      confidenceScore: insertVerification.confidenceScore || null,
+      matchScore: insertVerification.matchScore || null,
+      nprPersonId: insertVerification.nprPersonId || null,
+      nprMatchLevel: insertVerification.nprMatchLevel || null,
+      abisMatchId: insertVerification.abisMatchId || null,
+      abisBiometricType: insertVerification.abisBiometricType || null,
+      sapsReferenceNumber: insertVerification.sapsReferenceNumber || null,
+      sapsClearanceStatus: insertVerification.sapsClearanceStatus || null,
+      pkdCertificateStatus: insertVerification.pkdCertificateStatus || null,
+      pkdIssuerCountry: insertVerification.pkdIssuerCountry || null,
+      pkdCertificateSerial: insertVerification.pkdCertificateSerial || null,
+      mrzValidationResult: insertVerification.mrzValidationResult || null,
+      mrzParsedData: insertVerification.mrzParsedData || null,
+      errorCode: insertVerification.errorCode || null,
+      errorMessage: insertVerification.errorMessage || null,
+      errorDetails: insertVerification.errorDetails || null,
+      lastRetryAt: insertVerification.lastRetryAt || null,
+      createdAt: new Date()
+    };
+    this.dhaVerifications.set(id, verification);
+    return verification;
+  }
+
+  // DHA Audit Event methods
+  async getDhaAuditEvents(filters?: {
+    applicationId?: string;
+    applicantId?: string;
+    userId?: string;
+    eventType?: string;
+    limit?: number;
+  }): Promise<DhaAuditEvent[]> {
+    let events = Array.from(this.dhaAuditEvents.values())
+      .filter(event => {
+        if (filters?.applicationId && event.applicationId !== filters.applicationId) return false;
+        if (filters?.applicantId && event.applicantId !== filters.applicantId) return false;
+        if (filters?.userId && event.userId !== filters.userId) return false;
+        if (filters?.eventType && event.eventType !== filters.eventType) return false;
+        return true;
+      })
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+    if (filters?.limit) {
+      events = events.slice(0, filters.limit);
+    }
+
+    return events;
+  }
+
+  async createDhaAuditEvent(insertEvent: InsertDhaAuditEvent): Promise<DhaAuditEvent> {
+    const id = randomUUID();
+    const event: DhaAuditEvent = {
+      ...insertEvent,
+      id,
+      applicationId: insertEvent.applicationId || null,
+      applicantId: insertEvent.applicantId || null,
+      userId: insertEvent.userId || null,
+      actorId: insertEvent.actorId || null,
+      actorName: insertEvent.actorName || null,
+      contextData: insertEvent.contextData || null,
+      beforeState: insertEvent.beforeState || null,
+      afterState: insertEvent.afterState || null,
+      requestSource: insertEvent.requestSource || null,
+      ipAddress: insertEvent.ipAddress || null,
+      userAgent: insertEvent.userAgent || null,
+      sessionId: insertEvent.sessionId || null,
+      complianceFlags: insertEvent.complianceFlags || null,
+      dataProcessingPurpose: insertEvent.dataProcessingPurpose || null,
+      timestamp: insertEvent.timestamp || new Date()
+    };
+    this.dhaAuditEvents.set(id, event);
+    return event;
+  }
+
+  // DHA Consent Record methods
+  async getDhaConsentRecord(id: string): Promise<DhaConsentRecord | undefined> {
+    return this.dhaConsentRecords.get(id);
+  }
+
+  async getDhaConsentRecords(applicantId: string): Promise<DhaConsentRecord[]> {
+    return Array.from(this.dhaConsentRecords.values())
+      .filter(record => record.applicantId === applicantId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDhaConsentRecord(insertRecord: InsertDhaConsentRecord): Promise<DhaConsentRecord> {
+    const id = randomUUID();
+    const record: DhaConsentRecord = {
+      ...insertRecord,
+      id,
+      applicationId: insertRecord.applicationId || null,
+      consentScope: insertRecord.consentScope || null,
+      lawfulnessAssessment: insertRecord.lawfulnessAssessment || null,
+      consentExpiresAt: insertRecord.consentExpiresAt || null,
+      consentWithdrawnAt: insertRecord.consentWithdrawnAt || null,
+      consentEvidence: insertRecord.consentEvidence || null,
+      consentWitness: insertRecord.consentWitness || null,
+      dataSubjectRights: insertRecord.dataSubjectRights || null,
+      withdrawalMethod: insertRecord.withdrawalMethod || null,
+      processingStartDate: insertRecord.processingStartDate || null,
+      processingEndDate: insertRecord.processingEndDate || null,
+      dataRetentionPeriod: insertRecord.dataRetentionPeriod || null,
+      complianceNotes: insertRecord.complianceNotes || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.dhaConsentRecords.set(id, record);
+    return record;
+  }
+
+  async updateDhaConsentRecord(id: string, updates: Partial<DhaConsentRecord>): Promise<void> {
+    const record = this.dhaConsentRecords.get(id);
+    if (record) {
+      this.dhaConsentRecords.set(id, { ...record, ...updates, updatedAt: new Date() });
+    }
+  }
+
+  // DHA Background Check methods
+  async getDhaBackgroundCheck(id: string): Promise<DhaBackgroundCheck | undefined> {
+    return this.dhaBackgroundChecks.get(id);
+  }
+
+  async getDhaBackgroundChecks(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    checkType?: string;
+  }): Promise<DhaBackgroundCheck[]> {
+    return Array.from(this.dhaBackgroundChecks.values())
+      .filter(check => {
+        if (filters?.applicantId && check.applicantId !== filters.applicantId) return false;
+        if (filters?.applicationId && check.applicationId !== filters.applicationId) return false;
+        if (filters?.checkType && check.checkType !== filters.checkType) return false;
+        return true;
+      })
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDhaBackgroundCheck(insertCheck: InsertDhaBackgroundCheck): Promise<DhaBackgroundCheck> {
+    const id = randomUUID();
+    const check: DhaBackgroundCheck = {
+      ...insertCheck,
+      id,
+      verificationId: insertCheck.verificationId || null,
+      requestReason: insertCheck.requestReason || null,
+      consentRecordId: insertCheck.consentRecordId || null,
+      consentDate: insertCheck.consentDate || null,
+      resultStatus: insertCheck.resultStatus || null,
+      sapsPolicyNumber: insertCheck.sapsPolicyNumber || null,
+      sapsResultCode: insertCheck.sapsResultCode || null,
+      sapsResultDescription: insertCheck.sapsResultDescription || null,
+      criminalRecords: insertCheck.criminalRecords || null,
+      checkResults: insertCheck.checkResults || null,
+      riskAssessment: insertCheck.riskAssessment || null,
+      riskFactors: insertCheck.riskFactors || null,
+      processingStartDate: insertCheck.processingStartDate || null,
+      processingCompletedDate: insertCheck.processingCompletedDate || null,
+      processingDuration: insertCheck.processingDuration || null,
+      validFromDate: insertCheck.validFromDate || null,
+      validUntilDate: insertCheck.validUntilDate || null,
+      verifiedBy: insertCheck.verifiedBy || null,
+      verificationDate: insertCheck.verificationDate || null,
+      verificationNotes: insertCheck.verificationNotes || null,
+      appealDeadline: insertCheck.appealDeadline || null,
+      appealOutcome: insertCheck.appealOutcome || null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.dhaBackgroundChecks.set(id, check);
+    return check;
+  }
+
+  async updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void> {
+    const check = this.dhaBackgroundChecks.get(id);
+    if (check) {
+      this.dhaBackgroundChecks.set(id, { ...check, ...updates, updatedAt: new Date() });
+    }
   }
 }
 

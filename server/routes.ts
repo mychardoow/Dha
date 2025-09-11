@@ -10,10 +10,18 @@ import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
-import { insertUserSchema, insertSecurityEventSchema } from "@shared/schema";
+import { insertUserSchema, insertSecurityEventSchema, insertDhaApplicationSchema, insertDhaApplicantSchema } from "@shared/schema";
+import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
+import { dhaMRZParser } from "./services/dha-mrz-parser";
+import { dhaPKDAdapter } from "./services/dha-pkd-adapter";
+import { dhaNPRAdapter } from "./services/dha-npr-adapter";
+import { dhaSAPSAdapter } from "./services/dha-saps-adapter";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize DHA workflow engine
+  const dhaWorkflowEngine = new DHAWorkflowEngine();
+
   // Apply security middleware
   app.use(securityHeaders);
   app.use(ipFilter);
@@ -1246,6 +1254,362 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Public verification error:", error);
       res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  // ==================== DHA API ROUTES ====================
+
+  // Create DHA applicant profile
+  app.post("/api/dha/applicants", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const applicantData = insertDhaApplicantSchema.parse(req.body);
+      
+      const applicant = await storage.createDhaApplicant({
+        ...applicantData,
+        userId: req.user.id
+      });
+
+      await storage.createSecurityEvent({
+        userId: req.user.id,
+        eventType: "dha_applicant_created",
+        severity: "low",
+        details: { applicantId: applicant.id },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.status(201).json({
+        message: "DHA applicant profile created successfully",
+        applicant
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid applicant data", details: error.errors });
+      }
+      console.error("Create DHA applicant error:", error);
+      res.status(500).json({ error: "Failed to create applicant profile" });
+    }
+  });
+
+  // Create DHA application
+  app.post("/api/dha/applications", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { applicantId, applicationType, applicationData } = req.body;
+
+      if (!applicantId || !applicationType) {
+        return res.status(400).json({ error: "Applicant ID and application type are required" });
+      }
+
+      // Verify applicant belongs to user
+      const applicant = await storage.getDhaApplicant(applicantId);
+      if (!applicant || applicant.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const result = await dhaWorkflowEngine.submitApplication(
+        applicantId,
+        req.user.id,
+        applicationType,
+        applicationData || {}
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.status(201).json({
+        message: "DHA application submitted successfully",
+        applicationId: result.applicationId
+      });
+
+    } catch (error) {
+      console.error("Create DHA application error:", error);
+      res.status(500).json({ error: "Failed to create application" });
+    }
+  });
+
+  // Get DHA application status
+  app.get("/api/dha/applications/:id", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const application = await storage.getDhaApplication(id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      // Check access permissions
+      if (application.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      // Get related applicant and verifications
+      const [applicant, verifications, backgroundChecks] = await Promise.all([
+        storage.getDhaApplicant(application.applicantId),
+        storage.getDhaVerifications(application.id),
+        storage.getDhaBackgroundChecks(application.id)
+      ]);
+
+      res.json({
+        application,
+        applicant,
+        verifications,
+        backgroundChecks,
+        statusHistory: application.previousStates ? JSON.parse(application.previousStates) : []
+      });
+
+    } catch (error) {
+      console.error("Get DHA application error:", error);
+      res.status(500).json({ error: "Failed to get application" });
+    }
+  });
+
+  // NPR Identity Verification
+  app.post("/api/dha/verify/identity", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { applicantId, applicationId, idNumber, fullName, dateOfBirth, placeOfBirth } = req.body;
+
+      if (!applicantId || !applicationId || !idNumber || !fullName) {
+        return res.status(400).json({ error: "Required fields missing" });
+      }
+
+      const result = await dhaNPRAdapter.verifyPerson({
+        applicantId,
+        applicationId,
+        idNumber,
+        fullName,
+        surname: fullName.split(' ').pop() || '',
+        dateOfBirth: new Date(dateOfBirth),
+        placeOfBirth,
+        verificationMethod: 'combined'
+      });
+
+      res.json({
+        success: true,
+        verificationResult: result,
+        message: "Identity verification completed"
+      });
+
+    } catch (error) {
+      console.error("NPR identity verification error:", error);
+      res.status(500).json({ error: "Identity verification failed" });
+    }
+  });
+
+  // Passport MRZ and PKD Verification  
+  app.post("/api/dha/verify/passport", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { applicantId, applicationId, mrzLine1, mrzLine2, passportImage } = req.body;
+
+      if (!applicantId || !applicationId || !mrzLine1 || !mrzLine2) {
+        return res.status(400).json({ error: "MRZ data required" });
+      }
+
+      // Parse MRZ data
+      const mrzResult = await dhaMRZParser.parseMRZ({
+        applicantId,
+        applicationId,
+        mrzLine1,
+        mrzLine2,
+        validateChecksums: true,
+        strictValidation: true
+      });
+
+      let pkdResult = null;
+      if (passportImage && mrzResult.success) {
+        // Verify passport security features via PKD
+        pkdResult = await dhaPKDAdapter.verifyPassportSecurity({
+          applicantId,
+          applicationId,
+          passportNumber: mrzResult.parsedData?.passportNumber,
+          issuingCountry: mrzResult.parsedData?.issuingCountry,
+          passportImage,
+          securityFeatures: ['digital_signature', 'chip_validation']
+        });
+      }
+
+      res.json({
+        success: true,
+        mrzVerification: mrzResult,
+        pkdVerification: pkdResult,
+        message: "Passport verification completed"
+      });
+
+    } catch (error) {
+      console.error("Passport verification error:", error);
+      res.status(500).json({ error: "Passport verification failed" });
+    }
+  });
+
+  // SAPS Background Check
+  app.post("/api/dha/background-check", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { applicantId, applicationId, purpose, consentGiven } = req.body;
+
+      if (!applicantId || !applicationId || !purpose) {
+        return res.status(400).json({ error: "Required fields missing" });
+      }
+
+      if (!consentGiven) {
+        return res.status(400).json({ error: "Consent required for background check" });
+      }
+
+      const result = await dhaSAPSAdapter.performBackgroundCheck({
+        applicantId,
+        applicationId,
+        purpose,
+        checkType: 'criminal_record',
+        includeTrafficFines: false
+      });
+
+      res.json({
+        success: true,
+        backgroundCheck: result,
+        message: "Background check completed"
+      });
+
+    } catch (error) {
+      console.error("Background check error:", error);
+      res.status(500).json({ error: "Background check failed" });
+    }
+  });
+
+  // Get user's DHA applications
+  app.get("/api/dha/applications", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { status, type } = req.query;
+      
+      const filters: any = { userId: req.user.id };
+      if (status) filters.currentState = status;
+      if (type) filters.applicationType = type;
+
+      const applications = await storage.getDhaApplicationsByFilters(filters);
+      
+      res.json(applications);
+
+    } catch (error) {
+      console.error("Get DHA applications error:", error);
+      res.status(500).json({ error: "Failed to get applications" });
+    }
+  });
+
+  // DHA Public Verification Portal
+  app.get("/api/dha/verify/:verificationCode", apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { verificationCode } = req.params;
+      
+      if (!verificationCode) {
+        return res.status(400).json({ error: "Verification code required" });
+      }
+
+      // Check DHA applications by verification code (if implemented in schema)
+      // For now, return a mock verification response
+      const isValid = verificationCode.startsWith('DHA');
+      
+      if (isValid) {
+        await storage.createSecurityEvent({
+          eventType: "dha_public_verification",
+          severity: "low",
+          details: { verificationCode },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || ""
+        });
+
+        res.json({
+          isValid: true,
+          documentType: "dha_document",
+          verificationCode,
+          status: "verified",
+          verificationTimestamp: new Date(),
+          message: "Document verified successfully"
+        });
+      } else {
+        res.json({
+          isValid: false,
+          message: "Invalid verification code",
+          verificationTimestamp: new Date()
+        });
+      }
+
+    } catch (error) {
+      console.error("DHA public verification error:", error);
+      res.status(500).json({ error: "Verification failed" });
+    }
+  });
+
+  // Get DHA applicant profiles
+  app.get("/api/dha/applicants", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const applicants = await storage.getDhaApplicantsByUserId(req.user.id);
+      res.json(applicants);
+    } catch (error) {
+      console.error("Get DHA applicants error:", error);
+      res.status(500).json({ error: "Failed to get applicants" });
+    }
+  });
+
+  // DHA Admin Routes (for admin users only)
+  app.get("/api/dha/admin/applications", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { status, type, office } = req.query;
+      const filters: any = {};
+      
+      if (status) filters.currentState = status;
+      if (type) filters.applicationType = type;
+      if (office) filters.assignedOffice = office;
+
+      const applications = await storage.getDhaApplicationsByFilters(filters);
+      res.json(applications);
+
+    } catch (error) {
+      console.error("Get admin DHA applications error:", error);
+      res.status(500).json({ error: "Failed to get applications" });
+    }
+  });
+
+  // DHA Workflow State Transition (for processing applications)
+  app.post("/api/dha/applications/:id/transition", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { targetState, reason, data } = req.body;
+
+      const application = await storage.getDhaApplication(id);
+      if (!application) {
+        return res.status(404).json({ error: "Application not found" });
+      }
+
+      // Check permissions
+      if (application.userId !== req.user.id && req.user.role !== "admin") {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const result = await dhaWorkflowEngine.processWorkflowTransition({
+        applicationId: id,
+        applicantId: application.applicantId,
+        userId: req.user.id,
+        currentState: application.currentState as any,
+        targetState,
+        triggerReason: reason || 'Manual transition',
+        actorId: req.user.id,
+        actorName: req.user.username,
+        documentData: data
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      res.json({
+        success: true,
+        newState: result.nextState,
+        processingTime: result.processingTime,
+        message: "State transition completed successfully"
+      });
+
+    } catch (error) {
+      console.error("DHA workflow transition error:", error);
+      res.status(500).json({ error: "Workflow transition failed" });
     }
   });
 
