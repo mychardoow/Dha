@@ -311,10 +311,10 @@ export class QuantumEncryptionService {
 
   private encryptAESQuantum(data: string, keyMaterial: string): string {
     // Enhanced AES with quantum-resistant properties
-    const key = keyMaterial.substring(0, 64); // 256 bits
+    const key = Buffer.from(keyMaterial.substring(0, 64), 'hex'); // 256 bits
     const iv = crypto.randomBytes(16);
 
-    const cipher = crypto.createCipher('aes-256-gcm', key);
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
     cipher.setAAD(Buffer.from('quantum-enhanced', 'utf8'));
 
     let encrypted = cipher.update(data, 'utf8', 'hex');
@@ -332,9 +332,9 @@ export class QuantumEncryptionService {
 
   private decryptAESQuantum(encryptedData: string, keyMaterial: string): string {
     const { encrypted, iv, authTag } = JSON.parse(encryptedData);
-    const key = keyMaterial.substring(0, 64);
+    const key = Buffer.from(keyMaterial.substring(0, 64), 'hex');
 
-    const decipher = crypto.createDecipher('aes-256-gcm', key);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'hex'));
     decipher.setAAD(Buffer.from('quantum-enhanced', 'utf8'));
     decipher.setAuthTag(Buffer.from(authTag, 'hex'));
 
