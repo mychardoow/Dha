@@ -4,6 +4,7 @@ import QRCode from "qrcode";
 import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
+import { verificationService } from "./verification-service";
 
 // Type alias for PDFDocument
 type PDFKit = InstanceType<typeof PDFDocument>;
@@ -134,10 +135,209 @@ export interface PassportData {
 export class PDFGenerationService {
   
   /**
+   * Generate prominent Braille pattern with larger dots and better spacing
+   */
+  private addProminentBraillePattern(doc: PDFKit, text: string, x: number, y: number): void {
+    const brailleText = verificationService.generateBraillePattern(text);
+    
+    // Add background for Braille section
+    doc.save();
+    doc.rect(x - 5, y - 5, 400, 35)
+       .fill('#f0f0f0');
+    
+    // Add label
+    doc.fillColor(SA_COLORS.black)
+       .fontSize(8)
+       .font('Helvetica')
+       .text('Braille Reference (Grade 1):', x, y - 3);
+    
+    // Add prominent Braille dots with larger size
+    doc.fontSize(20)
+       .font('Helvetica')
+       .fillColor(SA_COLORS.black)
+       .text(brailleText, x, y + 10, { width: 390 });
+    
+    doc.restore();
+  }
+  
+  /**
+   * Add enhanced holographic security strip with rainbow gradient
+   */
+  private addEnhancedHolographicStrip(doc: PDFKit, y: number): void {
+    const pageWidth = 565;
+    const stripHeight = 30;
+    
+    // Create rainbow gradient effect
+    const colors = [
+      { offset: 0, color: [255, 0, 0, 0.3] },    // Red
+      { offset: 0.17, color: [255, 165, 0, 0.3] }, // Orange
+      { offset: 0.33, color: [255, 255, 0, 0.3] }, // Yellow
+      { offset: 0.5, color: [0, 255, 0, 0.3] },    // Green
+      { offset: 0.67, color: [0, 0, 255, 0.3] },   // Blue
+      { offset: 0.83, color: [75, 0, 130, 0.3] },  // Indigo
+      { offset: 1, color: [238, 130, 238, 0.3] }   // Violet
+    ];
+    
+    // Draw gradient strips
+    const stripWidth = pageWidth / colors.length;
+    colors.forEach((color, index) => {
+      doc.save();
+      doc.rect(25 + (index * stripWidth), y, stripWidth, stripHeight)
+         .fillOpacity(0.3)
+         .fillColor(`rgb(${color.color[0]}, ${color.color[1]}, ${color.color[2]})`)
+         .fill();
+      doc.restore();
+    });
+    
+    // Add SECURE text overlay
+    doc.save();
+    doc.fontSize(20)
+       .font('Helvetica-Bold')
+       .fillOpacity(0.2)
+       .fillColor(SA_COLORS.black);
+    
+    for (let i = 0; i < 5; i++) {
+      doc.text('SECURE', 50 + (i * 110), y + 8);
+    }
+    
+    // Add shimmer pattern lines
+    doc.strokeOpacity(0.1)
+       .strokeColor(SA_COLORS.gold);
+    
+    for (let i = 0; i < 20; i++) {
+      doc.moveTo(25 + (i * 30), y)
+         .lineTo(25 + (i * 30) + 10, y + stripHeight)
+         .stroke();
+    }
+    
+    doc.restore();
+  }
+  
+  /**
+   * Add functional QR code with live verification link
+   */
+  private async addLiveVerificationQRCode(
+    doc: PDFKit, 
+    documentType: string,
+    documentNumber: string,
+    documentData: any,
+    x: number, 
+    y: number
+  ): Promise<{ code: string; hashtags: string[] }> {
+    // Register document with verification service
+    const verification = await verificationService.registerDocument(
+      documentType,
+      documentNumber,
+      documentData
+    );
+    
+    // Create QR code with verification URL
+    const qrData = verification.url;
+    const qrCode = await QRCode.toDataURL(qrData, {
+      width: 200, // Larger QR code (2+ inches at 72 DPI)
+      margin: 1,
+      color: { dark: SA_COLORS.black, light: SA_COLORS.white }
+    });
+    
+    // Add QR code background
+    doc.save();
+    doc.rect(x - 10, y - 10, 140, 180)
+       .fill('#ffffff')
+       .stroke(SA_COLORS.green);
+    
+    // Add QR code image
+    doc.image(qrCode, x, y, { width: 120, height: 120 });
+    
+    // Add SCAN TO VERIFY text
+    doc.fillColor(SA_COLORS.green)
+       .fontSize(12)
+       .font('Helvetica-Bold')
+       .text('SCAN FOR LIVE', x, y + 125, { width: 120, align: 'center' })
+       .text('VERIFICATION', x, y + 140, { width: 120, align: 'center' });
+    
+    // Add verification URL
+    doc.fillColor(SA_COLORS.black)
+       .fontSize(7)
+       .font('Helvetica')
+       .text(`Verify at: ${verification.url}`, x - 5, y + 155, { width: 130, align: 'center' });
+    
+    doc.restore();
+    
+    return { code: verification.code, hashtags: verification.hashtags };
+  }
+  
+  /**
+   * Add hashtag section for social media tracking
+   */
+  private addHashtagSection(doc: PDFKit, hashtags: string[], x: number, y: number): void {
+    doc.save();
+    
+    // Add hashtag box
+    doc.rect(x - 5, y - 5, 520, 35)
+       .fill('#f8f8f8')
+       .stroke(SA_COLORS.blue);
+    
+    // Add hashtag icon
+    doc.fillColor(SA_COLORS.blue)
+       .fontSize(16)
+       .font('Helvetica-Bold')
+       .text('#', x, y + 2);
+    
+    // Add hashtags
+    doc.fillColor(SA_COLORS.black)
+       .fontSize(9)
+       .font('Helvetica');
+    
+    const hashtagText = hashtags.join(' ');
+    doc.text(hashtagText, x + 20, y + 5, { width: 490 });
+    
+    doc.restore();
+  }
+  
+  /**
+   * Add verification status indicator
+   */
+  private addVerificationStatusIndicator(doc: PDFKit, x: number, y: number): void {
+    doc.save();
+    
+    // Add status box
+    doc.rect(x, y, 200, 60)
+       .fill('#e8f5e9')
+       .stroke(SA_COLORS.green);
+    
+    // Add verified stamp
+    doc.circle(x + 30, y + 30, 20)
+       .lineWidth(2)
+       .stroke(SA_COLORS.green);
+    
+    // Add checkmark
+    doc.strokeColor(SA_COLORS.green)
+       .lineWidth(3)
+       .moveTo(x + 20, y + 30)
+       .lineTo(x + 27, y + 37)
+       .lineTo(x + 40, y + 23)
+       .stroke();
+    
+    // Add text
+    doc.fillColor(SA_COLORS.green)
+       .fontSize(11)
+       .font('Helvetica-Bold')
+       .text('VERIFIED', x + 60, y + 15);
+    
+    doc.fillColor(SA_COLORS.black)
+       .fontSize(8)
+       .font('Helvetica')
+       .text('Authenticity Guaranteed', x + 60, y + 30)
+       .text('Scan QR for live status', x + 60, y + 42);
+    
+    doc.restore();
+  }
+  
+  /**
    * Generate Work Permit PDF (Section 19 permits)
    */
   async generateWorkPermitPDF(data: WorkPermitData): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: 'A4',
@@ -262,17 +462,27 @@ export class PDFGenerationService {
           });
         }
 
-        // Add QR code with enhanced data
-        const qrData = `DHA-VERIFY:${data.permitNumber}:${serialNumber}`;
-        QRCode.toDataURL(qrData, {
-          width: 100,
-          margin: 1,
-          color: { dark: SA_COLORS.black, light: SA_COLORS.white }
-        }).then(qrCode => {
-          doc.image(qrCode, 450, 400, { width: 100 });
-          doc.fontSize(8)
-             .text('Scan to verify', 460, 505);
-        });
+        // Add prominent Braille pattern at top
+        this.addProminentBraillePattern(doc, data.permitNumber, 50, 90);
+        
+        // Add enhanced holographic security strip
+        this.addEnhancedHolographicStrip(doc, 370);
+        
+        // Add functional QR code with live verification
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'work_permit',
+          data.permitNumber,
+          data,
+          430,
+          420
+        );
+        
+        // Add hashtag section
+        this.addHashtagSection(doc, verification.hashtags, 50, 640);
+        
+        // Add verification status indicator
+        this.addVerificationStatusIndicator(doc, 50, 560);
         
         // Add UV reactive indicator around QR code
         this.addUVReactiveIndicator(doc, 445, 395, 110, 110);
@@ -307,7 +517,7 @@ export class PDFGenerationService {
    * Generate Asylum Seeker Temporary Visa PDF
    */
   async generateAsylumVisaPDF(data: AsylumVisaData): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({
           size: 'A4',
@@ -359,8 +569,11 @@ export class PDFGenerationService {
            .font('Helvetica-Bold')
            .text(`Permit No: ${data.permitNumber}`, 190, 220, { align: 'center', width: 215 });
         
-        // Add Braille reference number below permit box
-        this.addBraillePattern(doc, data.permitNumber, 180, 245);
+        // Add prominent Braille pattern at top
+        this.addProminentBraillePattern(doc, data.permitNumber, 50, 90);
+        
+        // Add enhanced holographic security strip
+        this.addEnhancedHolographicStrip(doc, 300);
 
         // Personal details
         let yPos = 260;

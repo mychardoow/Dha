@@ -259,8 +259,8 @@ export const documentVerificationStatus = pgTable("document_verification_status"
   updatedAt: timestamp("updated_at"),
 });
 
-// Document Verification History Table
-export const documentVerificationHistory = pgTable("document_verification_history", {
+// Live Document Verification History Table
+export const liveDocumentVerificationHistory = pgTable("live_document_verification_history", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   documentId: varchar("document_id").notNull(),
   documentType: text("document_type").notNull(),
@@ -778,7 +778,7 @@ export const insertDocumentVerificationStatusSchema = createInsertSchema(documen
   createdAt: true,
 });
 
-export const insertDocumentVerificationHistorySchema = createInsertSchema(documentVerificationHistory).omit({
+export const insertLiveDocumentVerificationHistorySchema = createInsertSchema(liveDocumentVerificationHistory).omit({
   id: true,
   createdAt: true,
 });
@@ -2046,6 +2046,31 @@ export const sanitizedStringSchema = z.string().transform((val) => {
 
 export const sanitizedOptionalStringSchema = sanitizedStringSchema.optional();
 
+// Live Document Verification Records Table
+export const liveDocumentVerificationRecords = pgTable("live_document_verification_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  verificationCode: text("verification_code").notNull().unique(),
+  documentHash: text("document_hash").notNull(),
+  documentType: text("document_type").notNull(),
+  documentNumber: text("document_number").notNull(),
+  documentData: jsonb("document_data").notNull(),
+  userId: varchar("user_id").references(() => users.id),
+  verificationUrl: text("verification_url").notNull(),
+  hashtags: text().array().notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  verificationCount: integer("verification_count").notNull().default(0),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  issuedAt: timestamp("issued_at").notNull().default(sql`now()`),
+  expiryDate: timestamp("expiry_date"),
+  issuingOffice: text("issuing_office"),
+  issuingOfficer: text("issuing_officer"),
+  securityFeatures: jsonb("security_features"),
+  revokedAt: timestamp("revoked_at"),
+  revocationReason: text("revocation_reason"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+
 // WebSocket Event Schemas
 export const webSocketSubscriptionSchema = z.object({
   eventTypes: z.array(z.enum(['security_alert', 'fraud_alert', 'incident_update', 'system_status'])).min(1),
@@ -2079,3 +2104,37 @@ export type DocumentTemplateQuery = z.infer<typeof documentTemplateQuerySchema>;
 export type DocumentVerificationQuery = z.infer<typeof documentVerificationQuerySchema>;
 export type ComplianceReportParams = z.infer<typeof complianceReportParamsSchema>;
 export type WebSocketSubscription = z.infer<typeof webSocketSubscriptionSchema>;
+
+// Live Document Verification Types (using existing tables)
+export type DocumentVerificationRecord = typeof liveDocumentVerificationRecords.$inferSelect;
+export type InsertDocumentVerificationRecord = {
+  verificationCode: string;
+  documentHash: string;
+  documentType: string;
+  documentNumber: string;
+  documentData: any;
+  userId?: string | null;
+  verificationUrl: string;
+  hashtags: string[];
+  isActive?: boolean;
+  verificationCount?: number;
+  lastVerifiedAt?: Date | null;
+  issuedAt?: Date;
+  expiryDate?: Date | null;
+  issuingOffice?: string | null;
+  issuingOfficer?: string | null;
+  securityFeatures?: any;
+  revokedAt?: Date | null;
+  revocationReason?: string | null;
+};
+
+export type DocumentVerificationHistory = typeof liveDocumentVerificationHistory.$inferSelect;
+export type InsertDocumentVerificationHistory = {
+  verificationRecordId: string;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  location?: string | null;
+  isSuccessful?: boolean;
+  failureReason?: string | null;
+};
+

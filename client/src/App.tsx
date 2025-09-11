@@ -8,6 +8,7 @@ import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
 import DocumentServices from "./pages/DocumentServices";
 import PDFTestPage from "./pages/pdf-test";
+import DocumentVerificationPage from "./pages/verify";
 import NotFoundPage from "./pages/not-found";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
@@ -44,6 +45,8 @@ function App() {
             <Route path="/document-services" component={DocumentServices} />
             <Route path="/document-generation" component={DocumentGenerationPage} />
             <Route path="/pdf-test" component={PDFTestPage} />
+            <Route path="/verify" component={DocumentVerificationPage} />
+            <Route path="/verify/:code" component={DocumentVerificationPage} />
             <Route path="/debug" component={DebugDashboard} />
             
             {/* Admin Routes - Protected with code splitting */}

@@ -11,6 +11,7 @@ import { quantumEncryptionService } from "./services/quantum-encryption";
 import { monitoringService } from "./services/monitoring";
 import { documentGenerator } from "./services/document-generator";
 import { pdfGenerationService } from "./services/pdf-generation-service";
+import { verificationService } from "./services/verification-service";
 import { notificationService } from "./services/notification-service";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
 import { auditTrailService } from "./services/audit-trail-service";
@@ -3843,6 +3844,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Alert statistics error:", error);
       res.status(500).json({ error: "Failed to get alert statistics" });
+    }
+  });
+
+  // ===================== DOCUMENT VERIFICATION ENDPOINTS =====================
+  
+  // Register a new document in the verification system
+  app.post("/api/documents/register", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentType, documentNumber, documentData } = req.body;
+      const userId = (req as any).user.id;
+      
+      if (!documentType || !documentNumber || !documentData) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const verification = await verificationService.registerDocument(
+        documentType,
+        documentNumber,
+        documentData,
+        userId
+      );
+      
+      res.status(201).json({
+        message: "Document registered successfully",
+        verificationCode: verification.code,
+        verificationUrl: verification.url,
+        hashtags: verification.hashtags,
+        documentHash: verification.hash
+      });
+    } catch (error) {
+      console.error("Document registration error:", error);
+      res.status(500).json({ error: "Failed to register document" });
+    }
+  });
+  
+  // Verify document authenticity by code
+  app.get("/api/verify/:code", async (req: Request, res: Response) => {
+    try {
+      const { code } = req.params;
+      
+      if (!code) {
+        return res.status(400).json({ error: "Verification code required" });
+      }
+      
+      const result = await verificationService.verifyDocument({
+        code: code.toUpperCase(),
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        location: req.get('CF-IPCountry') || 'Unknown'
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Document verification error:", error);
+      res.status(500).json({ error: "Failed to verify document" });
+    }
+  });
+  
+  // Get verification status and history for a document
+  app.get("/api/verification/status/:documentId", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId } = req.params;
+      
+      if (!documentId) {
+        return res.status(400).json({ error: "Document ID required" });
+      }
+      
+      const status = await verificationService.getVerificationStatus(documentId);
+      
+      if (!status.success) {
+        return res.status(404).json({ error: status.message });
+      }
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Verification status error:", error);
+      res.status(500).json({ error: "Failed to get verification status" });
+    }
+  });
+  
+  // Log a verification scan attempt
+  app.post("/api/verification/scan", apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { code, location, deviceInfo } = req.body;
+      
+      if (!code) {
+        return res.status(400).json({ error: "Verification code required" });
+      }
+      
+      const result = await verificationService.verifyDocument({
+        code: code.toUpperCase(),
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent') || deviceInfo?.userAgent,
+        location: location || req.get('CF-IPCountry') || 'Unknown'
+      });
+      
+      // Log the scan attempt
+      await storage.createSecurityEvent({
+        eventType: 'document_verification_scan',
+        severity: result.isValid ? 'low' : 'medium',
+        details: {
+          code,
+          isValid: result.isValid,
+          documentType: result.documentType,
+          location,
+          deviceInfo
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      
+      res.json({
+        success: true,
+        verification: result
+      });
+    } catch (error) {
+      console.error("Verification scan error:", error);
+      res.status(500).json({ error: "Failed to process verification scan" });
+    }
+  });
+  
+  // Revoke a document's verification
+  app.post("/api/verification/revoke/:documentId", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentId } = req.params;
+      const { reason } = req.body;
+      const userId = (req as any).user.id;
+      
+      if (!documentId) {
+        return res.status(400).json({ error: "Document ID required" });
+      }
+      
+      const success = await verificationService.revokeDocument(documentId, reason);
+      
+      if (!success) {
+        return res.status(404).json({ error: "Document not found" });
+      }
+      
+      // Log the revocation
+      await auditTrailService.logAdminAction(
+        'document_revoked',
+        userId,
+        'document_verification',
+        documentId,
+        { reason }
+      );
+      
+      res.json({
+        message: "Document verification revoked successfully"
+      });
+    } catch (error) {
+      console.error("Document revocation error:", error);
+      res.status(500).json({ error: "Failed to revoke document" });
     }
   });
 
