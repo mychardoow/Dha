@@ -22,6 +22,8 @@ import {
   type DhaOffice, type InsertDhaOffice,
   type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
   type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
+  type DocumentVerificationHistory as DocumentVerificationHistoryOld, type InsertDocumentVerificationHistory as InsertDocumentVerificationHistoryOld,
+  type DocumentVerificationRecord, type InsertDocumentVerificationRecord,
   type DocumentVerificationHistory, type InsertDocumentVerificationHistory,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
@@ -30,7 +32,8 @@ import {
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
   auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
   refugeeDocuments, diplomaticPassports, documentDelivery, verificationWorkflow, dhaOffices,
-  amsCertificates, permitStatusChanges, documentVerificationStatus, documentVerificationHistory
+  amsCertificates, permitStatusChanges, documentVerificationStatus, documentVerificationHistory as documentVerificationHistoryOld,
+  documentVerificationRecords, documentVerificationHistory, liveDocumentVerificationRecords, liveDocumentVerificationHistory
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -247,6 +250,13 @@ export interface IStorage {
   getDocumentVerification(id: string): Promise<DocumentVerification | undefined>;
   getDocumentVerifications(documentType?: string, documentId?: string): Promise<DocumentVerification[]>;
   createDocumentVerification(verification: InsertDocumentVerification): Promise<DocumentVerification>;
+
+  // Document Verification Record methods (for verification service)
+  createDocumentVerificationRecord(record: InsertDocumentVerificationRecord): Promise<DocumentVerificationRecord>;
+  getDocumentVerificationByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined>;
+  getDocumentVerificationById(id: string): Promise<DocumentVerificationRecord | undefined>;
+  updateDocumentVerificationRecord(id: string, updates: Partial<DocumentVerificationRecord>): Promise<void>;
+  logDocumentVerification(log: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory>;
 
   // DHA integration methods
   getDhaApplicant(id: string): Promise<DhaApplicant | undefined>;
@@ -495,6 +505,7 @@ export class MemStorage implements IStorage {
   private permitStatusChanges: Map<string, PermitStatusChange>;
   private documentVerificationStatusMap: Map<string, DocumentVerificationStatus>;
   private documentVerificationHistoryMap: Map<string, DocumentVerificationHistory>;
+  private documentVerificationRecordsMap: Map<string, DocumentVerificationRecord>;
 
   constructor() {
     this.users = new Map();
@@ -556,6 +567,7 @@ export class MemStorage implements IStorage {
     this.permitStatusChanges = new Map();
     this.documentVerificationStatusMap = new Map();
     this.documentVerificationHistoryMap = new Map();
+    this.documentVerificationRecordsMap = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -1459,6 +1471,68 @@ export class MemStorage implements IStorage {
     };
     this.documentVerifications.set(id, verification);
     return verification;
+  }
+
+  // Document Verification Record methods (for verification service)
+  async createDocumentVerificationRecord(record: InsertDocumentVerificationRecord): Promise<DocumentVerificationRecord> {
+    const id = randomUUID();
+    const verificationRecord: DocumentVerificationRecord = {
+      id,
+      verificationCode: record.verificationCode,
+      documentHash: record.documentHash,
+      documentType: record.documentType,
+      documentNumber: record.documentNumber,
+      documentData: record.documentData,
+      userId: record.userId || null,
+      verificationUrl: record.verificationUrl,
+      hashtags: record.hashtags,
+      isActive: record.isActive ?? true,
+      verificationCount: record.verificationCount ?? 0,
+      lastVerifiedAt: record.lastVerifiedAt || null,
+      issuedAt: record.issuedAt || new Date(),
+      expiryDate: record.expiryDate || null,
+      issuingOffice: record.issuingOffice || null,
+      issuingOfficer: record.issuingOfficer || null,
+      securityFeatures: record.securityFeatures || null,
+      revokedAt: record.revokedAt || null,
+      revocationReason: record.revocationReason || null,
+      createdAt: new Date()
+    };
+    this.documentVerificationRecordsMap.set(id, verificationRecord);
+    return verificationRecord;
+  }
+
+  async getDocumentVerificationByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined> {
+    const records = Array.from(this.documentVerificationRecordsMap.values());
+    return records.find(record => record.verificationCode === verificationCode);
+  }
+
+  async getDocumentVerificationById(id: string): Promise<DocumentVerificationRecord | undefined> {
+    return this.documentVerificationRecordsMap.get(id);
+  }
+
+  async updateDocumentVerificationRecord(id: string, updates: Partial<DocumentVerificationRecord>): Promise<void> {
+    const record = this.documentVerificationRecordsMap.get(id);
+    if (record) {
+      Object.assign(record, updates);
+      this.documentVerificationRecordsMap.set(id, record);
+    }
+  }
+
+  async logDocumentVerification(log: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    const id = randomUUID();
+    const historyEntry: DocumentVerificationHistory = {
+      id,
+      verificationRecordId: log.verificationRecordId,
+      ipAddress: log.ipAddress || null,
+      userAgent: log.userAgent || null,
+      location: log.location || null,
+      isSuccessful: log.isSuccessful ?? true,
+      failureReason: log.failureReason || null,
+      verifiedAt: new Date()
+    };
+    this.documentVerificationHistoryMap.set(id, historyEntry);
+    return historyEntry;
   }
 
   // ===================== DHA INTEGRATION METHODS =====================
@@ -3092,9 +3166,17 @@ export class MemStorage implements IStorage {
   // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
   
   async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
+    // For backward compatibility, we'll check both documentId and verificationRecordId
     const history = Array.from(this.documentVerificationHistoryMap.values())
-      .filter(entry => entry.documentId === documentId);
-    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .filter(entry => {
+        // First check if this is a direct match by verificationRecordId (new way)
+        if (entry.verificationRecordId === documentId) return true;
+        // Also check if documentId field exists (old way)
+        const anyEntry = entry as any;
+        if (anyEntry.documentId === documentId) return true;
+        return false;
+      });
+    return history.sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime());
   }
 
   async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
