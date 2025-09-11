@@ -1,7 +1,7 @@
 import CryptoJS from "crypto-js";
 
 // Security constants
-const ENCRYPTION_KEY = process.env.VITE_ENCRYPTION_KEY || "default-client-key-change-in-production";
+const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'fallback-key-for-dev';
 const STORAGE_PREFIX = "dha_secure_";
 
 // Client-side encryption utilities

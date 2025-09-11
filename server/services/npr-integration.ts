@@ -697,10 +697,18 @@ export class NprIntegrationService {
  * Create NPR integration instance
  */
 export function createNprIntegration(): NprIntegrationService {
+  const apiKey = process.env.NPR_API_KEY;
+  const clientId = process.env.NPR_CLIENT_ID;
+  const clientSecret = process.env.NPR_CLIENT_SECRET;
+  
+  if (!apiKey || !clientId || !clientSecret) {
+    throw new Error('CRITICAL SECURITY ERROR: NPR_API_KEY, NPR_CLIENT_ID, and NPR_CLIENT_SECRET environment variables are required for NPR integration');
+  }
+  
   const credentials: NprCredentials = {
-    apiKey: process.env.NPR_API_KEY || 'dev-api-key',
-    clientId: process.env.NPR_CLIENT_ID || 'dev-client-id',
-    clientSecret: process.env.NPR_CLIENT_SECRET || 'dev-client-secret',
+    apiKey,
+    clientId,
+    clientSecret,
     environment: (process.env.NODE_ENV as any) || 'development'
   };
 

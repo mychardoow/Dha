@@ -94,6 +94,7 @@ export interface IStorage {
 
   // API key methods
   getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+  getAllApiKeys(): Promise<ApiKey[]>;
   updateApiKeyLastUsed(keyId: string): Promise<void>;
 
   // Certificate methods
@@ -695,6 +696,11 @@ export class MemStorage implements IStorage {
       .find(key => key.keyHash === keyHash && key.isActive);
   }
 
+  async getAllApiKeys(): Promise<ApiKey[]> {
+    return Array.from(this.apiKeys.values())
+      .filter(key => key.isActive);
+  }
+
   async updateApiKeyLastUsed(keyId: string): Promise<void> {
     const key = this.apiKeys.get(keyId);
     if (key) {
@@ -844,6 +850,13 @@ export class MemStorage implements IStorage {
     const certificate: BirthCertificate = {
       ...insertCertificate,
       id,
+      status: insertCertificate.status ?? "active",
+      documentUrl: insertCertificate.documentUrl ?? null,
+      qrCodeUrl: insertCertificate.qrCodeUrl ?? null,
+      digitalSignature: insertCertificate.digitalSignature ?? null,
+      isRevoked: insertCertificate.isRevoked ?? false,
+      securityFeatures: insertCertificate.securityFeatures ?? null,
+      motherMaidenName: insertCertificate.motherMaidenName ?? null,
       registrationDate: insertCertificate.registrationDate || new Date(),
       watermarkData: insertCertificate.watermarkData || null,
       officialSeal: insertCertificate.officialSeal || null,
@@ -881,6 +894,12 @@ export class MemStorage implements IStorage {
     const certificate: MarriageCertificate = {
       ...insertCertificate,
       id,
+      status: insertCertificate.status ?? "active",
+      documentUrl: insertCertificate.documentUrl ?? null,
+      qrCodeUrl: insertCertificate.qrCodeUrl ?? null,
+      digitalSignature: insertCertificate.digitalSignature ?? null,
+      isRevoked: insertCertificate.isRevoked ?? false,
+      securityFeatures: insertCertificate.securityFeatures ?? null,
       officialSignatures: insertCertificate.officialSignatures || null,
       createdAt: new Date()
     };
@@ -916,6 +935,12 @@ export class MemStorage implements IStorage {
     const passport: Passport = {
       ...insertPassport,
       id,
+      status: insertPassport.status ?? "active",
+      documentUrl: insertPassport.documentUrl ?? null,
+      qrCodeUrl: insertPassport.qrCodeUrl ?? null,
+      digitalSignature: insertPassport.digitalSignature ?? null,
+      isRevoked: insertPassport.isRevoked ?? false,
+      securityFeatures: insertPassport.securityFeatures ?? null,
       issueDate: insertPassport.issueDate || new Date(),
       height: insertPassport.height || null,
       eyeColor: insertPassport.eyeColor || null,
@@ -957,6 +982,12 @@ export class MemStorage implements IStorage {
     const certificate: DeathCertificate = {
       ...insertCertificate,
       id,
+      status: insertCertificate.status ?? "active",
+      documentUrl: insertCertificate.documentUrl ?? null,
+      qrCodeUrl: insertCertificate.qrCodeUrl ?? null,
+      digitalSignature: insertCertificate.digitalSignature ?? null,
+      isRevoked: insertCertificate.isRevoked ?? false,
+      securityFeatures: insertCertificate.securityFeatures ?? null,
       registrationDate: insertCertificate.registrationDate || new Date(),
       mannerOfDeath: insertCertificate.mannerOfDeath || null,
       medicalExaminerSignature: insertCertificate.medicalExaminerSignature || null,
@@ -996,6 +1027,12 @@ export class MemStorage implements IStorage {
     const permit: WorkPermit = {
       ...insertPermit,
       id,
+      status: insertPermit.status ?? "active",
+      documentUrl: insertPermit.documentUrl ?? null,
+      qrCodeUrl: insertPermit.qrCodeUrl ?? null,
+      digitalSignature: insertPermit.digitalSignature ?? null,
+      isRevoked: insertPermit.isRevoked ?? false,
+      securityFeatures: insertPermit.securityFeatures ?? null,
       issueDate: insertPermit.issueDate || new Date(),
       jobDescription: insertPermit.jobDescription || null,
       workRestrictions: insertPermit.workRestrictions || null,
@@ -1034,6 +1071,12 @@ export class MemStorage implements IStorage {
     const visa: PermanentVisa = {
       ...insertVisa,
       id,
+      status: insertVisa.status ?? "active",
+      documentUrl: insertVisa.documentUrl ?? null,
+      qrCodeUrl: insertVisa.qrCodeUrl ?? null,
+      digitalSignature: insertVisa.digitalSignature ?? null,
+      isRevoked: insertVisa.isRevoked ?? false,
+      securityFeatures: insertVisa.securityFeatures ?? null,
       issueDate: insertVisa.issueDate || new Date(),
       expiryDate: insertVisa.expiryDate || null,
       portOfEntry: insertVisa.portOfEntry || null,
@@ -1075,6 +1118,12 @@ export class MemStorage implements IStorage {
     const card: IdCard = {
       ...insertCard,
       id,
+      status: insertCard.status ?? "active",
+      documentUrl: insertCard.documentUrl ?? null,
+      qrCodeUrl: insertCard.qrCodeUrl ?? null,
+      digitalSignature: insertCard.digitalSignature ?? null,
+      isRevoked: insertCard.isRevoked ?? false,
+      securityFeatures: insertCard.securityFeatures ?? null,
       issueDate: insertCard.issueDate || new Date(),
       photoUrl: insertCard.photoUrl || null,
       signatureUrl: insertCard.signatureUrl || null,
@@ -1141,6 +1190,7 @@ export class MemStorage implements IStorage {
     const applicant: DhaApplicant = {
       ...insertApplicant,
       id,
+      isVerified: insertApplicant.isVerified ?? false,
       postalAddress: insertApplicant.postalAddress || null,
       idNumber: insertApplicant.idNumber || null,
       passportNumber: insertApplicant.passportNumber || null,
@@ -1192,6 +1242,8 @@ export class MemStorage implements IStorage {
     const application: DhaApplication = {
       ...insertApplication,
       id,
+      currentState: insertApplication.currentState ?? "submitted",
+      priorityLevel: insertApplication.priorityLevel ?? "normal",
       applicationSubtype: insertApplication.applicationSubtype || null,
       previousStates: insertApplication.previousStates || null,
       documentsSubmitted: insertApplication.documentsSubmitted || null,
@@ -1253,6 +1305,8 @@ export class MemStorage implements IStorage {
     const verification: DhaVerification = {
       ...insertVerification,
       id,
+      requestTimestamp: insertVerification.requestTimestamp ?? new Date(),
+      retryCount: insertVerification.retryCount ?? 0,
       verificationMethod: insertVerification.verificationMethod || null,
       requestData: insertVerification.requestData || null,
       responseData: insertVerification.responseData || null,
@@ -1348,6 +1402,11 @@ export class MemStorage implements IStorage {
     const record: DhaConsentRecord = {
       ...insertRecord,
       id,
+      consentLanguage: insertRecord.consentLanguage ?? "en",
+      consentStatus: insertRecord.consentStatus ?? "active",
+      consentGivenAt: insertRecord.consentGivenAt ?? new Date(),
+      popiaCompliant: insertRecord.popiaCompliant ?? true,
+      dataSubjectNotified: insertRecord.dataSubjectNotified ?? false,
       applicationId: insertRecord.applicationId || null,
       consentScope: insertRecord.consentScope || null,
       lawfulnessAssessment: insertRecord.lawfulnessAssessment || null,
@@ -1400,8 +1459,13 @@ export class MemStorage implements IStorage {
     const check: DhaBackgroundCheck = {
       ...insertCheck,
       id,
+      requestDate: insertCheck.requestDate ?? new Date(),
+      checkStatus: insertCheck.checkStatus ?? "pending",
+      isExpired: insertCheck.isExpired ?? false,
+      appealSubmitted: insertCheck.appealSubmitted ?? false,
+      appealable: insertCheck.appealable ?? false,
       verificationId: insertCheck.verificationId || null,
-      requestReason: insertCheck.requestReason || null,
+      requestReason: insertCheck.requestReason ?? "background_verification",
       consentRecordId: insertCheck.consentRecordId || null,
       consentDate: insertCheck.consentDate || null,
       resultStatus: insertCheck.resultStatus || null,

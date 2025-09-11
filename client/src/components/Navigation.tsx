@@ -24,20 +24,20 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="sticky top-0 z-40 glass border-b border-border" data-testid="navigation">
+    <nav className="sticky top-0 z-40 dha-header shadow-lg" data-testid="navigation">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo and Brand */}
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Shield className="text-primary text-2xl" />
-              <span className="text-xl font-bold gradient-text" data-testid="brand-title">
-                DHA Security Pro
+              <Shield className="text-white text-2xl" />
+              <span className="text-xl font-bold text-white" data-testid="brand-title">
+                🇿🇦 Department of Home Affairs
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-1">
               <span className="status-indicator status-online" data-testid="status-indicator"></span>
-              <span className="text-sm text-muted-foreground">System Secure</span>
+              <span className="text-sm text-white/80">Government Services</span>
             </div>
           </div>
 
@@ -47,7 +47,7 @@ export default function Navigation() {
               <button
                 key={link.href}
                 onClick={() => scrollToSection(link.href)}
-                className="text-foreground hover:text-primary transition-colors duration-200 flex items-center space-x-1"
+                className="text-white hover:text-white/80 transition-colors duration-200 flex items-center space-x-1"
                 data-testid={`nav-link-${link.label.toLowerCase()}`}
               >
                 <span>{link.icon}</span>
@@ -56,14 +56,14 @@ export default function Navigation() {
             ))}
 
             <div className="flex items-center space-x-2">
-              <Badge className="security-badge security-level-1" data-testid="security-level-badge">
-                <span>🔒</span>
-                <span className="ml-1">Level 5</span>
+              <Badge className="dha-badge" data-testid="security-level-badge">
+                <span>🏛️</span>
+                <span className="ml-1">Official</span>
               </Badge>
               <Button
                 size="icon"
                 variant="ghost"
-                className="text-foreground hover:text-primary transition-colors"
+                className="text-white hover:text-white/80 transition-colors"
                 data-testid="user-menu-button"
               >
                 <User className="h-5 w-5" />
@@ -83,11 +83,11 @@ export default function Navigation() {
                 <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 glass border-l border-border">
+            <SheetContent side="right" className="w-80 bg-white border-l border-border">
               <div className="flex flex-col space-y-4 mt-8">
                 <div className="flex items-center space-x-2 mb-6">
                   <Shield className="text-primary text-xl" />
-                  <span className="text-lg font-bold gradient-text">DHA Security Pro</span>
+                  <span className="text-lg font-bold text-primary">🇿🇦 DHA Services</span>
                 </div>
 
                 {navigationLinks.map((link) => (
@@ -105,15 +105,15 @@ export default function Navigation() {
                 <div className="pt-6 border-t border-border">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-sm text-muted-foreground">Security Status</span>
-                    <Badge className="security-badge security-level-1">
-                      <span>🔒</span>
-                      <span className="ml-1">Level 5</span>
+                    <Badge className="dha-badge">
+                      <span>🏛️</span>
+                      <span className="ml-1">Official</span>
                     </Badge>
                   </div>
                   
                   <div className="flex items-center space-x-2">
                     <span className="status-indicator status-online"></span>
-                    <span className="text-sm text-muted-foreground">All Systems Operational</span>
+                    <span className="text-sm text-muted-foreground">Government Services Online</span>
                   </div>
                 </div>
               </div>

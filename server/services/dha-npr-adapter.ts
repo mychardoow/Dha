@@ -64,8 +64,15 @@ export class DHANPRAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    this.baseUrl = process.env.DHA_NPR_BASE_URL || 'https://mock-npr.dha.gov.za/api/v1';
-    this.apiKey = process.env.DHA_NPR_API_KEY || 'mock-npr-api-key';
+    this.baseUrl = process.env.DHA_NPR_BASE_URL!;
+    this.apiKey = process.env.DHA_NPR_API_KEY!;
+    
+    if (!this.baseUrl) {
+      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_BASE_URL environment variable is required for DHA NPR integration');
+    }
+    if (!this.apiKey) {
+      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_API_KEY environment variable is required for DHA NPR integration');
+    }
   }
 
   /**

@@ -6,8 +6,13 @@ import { quantumEncryptionService } from "./quantum-encryption";
 import { documentProcessorService } from "./document-processor";
 
 // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+const apiKey = process.env.OPENAI_API_KEY;
+if (!apiKey) {
+  throw new Error('CRITICAL SECURITY ERROR: OPENAI_API_KEY environment variable is required for AI assistant functionality');
+}
+
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+  apiKey
 });
 
 export interface AIAssistantContext {

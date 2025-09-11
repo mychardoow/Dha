@@ -526,9 +526,36 @@ export class DhaPartnershipsService {
     success: boolean;
     error?: string;
   }> {
-    // Simulate biometric verification
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { success: true };
+    try {
+      // Connect to real DHA ABIS system for biometric verification
+      const response = await fetch(`${this.baseUrls[this.environment]}/abis/verify`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DHA_API_KEY}`,
+          'X-API-Version': '2025.1'
+        },
+        body: JSON.stringify({
+          idNumber,
+          biometricData,
+          verificationLevel: 'high',
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      if (!response.ok) {
+        return { success: false, error: `Biometric verification failed: ${response.statusText}` };
+      }
+      
+      const result = await response.json();
+      return { success: result.verified === true };
+      
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Biometric verification system unavailable'
+      };
+    }
   }
 
   private getServiceFlow(serviceType: string): { initialSteps: string[] } {
@@ -556,39 +583,69 @@ export class DhaPartnershipsService {
     return completion;
   }
 
-  private async simulateAiAnalysis(documentId: string, documentData: any, documentType: string): Promise<{
+  private async performAiDocumentAnalysis(documentId: string, documentData: any, documentType: string): Promise<{
     score: number;
     consistency: any;
     anomalies: AnomalyDetection[];
     recommendation: 'accept' | 'review' | 'reject';
     confidence: number;
   }> {
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    const score = 85 + Math.random() * 10; // 85-95% score
-    const confidence = 90 + Math.random() * 8; // 90-98% confidence
-
-    return {
-      score,
-      consistency: {
-        textConsistency: 92,
-        formatConsistency: 88,
-        securityFeatures: 95,
-        biometricConsistency: 87
-      },
-      anomalies: score < 90 ? [
-        {
-          type: 'format_anomaly',
-          severity: 'low',
-          description: 'Minor formatting inconsistency detected',
-          location: 'Header section',
-          suggestion: 'Manual review recommended'
-        }
-      ] : [],
-      recommendation: score >= 90 ? 'accept' : score >= 75 ? 'review' : 'reject',
-      confidence
-    };
+    try {
+      // Connect to real DHA AI document analysis system
+      const response = await fetch(`${this.baseUrls[this.environment]}/ai/document-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DHA_AI_API_KEY}`,
+          'X-API-Version': '2025.1'
+        },
+        body: JSON.stringify({
+          documentId,
+          documentType,
+          documentData,
+          analysisLevel: 'comprehensive',
+          includeSecurityFeatures: true,
+          includeBiometricAnalysis: true,
+          timestamp: new Date().toISOString()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`AI analysis failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      return {
+        score: result.overallScore,
+        consistency: {
+          textConsistency: result.textConsistency,
+          formatConsistency: result.formatConsistency,
+          securityFeatures: result.securityFeatures,
+          biometricConsistency: result.biometricConsistency
+        },
+        anomalies: result.anomalies || [],
+        recommendation: result.recommendation,
+        confidence: result.confidenceLevel
+      };
+      
+    } catch (error) {
+      console.error('AI document analysis failed:', error);
+      // Return conservative analysis result
+      return {
+        score: 50,
+        consistency: { textConsistency: 0, formatConsistency: 0, securityFeatures: 0, biometricConsistency: 0 },
+        anomalies: [{
+          type: 'system_error',
+          severity: 'high',
+          description: 'AI analysis system unavailable',
+          location: 'System',
+          suggestion: 'Manual review required'
+        }],
+        recommendation: 'review',
+        confidence: 0
+      };
+    }
   }
 
   private calculatePaymentFees(amount: number, method: string): number {
@@ -603,24 +660,58 @@ export class DhaPartnershipsService {
     return rate.percentage ? amount * (rate.percentage / 100) : rate.fixed || 0;
   }
 
-  private async simulatePaymentProcessing(
+  private async processRealPayment(
     request: DigitalPaymentRequest,
     fees: number
   ): Promise<Omit<PaymentResult, 'receipt'>> {
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    const success = Math.random() > 0.05; // 95% success rate
-
-    return {
-      paymentId: request.paymentId,
-      status: success ? 'completed' : 'failed',
-      transactionId: success ? `TXN${Date.now()}${Math.random().toString(36).substring(2, 8).toUpperCase()}` : undefined,
-      method: 'card',
-      amount: request.amount,
-      fees,
-      timestamp: new Date()
-    };
+    try {
+      // Connect to real SA government payment gateway
+      const paymentResponse = await fetch(`${this.baseUrls[this.environment]}/payments/process`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.DHA_PAYMENT_API_KEY}`,
+          'X-API-Version': '2025.1'
+        },
+        body: JSON.stringify({
+          paymentId: request.paymentId,
+          amount: request.amount,
+          fees,
+          currency: 'ZAR',
+          description: request.description,
+          citizenId: request.citizenId,
+          serviceType: request.serviceType,
+          metadata: request.metadata
+        })
+      });
+      
+      if (!paymentResponse.ok) {
+        throw new Error(`Payment processing failed: ${paymentResponse.statusText}`);
+      }
+      
+      const result = await paymentResponse.json();
+      
+      return {
+        paymentId: request.paymentId,
+        status: result.status,
+        transactionId: result.transactionId,
+        method: result.method,
+        amount: request.amount,
+        fees,
+        timestamp: new Date()
+      };
+      
+    } catch (error) {
+      console.error('Payment processing failed:', error);
+      return {
+        paymentId: request.paymentId,
+        status: 'failed',
+        method: 'unknown',
+        amount: request.amount,
+        fees,
+        timestamp: new Date()
+      };
+    }
   }
 
   private async generatePaymentReceipt(

@@ -86,8 +86,15 @@ export class DHASAPSAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    this.baseUrl = process.env.SAPS_CRC_BASE_URL || 'https://mock-saps-crc.saps.gov.za/api/v1';
-    this.apiKey = process.env.SAPS_CRC_API_KEY || 'mock-saps-api-key';
+    this.baseUrl = process.env.SAPS_CRC_BASE_URL!;
+    this.apiKey = process.env.SAPS_CRC_API_KEY!;
+    
+    if (!this.baseUrl) {
+      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL environment variable is required for SAPS integration');
+    }
+    if (!this.apiKey) {
+      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_API_KEY environment variable is required for SAPS integration');
+    }
   }
 
   /**

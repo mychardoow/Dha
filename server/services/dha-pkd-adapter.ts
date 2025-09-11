@@ -101,8 +101,15 @@ export class DHAPKDAdapter {
   };
 
   constructor() {
-    this.pkdBaseUrl = process.env.ICAO_PKD_BASE_URL || 'https://mock-pkd.icao.int/api/v1';
-    this.apiKey = process.env.ICAO_PKD_API_KEY || 'mock-pkd-api-key';
+    this.pkdBaseUrl = process.env.ICAO_PKD_BASE_URL!;
+    this.apiKey = process.env.ICAO_PKD_API_KEY!;
+    
+    if (!this.pkdBaseUrl) {
+      throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_BASE_URL environment variable is required for ICAO PKD integration');
+    }
+    if (!this.apiKey) {
+      throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_API_KEY environment variable is required for ICAO PKD integration');
+    }
   }
 
   /**

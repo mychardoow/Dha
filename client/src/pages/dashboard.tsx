@@ -31,55 +31,62 @@ export default function Dashboard() {
   }, [isConnected, toast]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <SecurityAlert />
+    <div className="min-h-screen dha-page">
       <Navigation />
 
-      {/* Hero Section */}
-      <section className="hero-bg relative">
+      {/* DHA Hero Section */}
+      <section className="dha-header relative">
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text">
-              Military-Grade Security Platform
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              Production-ready digital services platform with authentic biometric authentication, 
-              quantum encryption, and real-time fraud detection systems.
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="official-seal w-20 h-20 flex items-center justify-center text-4xl">
+                🇿🇦
+              </div>
+              <div>
+                <h1 className="text-4xl md:text-6xl font-bold mb-2 text-white">
+                  Department of Home Affairs
+                </h1>
+                <p className="text-xl text-white/90">Republic of South Africa • Digital Government Services</p>
+              </div>
+            </div>
+            <p className="text-xl text-white/80 mb-8 max-w-3xl mx-auto">
+              Official government digital services platform providing authentic document generation, 
+              biometric authentication, and citizen verification services.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
               <button 
-                className="btn-enhanced bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
-                data-testid="button-deploy-platform"
+                className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
+                data-testid="button-access-services"
               >
-                <span>🚀</span>
-                <span>Deploy Platform</span>
+                <span>🏛️</span>
+                <span>Access Government Services</span>
               </button>
               <button 
-                className="btn-enhanced bg-secondary hover:bg-secondary/90 text-secondary-foreground px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
-                data-testid="button-download-package"
+                className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
+                data-testid="button-citizen-portal"
               >
-                <span>📥</span>
-                <span>Download Package</span>
+                <span>🇿🇦</span>
+                <span>Citizen Portal</span>
               </button>
             </div>
 
-            {/* Security Status Overview */}
+            {/* Government Services Overview */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <div className="glass p-6 rounded-lg text-center" data-testid="card-security-level">
-                <div className="text-2xl font-bold text-secure mb-2">99.9%</div>
-                <div className="text-sm text-muted-foreground">Security Level</div>
+              <div className="government-card p-6 rounded-lg text-center" data-testid="card-uptime">
+                <div className="text-2xl font-bold text-primary mb-2">99.9%</div>
+                <div className="text-sm text-muted-foreground">Service Uptime</div>
               </div>
-              <div className="glass p-6 rounded-lg text-center" data-testid="card-monitoring">
+              <div className="government-card p-6 rounded-lg text-center" data-testid="card-services">
                 <div className="text-2xl font-bold text-primary mb-2">24/7</div>
-                <div className="text-sm text-muted-foreground">Monitoring</div>
+                <div className="text-sm text-muted-foreground">Available</div>
               </div>
-              <div className="glass p-6 rounded-lg text-center" data-testid="card-breaches">
-                <div className="text-2xl font-bold text-warning mb-2">0</div>
-                <div className="text-sm text-muted-foreground">Breaches</div>
+              <div className="government-card p-6 rounded-lg text-center" data-testid="card-citizens">
+                <div className="text-2xl font-bold text-primary mb-2">58M</div>
+                <div className="text-sm text-muted-foreground">Citizens Served</div>
               </div>
-              <div className="glass p-6 rounded-lg text-center quantum-encrypted" data-testid="card-encryption">
-                <div className="text-2xl font-bold text-quantum mb-2">AES-256</div>
+              <div className="government-card p-6 rounded-lg text-center" data-testid="card-security">
+                <div className="text-2xl font-bold text-primary mb-2">256-bit</div>
                 <div className="text-sm text-muted-foreground">Encryption</div>
               </div>
             </div>

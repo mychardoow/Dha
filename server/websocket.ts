@@ -41,7 +41,10 @@ export class WebSocketService {
           return next(new Error("Authentication token required"));
         }
         
-        const JWT_SECRET = process.env.JWT_SECRET || "military-grade-jwt-secret-change-in-production";
+        const JWT_SECRET = process.env.JWT_SECRET;
+        if (!JWT_SECRET) {
+          return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication'));
+        }
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);
         
