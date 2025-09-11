@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { storage } from "../storage";
+import { privacyProtectionService } from "../services/privacy-protection";
 
 // Rate limiting configurations
 export const authLimiter = rateLimit({
@@ -15,7 +16,7 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   handler: async (req, res) => {
     // Log security event for rate limiting
-    await storage.createSecurityEvent({
+    const securityEvent = {
       eventType: "rate_limit_exceeded",
       severity: "medium",
       details: {
@@ -24,7 +25,8 @@ export const authLimiter = rateLimit({
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent")
-    });
+    };
+    await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
     
     res.status(429).json({
       error: "Too many authentication attempts",
@@ -82,7 +84,7 @@ export async function fraudDetection(req: Request, res: Response, next: NextFunc
     
     // Log the request for analysis
     if (req.user) {
-      await storage.createSecurityEvent({
+      const securityEvent = {
         userId: req.user.id,
         eventType: "request_analyzed",
         severity: riskScore > 70 ? "high" : riskScore > 40 ? "medium" : "low",
@@ -94,23 +96,25 @@ export async function fraudDetection(req: Request, res: Response, next: NextFunc
         },
         ipAddress: req.ip,
         userAgent: req.get("User-Agent")
-      });
+      };
+      await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
     }
     
     // Create fraud alert if risk is high
     if (riskScore > 70) {
       if (req.user?.id) {
+        const fraudDetails = {
+          path: req.path,
+          method: req.method,
+          indicators: suspiciousIndicators,
+          ipAddress: privacyProtectionService.anonymizeIP(req.ip),
+          userAgent: privacyProtectionService.anonymizeSecurityEvent({ userAgent: req.get("User-Agent") }).userAgent
+        };
         await storage.createFraudAlert({
-          userId: req.user.id,
+          userId: privacyProtectionService.anonymizeUserId(req.user.id) || req.user.id,
           alertType: "high_risk_request",
           riskScore,
-          details: {
-            path: req.path,
-            method: req.method,
-            indicators: suspiciousIndicators,
-            ipAddress: req.ip,
-            userAgent: req.get("User-Agent")
-          }
+          details: fraudDetails
         });
       }
       
@@ -177,13 +181,14 @@ export function ipFilter(req: Request, res: Response, next: NextFunction) {
   const whitelistedIPs = (process.env.WHITELISTED_IPS || "").split(",").filter(Boolean);
   
   if (ip && blacklistedIPs.includes(ip)) {
-    storage.createSecurityEvent({
+    const securityEvent = {
       eventType: "blacklisted_ip_access",
       severity: "high",
-      details: { ip, blocked: true },
+      details: { ip: privacyProtectionService.anonymizeIP(ip), blocked: true },
       ipAddress: ip,
       userAgent: req.get("User-Agent")
-    });
+    };
+    storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
     
     return res.status(403).json({
       error: "Access denied",
@@ -203,7 +208,7 @@ export async function securityLogger(req: Request, res: Response, next: NextFunc
     
     // Log security-relevant requests
     if (req.path.startsWith("/api/") && (res.statusCode >= 400 || duration > 5000)) {
-      await storage.createSecurityEvent({
+      const securityEvent = {
         userId: req.user?.id,
         eventType: res.statusCode >= 400 ? "request_error" : "slow_request",
         severity: res.statusCode >= 500 ? "high" : res.statusCode >= 400 ? "medium" : "low",
@@ -216,7 +221,8 @@ export async function securityLogger(req: Request, res: Response, next: NextFunc
         },
         ipAddress: req.ip,
         userAgent: req.get("User-Agent")
-      });
+      };
+      await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent(securityEvent) as any);
     }
   });
   

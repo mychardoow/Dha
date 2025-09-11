@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { storage } from "../storage";
 import { InsertDhaVerification, InsertDhaAuditEvent } from "@shared/schema";
+import { privacyProtectionService } from "./privacy-protection";
 
 /**
  * DHA ICAO PKD (Public Key Directory) Adapter

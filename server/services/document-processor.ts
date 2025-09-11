@@ -6,13 +6,16 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";
 import { createWorker } from "tesseract.js";
+import { privacyProtectionService } from "./privacy-protection";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 const ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || "default-document-key-change-in-production";
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Ensure upload directory exists
-fs.mkdir(UPLOAD_DIR, { recursive: true }).catch(console.error);
+fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((error) => {
+  console.error("Failed to create upload directory:", error?.message || "Unknown error");
+});
 
 export interface ProcessingResult {
   success: boolean;
