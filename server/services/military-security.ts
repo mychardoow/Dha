@@ -474,7 +474,14 @@ export class MilitarySecurityService {
       timestamp: new Date().toISOString(),
       handler: 'DHA_MILITARY_SYSTEM',
       dissemination: this.getDisseminationControls(level),
-      declassifyOn: this.getDeclass}
+      declassifyOn: this.getDeclassificationDate(level)
+    };
+
+    return {
+      data,
+      marking
+    };
+  }
 
   /**
    * Public Key Infrastructure (PKI) Operations
@@ -540,6 +547,28 @@ export class MilitarySecurityService {
   /**
    * Helper Methods
    */
+  private getDisseminationControls(level: keyof typeof this.CLASSIFICATION): string[] {
+    switch(level) {
+      case 'TOP_SECRET_SCI':
+        return ['NOFORN', 'EYES ONLY', 'SCI'];
+      case 'TOP_SECRET':
+        return ['NOFORN', 'RESTRICTED'];
+      case 'SECRET':
+        return ['NOFORN'];
+      case 'CONFIDENTIAL':
+        return ['FOUO'];
+      default:
+        return [];
+    }
+  }
+
+  private getDeclassificationDate(level: keyof typeof this.CLASSIFICATION): string {
+    const years = level === 'TOP_SECRET_SCI' ? 25 : level === 'TOP_SECRET' ? 20 : 10;
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + years);
+    return date.toISOString();
+  }
+
   private generatePQCKeyPair(algorithm: string): any {
     // Simulated PQC key generation
     // In production, use actual PQC libraries

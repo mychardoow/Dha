@@ -103,15 +103,13 @@ export default function DocumentVerificationPage() {
       if (data.isValid) {
         toast({
           title: "✅ Document Verified",
-          description: "This is an authentic DHA document.",
-          data-testid: "toast-verification-success"
+          description: "This is an authentic DHA document."
         });
       } else {
         toast({
           title: "❌ Verification Failed",
           description: data.message || "This document could not be verified.",
-          variant: "destructive",
-          data-testid: "toast-verification-failed"
+          variant: "destructive"
         });
       }
     },
@@ -119,8 +117,7 @@ export default function DocumentVerificationPage() {
       toast({
         title: "Verification Error",
         description: error.message || "Failed to verify document",
-        variant: "destructive",
-        data-testid: "toast-verification-error"
+        variant: "destructive"
       });
     }
   });
@@ -141,8 +138,7 @@ export default function DocumentVerificationPage() {
       toast({
         title: "Error",
         description: "Please enter a verification code",
-        variant: "destructive",
-        data-testid: "toast-no-code"
+        variant: "destructive"
       });
       return;
     }
