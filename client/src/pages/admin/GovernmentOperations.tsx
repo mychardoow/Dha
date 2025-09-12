@@ -113,14 +113,16 @@ export function GovernmentOperations() {
 
   const handleBackup = async () => {
     try {
-      const response = await apiRequest('/api/admin/government-operations/disaster-recovery/backup', {
-        method: 'POST',
-        body: JSON.stringify({ description: 'Manual backup initiated from dashboard' })
-      });
+      const response = await apiRequest(
+        'POST',
+        '/api/admin/government-operations/disaster-recovery/backup',
+        { description: 'Manual backup initiated from dashboard' }
+      );
+      const data = await response.json();
       
       toast({
         title: "Backup Initiated",
-        description: `Backup ID: ${response.backupId}`,
+        description: `Backup ID: ${data.backupId}`,
       });
     } catch (error) {
       toast({
@@ -133,16 +135,18 @@ export function GovernmentOperations() {
 
   const handleFailoverTest = async () => {
     try {
-      const response = await apiRequest('/api/admin/government-operations/high-availability/failover/test', {
-        method: 'POST'
-      });
+      const response = await apiRequest(
+        'POST',
+        '/api/admin/government-operations/high-availability/failover/test'
+      );
+      const data = await response.json();
       
       toast({
-        title: response.success ? "Failover Test Successful" : "Failover Test Failed",
-        description: response.success 
+        title: data.success ? "Failover Test Successful" : "Failover Test Failed",
+        description: data.success 
           ? "High availability failover test completed successfully"
           : "Failover test failed. Check system logs for details.",
-        variant: response.success ? "default" : "destructive"
+        variant: data.success ? "default" : "destructive"
       });
     } catch (error) {
       toast({
@@ -201,7 +205,7 @@ export function GovernmentOperations() {
       </div>
 
       {/* Critical Alerts */}
-      {metrics?.compliance.criticalFindings > 0 && (
+      {metrics && metrics.compliance && metrics.compliance.criticalFindings > 0 && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Critical Compliance Issues</AlertTitle>
@@ -259,8 +263,8 @@ export function GovernmentOperations() {
                   {metrics?.monitoring.uptime || 0}% uptime
                 </p>
                 <div className="flex gap-2 mt-2">
-                  <Badge variant={metrics?.monitoring.errorRate < 1 ? "default" : "destructive"}>
-                    {metrics?.monitoring.errorRate || 0}% errors
+                  <Badge variant={metrics?.monitoring?.errorRate && metrics.monitoring.errorRate < 1 ? "default" : "destructive"}>
+                    {metrics?.monitoring?.errorRate || 0}% errors
                   </Badge>
                 </div>
               </CardContent>
@@ -372,9 +376,9 @@ export function GovernmentOperations() {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[300px]">
-                  {incidents && incidents.length > 0 ? (
+                  {incidents && Array.isArray(incidents) && incidents.length > 0 ? (
                     <div className="space-y-2">
-                      {incidents.slice(0, 5).map((incident: any, index: number) => (
+                      {(incidents as any[]).slice(0, 5).map((incident: any, index: number) => (
                         <div key={index} className="p-3 border rounded-lg">
                           <div className="flex justify-between items-start">
                             <div>
