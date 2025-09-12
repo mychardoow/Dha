@@ -3609,6 +3609,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =================== AI ASSISTANT AND INTELLIGENCE API ROUTES ===================
+  
+  // AI Chat - Generate response
+  app.post("/api/ai/chat", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { message, conversationId, includeContext } = req.body;
+      const userId = (req as any).user.id;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      const response = await aiAssistantService.generateResponse(
+        message,
+        userId,
+        conversationId || "default",
+        includeContext !== false
+      );
+      
+      res.json(response);
+    } catch (error) {
+      console.error("AI chat error:", error);
+      res.status(500).json({ error: "AI service unavailable" });
+    }
+  });
+  
+  // AI Translation
+  app.post("/api/ai/translate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { text, targetLanguage, sourceLanguage } = req.body;
+      
+      if (!text || !targetLanguage) {
+        return res.status(400).json({ error: "Text and target language are required" });
+      }
+      
+      const result = await aiAssistantService.translateMessage(text, targetLanguage, sourceLanguage);
+      res.json(result);
+    } catch (error) {
+      console.error("Translation error:", error);
+      res.status(500).json({ error: "Translation service unavailable" });
+    }
+  });
+  
+  // AI Document Analysis
+  app.post("/api/ai/analyze-document", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentContent, documentType } = req.body;
+      
+      if (!documentContent || !documentType) {
+        return res.status(400).json({ error: "Document content and type are required" });
+      }
+      
+      const result = await aiAssistantService.analyzeDocument(documentContent, documentType);
+      res.json(result);
+    } catch (error) {
+      console.error("Document analysis error:", error);
+      res.status(500).json({ error: "Document analysis service unavailable" });
+    }
+  });
+  
+  // AI Document Requirements
+  app.post("/api/ai/document-requirements", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentType, userContext } = req.body;
+      
+      if (!documentType) {
+        return res.status(400).json({ error: "Document type is required" });
+      }
+      
+      const result = await aiAssistantService.getDocumentRequirements(documentType, userContext);
+      res.json(result);
+    } catch (error) {
+      console.error("Document requirements error:", error);
+      res.status(500).json({ error: "Requirements service unavailable" });
+    }
+  });
+  
+  // AI Form Assistant
+  app.post("/api/ai/form-assist", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { formType, userInput, formData } = req.body;
+      
+      if (!formType || !userInput) {
+        return res.status(400).json({ error: "Form type and user input are required" });
+      }
+      
+      const result = await aiAssistantService.generateFormResponse(formType, userInput, formData);
+      res.json(result);
+    } catch (error) {
+      console.error("Form assistance error:", error);
+      res.status(500).json({ error: "Form assistance unavailable" });
+    }
+  });
+  
+  // AI Processing Time Prediction
+  app.post("/api/ai/predict-processing-time", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { documentType, currentQueue, historicalData } = req.body;
+      
+      if (!documentType) {
+        return res.status(400).json({ error: "Document type is required" });
+      }
+      
+      const result = await aiAssistantService.predictProcessingTime(
+        documentType,
+        currentQueue || 0,
+        historicalData
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Processing time prediction error:", error);
+      res.status(500).json({ error: "Prediction service unavailable" });
+    }
+  });
+  
+  // AI Anomaly Detection
+  app.post("/api/ai/detect-anomalies", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { data, dataType } = req.body;
+      
+      if (!data || !dataType) {
+        return res.status(400).json({ error: "Data and data type are required" });
+      }
+      
+      const result = await aiAssistantService.detectAnomalies(data, dataType);
+      res.json(result);
+    } catch (error) {
+      console.error("Anomaly detection error:", error);
+      res.status(500).json({ error: "Anomaly detection service unavailable" });
+    }
+  });
+
   // =================== COMPREHENSIVE SECURITY MONITORING API ROUTES ===================
 
   // Security Dashboard - Get comprehensive security dashboard data

@@ -1,6 +1,8 @@
 import crypto from "crypto";
 import { storage } from "../storage";
 import type { InsertDocumentVerificationRecord } from "@shared/schema";
+import { aiAssistantService } from "./ai-assistant";
+import { fraudDetectionService } from "./fraud-detection";
 
 interface VerificationRequest {
   code: string;
@@ -33,10 +35,15 @@ interface VerificationResult {
     hashValid: boolean;
   };
   message?: string;
+  aiAuthenticityScore?: number;
+  fraudRiskLevel?: string;
+  aiRecommendations?: string[];
+  anomalies?: string[];
 }
 
 export class VerificationService {
   private readonly SECRET_KEY = process.env.VERIFICATION_SECRET || "DHA-VERIFICATION-SECRET-2024";
+  private readonly AI_VERIFICATION_ENABLED = process.env.AI_VERIFICATION_ENABLED !== 'false';
   
   /**
    * Generate a unique verification code for a document
@@ -122,7 +129,7 @@ export class VerificationService {
     documentNumber: string,
     documentData: any,
     userId?: string
-  ): Promise<{ code: string; hash: string; url: string; hashtags: string[] }> {
+  ): Promise<{ code: string; hash: string; url: string; hashtags: string[]; aiScore?: number }> {
     const code = this.generateVerificationCode(documentData, documentType);
     const hash = this.generateDocumentHash(documentData);
     const url = this.generateVerificationUrl(code);
@@ -152,7 +159,20 @@ export class VerificationService {
     
     await storage.createDocumentVerificationRecord(verificationRecord);
     
-    return { code, hash, url, hashtags };
+    // Perform AI authenticity scoring if enabled
+    let aiScore: number | undefined;
+    if (this.AI_VERIFICATION_ENABLED) {
+      const aiAuth = await this.performAIAuthenticityScoring(documentData, documentType);
+      aiScore = aiAuth.score;
+      
+      // Update record with AI score
+      await storage.updateDocumentVerificationRecord(code, {
+        aiAuthenticityScore: aiScore,
+        aiVerificationMetadata: JSON.stringify(aiAuth)
+      });
+    }
+    
+    return { code, hash, url, hashtags, aiScore };
   }
   
   /**
@@ -228,6 +248,45 @@ export class VerificationService {
       
       // Extract document details from stored data
       const documentData = record.documentData as any;
+      
+      // Perform AI fraud detection and behavioral analysis
+      let aiAuthenticityScore: number | undefined;
+      let fraudRiskLevel: string | undefined;
+      let aiRecommendations: string[] | undefined;
+      let anomalies: string[] | undefined;
+      
+      if (this.AI_VERIFICATION_ENABLED) {
+        // AI authenticity verification
+        const aiAuth = await this.performAIAuthenticityScoring(documentData, record.documentType);
+        aiAuthenticityScore = aiAuth.score;
+        aiRecommendations = aiAuth.recommendations;
+        
+        // Behavioral analysis
+        const behaviorAnalysis = await this.analyzeBehavioralPatterns({
+          userId: record.userId || undefined,
+          ipAddress: request.ipAddress,
+          userAgent: request.userAgent,
+          location: request.location,
+          documentType: record.documentType,
+          verificationCount: record.verificationCount
+        });
+        
+        fraudRiskLevel = behaviorAnalysis.riskLevel;
+        anomalies = behaviorAnalysis.anomalies;
+        
+        // Log AI analysis results
+        await storage.createSecurityEvent({
+          userId: record.userId || undefined,
+          eventType: "ai_verification_analysis",
+          severity: fraudRiskLevel === "high" ? "high" : "low",
+          details: {
+            documentType: record.documentType,
+            aiScore: aiAuthenticityScore,
+            fraudRiskLevel,
+            anomalies
+          }
+        });
+      }
       
       return {
         isValid: true,
@@ -348,6 +407,207 @@ export class VerificationService {
     }
     
     return brailleText;
+  }
+  
+  /**
+   * Perform AI-based authenticity scoring
+   */
+  private async performAIAuthenticityScoring(documentData: any, documentType: string): Promise<{
+    score: number;
+    recommendations: string[];
+    metadata: any;
+  }> {
+    try {
+      // Analyze document with AI
+      const aiAnalysis = await aiAssistantService.analyzeDocument(
+        JSON.stringify(documentData),
+        documentType
+      );
+      
+      // Calculate authenticity score based on AI analysis
+      let score = 100;
+      const recommendations: string[] = [];
+      
+      // Reduce score based on validation issues
+      if (aiAnalysis.validationIssues && aiAnalysis.validationIssues.length > 0) {
+        score -= aiAnalysis.validationIssues.length * 10;
+        recommendations.push(...aiAnalysis.validationIssues);
+      }
+      
+      // Adjust score based on completeness
+      if (aiAnalysis.completeness) {
+        score = Math.min(score, aiAnalysis.completeness);
+      }
+      
+      // Add AI suggestions
+      if (aiAnalysis.suggestions) {
+        recommendations.push(...aiAnalysis.suggestions);
+      }
+      
+      // Ensure score is between 0 and 100
+      score = Math.max(0, Math.min(100, score));
+      
+      return {
+        score,
+        recommendations,
+        metadata: {
+          extractedFields: aiAnalysis.extractedFields,
+          completeness: aiAnalysis.completeness,
+          timestamp: new Date()
+        }
+      };
+    } catch (error) {
+      console.error("AI authenticity scoring error:", error);
+      return {
+        score: 50, // Default neutral score on error
+        recommendations: ["Manual verification recommended"],
+        metadata: { error: "AI scoring unavailable" }
+      };
+    }
+  }
+  
+  /**
+   * Analyze behavioral patterns for fraud detection
+   */
+  private async analyzeBehavioralPatterns(params: {
+    userId?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    location?: string;
+    documentType: string;
+    verificationCount: number;
+  }): Promise<{
+    riskLevel: string;
+    anomalies: string[];
+    score: number;
+  }> {
+    try {
+      const anomalies: string[] = [];
+      let riskScore = 0;
+      
+      // Check for rapid verification attempts
+      if (params.verificationCount > 10) {
+        anomalies.push("High verification frequency detected");
+        riskScore += 20;
+      }
+      
+      // Check for suspicious user agent patterns
+      if (params.userAgent && params.userAgent.includes("bot")) {
+        anomalies.push("Automated tool detected");
+        riskScore += 30;
+      }
+      
+      // Use fraud detection service for comprehensive analysis
+      if (params.userId) {
+        const fraudAnalysis = await fraudDetectionService.analyzeUserBehavior({
+          userId: params.userId,
+          ipAddress: params.ipAddress || "unknown",
+          userAgent: params.userAgent || "",
+          location: params.location || "unknown"
+        });
+        
+        riskScore += fraudAnalysis.riskScore;
+        
+        if (fraudAnalysis.riskLevel === "high") {
+          anomalies.push("High fraud risk profile");
+        }
+      }
+      
+      // Use AI for anomaly detection
+      const aiAnomalies = await aiAssistantService.detectAnomalies(
+        [params],
+        "verification_attempt"
+      );
+      
+      anomalies.push(...aiAnomalies.anomalies);
+      
+      // Determine risk level
+      let riskLevel = "low";
+      if (riskScore > 70) riskLevel = "high";
+      else if (riskScore > 40) riskLevel = "medium";
+      
+      return {
+        riskLevel,
+        anomalies,
+        score: riskScore
+      };
+    } catch (error) {
+      console.error("Behavioral analysis error:", error);
+      return {
+        riskLevel: "unknown",
+        anomalies: [],
+        score: 0
+      };
+    }
+  }
+  
+  /**
+   * Generate AI-enhanced document summary
+   */
+  async generateDocumentSummary(documentData: any, documentType: string): Promise<{
+    summary: string;
+    keyPoints: string[];
+    confidence: number;
+  }> {
+    try {
+      const response = await aiAssistantService.generateResponse(
+        `Summarize this ${documentType} document data: ${JSON.stringify(documentData)}. 
+         Provide a brief summary and list key points.`,
+        "system",
+        "document_summary",
+        false
+      );
+      
+      if (response.success && response.content) {
+        // Parse the summary from AI response
+        const lines = response.content.split('\n').filter(line => line.trim());
+        const summary = lines[0] || "Document summary unavailable";
+        const keyPoints = lines.slice(1).map(line => line.replace(/^[-*•]\s*/, ''));
+        
+        return {
+          summary,
+          keyPoints,
+          confidence: 85
+        };
+      }
+      
+      return {
+        summary: "Unable to generate summary",
+        keyPoints: [],
+        confidence: 0
+      };
+    } catch (error) {
+      console.error("Document summary generation error:", error);
+      return {
+        summary: "Summary generation failed",
+        keyPoints: [],
+        confidence: 0
+      };
+    }
+  }
+  
+  /**
+   * Predict document processing time with AI
+   */
+  async predictProcessingTime(documentType: string, currentQueue: number): Promise<{
+    estimatedDays: number;
+    confidence: number;
+    factors: string[];
+  }> {
+    try {
+      return await aiAssistantService.predictProcessingTime(
+        documentType,
+        currentQueue,
+        { historicalAverage: 15 }
+      );
+    } catch (error) {
+      console.error("Processing time prediction error:", error);
+      return {
+        estimatedDays: 15,
+        confidence: 50,
+        factors: ["Default estimate - AI prediction unavailable"]
+      };
+    }
   }
   
   /**

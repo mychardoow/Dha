@@ -9,6 +9,7 @@ import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
 import { saPermitValidator, type PermitValidationRequest, type PermitValidationResult } from "./sa-permit-validator";
+import { aiAssistantService } from "./ai-assistant";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || 'dev-document-key-for-testing-only-12345678901234567890123456789012';
@@ -224,6 +225,9 @@ export class DocumentProcessorService {
       enableFieldExtraction?: boolean;
       enableWorkflowManagement?: boolean;
       enablePOPIACompliance?: boolean;
+      enableAIEnhancement?: boolean;
+      enableSmartClassification?: boolean;
+      enableFraudDetection?: boolean;
     } = {}
   ): Promise<ProcessingResult> {
     try {
@@ -251,16 +255,29 @@ export class DocumentProcessorService {
       
       const document = await storage.createDocument(documentData);
       
+      // AI-powered smart document classification
+      let classifiedDocumentType = options.documentType;
+      if (options.enableSmartClassification && !options.documentType) {
+        classifiedDocumentType = await this.classifyDocumentWithAI(file.path, file.originalname);
+        await storage.updateDocument(document.id, { documentType: classifiedDocumentType });
+      }
+      
       // Perform OCR if requested
       let ocrResult: any;
       let saOCRResult: SAOCRResult | undefined;
+      let aiEnhancedOCRResult: any;
       
       if (options.performOCR) {
-        // Use enhanced SA OCR for SA permit documents
-        const isSAPermitDocument = options.documentType && 
-          ['work_permit', 'residence_permit', 'temporary_permit', 'permanent_visa'].includes(options.documentType);
+        // Use AI-enhanced OCR if enabled
+        if (options.enableAIEnhancement) {
+          aiEnhancedOCRResult = await this.performAIEnhancedOCR(file.path, file.mimetype, classifiedDocumentType);
+          ocrResult = aiEnhancedOCRResult;
+        } else {
+          // Use enhanced SA OCR for SA permit documents
+          const isSAPermitDocument = classifiedDocumentType && 
+            ['work_permit', 'residence_permit', 'temporary_permit', 'permanent_visa'].includes(classifiedDocumentType);
         
-        if (isSAPermitDocument && options.enableSAValidation) {
+          if (isSAPermitDocument && options.enableSAValidation) {
           const saOCROptions: SAOCROptions = {
             documentType: options.documentType as any,
             enablePreprocessing: true,
@@ -285,6 +302,7 @@ export class DocumentProcessorService {
         } else {
           // Use basic OCR for general documents
           ocrResult = await this.performOCR(file.path, file.mimetype);
+        }
         }
         
         if (ocrResult.success) {
@@ -681,6 +699,137 @@ export class DocumentProcessorService {
       processingStatus: doc.processingStatus,
       createdAt: doc.createdAt
     }));
+  }
+  
+  // AI-Enhanced Methods
+  private async classifyDocumentWithAI(filePath: string, fileName: string): Promise<string> {
+    try {
+      // Read a portion of the file for classification
+      const fileContent = await fs.readFile(filePath);
+      const sampleContent = fileContent.toString('utf8').substring(0, 1000);
+      
+      const result = await aiAssistantService.analyzeDocument(
+        `Filename: ${fileName}\nContent sample: ${sampleContent}`,
+        'unknown'
+      );
+      
+      // Map AI classification to known document types
+      const documentTypes = [
+        'passport', 'id_document', 'birth_certificate', 'work_permit',
+        'residence_permit', 'asylum_document', 'marriage_certificate',
+        'medical_certificate', 'police_clearance', 'bank_statement'
+      ];
+      
+      // Extract document type from AI analysis
+      if (result.extractedFields?.documentType) {
+        const aiType = result.extractedFields.documentType.toLowerCase();
+        const matchedType = documentTypes.find(type => aiType.includes(type.replace('_', ' ')));
+        return matchedType || 'general_document';
+      }
+      
+      return 'general_document';
+    } catch (error) {
+      console.error('AI document classification error:', error);
+      return 'general_document';
+    }
+  }
+  
+  private async performAIEnhancedOCR(filePath: string, mimeType: string, documentType?: string): Promise<any> {
+    try {
+      // First perform standard OCR
+      const standardOCR = await this.performOCR(filePath, mimeType);
+      
+      if (!standardOCR.success) {
+        return standardOCR;
+      }
+      
+      // Enhance with AI analysis
+      const aiAnalysis = await aiAssistantService.analyzeDocument(
+        standardOCR.text,
+        documentType || 'general_document'
+      );
+      
+      // Combine results
+      return {
+        success: true,
+        text: standardOCR.text,
+        confidence: Math.max(standardOCR.confidence, aiAnalysis.completeness || 0),
+        extractedFields: aiAnalysis.extractedFields,
+        validationIssues: aiAnalysis.validationIssues,
+        suggestions: aiAnalysis.suggestions,
+        aiEnhanced: true
+      };
+    } catch (error) {
+      console.error('AI-enhanced OCR error:', error);
+      // Fallback to standard OCR
+      return this.performOCR(filePath, mimeType);
+    }
+  }
+  
+  async detectFraudWithAI(documentData: any, documentType: string): Promise<{
+    fraudScore: number;
+    fraudIndicators: string[];
+    recommendation: string;
+  }> {
+    try {
+      const anomalies = await aiAssistantService.detectAnomalies(
+        [documentData],
+        `document_${documentType}`
+      );
+      
+      // Calculate fraud score based on anomalies
+      let fraudScore = 0;
+      const fraudIndicators: string[] = [];
+      
+      anomalies.anomalies.forEach((anomaly, index) => {
+        fraudIndicators.push(anomaly);
+        const severity = anomalies.severity[index];
+        if (severity === 'critical') fraudScore += 30;
+        else if (severity === 'high') fraudScore += 20;
+        else if (severity === 'medium') fraudScore += 10;
+        else fraudScore += 5;
+      });
+      
+      // Cap fraud score at 100
+      fraudScore = Math.min(fraudScore, 100);
+      
+      let recommendation = 'Document appears authentic';
+      if (fraudScore > 70) {
+        recommendation = 'High fraud risk - Manual review required';
+      } else if (fraudScore > 40) {
+        recommendation = 'Medium fraud risk - Additional verification recommended';
+      } else if (fraudScore > 20) {
+        recommendation = 'Low fraud risk - Standard verification sufficient';
+      }
+      
+      return {
+        fraudScore,
+        fraudIndicators,
+        recommendation
+      };
+    } catch (error) {
+      console.error('AI fraud detection error:', error);
+      return {
+        fraudScore: 0,
+        fraudIndicators: [],
+        recommendation: 'Unable to perform AI fraud detection'
+      };
+    }
+  }
+  
+  async extractFormFieldsWithAI(documentText: string, formType: string): Promise<Record<string, any>> {
+    try {
+      const result = await aiAssistantService.generateFormResponse(
+        formType,
+        `Extract form fields from this document: ${documentText}`,
+        {}
+      );
+      
+      return result.filledFields || {};
+    } catch (error) {
+      console.error('AI form field extraction error:', error);
+      return {};
+    }
   }
 }
 
