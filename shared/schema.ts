@@ -876,9 +876,6 @@ export type InsertPermitStatusChange = z.infer<typeof insertPermitStatusChangeSc
 export type DocumentVerificationStatus = typeof documentVerificationStatus.$inferSelect;
 export type InsertDocumentVerificationStatus = z.infer<typeof insertDocumentVerificationStatusSchema>;
 
-export type DocumentVerificationHistory = typeof documentVerificationHistory.$inferSelect;
-export type InsertDocumentVerificationHistory = z.infer<typeof insertDocumentVerificationHistorySchema>;
-
 // ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
 
 // DHA Applicants - Personal details and citizenship information
