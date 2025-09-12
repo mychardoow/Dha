@@ -5,10 +5,15 @@ import { storage } from "../storage";
 import type { User } from "@shared/schema";
 import { privacyProtectionService } from "../services/privacy-protection";
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
-}
+const JWT_SECRET = (() => {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
+  }
+  return 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
+})();
 
 // Type for authenticated user in request object (excludes sensitive fields)
 export type AuthenticatedUser = {
@@ -82,7 +87,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       username: user.username,
       email: user.email,
       role: user.role
-    };
+    } as AuthenticatedUser;
 
     // Log authentication event
     const securityEvent = {
@@ -118,7 +123,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const user = req.user;
+    const user = req.user as AuthenticatedUser | undefined;
     
     if (!user) {
       return res.status(401).json({ 

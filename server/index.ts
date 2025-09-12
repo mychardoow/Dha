@@ -1,8 +1,60 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 
 const app = express();
+
+// Configure session store with PostgreSQL
+const pgStore = connectPgSimple(session);
+const sessionConfig = {
+  store: new pgStore({
+    pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true,
+  }),
+  secret: process.env.SESSION_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL: SESSION_SECRET environment variable is required in production');
+    }
+    return 'dev-session-secret-for-testing-only-12345678901234567890123456789012';
+  })(),
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'strict' as const
+  },
+  name: 'dha_session',
+};
+
+// Apply session middleware
+app.use(session(sessionConfig));
+
+// Configure CORS
+const corsOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5000'];
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && corsOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -43,13 +95,18 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    console.error("Server error:", {
-      status,
-      message,
-      stack: err.stack,
-      url: _req.url,
-      method: _req.method
-    });
+    // Use structured logging in production
+    if (process.env.NODE_ENV === 'production') {
+      log(`Server error: ${status} - ${message} [${_req.method} ${_req.url}]`, 'error');
+    } else {
+      console.error("Server error:", {
+        status,
+        message,
+        stack: err.stack,
+        url: _req.url,
+        method: _req.method
+      });
+    }
 
     res.status(status).json({ 
       error: message,
