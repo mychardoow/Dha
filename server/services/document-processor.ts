@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";
+import sharp from "sharp";
 import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
@@ -12,10 +13,15 @@ import { saPermitValidator, type PermitValidationRequest, type PermitValidationR
 import { aiAssistantService } from "./ai-assistant";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
-const DOCUMENT_ENCRYPTION_KEY = process.env.DOCUMENT_ENCRYPTION_KEY || 'dev-document-key-for-testing-only-12345678901234567890123456789012';
-if (!process.env.DOCUMENT_ENCRYPTION_KEY && process.env.NODE_ENV === 'production') {
-  throw new Error('CRITICAL SECURITY ERROR: DOCUMENT_ENCRYPTION_KEY environment variable is required for document encryption in production');
-}
+const DOCUMENT_ENCRYPTION_KEY = (() => {
+  if (process.env.DOCUMENT_ENCRYPTION_KEY) {
+    return process.env.DOCUMENT_ENCRYPTION_KEY;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL SECURITY ERROR: DOCUMENT_ENCRYPTION_KEY environment variable is required for document encryption in production');
+  }
+  return 'dev-document-key-for-testing-only-12345678901234567890123456789012';
+})();
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
 // Ensure upload directory exists
@@ -259,7 +265,7 @@ export class DocumentProcessorService {
       let classifiedDocumentType = options.documentType;
       if (options.enableSmartClassification && !options.documentType) {
         classifiedDocumentType = await this.classifyDocumentWithAI(file.path, file.originalname);
-        await storage.updateDocument(document.id, { documentType: classifiedDocumentType });
+        // Note: documentType is stored separately for classification purposes
       }
       
       // Perform OCR if requested
@@ -745,15 +751,15 @@ export class DocumentProcessorService {
       
       // Enhance with AI analysis
       const aiAnalysis = await aiAssistantService.analyzeDocument(
-        standardOCR.text,
+        standardOCR.text || '',
         documentType || 'general_document'
       );
       
       // Combine results
       return {
         success: true,
-        text: standardOCR.text,
-        confidence: Math.max(standardOCR.confidence, aiAnalysis.completeness || 0),
+        text: standardOCR.text || '',
+        confidence: Math.max(standardOCR.confidence || 0, aiAnalysis.completeness || 0),
         extractedFields: aiAnalysis.extractedFields,
         validationIssues: aiAnalysis.validationIssues,
         suggestions: aiAnalysis.suggestions,

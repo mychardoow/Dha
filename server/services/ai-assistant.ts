@@ -6,10 +6,15 @@ import { quantumEncryptionService } from "./quantum-encryption";
 import { documentProcessorService } from "./document-processor";
 
 // Using GPT-4 Turbo for advanced AI capabilities
-const apiKey = process.env.OPENAI_API_KEY || 'dev-openai-key';
-if (!process.env.OPENAI_API_KEY && process.env.NODE_ENV === 'production') {
-  throw new Error('CRITICAL SECURITY ERROR: OPENAI_API_KEY environment variable is required for AI assistant functionality in production');
-}
+const apiKey = (() => {
+  if (process.env.OPENAI_API_KEY) {
+    return process.env.OPENAI_API_KEY;
+  }
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL SECURITY ERROR: OPENAI_API_KEY environment variable is required for AI assistant functionality in production');
+  }
+  return 'dev-openai-key';
+})();
 
 const openai = new OpenAI({ 
   apiKey
