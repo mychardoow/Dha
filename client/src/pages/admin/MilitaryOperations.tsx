@@ -405,7 +405,7 @@ export default function MilitaryOperations() {
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[300px]">
-                  {incidents && incidents.length > 0 ? (
+                  {incidents && Array.isArray(incidents) && incidents.length > 0 ? (
                     <div className="space-y-2">
                       {incidents.map((incident: any) => (
                         <div 
@@ -513,7 +513,7 @@ export default function MilitaryOperations() {
                   </div>
                   <p className="text-sm text-gray-600 mt-2">violations in the last 24 hours</p>
                 </div>
-                {metrics?.accessControl.accessViolations > 0 && (
+                {(metrics?.accessControl.accessViolations ?? 0) > 0 && (
                   <Alert className="mt-4">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
@@ -641,7 +641,7 @@ export default function MilitaryOperations() {
             </CardHeader>
             <CardContent>
               <ScrollArea className="h-[400px]">
-                {threatIntel && threatIntel.length > 0 ? (
+                {threatIntel && Array.isArray(threatIntel) && threatIntel.length > 0 ? (
                   <div className="space-y-3">
                     {threatIntel.map((intel: any) => (
                       <div key={intel.id} className="border-l-4 border-blue-500 pl-4 py-2">
