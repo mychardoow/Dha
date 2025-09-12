@@ -5,7 +5,7 @@ import { fraudDetectionService } from "./fraud-detection";
 import { quantumEncryptionService } from "./quantum-encryption";
 import { documentProcessorService } from "./document-processor";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Using GPT-4 Turbo for advanced AI capabilities
 const apiKey = process.env.OPENAI_API_KEY || 'dev-openai-key';
 if (!process.env.OPENAI_API_KEY && process.env.NODE_ENV === 'production') {
   throw new Error('CRITICAL SECURITY ERROR: OPENAI_API_KEY environment variable is required for AI assistant functionality in production');
@@ -69,7 +69,7 @@ export class AIAssistantService {
       ];
 
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages,
         max_tokens: 2000,
         temperature: 0.7,
@@ -108,7 +108,7 @@ export class AIAssistantService {
         suggestions,
         actionItems,
         metadata: {
-          model: "gpt-5",
+          model: "gpt-4-turbo-preview",
           contextUsed: context,
           timestamp: new Date()
         }
@@ -147,7 +147,7 @@ export class AIAssistantService {
       ];
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages,
         max_tokens: 2000,
         temperature: 0.7,
@@ -181,7 +181,7 @@ export class AIAssistantService {
         success: true,
         content: fullContent,
         metadata: {
-          model: "gpt-5",
+          model: "gpt-4-turbo-preview",
           contextUsed: context,
           timestamp: new Date(),
           streamed: true
@@ -349,7 +349,7 @@ Answer the user's question based on the current system state and your security e
   async generateTitle(firstMessage: string): Promise<string> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -378,7 +378,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ success: boolean; translatedText?: string; detectedLanguage?: string; error?: string }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -422,7 +422,7 @@ Answer the user's question based on the current system state and your security e
   }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -471,7 +471,7 @@ Answer the user's question based on the current system state and your security e
       const baseRequirements = this.documentRequirements[documentType as keyof typeof this.documentRequirements] || [];
       
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -513,7 +513,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ success: boolean; response?: string; filledFields?: Record<string, any>; error?: string }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -547,7 +547,7 @@ Answer the user's question based on the current system state and your security e
   private async extractSuggestions(content: string, userQuery: string): Promise<string[]> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -574,7 +574,7 @@ Answer the user's question based on the current system state and your security e
   private async extractActionItems(content: string): Promise<string[]> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -605,7 +605,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ estimatedDays: number; confidence: number; factors: string[] }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -638,7 +638,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ anomalies: any[]; severity: string[]; recommendations: string[] }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
@@ -672,7 +672,7 @@ Answer the user's question based on the current system state and your security e
   }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "gpt-4-turbo-preview",
         messages: [
           {
             role: "system",
