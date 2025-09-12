@@ -657,8 +657,8 @@ class DisasterRecoveryService extends EventEmitter {
 
   private getLastFullBackup(): RecoveryPoint | null {
     // Find the most recent full backup
-    for (const points of this.recoveryPoints.values()) {
-      const fullBackups = points.filter(p => p.type === 'full');
+    for (const points of Array.from(this.recoveryPoints.values())) {
+      const fullBackups = points.filter((p: RecoveryPoint) => p.type === 'full');
       if (fullBackups.length > 0) {
         return fullBackups[fullBackups.length - 1];
       }
@@ -685,8 +685,8 @@ class DisasterRecoveryService extends EventEmitter {
   }
 
   private findRecoveryPoint(id: string): RecoveryPoint | null {
-    for (const points of this.recoveryPoints.values()) {
-      const point = points.find(p => p.id === id);
+    for (const points of Array.from(this.recoveryPoints.values())) {
+      const point = points.find((p: RecoveryPoint) => p.id === id);
       if (point) return point;
     }
     return null;
@@ -774,7 +774,7 @@ class DisasterRecoveryService extends EventEmitter {
 
   private async performFailoverHealthChecks(): Promise<void> {
     // Perform health checks for failover readiness
-    for (const [service, config] of this.failoverConfigs) {
+    for (const [service, config] of Array.from(this.failoverConfigs)) {
       const health = await this.checkServiceHealth(config.primary);
       if (!health.healthy) {
         // Consider automatic failover

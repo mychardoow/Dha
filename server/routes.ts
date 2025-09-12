@@ -79,11 +79,21 @@ import { icaoPkdIntegration } from "./services/icao-pkd-integration";
 import { sapsIntegration } from "./services/saps-integration";
 import { nprIntegration } from "./services/npr-integration";
 import { productionReadiness } from "./services/production-readiness";
+import { governmentSecurityService } from "./services/government-security";
+import { EnterpriseMonitoringService } from "./services/enterprise-monitoring";
+import { DisasterRecoveryService } from "./services/disaster-recovery";
+import { complianceAuditService } from "./services/compliance-audit";
+import { enterpriseCacheService } from "./services/enterprise-cache";
+import { highAvailabilityService } from "./services/high-availability";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize DHA workflow engine
   const dhaWorkflowEngine = new DHAWorkflowEngine();
+  
+  // Initialize government-grade services
+  const enterpriseMonitoring = new EnterpriseMonitoringService();
+  const disasterRecovery = new DisasterRecoveryService();
 
   // Apply security middleware
   app.use(securityHeaders);
@@ -102,6 +112,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || "development",
       version: "1.0.0"
     });
+  });
+  
+  // Government Operations API Endpoints
+  app.get("/api/admin/government-operations/metrics", authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+    try {
+      const metrics = {
+        security: governmentSecurityService.getMetrics(),
+        monitoring: enterpriseMonitoring.getMetrics(),
+        disasterRecovery: disasterRecovery.getMetrics(),
+        compliance: complianceAuditService.getMetrics(),
+        cache: enterpriseCacheService.getStats(),
+        highAvailability: highAvailabilityService.getMetrics()
+      };
+      res.json(metrics);
+    } catch (error) {
+      console.error('[Government Operations] Error fetching metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch government operations metrics' });
+    }
+  });
+  
+  app.get("/api/admin/government-operations/security/incidents", authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+    try {
+      const incidents = await governmentSecurityService.getIncidents(100);
+      res.json(incidents);
+    } catch (error) {
+      console.error('[Government Operations] Error fetching incidents:', error);
+      res.status(500).json({ error: 'Failed to fetch security incidents' });
+    }
+  });
+  
+  app.get("/api/admin/government-operations/compliance/report", authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+    try {
+      const framework = req.query.framework as string || 'POPIA';
+      const report = await complianceAuditService.generateComplianceReport(
+        framework as any,
+        {
+          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          end: new Date()
+        }
+      );
+      res.json(report);
+    } catch (error) {
+      console.error('[Government Operations] Error generating compliance report:', error);
+      res.status(500).json({ error: 'Failed to generate compliance report' });
+    }
+  });
+  
+  app.post("/api/admin/government-operations/disaster-recovery/backup", authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+    try {
+      const backupId = await disasterRecovery.createBackup('manual', req.body.description || 'Manual backup');
+      res.json({ success: true, backupId });
+    } catch (error) {
+      console.error('[Government Operations] Error creating backup:', error);
+      res.status(500).json({ error: 'Failed to create backup' });
+    }
+  });
+  
+  app.post("/api/admin/government-operations/high-availability/failover/test", authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+    try {
+      const result = await highAvailabilityService.testFailover();
+      res.json({ success: result });
+    } catch (error) {
+      console.error('[Government Operations] Error testing failover:', error);
+      res.status(500).json({ error: 'Failed to test failover' });
+    }
   });
 
   // Registration

@@ -23,6 +23,7 @@ const DocumentManagement = lazy(() => import("./pages/admin/DocumentManagement")
 const SecurityCenter = lazy(() => import("./pages/admin/SecurityCenter"));
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring"));
 const AIAnalytics = lazy(() => import("./pages/admin/AIAnalytics"));
+const GovernmentOperations = lazy(() => import("./pages/admin/GovernmentOperations"));
 
 // Loading fallback component for admin routes
 function AdminLoadingFallback() {
@@ -95,6 +96,13 @@ function App() {
               <AdminGuard>
                 <Suspense fallback={<AdminLoadingFallback />}>
                   <AIAnalytics />
+                </Suspense>
+              </AdminGuard>
+            </Route>
+            <Route path="/admin/government-operations">
+              <AdminGuard>
+                <Suspense fallback={<AdminLoadingFallback />}>
+                  <GovernmentOperations />
                 </Suspense>
               </AdminGuard>
             </Route>
