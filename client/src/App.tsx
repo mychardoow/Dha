@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -12,6 +12,9 @@ import DocumentVerificationPage from "./pages/verify";
 import NotFoundPage from "./pages/not-found";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
+import AIChatAssistant from "./components/AIChatAssistant";
+import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -19,6 +22,7 @@ const UserManagement = lazy(() => import("./pages/admin/UserManagement"));
 const DocumentManagement = lazy(() => import("./pages/admin/DocumentManagement"));
 const SecurityCenter = lazy(() => import("./pages/admin/SecurityCenter"));
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring"));
+const AIAnalytics = lazy(() => import("./pages/admin/AIAnalytics"));
 
 // Loading fallback component for admin routes
 function AdminLoadingFallback() {
@@ -34,6 +38,8 @@ function AdminLoadingFallback() {
 }
 
 function App() {
+  const [showAIChat, setShowAIChat] = useState(false);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
@@ -85,10 +91,37 @@ function App() {
                 </Suspense>
               </AdminGuard>
             </Route>
+            <Route path="/admin/ai-analytics">
+              <AdminGuard>
+                <Suspense fallback={<AdminLoadingFallback />}>
+                  <AIAnalytics />
+                </Suspense>
+              </AdminGuard>
+            </Route>
             
             <Route component={NotFoundPage} />
           </Switch>
         </div>
+        
+        {/* Floating AI Chat Assistant */}
+        {showAIChat && (
+          <AIChatAssistant
+            embedded={true}
+            onMinimize={() => setShowAIChat(false)}
+          />
+        )}
+        
+        {/* Floating AI Chat Button */}
+        {!showAIChat && (
+          <Button
+            className="fixed bottom-4 right-4 rounded-full h-14 w-14 shadow-lg z-40"
+            onClick={() => setShowAIChat(true)}
+            data-testid="button-open-ai-chat"
+          >
+            <MessageSquare className="h-6 w-6" />
+          </Button>
+        )}
+        
         <Toaster />
       </ErrorBoundary>
     </QueryClientProvider>
