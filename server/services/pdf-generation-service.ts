@@ -33,7 +33,20 @@ export enum DocumentType {
   BIRTH_CERTIFICATE = "birth_certificate",
   PASSPORT = "passport",
   REFUGEE_PERMIT = "refugee_permit",
-  STUDY_PERMIT = "study_permit"
+  STUDY_PERMIT = "study_permit",
+  VISITOR_VISA = "visitor_visa", // DHA-84
+  TEMPORARY_RESIDENCE = "temporary_residence", // DHA-1738
+  GENERAL_WORK = "general_work", // BI-947
+  MEDICAL_CERTIFICATE = "medical_certificate",
+  RADIOLOGICAL_REPORT = "radiological_report",
+  CRITICAL_SKILLS = "critical_skills",
+  BUSINESS_VISA = "business_visa",
+  RELATIVES_VISA = "relatives_visa",
+  EXCHANGE_VISA = "exchange_visa",
+  RETIREMENT_VISA = "retirement_visa",
+  TREATY_VISA = "treaty_visa",
+  CORPORATE_VISA = "corporate_visa",
+  INTRA_COMPANY_TRANSFER = "intra_company_transfer"
 }
 
 // Interfaces for document data
@@ -130,6 +143,335 @@ export interface PassportData {
   placeOfIssue: string;
   machineReadableZone?: string[];
   previousPassportNumber?: string;
+}
+
+// DHA-84 Form 11 - Visitor's/Transit Visa
+export interface VisitorVisaData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  visaType: "Visitor" | "Transit" | "Medical" | "Business";
+  purposeOfVisit: string;
+  intendedDateOfArrival: string;
+  intendedDateOfDeparture: string;
+  durationOfStay: string;
+  addressInSA: {
+    streetAddress: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    telephone: string;
+  };
+  homeCountryAddress: {
+    streetAddress: string;
+    city: string;
+    country: string;
+    postalCode: string;
+    telephone: string;
+    email: string;
+  };
+  sponsor?: {
+    name: string;
+    relationship: string;
+    address: string;
+    telephone: string;
+    idNumber?: string;
+  };
+  previousVisits?: Array<{
+    dateOfEntry: string;
+    dateOfDeparture: string;
+    purpose: string;
+  }>;
+  criminalRecord: boolean;
+  deportationHistory: boolean;
+  refusedEntry: boolean;
+  medicalConditions?: string[];
+  yellowFeverVaccination: boolean;
+  financialMeans: string;
+  bankStatements: boolean;
+  returnTicket: boolean;
+}
+
+// DHA-1738 Form 8 - Temporary Residence Permit
+export interface TemporaryResidenceData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  permitCategory: "Work" | "Study" | "Business" | "Relative" | "Retirement" | "Medical" | "Exchange" | "Treaty";
+  currentPermitNumber?: string;
+  currentPermitExpiry?: string;
+  purposeOfApplication: string;
+  intendedDuration: string;
+  addressInSA: {
+    streetAddress: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    telephone: string;
+    email: string;
+  };
+  employer?: {
+    name: string;
+    registrationNumber: string;
+    address: string;
+    telephone: string;
+    email: string;
+    contactPerson: string;
+  };
+  institution?: {
+    name: string;
+    address: string;
+    registrationNumber: string;
+    courseName: string;
+    duration: string;
+  };
+  spouse?: {
+    fullName: string;
+    idNumber?: string;
+    passportNumber?: string;
+    nationality: string;
+  };
+  dependents?: Array<{
+    fullName: string;
+    relationship: string;
+    dateOfBirth: string;
+    nationality: string;
+  }>;
+  financialGuarantee: string;
+  criminalRecord: boolean;
+  medicalReport: boolean;
+  radiologicalReport: boolean;
+  policeClearance: boolean;
+}
+
+// BI-947 General Work Permit
+export interface GeneralWorkPermitData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  employer: {
+    name: string;
+    registrationNumber: string;
+    address: string;
+    telephone: string;
+    fax?: string;
+    email: string;
+    contactPerson: string;
+    hrManager: string;
+  };
+  jobDetails: {
+    position: string;
+    department: string;
+    jobDescription: string;
+    requiredQualifications: string;
+    yearsOfExperience: number;
+    monthlySalary: string;
+    contractType: "Permanent" | "Fixed Term" | "Contract";
+    contractDuration?: string;
+  };
+  qualifications: Array<{
+    degree: string;
+    institution: string;
+    year: string;
+    country: string;
+  }>;
+  workExperience: Array<{
+    employer: string;
+    position: string;
+    duration: string;
+    responsibilities: string;
+  }>;
+  laborMarketTesting: {
+    advertised: boolean;
+    newspaperName?: string;
+    dateAdvertised?: string;
+    numberOfApplicants?: number;
+    reasonForForeignHire: string;
+  };
+  replacementPlan: {
+    hasplan: boolean;
+    trainingSAcitizen: boolean;
+    timeframe?: string;
+    details?: string;
+  };
+}
+
+// Medical Certificate Template
+export interface MedicalCertificateData {
+  certificateNumber: string;
+  patient: PersonalDetails;
+  doctor: {
+    fullName: string;
+    qualifications: string;
+    practiceNumber: string;
+    address: string;
+    telephone: string;
+  };
+  examinationDate: string;
+  medicalHistory: {
+    chronicConditions: string[];
+    currentMedications: string[];
+    allergies: string[];
+    previousSurgeries: string[];
+  };
+  physicalExamination: {
+    height: string;
+    weight: string;
+    bloodPressure: string;
+    heartRate: string;
+    generalHealth: "Excellent" | "Good" | "Fair" | "Poor";
+  };
+  tuberculosisScreening: {
+    tested: boolean;
+    testDate?: string;
+    result?: "Negative" | "Positive";
+    treatmentRequired?: boolean;
+  };
+  otherInfectiousDiseases: {
+    tested: boolean;
+    diseases?: string[];
+  };
+  mentalHealth: {
+    assessment: "Normal" | "Requires Further Evaluation";
+    details?: string;
+  };
+  fitnessForPurpose: {
+    fitForWork: boolean;
+    fitForStudy: boolean;
+    fitForResidence: boolean;
+    restrictions?: string[];
+  };
+  additionalNotes?: string;
+}
+
+// Radiological Report Template
+export interface RadiologicalReportData {
+  reportNumber: string;
+  patient: PersonalDetails;
+  radiologist: {
+    fullName: string;
+    qualifications: string;
+    practiceNumber: string;
+    facility: string;
+    address: string;
+  };
+  examinationDate: string;
+  examType: "Chest X-Ray" | "CT Scan" | "MRI" | "Other";
+  indication: string;
+  findings: {
+    lungs: {
+      normal: boolean;
+      abnormalities?: string[];
+    };
+    heart: {
+      normal: boolean;
+      size?: string;
+      abnormalities?: string[];
+    };
+    bones: {
+      normal: boolean;
+      abnormalities?: string[];
+    };
+    otherFindings?: string[];
+  };
+  tuberculosisScreening: {
+    signsOfActiveTB: boolean;
+    signsOfOldTB: boolean;
+    furtherTestingRequired: boolean;
+    details?: string;
+  };
+  impression: string;
+  recommendations: string[];
+}
+
+// Critical Skills Visa
+export interface CriticalSkillsData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  criticalSkillCategory: string;
+  qualifications: Array<{
+    degree: string;
+    field: string;
+    institution: string;
+    country: string;
+    year: string;
+    saricStatus?: string; // South African Qualifications Authority
+  }>;
+  professionalRegistration?: {
+    body: string;
+    registrationNumber: string;
+    validUntil: string;
+  };
+  experience: Array<{
+    employer: string;
+    position: string;
+    duration: string;
+    keyAchievements: string[];
+  }>;
+  jobOffer?: {
+    employer: string;
+    position: string;
+    salary: string;
+    startDate: string;
+  };
+  confirmationLetter: boolean;
+  motivationLetter: boolean;
+}
+
+// Business Visa
+export interface BusinessVisaData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  businessDetails: {
+    companyName: string;
+    registrationNumber: string;
+    businessType: string;
+    yearsInOperation: number;
+    annualTurnover: string;
+    numberOfEmployees: number;
+  };
+  purposeOfVisit: string;
+  businessActivities: string[];
+  investmentAmount?: string;
+  jobCreation?: {
+    numberOfJobs: number;
+    timeline: string;
+  };
+  businessPlan: boolean;
+  financialStatements: boolean;
+  taxClearance: boolean;
+  partners?: Array<{
+    name: string;
+    nationality: string;
+    shareholding: string;
+  }>;
+}
+
+// Retirement Visa
+export interface RetirementVisaData {
+  personal: PersonalDetails;
+  applicationNumber: string;
+  retirementIncome: {
+    monthlyPension: string;
+    otherIncome?: string;
+    totalMonthly: string;
+    currency: string;
+  };
+  netWorth: string;
+  propertyInSA?: {
+    owned: boolean;
+    address?: string;
+    value?: string;
+  };
+  dependents: Array<{
+    name: string;
+    relationship: string;
+    age: number;
+  }>;
+  healthInsurance: {
+    provider: string;
+    policyNumber: string;
+    coverage: string;
+  };
+  criminalRecord: boolean;
+  intendedAddress: string;
 }
 
 export class PDFGenerationService {
@@ -1861,6 +2203,1518 @@ export class PDFGenerationService {
   async generateRefugeePermitPDF(data: AsylumVisaData): Promise<Buffer> {
     // Similar to asylum visa but with refugee-specific content
     return this.generateAsylumVisaPDF(data);
+  }
+
+  /**
+   * Generate DHA-84 Visitor's/Transit Visa PDF (Form 11)
+   */
+  async generateVisitorVisaPDF(data: VisitorVisaData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `DHA-84 Visitor Visa - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Visitor/Transit Visa Application',
+            Keywords: 'DHA-84, Form 11, Visitor Visa, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Add multi-layer security features
+        const formNumber = `DHA-84/${new Date().getFullYear()}/${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
+        this.addMultiLayerSecurity(doc, 'DHA-84', formNumber);
+
+        // Header with official form number
+        this.addGovernmentHeader(doc, "REPUBLIC OF SOUTH AFRICA");
+        
+        // Form title and number
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('DEPARTMENT OF HOME AFFAIRS', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(16)
+           .text('APPLICATION FOR VISITOR\'S/TRANSIT VISA', 50, 120, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('(FORM 11 - REGULATION 9(1))', 50, 145, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 170)
+           .text(`Form No: ${formNumber}`, 400, 170);
+
+        // Section A: Personal Particulars
+        let yPos = 200;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION A: PERSONAL PARTICULARS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+
+        const personalFields = [
+          { label: 'Full Name:', value: data.personal.fullName },
+          { label: 'Surname:', value: data.personal.surname || '' },
+          { label: 'Given Names:', value: data.personal.givenNames || '' },
+          { label: 'Date of Birth:', value: data.personal.dateOfBirth },
+          { label: 'Country of Birth:', value: data.personal.countryOfBirth || '' },
+          { label: 'Nationality:', value: data.personal.nationality },
+          { label: 'Passport Number:', value: data.personal.passportNumber || '' },
+          { label: 'Gender:', value: data.personal.gender || '' },
+          { label: 'Marital Status:', value: data.personal.maritalStatus || '' }
+        ];
+
+        personalFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 150 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // Section B: Travel Information
+        yPos += 10;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION B: TRAVEL INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+
+        const travelFields = [
+          { label: 'Type of Visa:', value: data.visaType },
+          { label: 'Purpose of Visit:', value: data.purposeOfVisit },
+          { label: 'Intended Date of Arrival:', value: data.intendedDateOfArrival },
+          { label: 'Intended Date of Departure:', value: data.intendedDateOfDeparture },
+          { label: 'Duration of Stay:', value: data.durationOfStay },
+          { label: 'Return Ticket:', value: data.returnTicket ? 'Yes' : 'No' }
+        ];
+
+        travelFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 150 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // Address in South Africa
+        yPos += 10;
+        doc.fontSize(11)
+           .font('Helvetica-Bold')
+           .text('Address in South Africa:', 50, yPos);
+        yPos += 15;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(data.addressInSA.streetAddress, 50, yPos);
+        yPos += 15;
+        doc.text(`${data.addressInSA.city}, ${data.addressInSA.province} ${data.addressInSA.postalCode}`, 50, yPos);
+        yPos += 15;
+        doc.text(`Tel: ${data.addressInSA.telephone}`, 50, yPos);
+
+        // Add new page for additional sections
+        doc.addPage();
+        yPos = 50;
+
+        // Section C: Background/Security Questions
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION C: BACKGROUND QUESTIONS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+
+        const backgroundQuestions = [
+          { question: 'Do you have a criminal record?', answer: data.criminalRecord ? 'Yes' : 'No' },
+          { question: 'Have you ever been deported from any country?', answer: data.deportationHistory ? 'Yes' : 'No' },
+          { question: 'Have you ever been refused entry to any country?', answer: data.refusedEntry ? 'Yes' : 'No' }
+        ];
+
+        backgroundQuestions.forEach(item => {
+          doc.text(item.question, 50, yPos);
+          doc.font('Helvetica-Bold')
+             .text(item.answer, 400, yPos)
+             .font('Helvetica');
+          yPos += 20;
+        });
+
+        // Section D: Health Declaration
+        yPos += 10;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION D: HEALTH DECLARATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text('Yellow Fever Vaccination:', 50, yPos, { continued: true });
+        doc.font('Helvetica-Bold')
+           .text(` ${data.yellowFeverVaccination ? 'Yes' : 'No'}`, { width: 100 })
+           .font('Helvetica');
+        
+        if (data.medicalConditions && data.medicalConditions.length > 0) {
+          yPos += 20;
+          doc.text('Medical Conditions:', 50, yPos);
+          yPos += 15;
+          data.medicalConditions.forEach(condition => {
+            doc.text(`• ${condition}`, 70, yPos);
+            yPos += 15;
+          });
+        }
+
+        // Section E: Financial Status
+        yPos += 10;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION E: FINANCIAL STATUS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text('Proof of Financial Means:', 50, yPos, { continued: true });
+        doc.text(` ${data.financialMeans}`, { width: 350 });
+        yPos += 18;
+        doc.text('Bank Statements Attached:', 50, yPos, { continued: true });
+        doc.font('Helvetica-Bold')
+           .text(` ${data.bankStatements ? 'Yes' : 'No'}`)
+           .font('Helvetica');
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 420);
+        
+        // Add functional QR code with live verification
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'visitor_visa',
+          data.applicationNumber,
+          data,
+          430,
+          480
+        );
+        
+        // Add hashtags
+        this.addHashtagSection(doc, verification.hashtags, 50, 700);
+        
+        // Declaration section
+        yPos = 650;
+        doc.fontSize(10)
+           .font('Helvetica-Bold')
+           .text('DECLARATION', 50, yPos);
+        
+        yPos += 15;
+        doc.fontSize(9)
+           .font('Helvetica')
+           .text('I declare that the information furnished in this application is true and correct.', 50, yPos, { width: 500 });
+        
+        yPos += 30;
+        doc.text('Signature: _______________________', 50, yPos);
+        doc.text('Date: _______________________', 300, yPos);
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate DHA-1738 Temporary Residence Permit PDF (Form 8)
+   */
+  async generateTemporaryResidencePDF(data: TemporaryResidenceData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `DHA-1738 Temporary Residence - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Temporary Residence Permit Application',
+            Keywords: 'DHA-1738, Form 8, Temporary Residence, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Form number with category
+        const formNumber = `DHA-1738/${data.permitCategory}/${new Date().getFullYear()}/${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        this.addMultiLayerSecurity(doc, 'DHA-1738', formNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "TEMPORARY RESIDENCE PERMIT");
+
+        // Form title
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('APPLICATION FOR TEMPORARY RESIDENCE PERMIT', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('(FORM 8 - REGULATION 9(9))', 50, 125, { align: 'center', width: 515 });
+        
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.blue)
+           .text(`Category: ${data.permitCategory}`, 50, 150, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 175)
+           .text(`Form No: ${formNumber}`, 350, 175);
+
+        // Section A: Personal Particulars
+        let yPos = 210;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION A: PERSONAL PARTICULARS', 50, yPos);
+        
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Section B: Current Permit Status
+        if (data.currentPermitNumber) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('SECTION B: CURRENT PERMIT STATUS', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          doc.text(`Current Permit Number: ${data.currentPermitNumber}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Current Permit Expiry: ${data.currentPermitExpiry || 'N/A'}`, 50, yPos);
+          yPos += 25;
+        }
+
+        // Section C: Purpose and Duration
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION C: PURPOSE AND DURATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Purpose of Application: ${data.purposeOfApplication}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Intended Duration: ${data.intendedDuration}`, 50, yPos);
+        yPos += 25;
+
+        // Add page for employer/institution details
+        doc.addPage();
+        yPos = 50;
+
+        // Section D: Employer/Institution Details (conditional)
+        if (data.employer) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('SECTION D: EMPLOYER DETAILS', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          const employerFields = [
+            { label: 'Company Name:', value: data.employer.name },
+            { label: 'Registration No:', value: data.employer.registrationNumber },
+            { label: 'Address:', value: data.employer.address },
+            { label: 'Telephone:', value: data.employer.telephone },
+            { label: 'Email:', value: data.employer.email },
+            { label: 'Contact Person:', value: data.employer.contactPerson }
+          ];
+          
+          employerFields.forEach(field => {
+            doc.font('Helvetica-Bold')
+               .text(field.label, 50, yPos, { continued: true, width: 130 })
+               .font('Helvetica')
+               .text(` ${field.value}`, { width: 370 });
+            yPos += 18;
+          });
+          yPos += 10;
+        }
+
+        if (data.institution) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('SECTION D: INSTITUTION DETAILS', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          const institutionFields = [
+            { label: 'Institution Name:', value: data.institution.name },
+            { label: 'Address:', value: data.institution.address },
+            { label: 'Registration No:', value: data.institution.registrationNumber },
+            { label: 'Course:', value: data.institution.courseName },
+            { label: 'Duration:', value: data.institution.duration }
+          ];
+          
+          institutionFields.forEach(field => {
+            doc.font('Helvetica-Bold')
+               .text(field.label, 50, yPos, { continued: true, width: 130 })
+               .font('Helvetica')
+               .text(` ${field.value}`, { width: 370 });
+            yPos += 18;
+          });
+          yPos += 10;
+        }
+
+        // Section E: Supporting Documents
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION E: SUPPORTING DOCUMENTS CHECKLIST', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        const documents = [
+          { name: 'Police Clearance Certificate', attached: data.policeClearance },
+          { name: 'Medical Report', attached: data.medicalReport },
+          { name: 'Radiological Report', attached: data.radiologicalReport },
+          { name: 'Financial Guarantee', attached: data.financialGuarantee ? true : false },
+          { name: 'Criminal Record Check', attached: !data.criminalRecord }
+        ];
+        
+        documents.forEach(doc => {
+          doc.text(`☐ ${doc.name}`, 50, yPos, { continued: true });
+          doc.font('Helvetica-Bold')
+             .text(doc.attached ? ' ✓' : ' ✗', 250, yPos)
+             .font('Helvetica');
+          yPos += 18;
+        });
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 400);
+        
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'temporary_residence',
+          data.applicationNumber,
+          data,
+          430,
+          450
+        );
+        
+        // Add hashtags
+        this.addHashtagSection(doc, verification.hashtags, 50, 650);
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate BI-947 General Work Permit PDF
+   */
+  async generateGeneralWorkPermitPDF(data: GeneralWorkPermitData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `BI-947 General Work Permit - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'General Work Permit Application',
+            Keywords: 'BI-947, General Work, Work Permit, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Form number
+        const formNumber = `BI-947/${new Date().getFullYear()}/${Math.random().toString(36).substr(2, 7).toUpperCase()}`;
+        this.addMultiLayerSecurity(doc, 'BI-947', formNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "GENERAL WORK PERMIT");
+
+        // Form title
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('APPLICATION FOR GENERAL WORK PERMIT', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('(FORM BI-947)', 50, 125, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 150)
+           .text(`Form No: ${formNumber}`, 350, 150);
+
+        // Section A: Personal Information
+        let yPos = 180;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION A: APPLICANT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Section B: Employer Information
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION B: EMPLOYER INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        const employerFields = [
+          { label: 'Company Name:', value: data.employer.name },
+          { label: 'Registration No:', value: data.employer.registrationNumber },
+          { label: 'Business Address:', value: data.employer.address },
+          { label: 'Telephone:', value: data.employer.telephone },
+          { label: 'Email:', value: data.employer.email },
+          { label: 'Contact Person:', value: data.employer.contactPerson },
+          { label: 'HR Manager:', value: data.employer.hrManager }
+        ];
+        
+        employerFields.forEach(field => {
+          if (yPos > 750) {
+            doc.addPage();
+            yPos = 50;
+          }
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 130 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 370 });
+          yPos += 18;
+        });
+
+        // Add new page for job details
+        doc.addPage();
+        yPos = 50;
+
+        // Section C: Job Details
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION C: JOB DETAILS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Position: ${data.jobDetails.position}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Department: ${data.jobDetails.department}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Monthly Salary: ${data.jobDetails.monthlySalary}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Contract Type: ${data.jobDetails.contractType}`, 50, yPos);
+        yPos += 18;
+        if (data.jobDetails.contractDuration) {
+          doc.text(`Contract Duration: ${data.jobDetails.contractDuration}`, 50, yPos);
+          yPos += 18;
+        }
+        
+        yPos += 10;
+        doc.text('Job Description:', 50, yPos);
+        yPos += 15;
+        doc.fontSize(9)
+           .text(data.jobDetails.jobDescription, 70, yPos, { width: 450 });
+        yPos += 60;
+
+        // Section D: Labor Market Testing
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION D: LABOR MARKET TESTING', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Position Advertised: ${data.laborMarketTesting.advertised ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        if (data.laborMarketTesting.advertised) {
+          doc.text(`Newspaper: ${data.laborMarketTesting.newspaperName || 'N/A'}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Date Advertised: ${data.laborMarketTesting.dateAdvertised || 'N/A'}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Number of Applicants: ${data.laborMarketTesting.numberOfApplicants || 'N/A'}`, 50, yPos);
+          yPos += 18;
+        }
+        doc.text('Reason for Foreign Hire:', 50, yPos);
+        yPos += 15;
+        doc.fontSize(9)
+           .text(data.laborMarketTesting.reasonForForeignHire, 70, yPos, { width: 450 });
+        yPos += 40;
+
+        // Section E: Skills Transfer Plan
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SECTION E: SKILLS TRANSFER AND REPLACEMENT PLAN', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Replacement Plan in Place: ${data.replacementPlan.hasplan ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Training SA Citizen: ${data.replacementPlan.trainingSAcitizen ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        if (data.replacementPlan.timeframe) {
+          doc.text(`Timeframe: ${data.replacementPlan.timeframe}`, 50, yPos);
+          yPos += 18;
+        }
+        if (data.replacementPlan.details) {
+          doc.text('Plan Details:', 50, yPos);
+          yPos += 15;
+          doc.fontSize(9)
+             .text(data.replacementPlan.details, 70, yPos, { width: 450 });
+        }
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 600);
+        
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'general_work_permit',
+          data.applicationNumber,
+          data,
+          430,
+          620
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Medical Certificate PDF
+   */
+  async generateMedicalCertificatePDF(data: MedicalCertificateData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `Medical Certificate - ${data.certificateNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Medical Certificate for Immigration',
+            Keywords: 'Medical Certificate, Health, Immigration, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Certificate number
+        const certNumber = `MED/${new Date().getFullYear()}/${data.certificateNumber}`;
+        this.addMultiLayerSecurity(doc, 'MED', certNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "MEDICAL CERTIFICATE");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('MEDICAL CERTIFICATE', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('FOR IMMIGRATION PURPOSES', 50, 125, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Certificate No: ${certNumber}`, 50, 150)
+           .text(`Date: ${data.examinationDate}`, 400, 150);
+
+        // Patient Information
+        let yPos = 180;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('PATIENT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Full Name: ${data.patient.fullName}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Date of Birth: ${data.patient.dateOfBirth}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Nationality: ${data.patient.nationality}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Passport Number: ${data.patient.passportNumber || 'N/A'}`, 50, yPos);
+        yPos += 25;
+
+        // Physical Examination
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('PHYSICAL EXAMINATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Height: ${data.physicalExamination.height}`, 50, yPos);
+        doc.text(`Weight: ${data.physicalExamination.weight}`, 200, yPos);
+        yPos += 18;
+        doc.text(`Blood Pressure: ${data.physicalExamination.bloodPressure}`, 50, yPos);
+        doc.text(`Heart Rate: ${data.physicalExamination.heartRate}`, 200, yPos);
+        yPos += 18;
+        doc.text(`General Health: ${data.physicalExamination.generalHealth}`, 50, yPos);
+        yPos += 25;
+
+        // Tuberculosis Screening
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('TUBERCULOSIS SCREENING', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`TB Test Performed: ${data.tuberculosisScreening.tested ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        if (data.tuberculosisScreening.tested) {
+          doc.text(`Test Date: ${data.tuberculosisScreening.testDate || 'N/A'}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Result: ${data.tuberculosisScreening.result || 'N/A'}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Treatment Required: ${data.tuberculosisScreening.treatmentRequired ? 'Yes' : 'No'}`, 50, yPos);
+          yPos += 18;
+        }
+        yPos += 10;
+
+        // Fitness for Purpose
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('FITNESS FOR PURPOSE', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Fit for Work: ${data.fitnessForPurpose.fitForWork ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Fit for Study: ${data.fitnessForPurpose.fitForStudy ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Fit for Residence: ${data.fitnessForPurpose.fitForResidence ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 25;
+
+        // Doctor's Details and Signature
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('MEDICAL PRACTITIONER DETAILS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Doctor: ${data.doctor.fullName}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Qualifications: ${data.doctor.qualifications}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Practice Number: ${data.doctor.practiceNumber}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Address: ${data.doctor.address}`, 50, yPos);
+        yPos += 30;
+        
+        doc.text('Signature: _______________________', 50, yPos);
+        doc.text('Date: _______________________', 300, yPos);
+        
+        // Add official stamp area
+        this.addOfficialStampArea(doc, 400, yPos - 20);
+
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'medical_certificate',
+          data.certificateNumber,
+          data,
+          430,
+          yPos + 50
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Radiological Report PDF
+   */
+  async generateRadiologicalReportPDF(data: RadiologicalReportData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `Radiological Report - ${data.reportNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Radiological Report for Immigration',
+            Keywords: 'Radiological Report, X-Ray, Immigration, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Report number
+        const reportNumber = `RAD/${new Date().getFullYear()}/${data.reportNumber}`;
+        this.addMultiLayerSecurity(doc, 'RAD', reportNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "RADIOLOGICAL REPORT");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('RADIOLOGICAL REPORT', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('FOR IMMIGRATION PURPOSES', 50, 125, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Report No: ${reportNumber}`, 50, 150)
+           .text(`Date: ${data.examinationDate}`, 400, 150);
+
+        // Patient Information
+        let yPos = 180;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('PATIENT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Full Name: ${data.patient.fullName}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Date of Birth: ${data.patient.dateOfBirth}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Nationality: ${data.patient.nationality}`, 50, yPos);
+        yPos += 25;
+
+        // Examination Details
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('EXAMINATION DETAILS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Examination Type: ${data.examType}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Indication: ${data.indication}`, 50, yPos);
+        yPos += 25;
+
+        // Findings
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('FINDINGS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        // Lungs
+        doc.font('Helvetica-Bold')
+           .text('Lungs:', 50, yPos);
+        doc.font('Helvetica')
+           .text(data.findings.lungs.normal ? ' Normal' : ' Abnormal', 100, yPos);
+        yPos += 18;
+        if (!data.findings.lungs.normal && data.findings.lungs.abnormalities) {
+          data.findings.lungs.abnormalities.forEach(abnormality => {
+            doc.text(`• ${abnormality}`, 70, yPos);
+            yPos += 15;
+          });
+        }
+        
+        // Heart
+        doc.font('Helvetica-Bold')
+           .text('Heart:', 50, yPos);
+        doc.font('Helvetica')
+           .text(data.findings.heart.normal ? ' Normal' : ' Abnormal', 100, yPos);
+        yPos += 18;
+        
+        // TB Screening
+        yPos += 10;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('TUBERCULOSIS SCREENING', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Signs of Active TB: ${data.tuberculosisScreening.signsOfActiveTB ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Signs of Old TB: ${data.tuberculosisScreening.signsOfOldTB ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Further Testing Required: ${data.tuberculosisScreening.furtherTestingRequired ? 'Yes' : 'No'}`, 50, yPos);
+        yPos += 25;
+
+        // Impression
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('IMPRESSION', 50, yPos);
+        
+        yPos += 20;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black)
+           .text(data.impression, 50, yPos, { width: 500 });
+        yPos += 40;
+
+        // Recommendations
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('RECOMMENDATIONS', 50, yPos);
+        
+        yPos += 20;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        data.recommendations.forEach(rec => {
+          doc.text(`• ${rec}`, 50, yPos);
+          yPos += 15;
+        });
+        yPos += 20;
+
+        // Radiologist Details
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('RADIOLOGIST DETAILS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Radiologist: ${data.radiologist.fullName}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Qualifications: ${data.radiologist.qualifications}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Practice Number: ${data.radiologist.practiceNumber}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Facility: ${data.radiologist.facility}`, 50, yPos);
+        yPos += 30;
+        
+        doc.text('Signature: _______________________', 50, yPos);
+        doc.text('Date: _______________________', 300, yPos);
+
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'radiological_report',
+          data.reportNumber,
+          data,
+          430,
+          yPos + 20
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Critical Skills Visa PDF
+   */
+  async generateCriticalSkillsVisaPDF(data: CriticalSkillsData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `Critical Skills Visa - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Critical Skills Visa Application',
+            Keywords: 'Critical Skills, Visa, Immigration, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Form number
+        const formNumber = `CSV/${new Date().getFullYear()}/${data.applicationNumber}`;
+        this.addMultiLayerSecurity(doc, 'CSV', formNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "CRITICAL SKILLS VISA");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('CRITICAL SKILLS VISA APPLICATION', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(12)
+           .text('SECTION 19(4) OF THE IMMIGRATION ACT', 50, 125, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 150)
+           .text(`Form No: ${formNumber}`, 350, 150);
+
+        // Personal Information
+        let yPos = 180;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('APPLICANT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Critical Skill Category
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('CRITICAL SKILL CATEGORY', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black)
+           .text(`Category: ${data.criticalSkillCategory}`, 50, yPos);
+        yPos += 25;
+
+        // Qualifications
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('QUALIFICATIONS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        data.qualifications.forEach((qual, index) => {
+          if (yPos > 700) {
+            doc.addPage();
+            yPos = 50;
+          }
+          doc.font('Helvetica-Bold')
+             .text(`${index + 1}. ${qual.degree}`, 50, yPos);
+          doc.font('Helvetica');
+          yPos += 15;
+          doc.text(`   Field: ${qual.field}`, 50, yPos);
+          yPos += 15;
+          doc.text(`   Institution: ${qual.institution}, ${qual.country}`, 50, yPos);
+          yPos += 15;
+          doc.text(`   Year: ${qual.year}`, 50, yPos);
+          if (qual.saricStatus) {
+            yPos += 15;
+            doc.text(`   SAQA Status: ${qual.saricStatus}`, 50, yPos);
+          }
+          yPos += 20;
+        });
+
+        // Professional Registration
+        if (data.professionalRegistration) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('PROFESSIONAL REGISTRATION', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          doc.text(`Professional Body: ${data.professionalRegistration.body}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Registration Number: ${data.professionalRegistration.registrationNumber}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Valid Until: ${data.professionalRegistration.validUntil}`, 50, yPos);
+          yPos += 25;
+        }
+
+        // Job Offer (if applicable)
+        if (data.jobOffer) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('JOB OFFER', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          doc.text(`Employer: ${data.jobOffer.employer}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Position: ${data.jobOffer.position}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Salary: ${data.jobOffer.salary}`, 50, yPos);
+          yPos += 18;
+          doc.text(`Start Date: ${data.jobOffer.startDate}`, 50, yPos);
+        }
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 550);
+        
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'critical_skills_visa',
+          data.applicationNumber,
+          data,
+          430,
+          570
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Business Visa PDF
+   */
+  async generateBusinessVisaPDF(data: BusinessVisaData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `Business Visa - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Business Visa Application',
+            Keywords: 'Business Visa, Investment, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Form number
+        const formNumber = `BV/${new Date().getFullYear()}/${data.applicationNumber}`;
+        this.addMultiLayerSecurity(doc, 'BV', formNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "BUSINESS VISA");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('BUSINESS VISA APPLICATION', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 130)
+           .text(`Form No: ${formNumber}`, 350, 130);
+
+        // Personal Information
+        let yPos = 160;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('APPLICANT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Business Details
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('BUSINESS DETAILS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Company Name: ${data.businessDetails.companyName}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Registration Number: ${data.businessDetails.registrationNumber}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Business Type: ${data.businessDetails.businessType}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Years in Operation: ${data.businessDetails.yearsInOperation}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Annual Turnover: ${data.businessDetails.annualTurnover}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Number of Employees: ${data.businessDetails.numberOfEmployees}`, 50, yPos);
+        yPos += 25;
+
+        // Investment Details
+        if (data.investmentAmount) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('INVESTMENT DETAILS', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          doc.text(`Investment Amount: ${data.investmentAmount}`, 50, yPos);
+          yPos += 18;
+          if (data.jobCreation) {
+            doc.text(`Jobs to be Created: ${data.jobCreation.numberOfJobs}`, 50, yPos);
+            yPos += 18;
+            doc.text(`Timeline: ${data.jobCreation.timeline}`, 50, yPos);
+            yPos += 18;
+          }
+        }
+
+        // Supporting Documents
+        yPos += 10;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('SUPPORTING DOCUMENTS', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Business Plan: ${data.businessPlan ? '✓ Attached' : '✗ Not Attached'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Financial Statements: ${data.financialStatements ? '✓ Attached' : '✗ Not Attached'}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Tax Clearance: ${data.taxClearance ? '✓ Attached' : '✗ Not Attached'}`, 50, yPos);
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 550);
+        
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'business_visa',
+          data.applicationNumber,
+          data,
+          430,
+          570
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Retirement Visa PDF
+   */
+  async generateRetirementVisaPDF(data: RetirementVisaData): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: `Retirement Visa - ${data.applicationNumber}`,
+            Author: 'Department of Home Affairs',
+            Subject: 'Retirement Visa Application',
+            Keywords: 'Retirement Visa, Immigration, South Africa'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add watermark
+        this.addPDFKitWatermark(doc);
+
+        // Form number
+        const formNumber = `RV/${new Date().getFullYear()}/${data.applicationNumber}`;
+        this.addMultiLayerSecurity(doc, 'RV', formNumber);
+
+        // Header
+        this.addGovernmentHeader(doc, "RETIREMENT VISA");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('RETIREMENT VISA APPLICATION', 50, 100, { align: 'center', width: 515 });
+        
+        doc.fontSize(10)
+           .font('Helvetica')
+           .text(`Application No: ${data.applicationNumber}`, 50, 130)
+           .text(`Form No: ${formNumber}`, 350, 130);
+
+        // Personal Information
+        let yPos = 160;
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('APPLICANT INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Financial Information
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('FINANCIAL INFORMATION', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Monthly Pension: ${data.retirementIncome.monthlyPension}`, 50, yPos);
+        yPos += 18;
+        if (data.retirementIncome.otherIncome) {
+          doc.text(`Other Income: ${data.retirementIncome.otherIncome}`, 50, yPos);
+          yPos += 18;
+        }
+        doc.text(`Total Monthly Income: ${data.retirementIncome.totalMonthly} ${data.retirementIncome.currency}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Net Worth: ${data.netWorth}`, 50, yPos);
+        yPos += 25;
+
+        // Property in South Africa
+        if (data.propertyInSA && data.propertyInSA.owned) {
+          doc.fontSize(12)
+             .font('Helvetica-Bold')
+             .fillColor(SA_COLORS.green)
+             .text('PROPERTY IN SOUTH AFRICA', 50, yPos);
+          
+          yPos += 25;
+          doc.fontSize(10)
+             .font('Helvetica')
+             .fillColor(SA_COLORS.black);
+          
+          doc.text(`Property Owned: Yes`, 50, yPos);
+          yPos += 18;
+          if (data.propertyInSA.address) {
+            doc.text(`Address: ${data.propertyInSA.address}`, 50, yPos);
+            yPos += 18;
+          }
+          if (data.propertyInSA.value) {
+            doc.text(`Estimated Value: ${data.propertyInSA.value}`, 50, yPos);
+            yPos += 18;
+          }
+          yPos += 10;
+        }
+
+        // Health Insurance
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.green)
+           .text('HEALTH INSURANCE', 50, yPos);
+        
+        yPos += 25;
+        doc.fontSize(10)
+           .font('Helvetica')
+           .fillColor(SA_COLORS.black);
+        
+        doc.text(`Provider: ${data.healthInsurance.provider}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Policy Number: ${data.healthInsurance.policyNumber}`, 50, yPos);
+        yPos += 18;
+        doc.text(`Coverage: ${data.healthInsurance.coverage}`, 50, yPos);
+
+        // Add security features
+        this.addEnhancedHolographicStrip(doc, 550);
+        
+        // Add QR code
+        const verification = await this.addLiveVerificationQRCode(
+          doc,
+          'retirement_visa',
+          data.applicationNumber,
+          data,
+          430,
+          570
+        );
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Helper method to add personal details section
+   */
+  private addPersonalDetailsSection(doc: PDFKit, personal: PersonalDetails, x: number, y: number): void {
+    doc.fontSize(10)
+       .font('Helvetica')
+       .fillColor(SA_COLORS.black);
+    
+    const fields = [
+      { label: 'Full Name:', value: personal.fullName },
+      { label: 'Surname:', value: personal.surname || '' },
+      { label: 'Given Names:', value: personal.givenNames || '' },
+      { label: 'Date of Birth:', value: personal.dateOfBirth },
+      { label: 'Country of Birth:', value: personal.countryOfBirth || '' },
+      { label: 'Nationality:', value: personal.nationality },
+      { label: 'Passport Number:', value: personal.passportNumber || '' },
+      { label: 'ID Number:', value: personal.idNumber || 'N/A' },
+      { label: 'Gender:', value: personal.gender || '' },
+      { label: 'Marital Status:', value: personal.maritalStatus || '' }
+    ];
+    
+    let yPos = y;
+    fields.forEach(field => {
+      doc.font('Helvetica-Bold')
+         .text(field.label, x, yPos, { continued: true, width: 130 })
+         .font('Helvetica')
+         .text(` ${field.value}`, { width: 370 });
+      yPos += 18;
+    });
   }
 
   /**

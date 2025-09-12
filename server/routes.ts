@@ -2958,6 +2958,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate DHA-84 Visitor's/Transit Visa PDF
+  app.post("/api/pdf/visitor-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateVisitorVisaPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="visitor-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Visitor visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate visitor visa PDF" });
+    }
+  });
+
+  // Generate DHA-1738 Temporary Residence Permit PDF
+  app.post("/api/pdf/temporary-residence", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateTemporaryResidencePDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="temporary-residence-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Temporary residence PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate temporary residence PDF" });
+    }
+  });
+
+  // Generate BI-947 General Work Permit PDF
+  app.post("/api/pdf/general-work", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateGeneralWorkPermitPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="general-work-permit-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("General work permit PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate general work permit PDF" });
+    }
+  });
+
+  // Generate Medical Certificate PDF
+  app.post("/api/pdf/medical-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateMedicalCertificatePDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="medical-certificate-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Medical certificate PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate medical certificate PDF" });
+    }
+  });
+
+  // Generate Radiological Report PDF
+  app.post("/api/pdf/radiological-report", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateRadiologicalReportPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="radiological-report-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Radiological report PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate radiological report PDF" });
+    }
+  });
+
+  // Generate Critical Skills Visa PDF
+  app.post("/api/pdf/critical-skills", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateCriticalSkillsVisaPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="critical-skills-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Critical skills visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate critical skills visa PDF" });
+    }
+  });
+
+  // Generate Business Visa PDF
+  app.post("/api/pdf/business-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateBusinessVisaPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="business-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Business visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate business visa PDF" });
+    }
+  });
+
+  // Generate Retirement Visa PDF
+  app.post("/api/pdf/retirement-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const pdfBuffer = await pdfGenerationService.generateRetirementVisaPDF(req.body);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="retirement-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Retirement visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate retirement visa PDF" });
+    }
+  });
+
+  // Generate Relatives Visa PDF (using visitor visa template with modifications)
+  app.post("/api/pdf/relatives-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Modify data to indicate relatives visa type
+      const relativesVisaData = {
+        ...req.body,
+        visaType: "Relatives",
+        purposeOfVisit: req.body.purposeOfVisit || "Visiting family members in South Africa"
+      };
+
+      const pdfBuffer = await pdfGenerationService.generateVisitorVisaPDF(relativesVisaData);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="relatives-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Relatives visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate relatives visa PDF" });
+    }
+  });
+
+  // Generate Corporate Visa PDF (using business visa template with modifications)
+  app.post("/api/pdf/corporate-visa", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Modify data to indicate corporate visa type
+      const corporateVisaData = {
+        ...req.body,
+        visaType: "Corporate",
+        businessDetails: {
+          ...req.body.businessDetails,
+          businessType: req.body.businessDetails?.businessType || "Corporate Entity"
+        }
+      };
+
+      const pdfBuffer = await pdfGenerationService.generateBusinessVisaPDF(corporateVisaData);
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="corporate-visa-${Date.now()}.pdf"`);
+      res.send(pdfBuffer);
+
+    } catch (error) {
+      console.error("Corporate visa PDF generation error:", error);
+      res.status(500).json({ error: "Failed to generate corporate visa PDF" });
+    }
+  });
+
   // DHA Admin Routes (for admin users only)
   app.get("/api/dha/admin/applications", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
