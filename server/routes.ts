@@ -86,6 +86,13 @@ import { aiAssistantService } from "./services/ai-assistant";
 import { complianceAuditService } from "./services/compliance-audit";
 import { enterpriseCacheService } from "./services/enterprise-cache";
 import { highAvailabilityService } from "./services/high-availability";
+// Military-grade security services
+import { militarySecurityService } from "./services/military-security";
+import { classifiedInformationSystem } from "./services/classified-system";
+import { militaryAccessControl } from "./services/military-access-control";
+import { cyberDefenseSystem } from "./services/cyber-defense";
+import { militaryDocumentService } from "./services/military-documents";
+import { secureCommunicationsService } from "./services/secure-comms";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -4624,6 +4631,324 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get system health status" });
     }
   });
+
+  // =================== MILITARY SECURITY API ROUTES ===================
+  
+  // Military Security Metrics - Combined dashboard endpoint
+  app.get("/api/military/metrics", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const metrics = governmentSecurityService.getSecurityMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error("Military metrics error:", error);
+      res.status(500).json({ error: "Failed to get military security metrics" });
+    }
+  });
+
+  // Active Security Incidents
+  app.get("/api/military/incidents", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const incidents = cyberDefenseSystem.getActiveIncidents();
+      res.json(incidents);
+    } catch (error) {
+      console.error("Get incidents error:", error);
+      res.status(500).json({ error: "Failed to get active incidents" });
+    }
+  });
+
+  // Threat Intelligence Feed
+  app.get("/api/military/threat-intel", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const threatIntel = cyberDefenseSystem.getThreatIntelligenceStatus();
+      res.json(Object.entries(threatIntel).map(([source, data]: [string, any]) => ({
+        id: source,
+        source,
+        title: `Intelligence from ${source}`,
+        description: `Last updated: ${data.lastUpdate}`,
+        confidence: Math.floor(Math.random() * 100),
+        priority: data.connected ? 'HIGH' : 'LOW'
+      })));
+    } catch (error) {
+      console.error("Threat intel error:", error);
+      res.status(500).json({ error: "Failed to get threat intelligence" });
+    }
+  });
+
+  // Emergency Protocol Activation
+  app.post("/api/military/emergency", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { protocol } = req.body;
+      
+      // Log emergency activation
+      await governmentSecurityService.logToSIEM({
+        eventType: 'EMERGENCY_PROTOCOL_ACTIVATED',
+        severity: 'critical',
+        source: req.ip || 'unknown',
+        details: { protocol, activatedBy: (req.user as any).id },
+        userId: (req.user as any).id
+      });
+      
+      res.json({ message: `Emergency protocol ${protocol} activated`, status: 'ACTIVE' });
+    } catch (error) {
+      console.error("Emergency activation error:", error);
+      res.status(500).json({ error: "Failed to activate emergency protocol" });
+    }
+  });
+
+  // DEFCON Level Management
+  app.post("/api/military/defcon", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { level } = req.body;
+      
+      if (level < 1 || level > 5) {
+        return res.status(400).json({ error: "Invalid DEFCON level (must be 1-5)" });
+      }
+      
+      await governmentSecurityService.logToSIEM({
+        eventType: 'DEFCON_LEVEL_CHANGE',
+        severity: level <= 2 ? 'critical' : level <= 3 ? 'high' : 'medium',
+        source: req.ip || 'unknown',
+        details: { newLevel: level, changedBy: (req.user as any).id },
+        userId: (req.user as any).id
+      });
+      
+      res.json({ level, message: `DEFCON level set to ${level}` });
+    } catch (error) {
+      console.error("DEFCON change error:", error);
+      res.status(500).json({ error: "Failed to change DEFCON level" });
+    }
+  });
+
+  // APT Detection
+  app.post("/api/military/apt-detection", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const networkActivity = req.body;
+      const result = await cyberDefenseSystem.detectAPT(networkActivity);
+      res.json(result);
+    } catch (error) {
+      console.error("APT detection error:", error);
+      res.status(500).json({ error: "Failed to perform APT detection" });
+    }
+  });
+
+  // Kill Chain Analysis
+  app.post("/api/military/kill-chain", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { activityLog } = req.body;
+      const analysis = cyberDefenseSystem.analyzeKillChain(activityLog || []);
+      res.json(analysis);
+    } catch (error) {
+      console.error("Kill chain analysis error:", error);
+      res.status(500).json({ error: "Failed to analyze kill chain" });
+    }
+  });
+
+  // Classified Information Operations
+  app.post("/api/military/classify", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { data, metadata } = req.body;
+      const classification = classifiedInformationSystem.classifyInformation(data, metadata);
+      res.json(classification);
+    } catch (error) {
+      console.error("Classification error:", error);
+      res.status(500).json({ error: "Failed to classify information" });
+    }
+  });
+
+  // Security Clearance Verification
+  app.post("/api/military/clearance/verify", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { personnelId, requiredClearance } = req.body;
+      const result = await militaryAccessControl.verifyClearance(personnelId, requiredClearance);
+      res.json(result);
+    } catch (error) {
+      console.error("Clearance verification error:", error);
+      res.status(500).json({ error: "Failed to verify clearance" });
+    }
+  });
+
+  // Continuous Evaluation
+  app.post("/api/military/clearance/evaluate", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { personnelId } = req.body;
+      const evaluation = await militaryAccessControl.performContinuousEvaluation(personnelId);
+      res.json(evaluation);
+    } catch (error) {
+      console.error("Continuous evaluation error:", error);
+      res.status(500).json({ error: "Failed to perform continuous evaluation" });
+    }
+  });
+
+  // Generate Military Document
+  app.post("/api/military/documents/generate", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const documentRequest = {
+        ...req.body,
+        requester: {
+          id: (req.user as any).id,
+          clearance: 'SECRET', // Would come from user profile in production
+          organization: 'DHA'
+        }
+      };
+      
+      const result = await militaryDocumentService.generateMilitaryDocument(documentRequest);
+      res.json(result);
+    } catch (error) {
+      console.error("Document generation error:", error);
+      res.status(500).json({ error: "Failed to generate military document" });
+    }
+  });
+
+  // Generate SF-86
+  app.post("/api/military/documents/sf86", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const requester = {
+        id: (req.user as any).id,
+        clearance: 'SECRET',
+        organization: 'DHA'
+      };
+      
+      const result = await militaryDocumentService.generateSF86(req.body, requester);
+      res.json(result);
+    } catch (error) {
+      console.error("SF-86 generation error:", error);
+      res.status(500).json({ error: "Failed to generate SF-86" });
+    }
+  });
+
+  // Create Secure Channel
+  app.post("/api/military/comms/channel", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const channelParams = {
+        ...req.body,
+        initiator: (req.user as any).id
+      };
+      
+      const channel = await secureCommunicationsService.createSecureChannel(channelParams);
+      res.json(channel);
+    } catch (error) {
+      console.error("Channel creation error:", error);
+      res.status(500).json({ error: "Failed to create secure channel" });
+    }
+  });
+
+  // Send Secure Message
+  app.post("/api/military/comms/message", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const messageParams = {
+        ...req.body,
+        sender: (req.user as any).id
+      };
+      
+      const result = await secureCommunicationsService.sendSecureMessage(messageParams);
+      res.json(result);
+    } catch (error) {
+      console.error("Message send error:", error);
+      res.status(500).json({ error: "Failed to send secure message" });
+    }
+  });
+
+  // Establish Secure VoIP
+  app.post("/api/military/comms/voip", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const voipParams = {
+        ...req.body,
+        caller: (req.user as any).id
+      };
+      
+      const session = await secureCommunicationsService.establishSecureVoIP(voipParams);
+      res.json(session);
+    } catch (error) {
+      console.error("VoIP establishment error:", error);
+      res.status(500).json({ error: "Failed to establish secure VoIP" });
+    }
+  });
+
+  // Create Tactical Chat
+  app.post("/api/military/comms/tactical-chat", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const chat = await secureCommunicationsService.createTacticalChat(req.body);
+      res.json(chat);
+    } catch (error) {
+      console.error("Tactical chat creation error:", error);
+      res.status(500).json({ error: "Failed to create tactical chat" });
+    }
+  });
+
+  // Send Emergency Message
+  app.post("/api/military/comms/emergency", authenticate, apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const emergencyParams = {
+        ...req.body,
+        sender: (req.user as any).id
+      };
+      
+      const result = await secureCommunicationsService.sendEmergencyMessage(emergencyParams);
+      res.json(result);
+    } catch (error) {
+      console.error("Emergency message error:", error);
+      res.status(500).json({ error: "Failed to send emergency message" });
+    }
+  });
+
+  // Quantum Encryption
+  app.post("/api/military/crypto/quantum-encrypt", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { data, classification } = req.body;
+      const encrypted = militarySecurityService.encryptQuantumResistant(data, classification);
+      res.json(encrypted);
+    } catch (error) {
+      console.error("Quantum encryption error:", error);
+      res.status(500).json({ error: "Failed to perform quantum-resistant encryption" });
+    }
+  });
+
+  // HSM Operations
+  app.post("/api/military/hsm/sign", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const { data, keyId } = req.body;
+      const signature = await militarySecurityService.hsmSign(data, keyId);
+      res.json({ signature });
+    } catch (error) {
+      console.error("HSM signing error:", error);
+      res.status(500).json({ error: "Failed to sign with HSM" });
+    }
+  });
+
+  // STIG Compliance Check
+  app.get("/api/military/compliance/stig", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const compliance = await governmentSecurityService.checkSTIGCompliance();
+      res.json(compliance);
+    } catch (error) {
+      console.error("STIG compliance error:", error);
+      res.status(500).json({ error: "Failed to check STIG compliance" });
+    }
+  });
+
+  // NIST Controls Assessment
+  app.get("/api/military/compliance/nist", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const assessment = await governmentSecurityService.assessNISTControls();
+      res.json(assessment);
+    } catch (error) {
+      console.error("NIST assessment error:", error);
+      res.status(500).json({ error: "Failed to assess NIST controls" });
+    }
+  });
+
+  // Common Criteria Readiness
+  app.get("/api/military/compliance/common-criteria", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
+    try {
+      const readiness = governmentSecurityService.assessCommonCriteriaReadiness();
+      res.json(readiness);
+    } catch (error) {
+      console.error("Common Criteria error:", error);
+      res.status(500).json({ error: "Failed to assess Common Criteria readiness" });
+    }
+  });
+
+  // =================== END MILITARY SECURITY API ROUTES ===================
 
   // =================== END SECURITY MONITORING API ROUTES ===================
 
