@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./enhanced-storage";
 import { authenticate, hashPassword, verifyPassword, generateToken, requireRole, requireApiKey } from "./middleware/auth";
 import { authLimiter, apiLimiter, uploadLimiter, securityHeaders, fraudDetection, ipFilter, securityLogger } from "./middleware/security";
 import { auditTrailMiddleware } from "./middleware/audit-trail-middleware";
@@ -99,6 +99,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize DHA workflow engine
   const dhaWorkflowEngine = new DHAWorkflowEngine();
 
+  // Import resilience middleware
+  const { setupResilience, requestTimeout, circuitBreaker, resourceOptimization, asyncHandler, responseCache, gracefulDegradation } = await import('./middleware/resilience');
+  const { authRateLimit, apiRateLimit, adminRateLimit, documentsRateLimit, aiRateLimit, verificationRateLimit } = await import('./middleware/enhanced-rate-limit');
+
+  // Setup resilience middleware (includes health checks)
+  setupResilience(app);
+
   // Apply security middleware
   app.use(securityHeaders);
   app.use(ipFilter);
@@ -107,16 +114,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply audit trail middleware for comprehensive action logging
   app.use(auditTrailMiddleware.auditRequestMiddleware);
 
-  // Public health endpoint for testing (Phase 0)
-  app.get("/api/health", (req: Request, res: Response) => {
-    res.json({
-      status: "healthy",
+  // Public health endpoint with enhanced monitoring (Phase 0)
+  app.get("/api/health", asyncHandler(async (req: Request, res: Response) => {
+    const { autoRecoveryService } = await import('./services/auto-recovery');
+    const { optimizedCacheService } = await import('./services/optimized-cache');
+    const { getConnectionStatus } = await import('./db');
+    
+    const dbStatus = getConnectionStatus();
+    const recoveryHealth = autoRecoveryService.getHealthStatus();
+    const cacheHealth = optimizedCacheService.getHealth();
+    
+    const isHealthy = dbStatus.healthy && cacheHealth.healthy;
+    
+    res.status(isHealthy ? 200 : 503).json({
+      status: isHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || "development",
-      version: "1.0.0"
+      version: "1.0.0",
+      database: dbStatus,
+      cache: {
+        healthy: cacheHealth.healthy,
+        hitRate: cacheHealth.hitRate,
+        itemCount: cacheHealth.itemCount
+      },
+      recovery: Array.from(recoveryHealth.entries()).map(([key, value]) => ({
+        component: key,
+        status: value.status
+      }))
     });
-  });
+  }));
   
   // Government Operations API Endpoints
   app.get("/api/admin/government-operations/metrics", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
@@ -192,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Registration
-  app.post("/api/auth/register", authLimiter, async (req: Request, res: Response) => {
+  app.post("/api/auth/register", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
 
@@ -247,10 +274,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Registration error:", error);
       res.status(500).json({ error: "Registration failed" });
     }
-  });
+  }));
 
   // Login
-  app.post("/api/auth/login", authLimiter, fraudDetection, async (req: Request, res: Response) => {
+  app.post("/api/auth/login", authRateLimit, fraudDetection, asyncHandler(async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
 
@@ -343,7 +370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
     }
-  });
+  }));
 
   app.post("/api/biometric/register", authenticate, apiLimiter, async (req: Request, res: Response) => {
     const user = req.user!; // Type assertion - user is guaranteed to be defined after authenticate middleware
