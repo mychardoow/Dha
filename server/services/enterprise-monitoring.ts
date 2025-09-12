@@ -307,7 +307,7 @@ class EnterpriseMonitoringService extends EventEmitter {
    * Health Checks
    */
   private async performHealthChecks(): Promise<void> {
-    for (const [service, check] of this.healthChecks) {
+    for (const [service, check] of Array.from(this.healthChecks)) {
       const startTime = performance.now();
       
       try {
@@ -449,7 +449,7 @@ class EnterpriseMonitoringService extends EventEmitter {
   }
 
   private async processIncidentWorkflows(): Promise<void> {
-    for (const [id, incident] of this.incidentWorkflows) {
+    for (const [id, incident] of Array.from(this.incidentWorkflows)) {
       if (incident.status === 'open' && incident.workflow.length > 0) {
         const nextStep = incident.workflow[0];
         await this.executeWorkflowStep(incident, nextStep);
@@ -589,15 +589,15 @@ class EnterpriseMonitoringService extends EventEmitter {
     const now = Date.now();
     
     // Clean up old metrics
-    for (const [name, metrics] of this.metrics) {
+    for (const [name, metrics] of Array.from(this.metrics)) {
       const cutoff = now - (this.METRIC_RETENTION_HOURS * 3600000);
-      const filtered = metrics.filter(m => m.timestamp.getTime() > cutoff);
+      const filtered = metrics.filter((m: Metric) => m.timestamp.getTime() > cutoff);
       this.metrics.set(name, filtered);
     }
     
     // Clean up old traces
     const traceCutoff = now - (this.TRACE_RETENTION_HOURS * 3600000);
-    for (const [id, trace] of this.traces) {
+    for (const [id, trace] of Array.from(this.traces)) {
       if (trace.startTime < traceCutoff) {
         this.traces.delete(id);
       }
@@ -672,9 +672,9 @@ class EnterpriseMonitoringService extends EventEmitter {
         incidentType: incident.type,
         severity: incident.severity,
         description: JSON.stringify(incident.details),
-        affectedSystems: [incident.service],
-        detectionMethod: 'automated_monitoring',
-        status: 'detected',
+        affectedUsers: [],
+        evidenceIds: [],
+        correlatedEvents: [],
         metadata: incident
       });
     } catch (error) {

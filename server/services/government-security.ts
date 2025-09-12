@@ -360,14 +360,14 @@ class GovernmentSecurityService {
    * Security Information Classification
    */
   public classifyInformation(content: string, metadata?: any): {
-    classification: keyof typeof this.CLASSIFICATION_LEVELS;
+    classification: keyof typeof GovernmentSecurityService.prototype.CLASSIFICATION_LEVELS;
     handlingInstructions: string[];
     retentionPeriod: number;
   } {
     // Check for classification markers
     const sensitiveData = this.scanForSensitiveData(content);
     
-    let classification: keyof typeof this.CLASSIFICATION_LEVELS = 'UNCLASSIFIED';
+    let classification: keyof typeof GovernmentSecurityService.prototype.CLASSIFICATION_LEVELS = 'UNCLASSIFIED';
     const handlingInstructions: string[] = [];
     let retentionPeriod = 365; // Default 1 year
     
@@ -446,11 +446,13 @@ class GovernmentSecurityService {
       await storage.createSecurityIncident({
         incidentType: incident.type,
         severity: 'high',
+        title: `Security Incident: ${incident.type}`,
         description: JSON.stringify(incident),
-        affectedSystems: [incident.resource || 'unknown'],
-        detectionMethod: 'automated',
-        status: 'detected',
-        metadata: incident
+        triggeredBy: 'system',
+        affectedUsers: incident.userId ? [incident.userId] : undefined,
+        status: 'open',
+        evidenceIds: incident.evidenceIds || [],
+        correlatedEvents: incident.correlatedEvents || []
       });
     } catch (error) {
       console.error('[Security] Failed to log incident:', error);
