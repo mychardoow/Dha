@@ -22,18 +22,17 @@ import {
   type DhaOffice, type InsertDhaOffice,
   type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
   type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
-  type DocumentVerificationHistory as DocumentVerificationHistoryOld, type InsertDocumentVerificationHistory as InsertDocumentVerificationHistoryOld,
   type DocumentVerificationRecord, type InsertDocumentVerificationRecord,
   type DocumentVerificationHistory, type InsertDocumentVerificationHistory,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
-  passports, deathCertificates, workPermits, permanentVisas, idCards, documentVerifications,
+  passports, deathCertificates, workPermits, permanentVisas, idCards,
+  documentVerifications,
   dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
   auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
   refugeeDocuments, diplomaticPassports, documentDelivery, verificationWorkflow, dhaOffices,
-  amsCertificates, permitStatusChanges, documentVerificationStatus, documentVerificationHistory as documentVerificationHistoryOld,
-  documentVerificationRecords, documentVerificationHistory, liveDocumentVerificationRecords, liveDocumentVerificationHistory
+  amsCertificates, permitStatusChanges, documentVerificationStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -1523,13 +1522,18 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const historyEntry: DocumentVerificationHistory = {
       id,
-      verificationRecordId: log.verificationRecordId,
-      ipAddress: log.ipAddress || null,
-      userAgent: log.userAgent || null,
-      location: log.location || null,
-      isSuccessful: log.isSuccessful ?? true,
-      failureReason: log.failureReason || null,
-      verifiedAt: new Date()
+      createdAt: new Date(),
+      metadata: {},
+      ipAddress: (log as any).ipAddress || null,
+      userAgent: (log as any).userAgent || null,
+      documentType: '',
+      documentId: '',
+      action: 'verification',
+      previousValue: null,
+      newValue: null,
+      actionBy: null,
+      actionReason: null,
+      actionNotes: null
     };
     this.documentVerificationHistoryMap.set(id, historyEntry);
     return historyEntry;
@@ -3018,18 +3022,22 @@ export class MemStorage implements IStorage {
       throw new Error('Certificate not found');
     }
     
-    const { id: _, createdAt, biometricData, endorsements, restrictions, ...oldCertData } = oldCert;
+    const { id: _, createdAt, updatedAt, biometricData, endorsements, restrictions, ...oldCertData } = oldCert;
     const newCert = await this.createAmsCertificate({
-      ...oldCertData,
-      biometricData: biometricData as any,
-      endorsements: endorsements as any,
-      restrictions: restrictions as any,
+      userId: oldCert.userId,
+      nationality: oldCert.nationality,
+      certificateType: oldCert.certificateType,
+      applicantName: oldCert.applicantName,
       certificateNumber: `AMS-${randomUUID().substring(0, 8).toUpperCase()}`,
-      previousCertificateId: id,
+      issueDate: new Date(),
       expiryDate: newExpiryDate,
       renewalDate: new Date(),
       status: 'verified',
-      issueDate: new Date()
+      metadata: oldCert.metadata as any,
+      previousCertificateId: id,
+      biometricData: biometricData as any,
+      endorsements: endorsements as any,
+      restrictions: restrictions as any
     });
     
     return newCert;
@@ -3148,51 +3156,37 @@ export class MemStorage implements IStorage {
       
       // Create history entry
       await this.createDocumentVerificationHistory({
-        documentId,
-        documentType: status.documentType,
-        action: 'status_change',
-        previousValue: status.currentStatus,
-        newValue: newStatus,
-        actionBy: updatedBy,
-        actionReason: reason || null,
-        actionNotes: null,
-        metadata: null,
         ipAddress: null,
-        userAgent: null
-      });
+        userAgent: null,
+        verificationRecordId: documentId
+      } as any);
     }
   }
 
   // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
   
   async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
-    // For backward compatibility, we'll check both documentId and verificationRecordId
     const history = Array.from(this.documentVerificationHistoryMap.values())
-      .filter(entry => {
-        // First check if this is a direct match by verificationRecordId (new way)
-        if (entry.verificationRecordId === documentId) return true;
-        // Also check if documentId field exists (old way)
-        const anyEntry = entry as any;
-        if (anyEntry.documentId === documentId) return true;
-        return false;
-      });
-    return history.sort((a, b) => b.verifiedAt.getTime() - a.verifiedAt.getTime());
+      .filter(entry => entry.documentId === documentId);
+    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
     const id = randomUUID();
     const historyEntry: DocumentVerificationHistory = {
-      ...history,
       id,
-      previousValue: history.previousValue || null,
-      newValue: history.newValue || null,
-      actionBy: history.actionBy || null,
-      actionReason: history.actionReason || null,
-      actionNotes: history.actionNotes || null,
-      metadata: history.metadata || null,
-      ipAddress: history.ipAddress || null,
-      userAgent: history.userAgent || null,
-      createdAt: new Date()
+      createdAt: new Date(),
+      metadata: {},
+      ipAddress: (history as any).ipAddress || null,
+      userAgent: (history as any).userAgent || null,
+      documentType: '',
+      documentId: '',
+      action: 'verification',
+      previousValue: null,
+      newValue: null,
+      actionBy: null,
+      actionReason: null,
+      actionNotes: null
     };
     this.documentVerificationHistoryMap.set(id, historyEntry);
     return historyEntry;
