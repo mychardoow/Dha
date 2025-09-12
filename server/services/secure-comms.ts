@@ -54,7 +54,7 @@ export class SecureCommunicationsService {
     IMMEDIATE: { level: 2, maxDelay: 300 }, // 5 minutes
     PRIORITY: { level: 3, maxDelay: 900 }, // 15 minutes
     ROUTINE: { level: 4, maxDelay: 3600 } // 1 hour
-  };
+  } as const;
 
   // Tactical Communication Modes
   private readonly TACTICAL_MODES = {
@@ -64,7 +64,7 @@ export class SecureCommunicationsService {
     TACTICAL_CHAT: 'Real-time encrypted messaging',
     EMERGENCY_BEACON: 'Distress signaling',
     STEALTH_MODE: 'Low probability of intercept/detection'
-  };
+  } as const;
 
   // Data stores
   private activeChannels: Map<string, any> = new Map();
@@ -128,8 +128,8 @@ export class SecureCommunicationsService {
     initiator: string;
     recipient: string;
     classification: string;
-    mode: keyof typeof this.TACTICAL_MODES;
-    priority?: keyof typeof this.PRIORITY_LEVELS;
+    mode: 'SECURE_VOICE' | 'SECURE_DATA' | 'SECURE_VIDEO' | 'TACTICAL_CHAT' | 'EMERGENCY_BEACON' | 'STEALTH_MODE';
+    priority?: 'FLASH' | 'IMMEDIATE' | 'PRIORITY' | 'ROUTINE';
   }): Promise<{
     channelId: string;
     encryptionLevel: string;
@@ -205,7 +205,7 @@ export class SecureCommunicationsService {
       trigger: 'TIME' | 'READ' | 'BOTH';
       delay?: number; // seconds
     };
-    priority?: keyof typeof this.PRIORITY_LEVELS;
+    priority?: 'FLASH' | 'IMMEDIATE' | 'PRIORITY' | 'ROUTINE';
   }): Promise<{
     messageId: string;
     encrypted: string;
@@ -748,7 +748,9 @@ export class SecureCommunicationsService {
     sharedSecret: Buffer;
   }> {
     // Generate ephemeral Diffie-Hellman keys
-    const dh = new DiffieHellman(2048);
+    // Fix: Use createDiffieHellman instead of constructor
+    const crypto = require('crypto');
+    const dh = crypto.createDiffieHellman(2048);
     dh.generateKeys();
     
     return {
@@ -787,7 +789,8 @@ export class SecureCommunicationsService {
     const tag = Buffer.from(encrypted.slice(32, 64), 'hex');
     const ciphertext = encrypted.slice(64);
     
-    const decipher = createDecipheriv('aes-256-gcm', key, iv);
+    // Fix: Specify authTagLength to prevent authentication tag spoofing vulnerability
+    const decipher = createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 } as any);
     (decipher as any).setAuthTag(tag);
     
     let decrypted = decipher.update(ciphertext, 'hex', 'utf8');
@@ -974,7 +977,7 @@ export class SecureCommunicationsService {
   // Monitoring Methods
   private rotateKeys(): void {
     // Rotate session keys
-    for (const [channelId, session] of this.sessionKeys.entries()) {
+    for (const [channelId, session] of Array.from(this.sessionKeys.entries())) {
       if (session.rotationCount < 24) { // Max 24 rotations per session
         const newKey = randomBytes(32);
         session.key = newKey;
@@ -988,7 +991,7 @@ export class SecureCommunicationsService {
     const now = new Date();
     
     // Check for expired channels
-    for (const [channelId, channel] of this.activeChannels.entries()) {
+    for (const [channelId, channel] of Array.from(this.activeChannels.entries())) {
       if (channel.expiresAt <= now) {
         this.closeChannel(channelId);
       }
