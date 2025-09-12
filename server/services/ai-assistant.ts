@@ -666,6 +666,10 @@ Answer the user's question based on the current system state and your security e
   }
 
   async analyzeSecurityData(data: any): Promise<{
+    insights: string[];
+    recommendations: string[];
+    riskLevel: string;
+  }> {
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-5",

@@ -167,7 +167,16 @@ function ProgressStepper({ steps, currentStep }: ProgressStepperProps) {
 // ==================== DHA OFFICE SELECTOR ====================
 
 function DhaOfficeSelector({ value, onChange }: { value?: string; onChange: (value: string) => void }) {
-  const { data: offices, isLoading } = useQuery({
+  type DHAOffice = {
+    id: string;
+    officeName: string;
+    province: string;
+    city: string;
+    hasRefugeeServices: boolean;
+    hasDiplomaticServices: boolean;
+  };
+
+  const { data: offices, isLoading } = useQuery<DHAOffice[]>({
     queryKey: ["/api/dha-offices"],
   });
 
@@ -176,7 +185,7 @@ function DhaOfficeSelector({ value, onChange }: { value?: string; onChange: (val
     "Free State", "Limpopo", "Mpumalanga", "Northern Cape", "North West"
   ];
 
-  const filteredOffices = offices || [
+  const filteredOffices: DHAOffice[] = offices || [
     { id: "1", officeName: "Pretoria Head Office", province: "Gauteng", city: "Pretoria", hasRefugeeServices: true, hasDiplomaticServices: true },
     { id: "2", officeName: "Cape Town Regional Office", province: "Western Cape", city: "Cape Town", hasRefugeeServices: true, hasDiplomaticServices: false },
     { id: "3", officeName: "Durban Regional Office", province: "KwaZulu-Natal", city: "Durban", hasRefugeeServices: true, hasDiplomaticServices: false },
@@ -231,13 +240,22 @@ export default function DocumentServices() {
   const [showPDFPreview, setShowPDFPreview] = useState(false);
   const [previewPDFData, setPreviewPDFData] = useState<string | null>(null);
   const [selectedDocumentType, setSelectedDocumentType] = useState<string | null>(null);
-  const [verificationSteps, setVerificationSteps] = useState([
-    { id: "application_review", title: "Application Review", description: "Reviewing your application", status: "pending" as const, estimatedTime: "15 min" },
-    { id: "biometric_capture", title: "Biometric Capture", description: "Capturing biometric data", status: "pending" as const, estimatedTime: "10 min" },
-    { id: "document_verification", title: "Document Verification", description: "Verifying supporting documents", status: "pending" as const, estimatedTime: "30 min" },
-    { id: "security_clearance", title: "Security Clearance", description: "Security background check", status: "pending" as const, estimatedTime: "2-3 days" },
-    { id: "quality_check", title: "Quality Check", description: "Final quality assurance", status: "pending" as const, estimatedTime: "20 min" },
-    { id: "approval", title: "Approval", description: "Final approval and processing", status: "pending" as const, estimatedTime: "1 day" },
+  
+  type VerificationStep = {
+    id: string;
+    title: string;
+    description: string;
+    status: "pending" | "in_progress" | "completed";
+    estimatedTime: string;
+  };
+  
+  const [verificationSteps, setVerificationSteps] = useState<VerificationStep[]>([
+    { id: "application_review", title: "Application Review", description: "Reviewing your application", status: "pending", estimatedTime: "15 min" },
+    { id: "biometric_capture", title: "Biometric Capture", description: "Capturing biometric data", status: "pending", estimatedTime: "10 min" },
+    { id: "document_verification", title: "Document Verification", description: "Verifying supporting documents", status: "pending", estimatedTime: "30 min" },
+    { id: "security_clearance", title: "Security Clearance", description: "Security background check", status: "pending", estimatedTime: "2-3 days" },
+    { id: "quality_check", title: "Quality Check", description: "Final quality assurance", status: "pending", estimatedTime: "20 min" },
+    { id: "approval", title: "Approval", description: "Final approval and processing", status: "pending", estimatedTime: "1 day" },
   ]);
 
   // Form for Standard Documents
@@ -403,10 +421,7 @@ export default function DocumentServices() {
   // Submit handlers
   const submitStandardDocument = useMutation({
     mutationFn: async (data: z.infer<typeof standardDocumentSchema>) => {
-      return apiRequest("/api/documents/standard", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/documents/standard", data);
     },
     onSuccess: () => {
       toast({
@@ -420,10 +435,7 @@ export default function DocumentServices() {
 
   const submitRefugeeDocument = useMutation({
     mutationFn: async (data: z.infer<typeof refugeeDocumentSchema>) => {
-      return apiRequest("/api/documents/refugee", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/documents/refugee", data);
     },
     onSuccess: () => {
       toast({
@@ -437,10 +449,7 @@ export default function DocumentServices() {
 
   const submitDiplomaticPassport = useMutation({
     mutationFn: async (data: z.infer<typeof diplomaticPassportSchema>) => {
-      return apiRequest("/api/documents/diplomatic", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("POST", "/api/documents/diplomatic", data);
     },
     onSuccess: () => {
       toast({
@@ -953,17 +962,18 @@ export default function DocumentServices() {
                     <div className="flex gap-4">
                       <Button type="submit" className="government-button" disabled={submitRefugeeDocument.isPending}>
                         {submitRefugeeDocument.isPending ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Submit Application
-                        </>
-                      )}
-                    </Button>
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Submit Application
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </Form>
@@ -1220,17 +1230,18 @@ export default function DocumentServices() {
                     <div className="flex gap-4">
                       <Button type="submit" className="government-button" disabled={submitDiplomaticPassport.isPending}>
                         {submitDiplomaticPassport.isPending ? (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4 mr-2" />
-                          Submit Diplomatic Application
-                        </>
-                      )}
-                    </Button>
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Submit Diplomatic Application
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </Form>
