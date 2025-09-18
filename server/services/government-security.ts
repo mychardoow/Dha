@@ -1,4 +1,4 @@
-import { createHash, randomBytes, createCipheriv, createDecipheriv, createHmac } from 'crypto';
+import { createHash, randomBytes, createCipheriv, createDecipheriv, createHmac, pbkdf2Sync } from 'crypto';
 import { Request } from 'express';
 import { storage } from '../storage';
 import { insertSecurityEventSchema, insertSecurityIncidentSchema } from '@shared/schema';
@@ -15,6 +15,15 @@ import { cyberDefenseSystem } from './cyber-defense';
 class GovernmentSecurityService {
   private readonly ENCRYPTION_ALGORITHM = 'aes-256-gcm';
   private readonly KEY_LENGTH = 32;
+  /**
+   * IV_LENGTH: 16 bytes (128 bits) - Standard AES-GCM IV length
+   * 
+   * Note: While GCM can technically work with 12-byte (96-bit) IVs and this is 
+   * often used in practice, we use 16-byte IVs for maximum compatibility with
+   * AES block size and to avoid any potential counter overflow issues in
+   * high-volume encryption scenarios. This follows NIST SP 800-38D recommendations
+   * for government-grade security applications.
+   */
   private readonly IV_LENGTH = 16;
   private readonly TAG_LENGTH = 16;
   private readonly SALT_LENGTH = 32;
@@ -96,8 +105,23 @@ class GovernmentSecurityService {
   private certificateStore: Map<string, any> = new Map();
 
   constructor() {
+    this.validateEnvironment();
     this.initializeSecurityMonitoring();
     this.loadSecurityCertificates();
+  }
+
+  /**
+   * Validate critical environment variables on startup
+   * Fail fast if ENCRYPTION_MASTER_KEY is missing
+   */
+  private validateEnvironment(): void {
+    if (!process.env.ENCRYPTION_MASTER_KEY) {
+      throw new Error('[Government Security] ENCRYPTION_MASTER_KEY environment variable is required for cryptographic operations. Service cannot start without proper encryption key.');
+    }
+    
+    if (process.env.ENCRYPTION_MASTER_KEY.length < 32) {
+      throw new Error('[Government Security] ENCRYPTION_MASTER_KEY must be at least 32 characters long for adequate security.');
+    }
   }
 
   private initializeSecurityMonitoring(): void {
@@ -138,9 +162,9 @@ class GovernmentSecurityService {
     
     // Standard government encryption for lower classifications
     const salt = randomBytes(this.SALT_LENGTH);
-    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY || 'default-key', salt);
+    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY!, salt);
     const iv = randomBytes(this.IV_LENGTH);
-    const cipher = createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv);
+    const cipher = createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv, { authTagLength: this.TAG_LENGTH });
     
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -162,12 +186,23 @@ class GovernmentSecurityService {
     tag: string;
     salt: string;
   }): string {
+    // Validate hex format before attempting to create buffers
+    this.validateHexInput('salt', encryptedData.salt, this.SALT_LENGTH * 2);
+    this.validateHexInput('iv', encryptedData.iv, this.IV_LENGTH * 2);
+    this.validateHexInput('tag', encryptedData.tag, this.TAG_LENGTH * 2);
+    this.validateHexInput('encrypted', encryptedData.encrypted);
+    
     const salt = Buffer.from(encryptedData.salt, 'hex');
-    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY || 'default-key', salt);
+    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY!, salt);
     const iv = Buffer.from(encryptedData.iv, 'hex');
     const tag = Buffer.from(encryptedData.tag, 'hex');
     
-    const decipher = createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv);
+    // Validate tag length before setting auth tag
+    if (tag.length !== this.TAG_LENGTH) {
+      throw new Error('Invalid GCM tag length');
+    }
+    
+    const decipher = createDecipheriv(this.ENCRYPTION_ALGORITHM, key, iv, { authTagLength: this.TAG_LENGTH });
     (decipher as any).setAuthTag(tag);
     
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
@@ -176,12 +211,39 @@ class GovernmentSecurityService {
     return decrypted;
   }
 
+  /**
+   * PBKDF2 Key Derivation - NIST SP 800-132 Compliant
+   * Uses 100,000 iterations with SHA-256 for government-grade security
+   */
   private deriveKey(password: string, salt: Buffer): Buffer {
-    return createHash('sha256')
-      .update(password)
-      .update(salt)
-      .digest()
-      .slice(0, this.KEY_LENGTH);
+    return pbkdf2Sync(password, salt, this.ITERATIONS, this.KEY_LENGTH, 'sha256');
+  }
+  
+  /**
+   * Validate hexadecimal input format and length
+   * @param fieldName - Name of the field being validated
+   * @param value - Hex string to validate
+   * @param expectedLength - Expected length in hex characters (optional)
+   */
+  private validateHexInput(fieldName: string, value: string, expectedLength?: number): void {
+    if (!value || typeof value !== 'string') {
+      throw new Error(`Invalid ${fieldName}: must be a non-empty string`);
+    }
+    
+    // Check if it's valid hex
+    if (!/^[0-9a-fA-F]*$/.test(value)) {
+      throw new Error(`Invalid ${fieldName}: must contain only hexadecimal characters (0-9, a-f, A-F)`);
+    }
+    
+    // Check length if specified
+    if (expectedLength !== undefined && value.length !== expectedLength) {
+      throw new Error(`Invalid ${fieldName}: expected ${expectedLength} hex characters, got ${value.length}`);
+    }
+    
+    // Ensure even length for proper byte conversion
+    if (value.length % 2 !== 0) {
+      throw new Error(`Invalid ${fieldName}: hex string must have even length for proper byte conversion`);
+    }
   }
 
   /**
