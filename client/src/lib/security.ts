@@ -1,7 +1,28 @@
 import CryptoJS from "crypto-js";
 
-// Security constants
-const ENCRYPTION_KEY = import.meta.env.VITE_ENCRYPTION_KEY || 'fallback-key-for-dev';
+// Security constants with strict validation
+const getEncryptionKey = (): string => {
+  const key = import.meta.env.VITE_ENCRYPTION_KEY;
+  
+  if (!key) {
+    const errorMessage = 'CRITICAL SECURITY ERROR: VITE_ENCRYPTION_KEY environment variable is required';
+    if (import.meta.env.PROD) {
+      throw new Error(errorMessage);
+    }
+    console.warn(`WARNING: ${errorMessage} - Using development fallback`);
+    // Generate a random key for development only
+    return Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, '0')).join('');
+  }
+  
+  // Validate key strength in production
+  if (import.meta.env.PROD && key.length < 32) {
+    throw new Error('CRITICAL SECURITY ERROR: VITE_ENCRYPTION_KEY must be at least 32 characters for production use');
+  }
+  
+  return key;
+};
+
+const ENCRYPTION_KEY = getEncryptionKey();
 const STORAGE_PREFIX = "dha_secure_";
 
 // Client-side encryption utilities

@@ -15,6 +15,18 @@ class PrivacyProtectionService {
     retainLastOctets: 1
   };
 
+  // PII patterns for South African context
+  private readonly PII_PATTERNS = {
+    SA_ID_NUMBER: /\b\d{13}\b/g,
+    PASSPORT_NUMBER: /\b[A-Z]\d{8}\b/g,
+    EMAIL: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+    PHONE_SA: /(\+27|27|0)[1-9]\d{8}/g,
+    CREDIT_CARD: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
+    BANK_ACCOUNT: /\b\d{10,16}\b/g,
+    ADDRESS: /\b\d+\s+[\w\s]+(?:street|st|avenue|ave|road|rd|drive|dr|lane|ln|way|place|pl|court|ct|circle|cir|boulevard|blvd)\b/gi,
+    MEDICAL_ID: /\b(?:medical|health|patient)[\s]*(?:id|number|ref)[\s]*:?[\s]*\w+/gi
+  };
+
   private saltCache = new Map<string, string>();
 
   constructor() {
@@ -224,6 +236,170 @@ class PrivacyProtectionService {
    */
   getConfig(): PrivacyConfig {
     return { ...this.config };
+  }
+
+  /**
+   * CRITICAL: Redact PII from content before sending to OpenAI
+   * This prevents personal data exposure to external AI services
+   */
+  redactPIIForAI(content: string, preserveContext: boolean = true): { 
+    redactedContent: string; 
+    piiDetected: boolean; 
+    redactionMap: Record<string, string> 
+  } {
+    if (!this.config.enabled) {
+      return { redactedContent: content, piiDetected: false, redactionMap: {} };
+    }
+
+    let redactedContent = content;
+    let piiDetected = false;
+    const redactionMap: Record<string, string> = {};
+
+    // Redact South African ID numbers
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.SA_ID_NUMBER, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[SA_ID_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact passport numbers
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.PASSPORT_NUMBER, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[PASSPORT_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact email addresses
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.EMAIL, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[EMAIL_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact phone numbers
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.PHONE_SA, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[PHONE_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact credit card numbers
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.CREDIT_CARD, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[CARD_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact bank account numbers
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.BANK_ACCOUNT, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[ACCOUNT_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact addresses
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.ADDRESS, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[ADDRESS_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    // Redact medical IDs
+    redactedContent = redactedContent.replace(this.PII_PATTERNS.MEDICAL_ID, (match) => {
+      piiDetected = true;
+      const placeholder = preserveContext ? '[MEDICAL_ID_REDACTED]' : '[REDACTED]';
+      redactionMap[match] = placeholder;
+      return placeholder;
+    });
+
+    return { redactedContent, piiDetected, redactionMap };
+  }
+
+  /**
+   * CRITICAL: Sanitize system context data before including in AI prompts
+   * Removes sensitive metrics and user data while preserving functional context
+   */
+  sanitizeSystemContextForAI(context: any): any {
+    if (!this.config.enabled || !context) {
+      return context;
+    }
+
+    const sanitized = { ...context };
+
+    // Remove or redact sensitive user document information
+    if (sanitized.userDocuments) {
+      sanitized.userDocuments = sanitized.userDocuments.map((doc: any) => ({
+        id: this.hashValue(doc.id, 'document'),
+        type: doc.type, // Keep type for context
+        processingStatus: doc.processingStatus, // Keep status for context
+        isVerified: doc.isVerified // Keep verification status for context
+        // Remove: filename, userId, specific content
+      }));
+    }
+
+    // Remove or redact sensitive alert information
+    if (sanitized.recentAlerts) {
+      sanitized.recentAlerts = sanitized.recentAlerts.map((alert: any) => ({
+        alertType: alert.alertType, // Keep type for context
+        riskScore: alert.riskScore, // Keep score for context
+        createdAt: alert.createdAt // Keep timestamp for context
+        // Remove: userId, specific details, personal info
+      }));
+    }
+
+    // Keep biometric status but remove sensitive details
+    if (sanitized.biometricStatus) {
+      sanitized.biometricStatus = {
+        recentAttempts: sanitized.biometricStatus.recentAttempts,
+        successRate: sanitized.biometricStatus.successRate
+        // Remove: lastAuthentication details, user-specific data
+      };
+    }
+
+    // Keep system health metrics (these are generally not PII)
+    // Keep quantum status (cryptographic info, not personal)
+    // Keep security metrics aggregates (not personal)
+
+    return sanitized;
+  }
+
+  /**
+   * CRITICAL: Validate and sanitize conversation history before sending to AI
+   */
+  sanitizeConversationHistoryForAI(messages: Array<{role: string, content: string}>): Array<{role: string, content: string}> {
+    if (!this.config.enabled) {
+      return messages;
+    }
+
+    return messages.map(message => ({
+      role: message.role,
+      content: this.redactPIIForAI(message.content, true).redactedContent
+    }));
+  }
+
+  /**
+   * Create consent record for AI processing
+   */
+  createAIProcessingConsent(userId: string, dataTypes: string[]): {
+    consentId: string;
+    timestamp: Date;
+    dataTypes: string[];
+    userId: string;
+  } {
+    const consentId = crypto.randomUUID();
+    return {
+      consentId,
+      timestamp: new Date(),
+      dataTypes,
+      userId: this.hashValue(userId, 'consent') // Hash for privacy
+    };
   }
 }
 

@@ -14,39 +14,303 @@ const DOCUMENTS_DIR = process.env.DOCUMENTS_DIR || "./documents";
 // Ensure directory exists
 fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
 
-// South African government colors
+// South African government colors and security colors
 const SA_COLORS = {
   green: "#007749",
-  gold: "#FCB514",
+  gold: "#FCB514", 
   red: "#DE3831",
   blue: "#001489",
   black: "#000000",
-  white: "#FFFFFF"
+  white: "#FFFFFF",
+  // Security feature colors
+  security_red: "#CC0000",
+  security_blue: "#0066CC", 
+  security_green: "#006600",
+  microprint_gray: "#808080",
+  hologram_silver: "#C0C0C0",
+  uv_invisible: "#F0F0F0" // UV-reactive placeholder
 };
 
-// Document types
+// Government PKI Configuration
+const GOVT_PKI_CONFIG = {
+  issuer: "Department of Home Affairs - Republic of South Africa",
+  keySize: 4096,
+  hashAlgorithm: "SHA-512",
+  signatureAlgorithm: "RSA-PSS",
+  certificateAuthority: "DHA Root CA",
+  timestampAuthority: "DHA TSA"
+};
+
+// Security pattern templates
+const SECURITY_PATTERNS = {
+  microprint: "DHA-RSA-SECURE-DOCUMENT-MICROPRINT-PATTERN-GENUINE-OFFICIAL-",
+  serialPattern: /^DHA[0-9]{4}[A-Z]{2}[0-9]{6}[A-Z]{2}$/,
+  checksumAlgorithm: "CRC32",
+  securityThread: "RSA-DHA-OFFICIAL-SECURITY-THREAD-AUTHENTIC"
+};
+
+// Multi-language support for South African government documents
+const DOCUMENT_TRANSLATIONS = {
+  en: {
+    // Headers and Titles
+    republic_of_south_africa: "REPUBLIC OF SOUTH AFRICA",
+    department_home_affairs: "DEPARTMENT OF HOME AFFAIRS",
+    birth_certificate: "BIRTH CERTIFICATE",
+    death_certificate: "DEATH CERTIFICATE",
+    marriage_certificate: "MARRIAGE CERTIFICATE",
+    identity_document: "IDENTITY DOCUMENT",
+    passport: "PASSPORT",
+    work_permit: "WORK PERMIT",
+    study_permit: "STUDY PERMIT",
+    business_permit: "BUSINESS PERMIT",
+    visitor_visa: "VISITOR VISA",
+    transit_visa: "TRANSIT VISA",
+    medical_treatment_visa: "MEDICAL TREATMENT VISA",
+    emergency_travel_document: "EMERGENCY TRAVEL DOCUMENT",
+    temporary_residence_permit: "TEMPORARY RESIDENCE PERMIT",
+    permanent_residence_permit: "PERMANENT RESIDENCE PERMIT",
+    refugee_permit: "REFUGEE PERMIT",
+    
+    // Common Fields
+    full_name: "Full Name",
+    surname: "Surname",
+    given_names: "Given Names",
+    date_of_birth: "Date of Birth",
+    place_of_birth: "Place of Birth",
+    nationality: "Nationality",
+    gender: "Gender",
+    id_number: "ID Number",
+    passport_number: "Passport Number",
+    registration_number: "Registration Number",
+    permit_number: "Permit Number",
+    visa_number: "Visa Number",
+    document_number: "Document Number",
+    valid_from: "Valid From",
+    valid_until: "Valid Until",
+    date_of_issue: "Date of Issue",
+    date_of_expiry: "Date of Expiry",
+    issuing_office: "Issuing Office",
+    
+    // Personal Details
+    personal_details: "PERSONAL DETAILS",
+    address: "Address",
+    marital_status: "Marital Status",
+    occupation: "Occupation",
+    contact_number: "Contact Number",
+    email_address: "Email Address",
+    
+    // Security Features
+    security_features: "SECURITY FEATURES",
+    digital_signature: "Digital Signature",
+    biometric_data: "BIOMETRIC DATA",
+    machine_readable_zone: "Machine Readable Zone",
+    official_use_only: "OFFICIAL USE ONLY",
+    authentic_document: "AUTHENTIC DOCUMENT",
+    
+    // Validity and Conditions
+    validity: "VALIDITY",
+    conditions: "Conditions",
+    endorsements: "Endorsements",
+    restrictions: "Restrictions",
+    
+    // Document Specific
+    deceased_details: "DECEASED DETAILS",
+    death_details: "DEATH DETAILS",
+    cause_of_death: "CAUSE OF DEATH",
+    marriage_details: "MARRIAGE DETAILS",
+    spouse_1: "SPOUSE 1",
+    spouse_2: "SPOUSE 2",
+    business_details: "BUSINESS DETAILS",
+    employment_details: "EMPLOYMENT DETAILS",
+    study_details: "STUDY DETAILS",
+    medical_details: "MEDICAL DETAILS",
+    emergency_details: "EMERGENCY DETAILS",
+    
+    // Footer Text
+    this_is_official_document: "This is an official document of the Republic of South Africa",
+    verify_authenticity: "Verify authenticity at",
+    fraud_warning: "Any attempt to forge or alter this document is a criminal offense"
+  },
+  af: {
+    // Headers and Titles (Afrikaans)
+    republic_of_south_africa: "REPUBLIEK VAN SUID-AFRIKA",
+    department_home_affairs: "DEPARTEMENT VAN BINNELANDSE SAKE",
+    birth_certificate: "GEBOORTE SERTIFIKAAT",
+    death_certificate: "STERFTE SERTIFIKAAT", 
+    marriage_certificate: "HUWELIK SERTIFIKAAT",
+    identity_document: "IDENTITEITSDOKUMENT",
+    passport: "PASPOORT",
+    work_permit: "WERKPERMIT",
+    study_permit: "STUDIEPERMIT",
+    business_permit: "BESIGHEIDSPERMIT",
+    visitor_visa: "BESOEKER VISA",
+    transit_visa: "DEURGANGS VISA",
+    medical_treatment_visa: "MEDIESE BEHANDELING VISA",
+    emergency_travel_document: "NOOD REISDOKUMENT",
+    temporary_residence_permit: "TYDELIKE VERBLYF PERMIT",
+    permanent_residence_permit: "PERMANENTE VERBLYF PERMIT",
+    refugee_permit: "VLUGTELINGPERMIT",
+    
+    // Common Fields (Afrikaans)
+    full_name: "Volle Naam",
+    surname: "Van",
+    given_names: "Voorname",
+    date_of_birth: "Geboortedatum",
+    place_of_birth: "Geboorteplek",
+    nationality: "Nasionaliteit",
+    gender: "Geslag",
+    id_number: "ID Nommer",
+    passport_number: "Paspoort Nommer",
+    registration_number: "Registrasie Nommer",
+    permit_number: "Permit Nommer",
+    visa_number: "Visa Nommer",
+    document_number: "Dokument Nommer",
+    valid_from: "Geldig Vanaf",
+    valid_until: "Geldig Tot",
+    date_of_issue: "Datum van Uitreiking",
+    date_of_expiry: "Vervaldatum",
+    issuing_office: "Uitgee Kantoor",
+    
+    // Personal Details (Afrikaans)
+    personal_details: "PERSOONLIKE BESONDERHEDE",
+    address: "Adres",
+    marital_status: "Huwelikstaat",
+    occupation: "Beroep",
+    contact_number: "Kontak Nommer",
+    email_address: "E-pos Adres",
+    
+    // Security Features (Afrikaans)
+    security_features: "SEKURITEITSKENMERKE",
+    digital_signature: "Digitale Handtekening",
+    biometric_data: "BIOMETRIESE DATA",
+    machine_readable_zone: "Masjienleesbare Sone",
+    official_use_only: "SLEGS AMPTELIKE GEBRUIK",
+    authentic_document: "OUTENTIEKE DOKUMENT",
+    
+    // Validity and Conditions (Afrikaans)
+    validity: "GELDIGHEID",
+    conditions: "Voorwaardes",
+    endorsements: "Endossemente",
+    restrictions: "Beperkings",
+    
+    // Document Specific (Afrikaans)
+    deceased_details: "OORLEDENE BESONDERHEDE",
+    death_details: "STERFTE BESONDERHEDE",
+    cause_of_death: "OORSAAK VAN DOOD",
+    marriage_details: "HUWELIK BESONDERHEDE",
+    spouse_1: "GADE 1",
+    spouse_2: "GADE 2",
+    business_details: "BESIGHEID BESONDERHEDE",
+    employment_details: "INDIENSNEMING BESONDERHEDE",
+    study_details: "STUDIE BESONDERHEDE",
+    medical_details: "MEDIESE BESONDERHEDE",
+    emergency_details: "NOOD BESONDERHEDE",
+    
+    // Footer Text (Afrikaans)
+    this_is_official_document: "Hierdie is 'n amptelike dokument van die Republiek van Suid-Afrika",
+    verify_authenticity: "Verifieer egtheid by",
+    fraud_warning: "Enige poging om hierdie dokument te vervals of te verander is 'n kriminele oortreding"
+  }
+};
+
+// Typography settings for different languages
+const TYPOGRAPHY_CONFIG = {
+  en: {
+    primaryFont: 'Helvetica',
+    boldFont: 'Helvetica-Bold',
+    monoFont: 'Courier',
+    lineHeight: 1.2,
+    characterSpacing: 0,
+    wordSpacing: 0,
+    textDirection: 'ltr'
+  },
+  af: {
+    primaryFont: 'Helvetica',
+    boldFont: 'Helvetica-Bold',
+    monoFont: 'Courier',
+    lineHeight: 1.3, // Slightly more line height for Afrikaans
+    characterSpacing: 0.2,
+    wordSpacing: 0.1,
+    textDirection: 'ltr'
+  }
+};
+
+// Document layout configuration for different languages
+const LAYOUT_CONFIG = {
+  bilingual: {
+    headerHeight: 140, // Extra space for bilingual headers
+    sectionSpacing: 30,
+    fieldSpacing: 20,
+    bilingualGap: 8 // Gap between English and Afrikaans text
+  },
+  single: {
+    headerHeight: 100,
+    sectionSpacing: 25,
+    fieldSpacing: 15,
+    bilingualGap: 0
+  }
+};
+
+// Document types - All 21 DHA document types
 export enum DocumentType {
+  // Civil Registration Documents
+  BIRTH_CERTIFICATE = "birth_certificate",
+  DEATH_CERTIFICATE = "death_certificate",
+  MARRIAGE_CERTIFICATE = "marriage_certificate",
+  
+  // Identity Documents
+  SA_ID = "sa_id",
+  SMART_ID = "smart_id",
+  
+  // Travel Documents
+  PASSPORT = "passport",
+  DIPLOMATIC_PASSPORT = "diplomatic_passport",
+  OFFICIAL_PASSPORT = "official_passport",
+  EMERGENCY_TRAVEL_DOCUMENT = "emergency_travel_document",
+  
+  // Work Permits (Section 19 variations)
+  WORK_PERMIT_19_1 = "work_permit_19_1",
+  WORK_PERMIT_19_2 = "work_permit_19_2",
+  WORK_PERMIT_19_3 = "work_permit_19_3",
+  WORK_PERMIT_19_4 = "work_permit_19_4",
+  GENERAL_WORK_PERMIT = "general_work_permit",
+  CRITICAL_SKILLS_WORK_PERMIT = "critical_skills_work_permit",
+  
+  // Study and Business Permits
+  STUDY_PERMIT = "study_permit",
+  BUSINESS_PERMIT = "business_permit",
+  
+  // Visa Types
+  VISITOR_VISA = "visitor_visa",
+  TRANSIT_VISA = "transit_visa",
+  MEDICAL_TREATMENT_VISA = "medical_treatment_visa",
+  EXCHANGE_PERMIT = "exchange_permit",
+  RELATIVES_VISA = "relatives_visa",
+  CRITICAL_SKILLS_VISA = "critical_skills_visa",
+  INTRA_COMPANY_TRANSFER_VISA = "intra_company_transfer_visa",
+  CORPORATE_VISA = "corporate_visa",
+  TREATY_VISA = "treaty_visa",
+  
+  // Residence Permits
+  TEMPORARY_RESIDENCE_PERMIT = "temporary_residence_permit",
+  PERMANENT_RESIDENCE_PERMIT = "permanent_residence_permit",
+  
+  // Refugee Documents
+  REFUGEE_PERMIT = "refugee_permit",
+  
+  // Legacy document types (for backwards compatibility)
   WORK_PERMIT = "work_permit",
   ASYLUM_VISA = "asylum_visa",
   RESIDENCE_PERMIT = "residence_permit",
   EXCEPTIONAL_SKILLS = "exceptional_skills",
-  BIRTH_CERTIFICATE = "birth_certificate",
-  PASSPORT = "passport",
-  REFUGEE_PERMIT = "refugee_permit",
-  STUDY_PERMIT = "study_permit",
-  VISITOR_VISA = "visitor_visa", // DHA-84
-  TEMPORARY_RESIDENCE = "temporary_residence", // DHA-1738
-  GENERAL_WORK = "general_work", // BI-947
   MEDICAL_CERTIFICATE = "medical_certificate",
   RADIOLOGICAL_REPORT = "radiological_report",
   CRITICAL_SKILLS = "critical_skills",
   BUSINESS_VISA = "business_visa",
-  RELATIVES_VISA = "relatives_visa",
   EXCHANGE_VISA = "exchange_visa",
   RETIREMENT_VISA = "retirement_visa",
-  TREATY_VISA = "treaty_visa",
-  CORPORATE_VISA = "corporate_visa",
-  INTRA_COMPANY_TRANSFER = "intra_company_transfer"
+  TEMPORARY_RESIDENCE = "temporary_residence",
+  GENERAL_WORK = "general_work"
 }
 
 // Interfaces for document data
@@ -341,6 +605,284 @@ export interface MedicalCertificateData {
   additionalNotes?: string;
 }
 
+// Death Certificate Template
+export interface DeathCertificateData {
+  registrationNumber: string;
+  deceasedDetails: {
+    fullName: string;
+    surname: string;
+    givenNames: string;
+    dateOfBirth: string;
+    dateOfDeath: string;
+    timeOfDeath: string;
+    placeOfDeath: string;
+    gender: string;
+    idNumber?: string;
+    nationality: string;
+    maritalStatus: string;
+    occupation?: string;
+    usualResidence: string;
+  };
+  deathDetails: {
+    causeOfDeath: {
+      immediate: string;
+      underlying: string;
+      other?: string[];
+    };
+    mannerOfDeath: "Natural" | "Accident" | "Suicide" | "Homicide" | "Undetermined";
+    certifyingDoctor: {
+      fullName: string;
+      qualifications: string;
+      practiceNumber: string;
+      address: string;
+      contactNumber: string;
+    };
+    postMortem: boolean;
+    postMortemFindings?: string;
+  };
+  informantDetails: {
+    fullName: string;
+    relationship: string;
+    address: string;
+    contactNumber: string;
+    idNumber?: string;
+  };
+  registrationDetails: {
+    dateOfRegistration: string;
+    registrationOffice: string;
+    registrarName: string;
+    registrarSignature: string;
+  };
+}
+
+// Marriage Certificate Template
+export interface MarriageCertificateData {
+  registrationNumber: string;
+  marriageDetails: {
+    dateOfMarriage: string;
+    placeOfMarriage: string;
+    typeOfMarriage: "Civil" | "Religious" | "Customary" | "Civil Union";
+    marriageOfficer: {
+      fullName: string;
+      designation: string;
+      registrationNumber: string;
+    };
+  };
+  spouse1: {
+    fullName: string;
+    surname: string;
+    givenNames: string;
+    dateOfBirth: string;
+    nationality: string;
+    idNumber?: string;
+    passportNumber?: string;
+    maritalStatus: string;
+    occupation?: string;
+    address: string;
+  };
+  spouse2: {
+    fullName: string;
+    surname: string;
+    givenNames: string;
+    dateOfBirth: string;
+    nationality: string;
+    idNumber?: string;
+    passportNumber?: string;
+    maritalStatus: string;
+    occupation?: string;
+    address: string;
+  };
+  witnesses: Array<{
+    fullName: string;
+    idNumber?: string;
+    address: string;
+    signature: string;
+  }>;
+  registrationDetails: {
+    dateOfRegistration: string;
+    registrationOffice: string;
+    registrarName: string;
+    registrarSignature: string;
+  };
+}
+
+// South African ID Card Template
+export interface SouthAfricanIdData {
+  idNumber: string;
+  smartCardNumber?: string;
+  personal: {
+    fullName: string;
+    surname: string;
+    givenNames: string;
+    dateOfBirth: string;
+    placeOfBirth: string;
+    gender: string;
+    nationality: string;
+    citizenshipStatus: "Citizen" | "Permanent Resident";
+  };
+  physicalDetails: {
+    height?: string;
+    eyeColor?: string;
+    photograph: string; // Base64 encoded
+    signature: string; // Base64 encoded
+  };
+  address: {
+    streetAddress: string;
+    suburb: string;
+    city: string;
+    province: string;
+    postalCode: string;
+  };
+  biometricData: {
+    fingerprints: string[]; // Base64 encoded fingerprint templates
+    faceTemplate?: string; // Base64 encoded face biometric
+  };
+  issuanceDetails: {
+    dateOfIssue: string;
+    dateOfExpiry: string;
+    issuingOffice: string;
+    smartChipData?: string; // RFID/NFC data
+  };
+}
+
+// Business Permit Template
+export interface BusinessPermitData {
+  personal: PersonalDetails;
+  permitNumber: string;
+  businessDetails: {
+    businessName: string;
+    registrationNumber: string;
+    businessType: string;
+    businessAddress: string;
+    businessActivity: string;
+    investmentAmount: string;
+    employmentCreated: number;
+    businessPlan: string;
+  };
+  financialDetails: {
+    sourceOfFunds: string;
+    bankDetails: {
+      bankName: string;
+      accountNumber: string;
+      accountType: string;
+    };
+    auditorDetails?: {
+      firmName: string;
+      contactPerson: string;
+      address: string;
+    };
+  };
+  validFrom: string;
+  validUntil: string;
+  conditions?: string[];
+  endorsements?: string[];
+}
+
+// Transit Visa Template
+export interface TransitVisaData {
+  personal: PersonalDetails;
+  visaNumber: string;
+  transitDetails: {
+    entryPort: string;
+    exitPort: string;
+    transitDuration: string; // in hours
+    finalDestination: string;
+    flightDetails: {
+      arrivalFlight: string;
+      arrivalDate: string;
+      arrivalTime: string;
+      departureFlight: string;
+      departureDate: string;
+      departureTime: string;
+    };
+  };
+  travelDocument: {
+    passportNumber: string;
+    issuingCountry: string;
+    expiryDate: string;
+  };
+  validFrom: string;
+  validUntil: string;
+  conditions?: string[];
+}
+
+// Medical Treatment Visa Template
+export interface MedicalTreatmentVisaData {
+  personal: PersonalDetails;
+  visaNumber: string;
+  medicalDetails: {
+    condition: string;
+    treatmentRequired: string;
+    urgency: "Emergency" | "Urgent" | "Scheduled";
+    estimatedDuration: string;
+    medicalInstitution: {
+      name: string;
+      address: string;
+      contactNumber: string;
+      registrationNumber: string;
+      specialization: string;
+    };
+    attendingDoctor: {
+      fullName: string;
+      qualifications: string;
+      practiceNumber: string;
+      specialization: string;
+    };
+  };
+  financialArrangements: {
+    paymentMethod: "Medical Aid" | "Cash" | "Insurance" | "Government";
+    medicalAidDetails?: {
+      schemeName: string;
+      membershipNumber: string;
+      principalMember: string;
+    };
+    estimatedCost: string;
+  };
+  accompaniedBy?: Array<{
+    fullName: string;
+    relationship: string;
+    passportNumber: string;
+    nationality: string;
+  }>;
+  validFrom: string;
+  validUntil: string;
+  conditions?: string[];
+}
+
+// Emergency Travel Document Template
+export interface EmergencyTravelDocumentData {
+  personal: PersonalDetails;
+  documentNumber: string;
+  emergencyDetails: {
+    emergencyType: "Lost Passport" | "Stolen Passport" | "Emergency Travel" | "Medical Emergency" | "Other";
+    circumstances: string;
+    policeReference?: string;
+    reportDate?: string;
+  };
+  validityDetails: {
+    validFrom: string;
+    validUntil: string;
+    purpose: "Single Journey" | "Multiple Journey" | "Emergency Return";
+    destinationCountries: string[];
+    restrictions?: string[];
+  };
+  issuingDetails: {
+    issuingOffice: string;
+    issuingOfficer: string;
+    emergencyContactSA: {
+      name: string;
+      relationship: string;
+      contactNumber: string;
+      address: string;
+    };
+  };
+  replacementDetails?: {
+    originalPassportNumber?: string;
+    originalIssueDate?: string;
+    originalExpiryDate?: string;
+  };
+}
+
 // Radiological Report Template
 export interface RadiologicalReportData {
   reportNumber: string;
@@ -475,6 +1017,565 @@ export interface RetirementVisaData {
 }
 
 export class PDFGenerationService {
+  
+  /**
+   * Get translation for a key in specified language
+   */
+  private getTranslation(key: string, language: 'en' | 'af' = 'en'): string {
+    const translations = DOCUMENT_TRANSLATIONS[language];
+    return translations[key as keyof typeof translations] || key;
+  }
+  
+  /**
+   * Add bilingual text (English + Afrikaans) to document
+   */
+  private addBilingualText(
+    doc: PDFKit, 
+    textKey: string, 
+    x: number, 
+    y: number, 
+    options: {
+      fontSize?: number;
+      font?: string;
+      color?: string;
+      width?: number;
+      align?: string;
+      isBold?: boolean;
+    } = {}
+  ): number {
+    const {
+      fontSize = 10,
+      font = 'Helvetica',
+      color = SA_COLORS.black,
+      width = 500,
+      align = 'left',
+      isBold = false
+    } = options;
+    
+    const fontName = isBold ? (font === 'Helvetica' ? 'Helvetica-Bold' : font) : font;
+    
+    doc.save();
+    doc.fontSize(fontSize)
+       .font(fontName)
+       .fillColor(color);
+    
+    // English text
+    const englishText = this.getTranslation(textKey, 'en');
+    doc.text(englishText, x, y, { width, align: align as any });
+    
+    // Afrikaans text (slightly smaller and below)
+    const afrikaansText = this.getTranslation(textKey, 'af');
+    doc.fontSize(fontSize * 0.9)
+       .fillColor(color)
+       .fillOpacity(0.8)
+       .text(afrikaansText, x, y + (fontSize * 1.2), { width, align: align as any });
+    
+    doc.restore();
+    
+    // Return the total height used
+    return (fontSize * 1.2) + (fontSize * 0.9 * 1.3);
+  }
+  
+  /**
+   * Add single language text with proper typography
+   */
+  private addLanguageText(
+    doc: PDFKit,
+    text: string,
+    language: 'en' | 'af',
+    x: number,
+    y: number,
+    options: {
+      fontSize?: number;
+      font?: string;
+      color?: string;
+      width?: number;
+      align?: string;
+    } = {}
+  ): void {
+    const typography = TYPOGRAPHY_CONFIG[language];
+    const {
+      fontSize = 10,
+      font = typography.primaryFont,
+      color = SA_COLORS.black,
+      width = 500,
+      align = 'left'
+    } = options;
+    
+    doc.save();
+    doc.fontSize(fontSize)
+       .font(font)
+       .fillColor(color);
+    
+    // Apply language-specific typography settings
+    if (typography.characterSpacing) {
+      doc.text(text, x, y, { 
+        width, 
+        align: align as any,
+        characterSpacing: typography.characterSpacing
+      });
+    } else {
+      doc.text(text, x, y, { width, align: align as any });
+    }
+    
+    doc.restore();
+  }
+  
+  /**
+   * Add government header with bilingual support
+   */
+  private addBilingualGovernmentHeader(doc: PDFKit, documentTitle: string): number {
+    const pageWidth = doc.page.width;
+    let yPos = 30;
+    
+    // South African coat of arms placeholder
+    doc.save();
+    doc.circle(pageWidth / 2, yPos + 25, 20)
+       .fillColor(SA_COLORS.gold)
+       .fill()
+       .strokeColor(SA_COLORS.green)
+       .lineWidth(2)
+       .stroke();
+    doc.restore();
+    
+    yPos += 60;
+    
+    // Republic of South Africa - Bilingual
+    yPos += this.addBilingualText(doc, 'republic_of_south_africa', 0, yPos, {
+      fontSize: 14,
+      font: 'Helvetica-Bold',
+      color: SA_COLORS.green,
+      width: pageWidth,
+      align: 'center',
+      isBold: true
+    });
+    
+    yPos += 10;
+    
+    // Department of Home Affairs - Bilingual
+    yPos += this.addBilingualText(doc, 'department_home_affairs', 0, yPos, {
+      fontSize: 12,
+      color: SA_COLORS.blue,
+      width: pageWidth,
+      align: 'center'
+    });
+    
+    yPos += 20;
+    
+    // Document title - Bilingual
+    const documentTitleKey = documentTitle.toLowerCase().replace(/\s+/g, '_');
+    yPos += this.addBilingualText(doc, documentTitleKey, 0, yPos, {
+      fontSize: 18,
+      font: 'Helvetica-Bold',
+      color: SA_COLORS.black,
+      width: pageWidth,
+      align: 'center',
+      isBold: true
+    });
+    
+    // Add decorative line
+    doc.save();
+    doc.strokeColor(SA_COLORS.gold)
+       .lineWidth(2)
+       .moveTo(50, yPos + 10)
+       .lineTo(pageWidth - 50, yPos + 10)
+       .stroke();
+    doc.restore();
+    
+    return yPos + 20;
+  }
+  
+  /**
+   * Add bilingual field with label and value
+   */
+  private addBilingualField(
+    doc: PDFKit,
+    labelKey: string,
+    value: string,
+    x: number,
+    y: number,
+    options: {
+      labelWidth?: number;
+      fontSize?: number;
+      valueColor?: string;
+    } = {}
+  ): number {
+    const { labelWidth = 150, fontSize = 10, valueColor = SA_COLORS.black } = options;
+    
+    // English label
+    const englishLabel = this.getTranslation(labelKey, 'en');
+    doc.fontSize(fontSize)
+       .font('Helvetica-Bold')
+       .fillColor(SA_COLORS.green)
+       .text(englishLabel, x, y, { width: labelWidth });
+    
+    // Afrikaans label (smaller, below English)
+    const afrikaansLabel = this.getTranslation(labelKey, 'af');
+    doc.fontSize(fontSize * 0.9)
+       .fillColor(SA_COLORS.green)
+       .fillOpacity(0.8)
+       .text(afrikaansLabel, x, y + (fontSize * 1.1), { width: labelWidth });
+    
+    // Value (aligned to the right of labels)
+    doc.fontSize(fontSize)
+       .font('Helvetica')
+       .fillColor(valueColor)
+       .fillOpacity(1)
+       .text(value, x + labelWidth + 10, y, { width: 300 });
+    
+    return (fontSize * 1.1) + (fontSize * 0.9 * 1.3) + 5; // Total height used
+  }
+  
+  /**
+   * Format date according to South African standards
+   */
+  private formatSADate(dateString: string, language: 'en' | 'af' = 'en'): string {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    
+    const monthNames = {
+      en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      af: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Des']
+    };
+    
+    const monthName = monthNames[language][month - 1];
+    return `${day} ${monthName} ${year}`;
+  }
+  
+  /**
+   * Add government footer with security information
+   */
+  private addBilingualGovernmentFooter(doc: PDFKit): void {
+    const pageHeight = doc.page.height;
+    const pageWidth = doc.page.width;
+    const footerY = pageHeight - 80;
+    
+    // Security line
+    doc.save();
+    doc.strokeColor(SA_COLORS.security_blue)
+       .lineWidth(1)
+       .moveTo(30, footerY)
+       .lineTo(pageWidth - 30, footerY)
+       .stroke();
+    doc.restore();
+    
+    // Official document notice - Bilingual
+    this.addBilingualText(doc, 'this_is_official_document', 30, footerY + 10, {
+      fontSize: 8,
+      color: SA_COLORS.security_blue,
+      width: pageWidth - 60,
+      align: 'center'
+    });
+    
+    // Verification URL
+    doc.fontSize(8)
+       .font('Helvetica')
+       .fillColor(SA_COLORS.blue)
+       .text('verify.dha.gov.za', 30, footerY + 45, {
+         width: pageWidth - 60,
+         align: 'center'
+       });
+    
+    // Fraud warning - Bilingual
+    this.addBilingualText(doc, 'fraud_warning', 30, footerY + 55, {
+      fontSize: 7,
+      color: SA_COLORS.security_red,
+      width: pageWidth - 60,
+      align: 'center'
+    });
+  }
+  
+  /**
+   * Generate ICAO-compliant Machine Readable Zone (MRZ) for travel documents
+   */
+  private generateMRZ(documentType: string, passportNumber: string, surname: string, givenNames: string, nationality: string, dateOfBirth: string, gender: string, expiryDate: string, personalNumber?: string): string[] {
+    // Format dates for MRZ (YYMMDD format)
+    const formatMRZDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      const year = date.getFullYear().toString().slice(-2);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      return year + month + day;
+    };
+    
+    // Calculate check digit using ICAO standard
+    const calculateCheckDigit = (data: string) => {
+      const weights = [7, 3, 1];
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) {
+        const char = data[i];
+        let value = 0;
+        if (char >= '0' && char <= '9') {
+          value = parseInt(char);
+        } else if (char >= 'A' && char <= 'Z') {
+          value = char.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
+        } else if (char === '<') {
+          value = 0;
+        }
+        sum += value * weights[i % 3];
+      }
+      return (sum % 10).toString();
+    };
+    
+    // Pad and truncate strings to fit MRZ format
+    const padRight = (str: string, length: number) => {
+      return (str + '<'.repeat(length)).substring(0, length);
+    };
+    
+    // Clean and format names (remove special characters, convert to uppercase)
+    const cleanName = (name: string) => {
+      return name.toUpperCase()
+                 .replace(/[^A-Z\s]/g, '')
+                 .replace(/\s+/g, '<');
+    };
+    
+    const formattedSurname = cleanName(surname);
+    const formattedGivenNames = cleanName(givenNames);
+    const formattedDOB = formatMRZDate(dateOfBirth);
+    const formattedExpiry = formatMRZDate(expiryDate);
+    const genderCode = gender.toUpperCase().charAt(0);
+    
+    let mrz: string[] = [];
+    
+    if (documentType === 'passport' || documentType === 'emergency_travel_document') {
+      // TD-3 format (passport)
+      // Line 1: P<COUNTRY<SURNAME<<GIVEN<NAMES<<<<<<<<<<<<<<<
+      const line1 = 'P<ZAF' + padRight(formattedSurname + '<<' + formattedGivenNames, 39);
+      
+      // Line 2: PASSPORT_NUMBER<CHECK_DIGIT<NATIONALITY<DOB<CHECK_DIGIT<GENDER<EXPIRY<CHECK_DIGIT<PERSONAL_NUMBER<CHECK_DIGIT<OVERALL_CHECK_DIGIT
+      const passportField = padRight(passportNumber, 9);
+      const passportCheckDigit = calculateCheckDigit(passportField);
+      const dobCheckDigit = calculateCheckDigit(formattedDOB);
+      const expiryCheckDigit = calculateCheckDigit(formattedExpiry);
+      const personalNumberField = padRight(personalNumber || '', 14);
+      const personalNumberCheckDigit = calculateCheckDigit(personalNumberField);
+      
+      // Calculate overall check digit for line 2 (excluding the last check digit itself)
+      const line2ForOverallCheck = passportField + passportCheckDigit + nationality + formattedDOB + dobCheckDigit + genderCode + formattedExpiry + expiryCheckDigit + personalNumberField + personalNumberCheckDigit;
+      const overallCheckDigit = calculateCheckDigit(line2ForOverallCheck);
+      
+      const line2 = passportField + passportCheckDigit + nationality + formattedDOB + dobCheckDigit + genderCode + formattedExpiry + expiryCheckDigit + personalNumberField + personalNumberCheckDigit + overallCheckDigit;
+      
+      mrz = [line1, line2];
+    } else if (documentType === 'sa_id' || documentType === 'smart_id') {
+      // TD-1 format (ID card) - 3 lines of 30 characters each
+      // Line 1: I<COUNTRY<DOCUMENT_NUMBER<CHECK_DIGIT<<<<<<<<<<<<<
+      const line1 = 'I<ZAF' + padRight(passportNumber, 9) + calculateCheckDigit(padRight(passportNumber, 9)) + '<'.repeat(15);
+      
+      // Line 2: DOB<CHECK_DIGIT<GENDER<EXPIRY<CHECK_DIGIT<NATIONALITY<<<<<<<
+      const line2 = formattedDOB + calculateCheckDigit(formattedDOB) + genderCode + formattedExpiry + calculateCheckDigit(formattedExpiry) + nationality + '<'.repeat(7);
+      
+      // Line 3: SURNAME<<GIVEN<NAMES<<<<<<<<<<<<<<<<<<<
+      const line3 = padRight(formattedSurname + '<<' + formattedGivenNames, 30);
+      
+      mrz = [line1, line2, line3];
+    }
+    
+    return mrz;
+  }
+  
+  /**
+   * Add MRZ to travel document
+   */
+  private addMRZToDocument(doc: PDFKit, mrz: string[], x: number, y: number): void {
+    doc.save();
+    
+    // MRZ background
+    doc.rect(x - 5, y - 5, 350, (mrz.length * 15) + 10)
+       .fillColor('#f0f0f0')
+       .fill();
+    
+    // MRZ text using monospace font
+    doc.font('Courier')
+       .fontSize(10)
+       .fillColor(SA_COLORS.black);
+    
+    mrz.forEach((line, index) => {
+      doc.text(line, x, y + (index * 15), {
+        characterSpacing: 1.2,
+        width: 340
+      });
+    });
+    
+    // Add holographic overlay on MRZ for security
+    this.addHolographicEffect(doc, x - 5, y - 5, 350, (mrz.length * 15) + 10);
+    
+    doc.restore();
+  }
+  
+  /**
+   * Generate RFID/NFC chip data placeholder for smart documents
+   */
+  private generateRFIDData(documentType: string, personalData: any): any {
+    const chipData = {
+      chipId: crypto.randomBytes(8).toString('hex').toUpperCase(),
+      encryptionKey: crypto.randomBytes(16).toString('hex'),
+      digitalSignature: crypto.randomBytes(32).toString('hex'),
+      biometricTemplates: {
+        face: crypto.randomBytes(64).toString('base64'),
+        fingerprints: [
+          crypto.randomBytes(32).toString('base64'),
+          crypto.randomBytes(32).toString('base64')
+        ]
+      },
+      personalData: {
+        name: personalData.fullName,
+        dateOfBirth: personalData.dateOfBirth,
+        nationality: personalData.nationality,
+        documentNumber: personalData.passportNumber || personalData.idNumber
+      },
+      securityFeatures: {
+        activationDate: new Date().toISOString(),
+        expirationDate: new Date(Date.now() + (10 * 365 * 24 * 60 * 60 * 1000)).toISOString(),
+        accessLevel: documentType === 'passport' ? 'INTERNATIONAL' : 'NATIONAL',
+        encryptionLevel: 'AES-256'
+      },
+      metadata: {
+        issuer: 'DHA-RSA',
+        version: '2.0',
+        standard: 'ISO/IEC 14443',
+        compliance: ['ICAO-9303', 'NIST-SP-800-73']
+      }
+    };
+    
+    return JSON.stringify(chipData);
+  }
+  
+  /**
+   * Add RFID/NFC chip indicator to smart documents
+   */
+  private addRFIDChipIndicator(doc: PDFKit, x: number, y: number): void {
+    doc.save();
+    
+    // RFID chip background
+    doc.rect(x, y, 30, 20)
+       .fillColor(SA_COLORS.gold)
+       .fill()
+       .strokeColor(SA_COLORS.black)
+       .lineWidth(1)
+       .stroke();
+    
+    // Chip contact points
+    const contacts = [
+      [x + 5, y + 3], [x + 15, y + 3], [x + 25, y + 3],
+      [x + 5, y + 8], [x + 15, y + 8], [x + 25, y + 8],
+      [x + 5, y + 13], [x + 15, y + 13], [x + 25, y + 13]
+    ];
+    
+    contacts.forEach(([cx, cy]) => {
+      doc.circle(cx, cy, 1)
+         .fillColor(SA_COLORS.black)
+         .fill();
+    });
+    
+    // NFC waves indicator
+    doc.strokeColor(SA_COLORS.security_blue)
+       .lineWidth(0.5);
+    
+    for (let i = 1; i <= 3; i++) {
+      doc.circle(x + 35, y + 10, 5 * i)
+         .stroke();
+    }
+    
+    // Add text
+    doc.fontSize(6)
+       .font('Helvetica')
+       .fillColor(SA_COLORS.black)
+       .text('RFID', x, y + 22);
+    
+    doc.restore();
+  }
+  
+  /**
+   * Generate biometric data placeholders for documents
+   */
+  private generateBiometricPlaceholders(documentType: string): any {
+    return {
+      faceTemplate: {
+        algorithm: 'ISO/IEC 19794-5',
+        template: crypto.randomBytes(1024).toString('base64'),
+        quality: Math.floor(Math.random() * 40) + 60, // 60-100 quality score
+        captureDate: new Date().toISOString(),
+        resolution: '640x480',
+        colorSpace: 'RGB24'
+      },
+      fingerprintTemplates: [
+        {
+          position: 'RIGHT_THUMB',
+          algorithm: 'ISO/IEC 19794-2',
+          template: crypto.randomBytes(512).toString('base64'),
+          quality: Math.floor(Math.random() * 30) + 70,
+          captureDate: new Date().toISOString(),
+          resolution: '500dpi'
+        },
+        {
+          position: 'RIGHT_INDEX',
+          algorithm: 'ISO/IEC 19794-2', 
+          template: crypto.randomBytes(512).toString('base64'),
+          quality: Math.floor(Math.random() * 30) + 70,
+          captureDate: new Date().toISOString(),
+          resolution: '500dpi'
+        }
+      ],
+      irisTemplate: documentType === 'passport' ? {
+        algorithm: 'ISO/IEC 19794-6',
+        template: crypto.randomBytes(2048).toString('base64'),
+        quality: Math.floor(Math.random() * 25) + 75,
+        captureDate: new Date().toISOString(),
+        eye: 'BOTH'
+      } : null,
+      signatureTemplate: {
+        algorithm: 'ISO/IEC 19794-7',
+        template: crypto.randomBytes(256).toString('base64'),
+        captureDate: new Date().toISOString(),
+        dynamicFeatures: true
+      }
+    };
+  }
+  
+  /**
+   * Add biometric data indicators to document
+   */
+  private addBiometricIndicators(doc: PDFKit, x: number, y: number, biometricData: any): void {
+    doc.save();
+    
+    doc.fontSize(8)
+       .font('Helvetica-Bold')
+       .fillColor(SA_COLORS.security_blue)
+       .text('BIOMETRIC DATA', x, y);
+    
+    let indicatorY = y + 15;
+    
+    // Face biometric indicator
+    if (biometricData.faceTemplate) {
+      doc.fontSize(6)
+         .text(`✓ Face Template (Quality: ${biometricData.faceTemplate.quality})`, x, indicatorY);
+      indicatorY += 10;
+    }
+    
+    // Fingerprint indicators
+    if (biometricData.fingerprintTemplates) {
+      biometricData.fingerprintTemplates.forEach((fp: any, index: number) => {
+        doc.text(`✓ ${fp.position} (Quality: ${fp.quality})`, x, indicatorY);
+        indicatorY += 10;
+      });
+    }
+    
+    // Iris indicator (for passports)
+    if (biometricData.irisTemplate) {
+      doc.text(`✓ Iris Template (Quality: ${biometricData.irisTemplate.quality})`, x, indicatorY);
+      indicatorY += 10;
+    }
+    
+    // Signature indicator
+    if (biometricData.signatureTemplate) {
+      doc.text('✓ Digital Signature Template', x, indicatorY);
+    }
+    
+    doc.restore();
+  }
   
   /**
    * Generate prominent Braille pattern with larger dots and better spacing
@@ -3793,6 +4894,781 @@ export class PDFGenerationService {
           margin: 1
         }).then(qrCode => {
           doc.image(qrCode, 450, 400, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Death Certificate PDF
+   */
+  async generateDeathCertificatePDF(data: DeathCertificateData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "DEATH CERTIFICATE");
+
+        // Title
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .text('DEATH CERTIFICATE', 50, 140, { align: 'center', width: 515 });
+
+        // Registration details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Registration Number: ${data.registrationNumber}`, 50, yPos);
+
+        // Deceased details section
+        yPos += 40;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('DECEASED DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const deceasedFields = [
+          { label: 'Full Name:', value: data.deceasedDetails.fullName },
+          { label: 'Date of Birth:', value: data.deceasedDetails.dateOfBirth },
+          { label: 'Date of Death:', value: data.deceasedDetails.dateOfDeath },
+          { label: 'Time of Death:', value: data.deceasedDetails.timeOfDeath },
+          { label: 'Place of Death:', value: data.deceasedDetails.placeOfDeath },
+          { label: 'Gender:', value: data.deceasedDetails.gender },
+          { label: 'Nationality:', value: data.deceasedDetails.nationality },
+          { label: 'ID Number:', value: data.deceasedDetails.idNumber || 'N/A' }
+        ];
+
+        deceasedFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 120 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // Cause of death section
+        yPos += 20;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('CAUSE OF DEATH', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text('Immediate Cause:', 50, yPos, { continued: true })
+           .font('Helvetica')
+           .text(` ${data.deathDetails.causeOfDeath.immediate}`);
+
+        yPos += 18;
+        doc.font('Helvetica-Bold')
+           .text('Underlying Cause:', 50, yPos, { continued: true })
+           .font('Helvetica')
+           .text(` ${data.deathDetails.causeOfDeath.underlying}`);
+
+        yPos += 18;
+        doc.font('Helvetica-Bold')
+           .text('Manner of Death:', 50, yPos, { continued: true })
+           .font('Helvetica')
+           .text(` ${data.deathDetails.mannerOfDeath}`);
+
+        // Certifying doctor section
+        yPos += 30;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('CERTIFYING DOCTOR', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const doctorFields = [
+          { label: 'Doctor Name:', value: data.deathDetails.certifyingDoctor.fullName },
+          { label: 'Qualifications:', value: data.deathDetails.certifyingDoctor.qualifications },
+          { label: 'Practice Number:', value: data.deathDetails.certifyingDoctor.practiceNumber }
+        ];
+
+        doctorFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 120 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // QR code for verification
+        const qrData = `DHA-DEATH:${data.registrationNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Marriage Certificate PDF
+   */
+  async generateMarriageCertificatePDF(data: MarriageCertificateData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "MARRIAGE CERTIFICATE");
+
+        // Title
+        doc.fontSize(18)
+           .font('Helvetica-Bold')
+           .text('MARRIAGE CERTIFICATE', 50, 140, { align: 'center', width: 515 });
+
+        // Registration details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Registration Number: ${data.registrationNumber}`, 50, yPos);
+
+        // Marriage details section
+        yPos += 40;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('MARRIAGE DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const marriageFields = [
+          { label: 'Date of Marriage:', value: data.marriageDetails.dateOfMarriage },
+          { label: 'Place of Marriage:', value: data.marriageDetails.placeOfMarriage },
+          { label: 'Type of Marriage:', value: data.marriageDetails.typeOfMarriage },
+          { label: 'Marriage Officer:', value: data.marriageDetails.marriageOfficer.fullName }
+        ];
+
+        marriageFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 120 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // Spouse 1 section
+        yPos += 30;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('SPOUSE 1', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const spouse1Fields = [
+          { label: 'Full Name:', value: data.spouse1.fullName },
+          { label: 'Date of Birth:', value: data.spouse1.dateOfBirth },
+          { label: 'Nationality:', value: data.spouse1.nationality },
+          { label: 'ID Number:', value: data.spouse1.idNumber || 'N/A' }
+        ];
+
+        spouse1Fields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 120 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // Spouse 2 section
+        yPos += 30;
+        doc.fontSize(14)
+           .fillColor(SA_COLORS.green)
+           .text('SPOUSE 2', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const spouse2Fields = [
+          { label: 'Full Name:', value: data.spouse2.fullName },
+          { label: 'Date of Birth:', value: data.spouse2.dateOfBirth },
+          { label: 'Nationality:', value: data.spouse2.nationality },
+          { label: 'ID Number:', value: data.spouse2.idNumber || 'N/A' }
+        ];
+
+        spouse2Fields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 120 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 350 });
+          yPos += 18;
+        });
+
+        // QR code for verification
+        const qrData = `DHA-MARRIAGE:${data.registrationNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate South African ID Card PDF
+   */
+  async generateSouthAfricanIdPDF(data: SouthAfricanIdData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: [350, 220], // Credit card sized
+          margin: 10
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add background pattern for security
+        doc.rect(0, 0, 350, 220)
+           .fillColor('#f8f9fa')
+           .fill();
+
+        // Add SA flag colors stripe
+        doc.rect(0, 0, 350, 10)
+           .fillColor(SA_COLORS.green)
+           .fill();
+
+        // Header with "SOUTH AFRICA" text
+        doc.fontSize(12)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.black)
+           .text('REPUBLIC OF SOUTH AFRICA', 15, 20);
+
+        doc.fontSize(10)
+           .text('IDENTITY DOCUMENT', 15, 35);
+
+        // ID Number prominently displayed
+        doc.fontSize(14)
+           .font('Helvetica-Bold')
+           .text(`ID: ${data.idNumber}`, 15, 55);
+
+        // Personal details in compact format
+        doc.fontSize(9)
+           .font('Helvetica');
+
+        let yPos = 80;
+        const personalFields = [
+          { label: 'Name:', value: data.personal.fullName },
+          { label: 'DOB:', value: data.personal.dateOfBirth },
+          { label: 'Gender:', value: data.personal.gender },
+          { label: 'Nationality:', value: data.personal.nationality }
+        ];
+
+        personalFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 15, yPos, { continued: true, width: 50 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 150 });
+          yPos += 12;
+        });
+
+        // Address section
+        yPos += 10;
+        doc.font('Helvetica-Bold')
+           .text('Address:', 15, yPos);
+        yPos += 12;
+        doc.font('Helvetica')
+           .fontSize(8)
+           .text(`${data.address.streetAddress}, ${data.address.suburb}`, 15, yPos);
+        yPos += 10;
+        doc.text(`${data.address.city}, ${data.address.province} ${data.address.postalCode}`, 15, yPos);
+
+        // Photo placeholder (right side)
+        doc.rect(250, 20, 80, 100)
+           .stroke();
+        doc.fontSize(8)
+           .text('PHOTO', 275, 65);
+
+        // Smart card chip placeholder
+        doc.rect(250, 130, 25, 20)
+           .fillColor('#ffd700')
+           .fill()
+           .stroke();
+
+        // Issue and expiry dates
+        doc.fontSize(8)
+           .fillColor(SA_COLORS.black)
+           .text(`Issued: ${data.issuanceDetails.dateOfIssue}`, 15, 180);
+        doc.text(`Expires: ${data.issuanceDetails.dateOfExpiry}`, 15, 192);
+
+        // QR code for verification (smaller for ID card)
+        const qrData = `DHA-ID:${data.idNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 60,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 280, 160, { width: 50 });
+        });
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Business Permit PDF
+   */
+  async generateBusinessPermitPDF(data: BusinessPermitData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "BUSINESS PERMIT");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .text('BUSINESS PERMIT', 50, 140, { align: 'center', width: 515 });
+
+        // Permit details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Permit Number: ${data.permitNumber}`, 50, yPos);
+
+        // Personal details section
+        yPos += 40;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('PERMIT HOLDER DETAILS', 50, yPos);
+
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Business details section
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('BUSINESS DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const businessFields = [
+          { label: 'Business Name:', value: data.businessDetails.businessName },
+          { label: 'Registration Number:', value: data.businessDetails.registrationNumber },
+          { label: 'Business Type:', value: data.businessDetails.businessType },
+          { label: 'Business Activity:', value: data.businessDetails.businessActivity },
+          { label: 'Investment Amount:', value: data.businessDetails.investmentAmount },
+          { label: 'Employment Created:', value: data.businessDetails.employmentCreated.toString() }
+        ];
+
+        businessFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 130 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 370 });
+          yPos += 18;
+        });
+
+        // Validity section
+        yPos += 20;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('VALIDITY', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text(`Valid From: ${data.validFrom} To: ${data.validUntil}`, 50, yPos);
+
+        // QR code for verification
+        const qrData = `DHA-BUSINESS:${data.permitNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Transit Visa PDF
+   */
+  async generateTransitVisaPDF(data: TransitVisaData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "TRANSIT VISA");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .text('TRANSIT VISA', 50, 140, { align: 'center', width: 515 });
+
+        // Visa details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Visa Number: ${data.visaNumber}`, 50, yPos);
+
+        // Personal details section
+        yPos += 40;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('TRAVELLER DETAILS', 50, yPos);
+
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Transit details section
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('TRANSIT DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const transitFields = [
+          { label: 'Entry Port:', value: data.transitDetails.entryPort },
+          { label: 'Exit Port:', value: data.transitDetails.exitPort },
+          { label: 'Transit Duration:', value: data.transitDetails.transitDuration },
+          { label: 'Final Destination:', value: data.transitDetails.finalDestination },
+          { label: 'Arrival Flight:', value: data.transitDetails.flightDetails.arrivalFlight },
+          { label: 'Departure Flight:', value: data.transitDetails.flightDetails.departureFlight }
+        ];
+
+        transitFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 130 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 370 });
+          yPos += 18;
+        });
+
+        // Validity section
+        yPos += 20;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('VALIDITY', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text(`Valid From: ${data.validFrom} To: ${data.validUntil}`, 50, yPos);
+
+        // QR code for verification
+        const qrData = `DHA-TRANSIT:${data.visaNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Medical Treatment Visa PDF
+   */
+  async generateMedicalTreatmentVisaPDF(data: MedicalTreatmentVisaData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "MEDICAL TREATMENT VISA");
+
+        // Title
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .text('MEDICAL TREATMENT VISA', 50, 140, { align: 'center', width: 515 });
+
+        // Visa details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Visa Number: ${data.visaNumber}`, 50, yPos);
+
+        // Personal details section
+        yPos += 40;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('PATIENT DETAILS', 50, yPos);
+
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Medical details section
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('MEDICAL DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const medicalFields = [
+          { label: 'Medical Condition:', value: data.medicalDetails.condition },
+          { label: 'Treatment Required:', value: data.medicalDetails.treatmentRequired },
+          { label: 'Urgency:', value: data.medicalDetails.urgency },
+          { label: 'Estimated Duration:', value: data.medicalDetails.estimatedDuration },
+          { label: 'Medical Institution:', value: data.medicalDetails.medicalInstitution.name },
+          { label: 'Attending Doctor:', value: data.medicalDetails.attendingDoctor.fullName }
+        ];
+
+        medicalFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 130 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 370 });
+          yPos += 18;
+        });
+
+        // Financial arrangements section
+        yPos += 20;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('FINANCIAL ARRANGEMENTS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text(`Payment Method: ${data.financialArrangements.paymentMethod}`, 50, yPos);
+
+        yPos += 18;
+        doc.text(`Estimated Cost: ${data.financialArrangements.estimatedCost}`, 50, yPos);
+
+        // Validity section
+        yPos += 30;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('VALIDITY', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text(`Valid From: ${data.validFrom} To: ${data.validUntil}`, 50, yPos);
+
+        // QR code for verification
+        const qrData = `DHA-MEDICAL:${data.visaNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
+        });
+
+        // Footer
+        this.addGovernmentFooter(doc);
+
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  /**
+   * Generate Emergency Travel Document PDF
+   */
+  async generateEmergencyTravelDocumentPDF(data: EmergencyTravelDocumentData): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        // Add security features and header
+        this.addPDFKitWatermark(doc);
+        this.addGovernmentHeader(doc, "EMERGENCY TRAVEL DOCUMENT");
+
+        // Title with emergency designation
+        doc.fontSize(16)
+           .font('Helvetica-Bold')
+           .fillColor(SA_COLORS.red)
+           .text('EMERGENCY TRAVEL DOCUMENT', 50, 140, { align: 'center', width: 515 });
+
+        // Document details
+        let yPos = 180;
+        doc.fontSize(11)
+           .fillColor(SA_COLORS.green)
+           .text(`Document Number: ${data.documentNumber}`, 50, yPos);
+
+        // Personal details section
+        yPos += 40;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('HOLDER DETAILS', 50, yPos);
+
+        yPos += 25;
+        this.addPersonalDetailsSection(doc, data.personal, 50, yPos);
+        yPos += 180;
+
+        // Emergency details section
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('EMERGENCY DETAILS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black);
+
+        const emergencyFields = [
+          { label: 'Emergency Type:', value: data.emergencyDetails.emergencyType },
+          { label: 'Circumstances:', value: data.emergencyDetails.circumstances },
+          { label: 'Police Reference:', value: data.emergencyDetails.policeReference || 'N/A' },
+          { label: 'Purpose:', value: data.validityDetails.purpose },
+          { label: 'Issuing Office:', value: data.issuingDetails.issuingOffice }
+        ];
+
+        emergencyFields.forEach(field => {
+          doc.font('Helvetica-Bold')
+             .text(field.label, 50, yPos, { continued: true, width: 130 })
+             .font('Helvetica')
+             .text(` ${field.value}`, { width: 370 });
+          yPos += 18;
+        });
+
+        // Validity section with restrictions
+        yPos += 20;
+        doc.fontSize(12)
+           .fillColor(SA_COLORS.green)
+           .text('VALIDITY AND RESTRICTIONS', 50, yPos);
+
+        yPos += 25;
+        doc.fontSize(10)
+           .fillColor(SA_COLORS.black)
+           .font('Helvetica-Bold')
+           .text(`Valid From: ${data.validityDetails.validFrom} To: ${data.validityDetails.validUntil}`, 50, yPos);
+
+        yPos += 18;
+        doc.text(`Destination Countries: ${data.validityDetails.destinationCountries.join(', ')}`, 50, yPos);
+
+        if (data.validityDetails.restrictions && data.validityDetails.restrictions.length > 0) {
+          yPos += 18;
+          doc.fillColor(SA_COLORS.red)
+             .text(`Restrictions: ${data.validityDetails.restrictions.join('; ')}`, 50, yPos);
+        }
+
+        // QR code for verification
+        const qrData = `DHA-EMERGENCY:${data.documentNumber}`;
+        QRCode.toDataURL(qrData, {
+          width: 100,
+          margin: 1
+        }).then(qrCode => {
+          doc.image(qrCode, 450, 600, { width: 100 });
         });
 
         // Footer
