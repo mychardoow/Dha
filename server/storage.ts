@@ -11,6 +11,14 @@ import {
   type DhaApplicant, type InsertDhaApplicant, type DhaApplication, type InsertDhaApplication,
   type DhaVerification, type InsertDhaVerification, type DhaAuditEvent, type InsertDhaAuditEvent,
   type DhaConsentRecord, type InsertDhaConsentRecord, type DhaBackgroundCheck, type InsertDhaBackgroundCheck,
+  
+  // CRITICAL SECURITY AND WORKFLOW TYPES
+  type EncryptedArtifact, type InsertEncryptedArtifact,
+  type WorkflowStage, type InsertWorkflowStage,
+  type WorkflowTransition, type InsertWorkflowTransition,
+  type DocumentWorkflowInstance, type InsertDocumentWorkflowInstance,
+  type WorkflowStageExecution, type InsertWorkflowStageExecution,
+  
   type NotificationEvent, type InsertNotificationEvent, type UserNotificationPreferences, type InsertUserNotificationPreferences,
   type StatusUpdate, type InsertStatusUpdate, type WebSocketSession, type InsertWebSocketSession,
   type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage,
@@ -18,7 +26,7 @@ import {
   type UserBehaviorProfile, type InsertUserBehaviorProfile, type SecurityRule, type InsertSecurityRule,
   type ComplianceEvent, type InsertComplianceEvent, type SecurityMetric, type InsertSecurityMetric,
   type RefugeeDocument, type InsertRefugeeDocument, type DiplomaticPassport, type InsertDiplomaticPassport,
-  type DocumentDelivery, type InsertDocumentDelivery, type VerificationWorkflow, type InsertVerificationWorkflow,
+  type DocumentDelivery, type InsertDocumentDelivery,
   type DhaOffice, type InsertDhaOffice,
   type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
   type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
@@ -29,9 +37,13 @@ import {
   passports, deathCertificates, workPermits, permanentVisas, idCards,
   documentVerifications,
   dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
+  
+  // CRITICAL SECURITY AND WORKFLOW TABLES
+  encryptedArtifacts, workflowStages, workflowTransitions, documentWorkflowInstances, workflowStageExecutions,
+  
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
   auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
-  refugeeDocuments, diplomaticPassports, documentDelivery, verificationWorkflow, dhaOffices,
+  refugeeDocuments, diplomaticPassports, documentDelivery, dhaOffices,
   amsCertificates, permitStatusChanges, documentVerificationStatus
 } from "@shared/schema";
 import { randomUUID } from "crypto";
@@ -204,11 +216,6 @@ export interface IStorage {
   createDocumentDelivery(delivery: InsertDocumentDelivery): Promise<DocumentDelivery>;
   updateDocumentDelivery(id: string, updates: Partial<DocumentDelivery>): Promise<void>;
 
-  // Verification Workflow methods
-  getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined>;
-  getVerificationWorkflows(documentId?: string): Promise<VerificationWorkflow[]>;
-  createVerificationWorkflow(workflow: InsertVerificationWorkflow): Promise<VerificationWorkflow>;
-  updateVerificationWorkflow(id: string, updates: Partial<VerificationWorkflow>): Promise<void>;
 
   // DHA Office methods
   getDhaOffice(id: string): Promise<DhaOffice | undefined>;
@@ -298,6 +305,53 @@ export interface IStorage {
   }): Promise<DhaBackgroundCheck[]>;
   createDhaBackgroundCheck(check: InsertDhaBackgroundCheck): Promise<DhaBackgroundCheck>;
   updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void>;
+
+  // ===================== CRITICAL SECURITY AND WORKFLOW METHODS =====================
+  
+  // Encrypted Artifacts methods (SECURITY CRITICAL)
+  getEncryptedArtifact(id: string): Promise<EncryptedArtifact | undefined>;
+  getEncryptedArtifacts(filters?: {
+    entityType?: string;
+    entityId?: string;
+    artifactType?: string;
+    classificationLevel?: string;
+  }): Promise<EncryptedArtifact[]>;
+  createEncryptedArtifact(artifact: InsertEncryptedArtifact): Promise<EncryptedArtifact>;
+  updateEncryptedArtifact(id: string, updates: Partial<EncryptedArtifact>): Promise<void>;
+  deleteEncryptedArtifact(id: string): Promise<void>;
+  incrementArtifactAccessCount(id: string, accessedBy: string): Promise<void>;
+  
+  // Workflow Stages methods (8-STAGE DHA PROCESS)
+  getWorkflowStages(): Promise<WorkflowStage[]>;
+  getWorkflowStage(id: string): Promise<WorkflowStage | undefined>;
+  getWorkflowStageByCode(stageCode: string): Promise<WorkflowStage | undefined>;
+  createWorkflowStage(stage: InsertWorkflowStage): Promise<WorkflowStage>;
+  updateWorkflowStage(id: string, updates: Partial<WorkflowStage>): Promise<void>;
+  
+  // Workflow Transitions methods
+  getWorkflowTransitions(fromStageId?: string): Promise<WorkflowTransition[]>;
+  getValidTransitions(fromStageId: string): Promise<WorkflowTransition[]>;
+  createWorkflowTransition(transition: InsertWorkflowTransition): Promise<WorkflowTransition>;
+  
+  // Document Workflow Instances methods
+  getDocumentWorkflowInstance(id: string): Promise<DocumentWorkflowInstance | undefined>;
+  getDocumentWorkflowInstances(filters?: {
+    documentId?: string;
+    documentType?: string;
+    applicantId?: string;
+    workflowStatus?: string;
+    currentStageId?: string;
+  }): Promise<DocumentWorkflowInstance[]>;
+  createDocumentWorkflowInstance(instance: InsertDocumentWorkflowInstance): Promise<DocumentWorkflowInstance>;
+  updateDocumentWorkflowInstance(id: string, updates: Partial<DocumentWorkflowInstance>): Promise<void>;
+  advanceWorkflowToStage(instanceId: string, newStageId: string, updatedBy: string): Promise<void>;
+  
+  // Workflow Stage Executions methods
+  getWorkflowStageExecutions(workflowInstanceId: string): Promise<WorkflowStageExecution[]>;
+  getCurrentStageExecution(workflowInstanceId: string): Promise<WorkflowStageExecution | undefined>;
+  createWorkflowStageExecution(execution: InsertWorkflowStageExecution): Promise<WorkflowStageExecution>;
+  updateWorkflowStageExecution(id: string, updates: Partial<WorkflowStageExecution>): Promise<void>;
+  completeStageExecution(id: string, result: string, processedBy: string): Promise<void>;
 
   // ===================== NOTIFICATION METHODS =====================
 
@@ -496,7 +550,6 @@ export class MemStorage implements IStorage {
   private refugeeDocuments: Map<string, RefugeeDocument>;
   private diplomaticPassports: Map<string, DiplomaticPassport>;
   private documentDelivery: Map<string, DocumentDelivery>;
-  private verificationWorkflow: Map<string, VerificationWorkflow>;
   private dhaOffices: Map<string, DhaOffice>;
   
   // AMS Certificate and Status Management storage
@@ -558,7 +611,6 @@ export class MemStorage implements IStorage {
     this.refugeeDocuments = new Map();
     this.diplomaticPassports = new Map();
     this.documentDelivery = new Map();
-    this.verificationWorkflow = new Map();
     this.dhaOffices = new Map();
     
     // Initialize AMS Certificate and Status Management storage
@@ -2812,64 +2864,6 @@ export class MemStorage implements IStorage {
     }
   }
 
-  // ===================== VERIFICATION WORKFLOW METHODS =====================
-  
-  async getVerificationWorkflow(id: string): Promise<VerificationWorkflow | undefined> {
-    return this.verificationWorkflow.get(id);
-  }
-
-  async getVerificationWorkflows(documentId?: string): Promise<VerificationWorkflow[]> {
-    let workflows = Array.from(this.verificationWorkflow.values());
-    if (documentId) {
-      workflows = workflows.filter(w => w.documentId === documentId);
-    }
-    return workflows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async createVerificationWorkflow(workflow: InsertVerificationWorkflow): Promise<VerificationWorkflow> {
-    const id = randomUUID();
-    const verWorkflow: VerificationWorkflow = {
-      ...workflow,
-      id,
-      rejectionReason: workflow.rejectionReason || null,
-      updatedAt: workflow.updatedAt || null,
-      applicationReviewStatus: workflow.applicationReviewStatus || null,
-      applicationReviewNotes: workflow.applicationReviewNotes || null,
-      applicationReviewedBy: workflow.applicationReviewedBy || null,
-      applicationReviewedAt: workflow.applicationReviewedAt || null,
-      biometricCaptureStatus: workflow.biometricCaptureStatus || null,
-      biometricQualityScore: workflow.biometricQualityScore || null,
-      biometricCapturedAt: workflow.biometricCapturedAt || null,
-      documentVerificationStatus: workflow.documentVerificationStatus || null,
-      documentVerificationScore: workflow.documentVerificationScore || null,
-      documentVerifiedBy: workflow.documentVerifiedBy || null,
-      documentVerifiedAt: workflow.documentVerifiedAt || null,
-      securityClearanceStatus: workflow.securityClearanceStatus || null,
-      securityClearanceLevel: workflow.securityClearanceLevel || null,
-      securityClearedBy: workflow.securityClearedBy || null,
-      securityClearedAt: workflow.securityClearedAt || null,
-      qualityCheckStatus: workflow.qualityCheckStatus || null,
-      qualityCheckScore: workflow.qualityCheckScore || null,
-      qualityCheckedBy: workflow.qualityCheckedBy || null,
-      qualityCheckedAt: workflow.qualityCheckedAt || null,
-      approvalStatus: workflow.approvalStatus || null,
-      approvedBy: workflow.approvedBy || null,
-      approvedAt: workflow.approvedAt || null,
-      estimatedCompletionTime: workflow.estimatedCompletionTime || null,
-      actualCompletionTime: workflow.actualCompletionTime || null,
-      createdAt: new Date()
-    };
-    this.verificationWorkflow.set(id, verWorkflow);
-    return verWorkflow;
-  }
-
-  async updateVerificationWorkflow(id: string, updates: Partial<VerificationWorkflow>): Promise<void> {
-    const workflow = this.verificationWorkflow.get(id);
-    if (workflow) {
-      const updated = { ...workflow, ...updates, updatedAt: new Date() };
-      this.verificationWorkflow.set(id, updated);
-    }
-  }
 
   // ===================== DHA OFFICE METHODS =====================
   
