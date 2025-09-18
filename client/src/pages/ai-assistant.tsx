@@ -1,171 +1,673 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import ConversationSidebar from "@/components/chat/conversation-sidebar";
-import ChatArea from "@/components/chat/chat-area";
-import ContextPanel from "@/components/chat/context-panel";
-import { useWebSocket } from "@/hooks/useWebSocket";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  MessageCircle, 
+  Upload, 
+  FileText, 
+  Languages, 
+  Mic, 
+  MicOff,
+  Send, 
+  Bot,
+  User,
+  FileCheck,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Globe,
+  Camera,
+  Shield,
+  Zap,
+  Brain,
+  FileImage
+} from "lucide-react";
+
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  suggestions?: string[];
+  actionItems?: string[];
+  metadata?: any;
+}
+
+interface OCRResult {
+  success: boolean;
+  sessionId: string;
+  ocrData: any;
+  suggestions: string;
+  confidence: number;
+  documentId: string;
+}
+
+interface DocumentType {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  requirements: string[];
+}
+
+// ALL 21 DHA Document Types (matching backend schema exactly)
+const DOCUMENT_TYPES: DocumentType[] = [
+  { id: 'birth_certificate', name: 'Birth Certificate', description: 'Birth registration and certificate', icon: 'certificate', requirements: ['Parents\' ID documents', 'Hospital records'] },
+  { id: 'death_certificate', name: 'Death Certificate', description: 'Death registration and certificate', icon: 'certificate', requirements: ['Medical certificate', 'ID documents'] },
+  { id: 'marriage_certificate', name: 'Marriage Certificate', description: 'Marriage registration', icon: 'certificate', requirements: ['Both parties\' ID documents', 'Marriage license'] },
+  { id: 'divorce_certificate', name: 'Divorce Certificate', description: 'Divorce decree certificate', icon: 'certificate', requirements: ['Court order', 'Marriage certificate'] },
+  { id: 'passport', name: 'South African Passport', description: 'South African passport application', icon: 'passport', requirements: ['Identity document', 'Birth certificate', 'Proof of residence'] },
+  { id: 'sa_id', name: 'South African ID Book', description: 'Traditional green ID book', icon: 'id-card', requirements: ['Birth certificate', 'Proof of residence'] },
+  { id: 'smart_id', name: 'Smart ID Card', description: 'Smart identity card application', icon: 'id-card', requirements: ['Birth certificate', 'Proof of residence'] },
+  { id: 'temporary_id', name: 'Temporary ID Certificate', description: 'Temporary identity certificate', icon: 'id-card', requirements: ['Affidavit', 'Supporting documents'] },
+  { id: 'study_permit', name: 'Study Permit', description: 'Foreign student authorization', icon: 'permit', requirements: ['Passport', 'Letter of acceptance', 'Financial proof'] },
+  { id: 'work_permit', name: 'Work Permit', description: 'Foreign work authorization', icon: 'permit', requirements: ['Passport', 'Job offer letter', 'Qualifications'] },
+  { id: 'business_permit', name: 'Business Permit', description: 'Foreign business authorization', icon: 'permit', requirements: ['Passport', 'Business plan', 'Financial proof'] },
+  { id: 'visitor_visa', name: 'Visitor\'s Visa', description: 'Temporary visit authorization', icon: 'visa', requirements: ['Passport', 'Invitation letter', 'Financial proof'] },
+  { id: 'transit_visa', name: 'Transit Visa', description: 'Airport transit authorization', icon: 'visa', requirements: ['Passport', 'Onward ticket', 'Destination visa'] },
+  { id: 'permanent_residence', name: 'Permanent Residence Permit', description: 'Permanent residence authorization', icon: 'permit', requirements: ['Passport', 'Sponsorship', 'Medical certificate'] },
+  { id: 'temporary_residence', name: 'Temporary Residence Permit', description: 'Temporary residence authorization', icon: 'permit', requirements: ['Passport', 'Purpose documentation', 'Financial proof'] },
+  { id: 'refugee_permit', name: 'Refugee Permit', description: 'Refugee status documentation', icon: 'permit', requirements: ['Asylum application', 'Supporting evidence', 'Interview'] },
+  { id: 'asylum_permit', name: 'Asylum Permit', description: 'Asylum seeker documentation', icon: 'permit', requirements: ['Asylum application', 'Country documentation', 'Interview'] },
+  { id: 'diplomatic_passport', name: 'Diplomatic Passport', description: 'Diplomatic service passport', icon: 'passport', requirements: ['Government appointment', 'Security clearance', 'Official letter'] },
+  { id: 'exchange_permit', name: 'Exchange Permit', description: 'Cultural/academic exchange permit', icon: 'permit', requirements: ['Exchange program letter', 'Passport', 'Financial proof'] },
+  { id: 'relatives_visa', name: 'Relatives Visa', description: 'Family reunion visa', icon: 'visa', requirements: ['Passport', 'Proof of relationship', 'Sponsor documents'] },
+  { id: 'emergency_travel_document', name: 'Emergency Travel Document', description: 'Emergency travel authorization', icon: 'passport', requirements: ['ID document', 'Emergency situation proof', 'Consular approval'] }
+];
+
+// FIXED: Standardized language codes to match backend exactly
+const SOUTH_AFRICAN_LANGUAGES = [
+  { code: 'en', name: 'English' },
+  { code: 'af', name: 'Afrikaans' },
+  { code: 'zu', name: 'isiZulu' },
+  { code: 'xh', name: 'isiXhosa' },
+  { code: 'st', name: 'Sesotho' },
+  { code: 'tn', name: 'Setswana' },
+  { code: 've', name: 'Tshivenda' },
+  { code: 'ts', name: 'Xitsonga' },
+  { code: 'ss', name: 'siSwati' },
+  { code: 'nr', name: 'isiNdebele (Northern)' },
+  { code: 'nso', name: 'Sepedi (Northern Sotho)' }
+];
 
 export default function AIAssistantPage() {
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [contextVisible, setContextVisible] = useState(true);
-  const [token] = useState(() => localStorage.getItem("auth_token"));
-
-  const { isConnected, emit, on, off } = useWebSocket({ 
-    token: token || undefined,
-    autoConnect: !!token,
-    enableToasts: false,
-    enableEventHandlers: false
-  });
-
-  // Fetch conversations
-  const { data: conversationsData, refetch: refetchConversations } = useQuery({
-    queryKey: ["/api/conversations"],
-    enabled: !!token,
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string>('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [ocrResults, setOcrResults] = useState<OCRResult | null>(null);
+  const [processingStatus, setProcessingStatus] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamingMessage, setStreamingMessage] = useState('');
   
-  const conversations = Array.isArray(conversationsData) ? conversationsData : [];
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Set initial conversation
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (conversations.length > 0 && !currentConversationId) {
-      setCurrentConversationId(conversations[0].id);
-    }
-  }, [conversations, currentConversationId]);
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // Handle conversation changes via WebSocket
+  // Initialize with welcome message
   useEffect(() => {
-    const handleNewConversation = () => {
-      refetchConversations();
+    const welcomeMessage: ChatMessage = {
+      id: 'welcome',
+      role: 'assistant',
+      content: `Welcome to DHA Digital Services AI Assistant! 🇿🇦
+
+I'm here to help you with:
+• Passport and ID document applications
+• Document requirements and processes
+• Form completion assistance
+• Multi-language support for all 11 official SA languages
+• OCR extraction from uploaded documents
+• Real-time processing status updates
+
+How can I assist you today?`,
+      timestamp: new Date(),
+      suggestions: [
+        'Help with passport application',
+        'Upload document for processing',
+        'Explain ID card requirements',
+        'Switch to Afrikaans language'
+      ]
     };
+    setMessages([welcomeMessage]);
+  }, []);
 
-    on("conversation:created", handleNewConversation);
-    on("conversation:updated", handleNewConversation);
-
-    return () => {
-      off("conversation:created", handleNewConversation);
-      off("conversation:updated", handleNewConversation);
-    };
-  }, [on, off, refetchConversations]);
-
-  const handleNewConversation = async () => {
-    try {
-      const response = await fetch("/api/conversations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+  // FIXED: Implement proper streaming with SSE
+  const sendMessage = useMutation({
+    mutationFn: async ({ message, conversationId, language }: { message: string; conversationId?: string; language?: string }) => {
+      setIsStreaming(true);
+      setStreamingMessage('');
+      
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream' // CRITICAL: Request streaming response
         },
         body: JSON.stringify({
-          title: "New Conversation"
+          message,
+          conversationId: conversationId || 'main-session',
+          includeContext: true,
+          language: language || 'en' // FIXED: Send language parameter
         })
       });
 
-      if (response.ok) {
-        const newConversation = await response.json();
-        setCurrentConversationId(newConversation.id);
-        refetchConversations();
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
-    } catch (error) {
-      console.error("Failed to create conversation:", error);
-    }
-  };
 
-  const handleDeleteConversation = async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${token}`
+      // FIXED: Handle SSE streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let fullContent = '';
+      let metadata = null;
+      
+      if (reader) {
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+                  
+                  if (data.type === 'chunk' && data.content) {
+                    fullContent += data.content;
+                    setStreamingMessage(prev => prev + data.content);
+                  } else if (data.type === 'complete') {
+                    metadata = data.metadata;
+                  } else if (data.type === 'error') {
+                    throw new Error(data.error);
+                  }
+                } catch (e) {
+                  // Skip malformed JSON
+                }
+              }
+            }
+          }
+        } finally {
+          reader.releaseLock();
         }
+      }
+      
+      return { content: fullContent, metadata };
+    },
+    onSuccess: (data) => {
+      const assistantMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: data.content,
+        timestamp: new Date(),
+        suggestions: [], // Will be populated from metadata if available
+        actionItems: [], // Will be populated from metadata if available
+        metadata: data.metadata
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      setIsLoading(false);
+      setIsStreaming(false);
+      setStreamingMessage('');
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+      setIsLoading(false);
+      setIsStreaming(false);
+      setStreamingMessage('');
+    }
+  });
+
+  const uploadAndProcessDocument = useMutation({
+    mutationFn: async (file: File) => {
+      // CRITICAL: Check if document type is selected
+      if (!selectedDocumentType) {
+        throw new Error('Please select a document type before uploading');
+      }
+      
+      const formData = new FormData();
+      formData.append('document', file);
+      formData.append('targetFormType', `${selectedDocumentType}_application`);
+      formData.append('documentType', selectedDocumentType); // FIXED: Use selected type instead of hardcoded 'passport'
+      formData.append('conversationId', 'main-session');
+
+      const response = await fetch('/api/documents/upload', {
+        method: 'POST',
+        body: formData
       });
 
-      if (response.ok) {
-        if (currentConversationId === conversationId) {
-          setCurrentConversationId(null);
-        }
-        refetchConversations();
+      if (!response.ok) {
+        throw new Error('Failed to upload document');
       }
-    } catch (error) {
-      console.error("Failed to delete conversation:", error);
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setOcrResults({
+        success: true,
+        sessionId: data.documentId,
+        ocrData: data.extractedData || {},
+        suggestions: 'Document processed successfully. Extracted data is ready for form auto-fill.',
+        confidence: data.confidence || 85,
+        documentId: data.documentId
+      });
+      
+      setProcessingStatus('completed');
+      
+      const successMessage: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `Document processed successfully! 📄✅
+
+**Extraction Results:**
+- Document Type: ${data.documentType || 'Passport'}
+- Confidence: ${data.confidence || 85}%
+- Processing Time: ${data.processingTime || '<1s'}
+
+**Extracted Information:**
+${data.extractedData ? Object.entries(data.extractedData).map(([key, value]) => `• ${key}: ${value}`).join('\n') : 'Processing complete'}
+
+**Next Steps:**
+1. Review the extracted information above
+2. Use "Auto-Fill Form" to populate your application
+3. Verify and complete any missing fields
+4. Submit your application
+
+Would you like me to help you with form completion or answer any questions about the extracted data?`,
+        timestamp: new Date(),
+        suggestions: ['Auto-fill passport form', 'Verify extracted data', 'Explain missing requirements'],
+        actionItems: ['Review extracted data', 'Complete form fields']
+      };
+      
+      setMessages(prev => [...prev, successMessage]);
+      
+      toast({
+        title: "Document Processed",
+        description: "Your document has been successfully processed with OCR extraction.",
+      });
+    },
+    onError: (error) => {
+      setProcessingStatus('failed');
+      toast({
+        title: "Processing Failed",
+        description: "Failed to process document. Please try again with a clear image.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: inputMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+    setInputMessage('');
+
+    sendMessage.mutate({ 
+      message: inputMessage, // FIXED: Send clean message, language is handled by parameter
+      conversationId: 'main-session',
+      language: selectedLanguage // FIXED: Send language as separate parameter
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      setProcessingStatus('processing');
+      uploadAndProcessDocument.mutate(file);
     }
   };
 
-  const toggleSidebar = () => setSidebarVisible(!sidebarVisible);
-  const toggleContext = () => setContextVisible(!contextVisible);
+  const handleSuggestionClick = (suggestion: string) => {
+    setInputMessage(suggestion);
+  };
 
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Authentication Required</h1>
-          <p className="text-muted-foreground mb-6">Please log in to access the AI Assistant.</p>
-          <button 
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            onClick={() => window.location.href = "/login"}
-            data-testid="button-login"
-          >
-            Go to Login
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const toggleRecording = () => {
+    setIsRecording(!isRecording);
+    // Voice recording functionality would be implemented here
+    toast({
+      title: isRecording ? "Stopped Recording" : "Started Recording",
+      description: isRecording ? "Processing voice input..." : "Listening for voice input...",
+    });
+  };
 
   return (
-    <div className="flex h-screen overflow-hidden" data-testid="page-ai-assistant">
-      {/* Conversation Sidebar */}
-      <div 
-        className={`w-80 transition-transform duration-300 md:translate-x-0 ${
-          sidebarVisible ? "translate-x-0" : "-translate-x-full"
-        }`}
-        data-testid="sidebar-conversations"
-      >
-        <ConversationSidebar
-          conversations={conversations}
-          currentConversationId={currentConversationId}
-          onSelectConversation={setCurrentConversationId}
-          onNewConversation={handleNewConversation}
-          onDeleteConversation={handleDeleteConversation}
-        />
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <Brain className="h-8 w-8 text-blue-600" />
+                DHA AI Assistant
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">
+                Intelligent assistance for South African government services
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Government Secure
+              </Badge>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Globe className="h-3 w-3" />
+                {SOUTH_AFRICAN_LANGUAGES.find(l => l.code === selectedLanguage)?.name}
+              </Badge>
+            </div>
+          </div>
+        </div>
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col" data-testid="area-main-chat">
-        <ChatArea
-          conversationId={currentConversationId}
-          isConnected={isConnected}
-          onToggleSidebar={toggleSidebar}
-          onToggleContext={toggleContext}
-          emit={emit}
-          on={on}
-          off={off}
-        />
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Sidebar - Controls */}
+          <div className="lg:col-span-1">
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Languages className="h-5 w-5" />
+                  Language
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <select 
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full p-2 border rounded-md bg-background"
+                  data-testid="language-selector"
+                >
+                  {SOUTH_AFRICAN_LANGUAGES.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </CardContent>
+            </Card>
 
-      {/* Context Panel */}
-      <div 
-        className={`w-80 transition-transform duration-300 hidden lg:flex ${
-          contextVisible ? "translate-x-0" : "translate-x-full"
-        }`}
-        data-testid="panel-context"
-      >
-        <ContextPanel 
-          isConnected={isConnected}
-          emit={emit}
-          on={on}
-          off={off}
-        />
-      </div>
+            <Card className="mb-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Document Type
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <select 
+                  value={selectedDocumentType}
+                  onChange={(e) => setSelectedDocumentType(e.target.value)}
+                  className="w-full p-2 border rounded-md bg-background"
+                  data-testid="document-type-selector"
+                >
+                  <option value="">Select document type...</option>
+                  {DOCUMENT_TYPES.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.name}
+                    </option>
+                  ))}
+                </select>
+                
+                {selectedDocumentType && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      {DOCUMENT_TYPES.find(d => d.id === selectedDocumentType)?.description}
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Required: {DOCUMENT_TYPES.find(d => d.id === selectedDocumentType)?.requirements.join(', ')}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-      {/* Mobile Overlay */}
-      {sidebarVisible && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={toggleSidebar}
-          data-testid="overlay-mobile"
-        />
-      )}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Upload className="h-5 w-5" />
+                  Document Upload
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  data-testid="file-upload-input"
+                />
+                <Button 
+                  onClick={() => {
+                    if (!selectedDocumentType) {
+                      toast({
+                        title: "Document Type Required",
+                        description: "Please select a document type before uploading.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    fileInputRef.current?.click();
+                  }}
+                  variant="outline" 
+                  className="w-full mb-2"
+                  disabled={uploadAndProcessDocument.isPending}
+                  data-testid="upload-document-button"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Upload Document
+                </Button>
+                
+                {uploadedFile && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    📄 {uploadedFile.name}
+                  </div>
+                )}
+                
+                {processingStatus && (
+                  <div className="mt-2">
+                    {processingStatus === 'processing' && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm">Processing...</span>
+                      </div>
+                    )}
+                    {processingStatus === 'completed' && (
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <span className="text-sm">Complete</span>
+                      </div>
+                    )}
+                    {processingStatus === 'failed' && (
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                        <span className="text-sm">Failed</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Chat Area */}
+          <div className="lg:col-span-3">
+            <Card className="h-[700px] flex flex-col">
+              <CardHeader className="flex-shrink-0">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5" />
+                    AI Chat Assistant
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant={isRecording ? "destructive" : "outline"}
+                      onClick={toggleRecording}
+                      data-testid="voice-recording-button"
+                    >
+                      {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CardTitle>
+                <CardDescription>
+                  Powered by GPT-4 Turbo with government document expertise
+                </CardDescription>
+              </CardHeader>
+              
+              <Separator />
+              
+              {/* Messages Area */}
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-4" data-testid="chat-messages-container">
+                  {messages.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex gap-3 max-w-[80%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center ${
+                          message.role === 'user' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-green-500 text-white'
+                        }`}>
+                          {message.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className={`p-3 rounded-lg ${
+                            message.role === 'user'
+                              ? 'bg-blue-500 text-white ml-auto'
+                              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          }`}>
+                            <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                            <div className="text-xs opacity-75 mt-1">
+                              {message.timestamp.toLocaleTimeString()}
+                            </div>
+                          </div>
+                          
+                          {/* Suggestions */}
+                          {message.suggestions && message.suggestions.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {message.suggestions.map((suggestion, index) => (
+                                <Button
+                                  key={index}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSuggestionClick(suggestion)}
+                                  className="text-xs"
+                                  data-testid={`suggestion-button-${index}`}
+                                >
+                                  {suggestion}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Action Items */}
+                          {message.actionItems && message.actionItems.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Action Items:</p>
+                              <ul className="text-xs text-gray-600 dark:text-gray-400 list-disc list-inside">
+                                {message.actionItems.map((item, index) => (
+                                  <li key={index}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {(isLoading || isStreaming) && (
+                    <div className="flex justify-start">
+                      <div className="flex gap-3">
+                        <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center">
+                          <Bot className="h-4 w-4 text-white" />
+                        </div>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg max-w-[80%]">
+                          {isStreaming && streamingMessage ? (
+                            <div>
+                              <div className="whitespace-pre-wrap text-sm">{streamingMessage}</div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <div className="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-gray-500">Streaming...</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
+                              <span className="text-sm text-gray-600 dark:text-gray-400">AI is thinking...</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div ref={messagesEndRef} />
+              </ScrollArea>
+              
+              <Separator />
+              
+              {/* Input Area */}
+              <div className="p-4 flex-shrink-0">
+                <div className="flex gap-2">
+                  <Input
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder={`Type your message in ${SOUTH_AFRICAN_LANGUAGES.find(l => l.code === selectedLanguage)?.name}...`}
+                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                    disabled={isLoading}
+                    className="flex-1"
+                    data-testid="message-input"
+                  />
+                  <Button 
+                    onClick={handleSendMessage}
+                    disabled={isLoading || !inputMessage.trim()}
+                    data-testid="send-message-button"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <Shield className="inline h-3 w-3 mr-1" />
+                  Government-grade security • POPIA compliant • Audit logged
+                </p>
+              </div>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

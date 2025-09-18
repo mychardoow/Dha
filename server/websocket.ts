@@ -34,6 +34,32 @@ export class WebSocketService {
     this.setupErrorTracking();
   }
   
+  /**
+   * Validate JWT secret with strict production enforcement
+   */
+  private validateJWTSecret(): string | null {
+    const value = process.env.JWT_SECRET;
+    
+    if (!value) {
+      const errorMessage = 'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication';
+      if (process.env.NODE_ENV === 'production') {
+        console.error(errorMessage);
+        return null;
+      }
+      console.warn(`WARNING: ${errorMessage} - Using development fallback`);
+      // Generate a random key for development only
+      return require('crypto').randomBytes(32).toString('hex');
+    }
+    
+    // Validate key strength in production
+    if (process.env.NODE_ENV === 'production' && value.length < 32) {
+      console.error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 32 characters for production use');
+      return null;
+    }
+    
+    return value;
+  }
+  
   private setupAuthentication() {
     this.io.use(async (socket, next) => {
       try {
@@ -43,9 +69,9 @@ export class WebSocketService {
           return next(new Error("Authentication token required"));
         }
         
-        const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
-        if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-          return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication in production'));
+        const JWT_SECRET = this.validateJWTSecret();
+        if (!JWT_SECRET) {
+          return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET validation failed'));
         }
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);

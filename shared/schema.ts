@@ -17,7 +17,7 @@ export const documentTypeEnum = pgEnum('document_type', [
   'passport', 'sa_id', 'smart_id', 'temporary_id',
   'study_permit', 'work_permit', 'business_permit', 'visitor_visa', 'transit_visa',
   'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
-  'diplomatic_passport', 'exchange_permit', 'relatives_visa'
+  'diplomatic_passport', 'exchange_permit', 'relatives_visa', 'emergency_travel_document'
 ]);
 
 export const processingStatusEnum = pgEnum('processing_status', [
@@ -136,7 +136,173 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(), // 'user' or 'assistant'
   content: text("content").notNull(),
   metadata: jsonb("metadata"), // For storing additional data like context used
+  attachments: jsonb("attachments"), // For storing document attachments with OCR data
+  aiContext: jsonb("ai_context"), // AI-specific context like extracted fields, suggestions
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// AI Assistant Document Processing Sessions
+export const aiDocumentSessions = pgTable("ai_document_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  conversationId: varchar("conversation_id").references(() => conversations.id),
+  documentId: varchar("document_id").references(() => documents.id),
+  documentType: documentTypeEnum("document_type").notNull(),
+  
+  // OCR Processing Results
+  ocrResults: jsonb("ocr_results"), // Full OCR extraction results
+  extractedFields: jsonb("extracted_fields"), // Structured field data
+  mrzData: jsonb("mrz_data"), // MRZ parsing results for passports
+  
+  // Auto-Fill Mapping
+  fieldMappings: jsonb("field_mappings"), // Maps OCR fields to form fields
+  autoFillData: jsonb("auto_fill_data"), // Data ready for form population
+  
+  // AI Analysis
+  aiAnalysis: jsonb("ai_analysis"), // AI insights about the document
+  suggestions: jsonb("suggestions"), // AI suggestions for form completion
+  validationIssues: jsonb("validation_issues"), // Identified issues
+  
+  // Processing Status
+  processingStatus: processingStatusEnum("processing_status").notNull().default("pending"),
+  confidenceScore: integer("confidence_score"), // Overall processing confidence 0-100
+  qualityScore: integer("quality_score"), // Document quality score 0-100
+  
+  // Metadata
+  processingStarted: timestamp("processing_started").notNull().default(sql`now()`),
+  processingCompleted: timestamp("processing_completed"),
+  processingDuration: integer("processing_duration"), // milliseconds
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Document Auto-Fill Templates - Defines how to map OCR data to forms
+export const documentAutoFillTemplates = pgTable("document_auto_fill_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  documentType: documentTypeEnum("document_type").notNull(),
+  targetFormType: text("target_form_type").notNull(), // e.g., 'passport_application', 'work_permit_form'
+  
+  // Field Mapping Configuration
+  fieldMappings: jsonb("field_mappings").notNull(), // OCR field -> Form field mappings
+  requiredFields: jsonb("required_fields"), // Required fields for this template
+  optionalFields: jsonb("optional_fields"), // Optional fields that can be auto-filled
+  
+  // Validation Rules
+  validationRules: jsonb("validation_rules"), // Rules for validating extracted data
+  dataTransformations: jsonb("data_transformations"), // Transform rules for data format conversion
+  
+  // AI Configuration
+  aiPromptTemplate: text("ai_prompt_template"), // Template for AI assistance prompts
+  aiValidationPrompt: text("ai_validation_prompt"), // AI validation instructions
+  
+  // Template Metadata
+  version: text("version").notNull().default("1.0"),
+  isActive: boolean("is_active").notNull().default(true),
+  priority: integer("priority").notNull().default(0), // Higher priority templates used first
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// OCR Field Definitions - Standardized field definitions for OCR extraction
+export const ocrFieldDefinitions = pgTable("ocr_field_definitions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fieldName: text("field_name").notNull().unique(), // e.g., 'passport_number', 'full_name', 'date_of_birth'
+  displayName: text("display_name").notNull(), // Human-readable field name
+  description: text("description"),
+  dataType: text("data_type").notNull(), // 'text', 'date', 'number', 'boolean', 'email', 'phone'
+  
+  // Field Properties
+  category: text("category").notNull(), // 'personal', 'document', 'address', 'contact'
+  isRequired: boolean("is_required").notNull().default(false),
+  isVerificationField: boolean("is_verification_field").notNull().default(false),
+  
+  // Validation Configuration
+  validationPattern: text("validation_pattern"), // Regex pattern for validation
+  minLength: integer("min_length"),
+  maxLength: integer("max_length"),
+  allowedValues: jsonb("allowed_values"), // Array of allowed values for select fields
+  
+  // Processing Hints
+  extractionHints: jsonb("extraction_hints"), // Hints for OCR extraction
+  commonVariations: jsonb("common_variations"), // Common variations of field names
+  relatedFields: jsonb("related_fields"), // Fields that should be processed together
+  
+  // Internationalization
+  translations: jsonb("translations"), // Translations for all 11 SA languages
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// AI Assistant Knowledge Base - Document requirements and guidance
+export const aiKnowledgeBase = pgTable("ai_knowledge_base", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(), // 'document_requirements', 'processing_times', 'fees', 'procedures'
+  documentType: documentTypeEnum("document_type"),
+  topic: text("topic").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  
+  // Multilingual Support
+  language: text("language").notNull().default("en"),
+  translations: jsonb("translations"), // Content in all 11 SA languages
+  
+  // Metadata
+  keywords: jsonb("keywords"), // Search keywords
+  tags: jsonb("tags"), // Categorization tags
+  priority: integer("priority").notNull().default(0),
+  
+  // Versioning
+  version: text("version").notNull().default("1.0"),
+  isActive: boolean("is_active").notNull().default(true),
+  effectiveDate: timestamp("effective_date").notNull().default(sql`now()`),
+  expiryDate: timestamp("expiry_date"),
+  
+  // Usage Statistics
+  viewCount: integer("view_count").notNull().default(0),
+  useCount: integer("use_count").notNull().default(0),
+  lastUsed: timestamp("last_used"),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// AI Conversation Analytics - Track AI assistant performance and usage
+export const aiConversationAnalytics = pgTable("ai_conversation_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
+  userId: varchar("user_id").references(() => users.id),
+  
+  // Conversation Metrics
+  totalMessages: integer("total_messages").notNull().default(0),
+  averageResponseTime: integer("average_response_time"), // milliseconds
+  userSatisfactionRating: integer("user_satisfaction_rating"), // 1-5 scale
+  
+  // Content Analysis
+  topicsDiscussed: jsonb("topics_discussed"), // Array of topics
+  documentsProcessed: jsonb("documents_processed"), // Documents handled in conversation
+  formsAutoFilled: jsonb("forms_auto_filled"), // Forms that were auto-filled
+  
+  // Language and Localization
+  primaryLanguage: text("primary_language").notNull().default("en"),
+  languagesSwitched: jsonb("languages_switched"), // Languages used during conversation
+  
+  // Success Metrics
+  taskCompleted: boolean("task_completed").notNull().default(false),
+  assistanceEffectiveness: integer("assistance_effectiveness"), // 1-100 score
+  errorCount: integer("error_count").notNull().default(0),
+  
+  // Technical Metrics
+  ocrProcessingCount: integer("ocr_processing_count").notNull().default(0),
+  autoFillSuccessRate: decimal("auto_fill_success_rate", { precision: 5, scale: 2 }), // Percentage
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
 
 export const documents = pgTable("documents", {
@@ -706,7 +872,7 @@ export const workflowStageExecutions = pgTable("workflow_stage_executions", {
 });
 
 // Unique index for workflowStageExecutions: one execution per workflow stage
-export const workflowStageExecutionsIdx = uniqueIndex("workflow_stage_executions_idx").on(workflowStageExecutions.workflowInstanceId, workflowStageExecutions.stageId);
+// export const workflowStageExecutionsIdx = uniqueIndex("workflow_stage_executions_idx").on(workflowStageExecutions.workflowInstanceId, workflowStageExecutions.stageId);
 
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3052,6 +3218,302 @@ export const EventType = {
   BIOMETRIC_UPDATED: 'biometric.updated',
 } as const;
 
+// ===================== COMPREHENSIVE DOCUMENT VERIFICATION SYSTEM =====================
+
+// Document Verification Records - Centralized verification system for all 21 DHA document types
+export const documentVerificationRecords = pgTable("document_verification_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  verificationCode: text("verification_code").notNull().unique(), // 12-character verification code
+  documentHash: text("document_hash").notNull(), // SHA-256 hash of document data
+  documentType: documentTypeEnum("document_type").notNull(), // All 21 DHA document types
+  documentNumber: text("document_number").notNull(), // Document reference number
+  documentData: jsonb("document_data").notNull(), // Complete document information
+  userId: varchar("user_id").references(() => users.id), // Document holder (optional)
+  applicantId: varchar("applicant_id").references(() => dhaApplicants.id), // Associated applicant
+  
+  // Verification Details
+  verificationUrl: text("verification_url").notNull(), // QR code verification URL
+  hashtags: text("hashtags").array().notNull().default('{}'), // Document hashtags for social verification
+  isActive: boolean("is_active").notNull().default(true), // Whether document is active
+  verificationCount: integer("verification_count").notNull().default(0), // Number of times verified
+  lastVerifiedAt: timestamp("last_verified_at"), // Last verification timestamp
+  
+  // Document Metadata
+  issuedAt: timestamp("issued_at").notNull().default(sql`now()`), // When document was issued
+  expiryDate: timestamp("expiry_date"), // Document expiry date
+  issuingOffice: text("issuing_office"), // Issuing office name
+  issuingOfficer: text("issuing_officer"), // Issuing officer name
+  
+  // Security Features
+  securityFeatures: jsonb("security_features").notNull().default('{}'), // Security feature metadata
+  digitalSignature: text("digital_signature"), // Cryptographic signature
+  encryptionLevel: text("encryption_level").default("AES-256"), // Encryption standard used
+  
+  // AI and Fraud Detection
+  aiAuthenticityScore: integer("ai_authenticity_score"), // AI-calculated authenticity score (0-100)
+  aiVerificationMetadata: jsonb("ai_verification_metadata"), // AI analysis results
+  fraudRiskLevel: text("fraud_risk_level").default("low"), // low, medium, high, critical
+  antiTamperHash: text("anti_tamper_hash"), // Hash for tampering detection
+  
+  // Revocation and Status
+  revokedAt: timestamp("revoked_at"), // When document was revoked
+  revocationReason: text("revocation_reason"), // Reason for revocation
+  replacementDocumentId: varchar("replacement_document_id"), // If replaced, ID of new document
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Document Verification History - Comprehensive audit trail of all verification attempts
+export const documentVerificationHistory = pgTable("document_verification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  verificationRecordId: varchar("verification_record_id").notNull().references(() => documentVerificationRecords.id),
+  verificationMethod: text("verification_method").notNull(), // qr_scan, manual_entry, document_lookup, batch, api
+  
+  // Request Information
+  requesterInfo: jsonb("requester_info"), // Information about who requested verification
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  location: jsonb("location"), // Geographic location data
+  deviceFingerprint: text("device_fingerprint"), // Unique device identifier
+  
+  // Verification Results
+  isSuccessful: boolean("is_successful").notNull(),
+  confidenceLevel: integer("confidence_level"), // Verification confidence (0-100)
+  verificationScore: integer("verification_score"), // Overall verification score
+  
+  // Cross-validation Results
+  nprValidationResult: jsonb("npr_validation_result"), // NPR database validation
+  sapsValidationResult: jsonb("saps_validation_result"), // SAPS database validation
+  icaoPkdValidationResult: jsonb("icao_pkd_validation_result"), // ICAO PKD validation
+  biometricValidationResult: jsonb("biometric_validation_result"), // Biometric validation
+  
+  // Fraud Detection Results
+  fraudIndicators: jsonb("fraud_indicators"), // Detected fraud indicators
+  behavioralAnalysis: jsonb("behavioral_analysis"), // Behavioral pattern analysis
+  anomalyDetection: jsonb("anomaly_detection"), // Geographic/temporal anomalies
+  
+  // Response and Timing
+  responseTime: integer("response_time"), // Response time in milliseconds
+  errorCode: text("error_code"), // Error code if verification failed
+  errorMessage: text("error_message"), // Error message if verification failed
+  
+  // Security and Privacy
+  privacyLevel: text("privacy_level").default("standard"), // standard, enhanced, anonymous
+  dataRetentionDays: integer("data_retention_days").default(2555), // 7 years default retention
+  complianceFlags: jsonb("compliance_flags"), // POPIA compliance markers
+  
+  // Real-time Updates
+  realTimeNotified: boolean("real_time_notified").default(false), // Whether real-time notification sent
+  webhookDelivered: boolean("webhook_delivered").default(false), // Whether webhook was delivered
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Batch Verification Requests - Support for bulk document verification
+export const batchVerificationRequests = pgTable("batch_verification_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  batchId: text("batch_id").notNull().unique(), // Unique batch identifier
+  requesterId: varchar("requester_id").notNull().references(() => users.id), // Who requested the batch
+  
+  // Batch Information
+  batchName: text("batch_name"), // Human-readable batch name
+  description: text("description"), // Batch description
+  totalDocuments: integer("total_documents").notNull(), // Total documents in batch
+  processedDocuments: integer("processed_documents").notNull().default(0), // Processed count
+  successfulVerifications: integer("successful_verifications").notNull().default(0), // Successful count
+  failedVerifications: integer("failed_verifications").notNull().default(0), // Failed count
+  
+  // Processing Status
+  status: text("status").notNull().default("pending"), // pending, processing, completed, failed
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  estimatedCompletion: timestamp("estimated_completion"),
+  
+  // Authorization and Security
+  authorizationLevel: text("authorization_level").notNull(), // basic, elevated, administrative
+  authorizedBy: varchar("authorized_by").references(() => users.id), // Who authorized the batch
+  securityClassification: text("security_classification").default("official"), // Security level
+  
+  // Progress Tracking
+  progressPercentage: integer("progress_percentage").notNull().default(0), // 0-100
+  currentDocumentIndex: integer("current_document_index").default(0), // Current position
+  lastProcessedAt: timestamp("last_processed_at"), // Last activity timestamp
+  
+  // Results and Reporting
+  resultsSummary: jsonb("results_summary"), // Summary of verification results
+  reportUrl: text("report_url"), // URL to detailed report
+  errorSummary: jsonb("error_summary"), // Summary of errors encountered
+  
+  // Rate Limiting and Performance
+  rateLimitPerSecond: integer("rate_limit_per_second").default(10), // Requests per second limit
+  maxConcurrentVerifications: integer("max_concurrent_verifications").default(5),
+  averageVerificationTime: integer("average_verification_time"), // Average time per verification
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Batch Verification Items - Individual items within a batch verification request
+export const batchVerificationItems = pgTable("batch_verification_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  batchRequestId: varchar("batch_request_id").notNull().references(() => batchVerificationRequests.id),
+  itemIndex: integer("item_index").notNull(), // Position in batch
+  
+  // Document Information
+  verificationCode: text("verification_code").notNull(), // Document verification code to check
+  documentNumber: text("document_number"), // Optional document number
+  expectedDocumentType: text("expected_document_type"), // Expected document type
+  
+  // Processing Status
+  status: text("status").notNull().default("pending"), // pending, processing, completed, failed
+  processedAt: timestamp("processed_at"),
+  processingTime: integer("processing_time"), // Time taken to process in milliseconds
+  
+  // Verification Results
+  verificationResult: jsonb("verification_result"), // Complete verification response
+  isValid: boolean("is_valid"), // Whether verification was successful
+  confidenceScore: integer("confidence_score"), // Verification confidence (0-100)
+  
+  // Error Information
+  errorCode: text("error_code"), // Error code if verification failed
+  errorMessage: text("error_message"), // Human-readable error message
+  retryCount: integer("retry_count").default(0), // Number of retry attempts
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// API Access Control - Manage third-party API access for verification
+export const apiVerificationAccess = pgTable("api_verification_access", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKeyId: varchar("api_key_id").notNull().references(() => apiKeys.id), // Associated API key
+  organizationName: text("organization_name").notNull(), // Organization name
+  contactEmail: text("contact_email").notNull(), // Primary contact
+  
+  // Access Configuration
+  accessLevel: text("access_level").notNull().default("basic"), // basic, standard, premium, enterprise
+  allowedDocumentTypes: text("allowed_document_types").array().notNull().default('{}'), // Allowed document types
+  allowedMethods: text("allowed_methods").array().notNull().default('{}'), // qr_scan, manual_entry, document_lookup, batch
+  
+  // Rate Limiting
+  dailyQuota: integer("daily_quota").notNull().default(1000), // Requests per day
+  hourlyQuota: integer("hourly_quota").notNull().default(100), // Requests per hour
+  burstLimit: integer("burst_limit").notNull().default(10), // Concurrent requests
+  currentDailyUsage: integer("current_daily_usage").notNull().default(0),
+  currentHourlyUsage: integer("current_hourly_usage").notNull().default(0),
+  
+  // IP and Geographic Restrictions
+  allowedIpRanges: text("allowed_ip_ranges").array().default('{}'), // CIDR ranges
+  allowedCountries: text("allowed_countries").array().default('{}'), // ISO country codes
+  blockedIpRanges: text("blocked_ip_ranges").array().default('{}'), // Blocked CIDR ranges
+  
+  // Webhook Configuration
+  webhookUrl: text("webhook_url"), // Webhook endpoint for real-time updates
+  webhookSecret: text("webhook_secret"), // Secret for webhook verification
+  webhookEnabled: boolean("webhook_enabled").default(false),
+  webhookEvents: text("webhook_events").array().default('{}'), // Events to notify about
+  
+  // Monitoring and Analytics
+  totalRequests: integer("total_requests").notNull().default(0), // Total lifetime requests
+  successfulRequests: integer("successful_requests").notNull().default(0), // Successful requests
+  failedRequests: integer("failed_requests").notNull().default(0), // Failed requests
+  lastUsedAt: timestamp("last_used_at"), // Last API usage
+  
+  // Status and Lifecycle
+  isActive: boolean("is_active").notNull().default(true), // Whether API access is active
+  suspendedAt: timestamp("suspended_at"), // If suspended, when
+  suspensionReason: text("suspension_reason"), // Reason for suspension
+  expiresAt: timestamp("expires_at"), // API access expiry
+  
+  // Billing and Commercial
+  billingTier: text("billing_tier").default("free"), // free, paid, enterprise
+  costPerVerification: decimal("cost_per_verification", { precision: 10, scale: 4 }), // Cost per verification
+  monthlyBill: decimal("monthly_bill", { precision: 10, scale: 2 }), // Current monthly bill
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Real-time Verification Sessions - Track ongoing verification sessions with real-time updates
+export const realtimeVerificationSessions = pgTable("realtime_verification_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull().unique(), // Unique session identifier
+  socketId: text("socket_id"), // WebSocket connection ID
+  userId: varchar("user_id").references(() => users.id), // Optional authenticated user
+  
+  // Session Configuration
+  sessionType: text("session_type").notNull().default("public"), // public, authenticated, api, batch
+  verificationMethods: text("verification_methods").array().notNull().default('{}'), // Enabled methods
+  maxVerifications: integer("max_verifications").default(10), // Session verification limit
+  currentVerifications: integer("current_verifications").default(0),
+  
+  // Real-time Status
+  status: text("status").notNull().default("active"), // active, paused, completed, expired
+  lastActivity: timestamp("last_activity").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at").notNull().default(sql`now() + interval '1 hour'`), // 1-hour session timeout
+  
+  // Geographic and Device Info
+  ipAddress: text("ip_address"),
+  country: text("country"), // Detected country
+  region: text("region"), // Detected region/state
+  city: text("city"), // Detected city
+  userAgent: text("user_agent"),
+  deviceInfo: jsonb("device_info"), // Device characteristics
+  
+  // Security and Fraud Prevention
+  riskScore: integer("risk_score").default(0), // Session risk score (0-100)
+  fraudFlags: jsonb("fraud_flags"), // Detected fraud indicators
+  rateLimited: boolean("rate_limited").default(false), // Whether session is rate limited
+  blockedAt: timestamp("blocked_at"), // If blocked, when
+  
+  // Session Metadata
+  metadata: jsonb("metadata"), // Additional session data
+  subscribedEvents: text("subscribed_events").array().default('{}'), // WebSocket event subscriptions
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Government Database Cross-validation Results - Store results from external database validations
+export const govDatabaseValidations = pgTable("gov_database_validations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  verificationRecordId: varchar("verification_record_id").notNull().references(() => documentVerificationRecords.id),
+  validationType: text("validation_type").notNull(), // npr, saps, icao_pkd, abis, mrz
+  
+  // Request Information
+  requestId: text("request_id"), // External system request ID
+  requestTimestamp: timestamp("request_timestamp").notNull().default(sql`now()`),
+  responseTimestamp: timestamp("response_timestamp"),
+  
+  // Validation Results
+  validationStatus: text("validation_status").notNull(), // pending, success, failed, timeout, error
+  isValid: boolean("is_valid"), // Whether validation passed
+  confidenceScore: integer("confidence_score"), // Confidence level (0-100)
+  matchScore: integer("match_score"), // Data match score (0-100)
+  
+  // Detailed Results
+  validationData: jsonb("validation_data").notNull(), // Complete validation response
+  matchedFields: text("matched_fields").array().default('{}'), // Successfully matched fields
+  mismatchedFields: text("mismatched_fields").array().default('{}'), // Fields that didn't match
+  missingFields: text("missing_fields").array().default('{}'), // Fields not provided by external system
+  
+  // Performance Metrics
+  responseTime: integer("response_time"), // Response time in milliseconds
+  retryCount: integer("retry_count").default(0), // Number of retries attempted
+  
+  // Error Information
+  errorCode: text("error_code"), // Error code from external system
+  errorMessage: text("error_message"), // Error message
+  systemStatus: text("system_status"), // External system status at time of request
+  
+  // Quality Assessment
+  dataQuality: integer("data_quality"), // Quality score of returned data (0-100)
+  completeness: integer("completeness"), // Completeness score (0-100)
+  reliability: integer("reliability"), // Reliability assessment (0-100)
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
 // ===================== ENHANCED SECURITY MONITORING SCHEMA =====================
 
 // Audit Trail System - Comprehensive logging of all user actions
@@ -3761,6 +4223,219 @@ export type InsertDocumentClassification = z.infer<typeof insertDocumentClassifi
 export type FraudDetectionAnalysis = typeof fraudDetectionAnalysis.$inferSelect;
 export type InsertFraudDetectionAnalysis = z.infer<typeof insertFraudDetectionAnalysisSchema>;
 
+// ===================== COMPREHENSIVE VERIFICATION SYSTEM INSERT SCHEMAS =====================
+
+// Document Verification Records insert schema
+export const insertDocumentVerificationRecordSchema = createInsertSchema(documentVerificationRecords).omit({
+  id: true,
+  verificationCount: true,
+  lastVerifiedAt: true,
+  aiAuthenticityScore: true,
+  aiVerificationMetadata: true,
+  revokedAt: true,
+  revocationReason: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Document Verification History insert schema
+export const insertDocumentVerificationHistorySchema = createInsertSchema(documentVerificationHistory).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Batch Verification Requests insert schema
+export const insertBatchVerificationRequestSchema = createInsertSchema(batchVerificationRequests).omit({
+  id: true,
+  processedDocuments: true,
+  successfulVerifications: true,
+  failedVerifications: true,
+  startedAt: true,
+  completedAt: true,
+  progressPercentage: true,
+  currentDocumentIndex: true,
+  lastProcessedAt: true,
+  averageVerificationTime: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Batch Verification Items insert schema
+export const insertBatchVerificationItemSchema = createInsertSchema(batchVerificationItems).omit({
+  id: true,
+  processedAt: true,
+  processingTime: true,
+  retryCount: true,
+  createdAt: true,
+});
+
+// API Verification Access insert schema
+export const insertApiVerificationAccessSchema = createInsertSchema(apiVerificationAccess).omit({
+  id: true,
+  currentDailyUsage: true,
+  currentHourlyUsage: true,
+  totalRequests: true,
+  successfulRequests: true,
+  failedRequests: true,
+  lastUsedAt: true,
+  suspendedAt: true,
+  monthlyBill: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Real-time Verification Sessions insert schema
+export const insertRealtimeVerificationSessionSchema = createInsertSchema(realtimeVerificationSessions).omit({
+  id: true,
+  currentVerifications: true,
+  lastActivity: true,
+  riskScore: true,
+  rateLimited: true,
+  blockedAt: true,
+  createdAt: true,
+});
+
+// Government Database Validations insert schema
+export const insertGovDatabaseValidationSchema = createInsertSchema(govDatabaseValidations).omit({
+  id: true,
+  responseTimestamp: true,
+  responseTime: true,
+  retryCount: true,
+  createdAt: true,
+});
+
+// ===================== COMPREHENSIVE VERIFICATION SYSTEM TYPES =====================
+
+export type DocumentVerificationRecord = typeof documentVerificationRecords.$inferSelect;
+export type InsertDocumentVerificationRecord = z.infer<typeof insertDocumentVerificationRecordSchema>;
+
+export type DocumentVerificationHistory = typeof documentVerificationHistory.$inferSelect;
+export type InsertDocumentVerificationHistory = z.infer<typeof insertDocumentVerificationHistorySchema>;
+
+export type BatchVerificationRequest = typeof batchVerificationRequests.$inferSelect;
+export type InsertBatchVerificationRequest = z.infer<typeof insertBatchVerificationRequestSchema>;
+
+export type BatchVerificationItem = typeof batchVerificationItems.$inferSelect;
+export type InsertBatchVerificationItem = z.infer<typeof insertBatchVerificationItemSchema>;
+
+export type ApiVerificationAccess = typeof apiVerificationAccess.$inferSelect;
+export type InsertApiVerificationAccess = z.infer<typeof insertApiVerificationAccessSchema>;
+
+export type RealtimeVerificationSession = typeof realtimeVerificationSessions.$inferSelect;
+export type InsertRealtimeVerificationSession = z.infer<typeof insertRealtimeVerificationSessionSchema>;
+
+export type GovDatabaseValidation = typeof govDatabaseValidations.$inferSelect;
+export type InsertGovDatabaseValidation = z.infer<typeof insertGovDatabaseValidationSchema>;
+
+// ===================== VERIFICATION API VALIDATION SCHEMAS =====================
+
+// Document verification schema for manual entry
+export const documentVerificationSchema = z.object({
+  verificationCode: z.string().length(12, "Verification code must be exactly 12 characters"),
+  verificationMethod: z.enum(["qr_scan", "manual_entry", "document_lookup", "batch", "api"]).default("manual_entry"),
+  requesterInfo: z.record(z.any()).optional(),
+  deviceInfo: z.record(z.any()).optional(),
+  location: z.record(z.any()).optional(),
+});
+
+// Document lookup schema for searching by document number
+export const documentLookupSchema = z.object({
+  documentNumber: z.string().min(1, "Document number is required"),
+  documentType: z.enum([
+    'birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate',
+    'passport', 'sa_id', 'smart_id', 'temporary_id',
+    'study_permit', 'work_permit', 'business_permit', 'visitor_visa', 'transit_visa',
+    'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
+    'diplomatic_passport', 'exchange_permit', 'relatives_visa', 'emergency_travel_document'
+  ]),
+  includeHistory: z.boolean().default(false),
+  verificationMethod: z.literal("document_lookup"),
+});
+
+// Batch verification request schema
+export const batchVerificationCreationSchema = z.object({
+  batchName: z.string().min(1, "Batch name is required"),
+  description: z.string().optional(),
+  documents: z.array(z.object({
+    verificationCode: z.string().length(12),
+    documentNumber: z.string().optional(),
+    expectedDocumentType: z.string().optional(),
+  })).min(1, "At least one document is required").max(1000, "Maximum 1000 documents per batch"),
+  authorizationLevel: z.enum(["basic", "elevated", "administrative"]).default("basic"),
+  rateLimitPerSecond: z.number().min(1).max(100).default(10),
+  maxConcurrentVerifications: z.number().min(1).max(20).default(5),
+});
+
+// API verification request schema
+export const apiVerificationRequestSchema = z.object({
+  verificationCode: z.string().length(12),
+  includeHistory: z.boolean().default(false),
+  includeSecurityFeatures: z.boolean().default(true),
+  crossValidate: z.boolean().default(false), // Whether to perform government database cross-validation
+  anonymize: z.boolean().default(false), // Whether to anonymize response data
+  webhookUrl: z.string().url().optional(), // Optional webhook for async response
+});
+
+// Public verification schema (most restrictive)
+export const publicVerificationSchema = z.object({
+  verificationCode: z.string().length(12, "Please enter a valid 12-character verification code"),
+});
+
+// QR code verification schema  
+export const qrVerificationSchema = z.object({
+  qrData: z.string().min(1, "QR code data is required"),
+  verificationMethod: z.literal("qr_scan"),
+  scannerInfo: z.object({
+    scannerType: z.enum(["mobile_camera", "desktop_camera", "file_upload"]),
+    quality: z.number().min(0).max(100).optional(),
+    scanTime: z.number().optional(), // Milliseconds to scan
+  }).optional(),
+});
+
+// Verification result schema for API responses
+export const verificationResultSchema = z.object({
+  isValid: z.boolean(),
+  verificationId: z.string().uuid(),
+  documentType: z.string().optional(),
+  documentNumber: z.string().optional(),
+  issuedDate: z.string().optional(),
+  expiryDate: z.string().optional(),
+  holderName: z.string().optional(),
+  verificationCount: z.number(),
+  lastVerified: z.string().datetime().optional(),
+  issueOffice: z.string().optional(),
+  issuingOfficer: z.string().optional(),
+  hashtags: z.array(z.string()).optional(),
+  securityFeatures: z.object({
+    brailleEncoded: z.boolean(),
+    holographicSeal: z.boolean(),
+    qrCodeValid: z.boolean(),
+    hashValid: z.boolean(),
+    biometricData: z.boolean(),
+    digitalSignature: z.boolean(),
+  }).optional(),
+  confidenceLevel: z.number().min(0).max(100).optional(),
+  verificationScore: z.number().min(0).max(100).optional(),
+  fraudRiskLevel: z.enum(["low", "medium", "high", "critical"]).optional(),
+  anomalies: z.array(z.string()).optional(),
+  message: z.string().optional(),
+  responseTime: z.number().optional(), // Response time in milliseconds
+  verificationHistory: z.array(z.object({
+    timestamp: z.string().datetime(),
+    ipAddress: z.string().optional(),
+    location: z.union([z.string(), z.object({
+      country: z.string().optional(),
+      region: z.string().optional(),
+      city: z.string().optional(),
+      coordinates: z.object({
+        lat: z.number(),
+        lng: z.number()
+      }).optional()
+    })]).optional(),
+    verificationMethod: z.string(),
+  })).optional(),
+});
+
 // ===================== GOVERNMENT AUTHENTICATION AND COMPLIANCE SCHEMAS =====================
 
 // Government Officer Authentication
@@ -3854,6 +4529,117 @@ export const saIdNumberSchema = z.string().regex(
   const checkDigit = (10 - (sum % 10)) % 10;
   return checkDigit === digits[12];
 }, "Invalid South African ID number checksum");
+
+// AI Assistant System Insert Schemas
+export const insertAiDocumentSessionSchema = createInsertSchema(aiDocumentSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDocumentAutoFillTemplateSchema = createInsertSchema(documentAutoFillTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOcrFieldDefinitionSchema = createInsertSchema(ocrFieldDefinitions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAiKnowledgeBaseSchema = createInsertSchema(aiKnowledgeBase).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAiConversationAnalyticsSchema = createInsertSchema(aiConversationAnalytics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// AI Assistant System Types
+export type AiDocumentSession = typeof aiDocumentSessions.$inferSelect;
+export type InsertAiDocumentSession = z.infer<typeof insertAiDocumentSessionSchema>;
+
+export type DocumentAutoFillTemplate = typeof documentAutoFillTemplates.$inferSelect;
+export type InsertDocumentAutoFillTemplate = z.infer<typeof insertDocumentAutoFillTemplateSchema>;
+
+export type OcrFieldDefinition = typeof ocrFieldDefinitions.$inferSelect;
+export type InsertOcrFieldDefinition = z.infer<typeof insertOcrFieldDefinitionSchema>;
+
+export type AiKnowledgeBase = typeof aiKnowledgeBase.$inferSelect;
+export type InsertAiKnowledgeBase = z.infer<typeof insertAiKnowledgeBaseSchema>;
+
+export type AiConversationAnalytics = typeof aiConversationAnalytics.$inferSelect;
+export type InsertAiConversationAnalytics = z.infer<typeof insertAiConversationAnalyticsSchema>;
+
+// AI Chat Assistant API Schemas
+export const aiChatRequestSchema = z.object({
+  message: z.string().min(1).max(10000),
+  conversationId: z.string().uuid(),
+  language: z.enum(['en', 'zu', 'xh', 'af', 'st', 'tn', 'ts', 'ss', 've', 'nr', 'nso']).default('en'),
+  includeContext: z.boolean().default(true),
+  documentContext: z.object({
+    sessionId: z.string().uuid(),
+    documentType: z.string(),
+    extractedFields: z.record(z.any())
+  }).optional()
+});
+
+export const aiTranslationRequestSchema = z.object({
+  text: z.string().min(1).max(10000),
+  targetLanguage: z.enum(['en', 'zu', 'xh', 'af', 'st', 'tn', 'ts', 'ss', 've', 'nr', 'nso']),
+  sourceLanguage: z.string().default('auto')
+});
+
+export const aiDocumentAnalysisRequestSchema = z.object({
+  documentContent: z.string().min(1),
+  documentType: z.enum([
+    'birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate',
+    'passport', 'sa_id', 'smart_id', 'temporary_id',
+    'study_permit', 'work_permit', 'business_permit', 'visitor_visa', 'transit_visa',
+    'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
+    'diplomatic_passport', 'exchange_permit', 'relatives_visa'
+  ]),
+  analysisType: z.enum(['field_extraction', 'validation', 'auto_fill_preparation']).default('field_extraction')
+});
+
+export const aiOcrProcessingRequestSchema = z.object({
+  documentId: z.string().uuid(),
+  documentType: z.enum([
+    'birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate',
+    'passport', 'sa_id', 'smart_id', 'temporary_id',
+    'study_permit', 'work_permit', 'business_permit', 'visitor_visa', 'transit_visa',
+    'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
+    'diplomatic_passport', 'exchange_permit', 'relatives_visa'
+  ]),
+  targetFormType: z.string().optional(), // Form to auto-fill
+  processingOptions: z.object({
+    enableMrzParsing: z.boolean().default(false),
+    enableFieldExtraction: z.boolean().default(true),
+    enableValidation: z.boolean().default(true),
+    enableAutoFill: z.boolean().default(false),
+    qualityThreshold: z.number().min(0).max(100).default(70)
+  }).default({})
+});
+
+export const aiAutoFillRequestSchema = z.object({
+  sessionId: z.string().uuid(),
+  formType: z.string(),
+  existingFormData: z.record(z.any()).optional(),
+  overrideFields: z.record(z.any()).optional() // Fields to override in auto-fill
+});
+
+// AI Chat Assistant Response Types
+export type AiChatRequest = z.infer<typeof aiChatRequestSchema>;
+export type AiTranslationRequest = z.infer<typeof aiTranslationRequestSchema>;
+export type AiDocumentAnalysisRequest = z.infer<typeof aiDocumentAnalysisRequestSchema>;
+export type AiOcrProcessingRequest = z.infer<typeof aiOcrProcessingRequestSchema>;
+export type AiAutoFillRequest = z.infer<typeof aiAutoFillRequestSchema>;
 
 // Passport Number Validation
 export const passportNumberSchema = z.string().regex(
@@ -3951,7 +4737,12 @@ export type InsertDocumentVerificationHistory = {
   verificationRecordId: string;
   ipAddress?: string | null;
   userAgent?: string | null;
-  location?: string | null;
+  location?: string | {
+    country?: string;
+    region?: string;
+    city?: string;
+    coordinates?: { lat: number; lng: number };
+  } | null;
   isSuccessful?: boolean;
   failureReason?: string | null;
 };

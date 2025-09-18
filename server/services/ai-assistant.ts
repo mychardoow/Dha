@@ -4,6 +4,7 @@ import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
 import { quantumEncryptionService } from "./quantum-encryption";
 import { documentProcessorService } from "./document-processor";
+import { privacyProtectionService } from "./privacy-protection";
 
 // Using GPT-4 Turbo for advanced AI capabilities
 const apiKey = (() => {
@@ -55,26 +56,67 @@ export class AIAssistantService {
     message: string, 
     userId: string, 
     conversationId: string,
-    includeContext = true
+    includeContext = true,
+    options: {
+      language?: string;
+      documentContext?: any;
+      enablePIIRedaction?: boolean;
+    } = {}
   ): Promise<ChatResponse> {
     try {
+      const enablePIIRedaction = options.enablePIIRedaction !== false; // Default to true for security
+
+      // CRITICAL SECURITY: Redact PII from user message before sending to OpenAI
+      let processedMessage = message;
+      let piiDetected = false;
+      if (enablePIIRedaction) {
+        const redactionResult = privacyProtectionService.redactPIIForAI(message, true);
+        processedMessage = redactionResult.redactedContent;
+        piiDetected = redactionResult.piiDetected;
+
+        // Log PII detection for security monitoring
+        if (piiDetected) {
+          await storage.createSecurityEvent({
+            userId,
+            eventType: "pii_detected_in_ai_query",
+            severity: "medium",
+            details: {
+              conversationId,
+              piiRedacted: true,
+              originalMessageLength: message.length,
+              redactedMessageLength: processedMessage.length
+            }
+          });
+        }
+      }
+
       let context: AIAssistantContext = {};
       
       if (includeContext) {
         context = await this.gatherSystemContext(userId);
+        // CRITICAL SECURITY: Sanitize system context before sending to OpenAI
+        if (enablePIIRedaction) {
+          context = privacyProtectionService.sanitizeSystemContextForAI(context);
+        }
       }
 
-      const systemPrompt = this.buildSystemPrompt(context);
+      const systemPrompt = this.buildSystemPrompt(context, options.language);
       const conversationHistory = await this.getConversationHistory(conversationId);
+      
+      // CRITICAL SECURITY: Sanitize conversation history
+      let sanitizedHistory = conversationHistory;
+      if (enablePIIRedaction) {
+        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory);
+      }
 
       const messages = [
         { role: "system" as const, content: systemPrompt },
-        ...conversationHistory,
-        { role: "user" as const, content: message }
+        ...sanitizedHistory,
+        { role: "user" as const, content: processedMessage }
       ];
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages,
         max_tokens: 2000,
         temperature: 0.7,
@@ -90,7 +132,7 @@ export class AIAssistantService {
         };
       }
 
-      // Log the interaction
+      // Log the interaction with security details
       await storage.createSecurityEvent({
         userId,
         eventType: "ai_assistant_query",
@@ -98,13 +140,17 @@ export class AIAssistantService {
         details: {
           conversationId,
           messageLength: message.length,
+          processedMessageLength: processedMessage.length,
           responseLength: content.length,
-          contextIncluded: includeContext
+          contextIncluded: includeContext,
+          piiRedactionEnabled: enablePIIRedaction,
+          piiDetected,
+          language: options.language || 'en'
         }
       });
 
       // Extract suggestions and action items
-      const suggestions = await this.extractSuggestions(content, message);
+      const suggestions = await this.extractSuggestions(content, processedMessage);
       const actionItems = await this.extractActionItems(content);
       
       return {
@@ -112,10 +158,13 @@ export class AIAssistantService {
         content,
         suggestions,
         actionItems,
+        language: options.language,
         metadata: {
-          model: "gpt-4-turbo-preview",
+          model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
           contextUsed: context,
-          timestamp: new Date()
+          timestamp: new Date(),
+          piiRedactionApplied: enablePIIRedaction,
+          piiDetected
         }
       };
 
@@ -133,26 +182,67 @@ export class AIAssistantService {
     userId: string,
     conversationId: string,
     onChunk: (chunk: string) => void,
-    includeContext = true
+    includeContext = true,
+    options: {
+      language?: string;
+      documentContext?: any;
+      enablePIIRedaction?: boolean;
+    } = {}
   ): Promise<ChatResponse> {
     try {
+      const enablePIIRedaction = options.enablePIIRedaction !== false; // Default to true for security
+
+      // CRITICAL SECURITY: Redact PII from user message before sending to OpenAI
+      let processedMessage = message;
+      let piiDetected = false;
+      if (enablePIIRedaction) {
+        const redactionResult = privacyProtectionService.redactPIIForAI(message, true);
+        processedMessage = redactionResult.redactedContent;
+        piiDetected = redactionResult.piiDetected;
+
+        // Log PII detection for security monitoring
+        if (piiDetected) {
+          await storage.createSecurityEvent({
+            userId,
+            eventType: "pii_detected_in_ai_stream",
+            severity: "medium",
+            details: {
+              conversationId,
+              piiRedacted: true,
+              originalMessageLength: message.length,
+              redactedMessageLength: processedMessage.length
+            }
+          });
+        }
+      }
+
       let context: AIAssistantContext = {};
       
       if (includeContext) {
         context = await this.gatherSystemContext(userId);
+        // CRITICAL SECURITY: Sanitize system context before sending to OpenAI
+        if (enablePIIRedaction) {
+          context = privacyProtectionService.sanitizeSystemContextForAI(context);
+        }
       }
 
-      const systemPrompt = this.buildSystemPrompt(context);
+      const systemPrompt = this.buildSystemPrompt(context, options.language);
       const conversationHistory = await this.getConversationHistory(conversationId);
+      
+      // CRITICAL SECURITY: Sanitize conversation history
+      let sanitizedHistory = conversationHistory;
+      if (enablePIIRedaction) {
+        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory);
+      }
 
       const messages = [
         { role: "system" as const, content: systemPrompt },
-        ...conversationHistory,
-        { role: "user" as const, content: message }
+        ...sanitizedHistory,
+        { role: "user" as const, content: processedMessage }
       ];
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages,
         max_tokens: 2000,
         temperature: 0.7,
@@ -169,7 +259,7 @@ export class AIAssistantService {
         }
       }
 
-      // Log the interaction
+      // Log the interaction with security details
       await storage.createSecurityEvent({
         userId,
         eventType: "ai_assistant_stream",
@@ -177,19 +267,26 @@ export class AIAssistantService {
         details: {
           conversationId,
           messageLength: message.length,
+          processedMessageLength: processedMessage.length,
           responseLength: fullContent.length,
-          contextIncluded: includeContext
+          contextIncluded: includeContext,
+          piiRedactionEnabled: enablePIIRedaction,
+          piiDetected,
+          language: options.language || 'en'
         }
       });
 
       return {
         success: true,
         content: fullContent,
+        language: options.language,
         metadata: {
-          model: "gpt-4-turbo-preview",
+          model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
           contextUsed: context,
           timestamp: new Date(),
-          streamed: true
+          streamed: true,
+          piiRedactionApplied: enablePIIRedaction,
+          piiDetected
         }
       };
 
@@ -253,10 +350,21 @@ export class AIAssistantService {
     }
   }
 
-  private buildSystemPrompt(context: AIAssistantContext): string {
+  private buildSystemPrompt(context: AIAssistantContext, language: string = 'en'): string {
     const now = new Date().toISOString();
     
-    let prompt = `You are an AI Security Assistant for an enterprise security platform. Current time: ${now}
+    const languageInstructions = this.getLanguageInstructions(language);
+    
+    let prompt = `You are an AI Assistant for the South African Department of Home Affairs (DHA) Digital Services. Current time: ${now}
+
+${languageInstructions}
+
+## Your Role:
+- Assist with DHA document applications and requirements
+- Provide guidance on all 21 DHA document types  
+- Help with form completion and document processing
+- Support all 11 official South African languages
+- Ensure POPIA compliance and data protection
 
 You have access to real-time system data and should provide accurate, actionable insights based on the current state.
 
@@ -354,7 +462,7 @@ Answer the user's question based on the current system state and your security e
   async generateTitle(firstMessage: string): Promise<string> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -383,7 +491,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ success: boolean; translatedText?: string; detectedLanguage?: string; error?: string }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -427,7 +535,7 @@ Answer the user's question based on the current system state and your security e
   }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -476,7 +584,7 @@ Answer the user's question based on the current system state and your security e
       const baseRequirements = this.documentRequirements[documentType as keyof typeof this.documentRequirements] || [];
       
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -518,7 +626,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ success: boolean; response?: string; filledFields?: Record<string, any>; error?: string }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -552,7 +660,7 @@ Answer the user's question based on the current system state and your security e
   private async extractSuggestions(content: string, userQuery: string): Promise<string[]> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -579,7 +687,7 @@ Answer the user's question based on the current system state and your security e
   private async extractActionItems(content: string): Promise<string[]> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -603,6 +711,24 @@ Answer the user's question based on the current system state and your security e
     }
   }
 
+  private getLanguageInstructions(language: string): string {
+    const languageMap: Record<string, string> = {
+      'en': 'Respond in English.',
+      'af': 'Reageer in Afrikaans.',
+      'zu': 'Phendula ngesiZulu.',
+      'xh': 'Phendula ngesiXhosa.',
+      'st': 'Araba ka Sesotho.',
+      'tn': 'Araba ka Setswana.',
+      've': 'Araba nga Tshivenda.',
+      'ts': 'Hlamula hi Xitsonga.',
+      'ss': 'Phendvula nge-siSwati.',
+      'nr': 'Phendula ngesiNdebele.',
+      'nso': 'Araba ka Sepedi.'
+    };
+
+    return languageMap[language] || languageMap['en'];
+  }
+
   async predictProcessingTime(
     documentType: string,
     currentQueue: number,
@@ -610,7 +736,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ estimatedDays: number; confidence: number; factors: string[] }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -643,7 +769,7 @@ Answer the user's question based on the current system state and your security e
   ): Promise<{ anomalies: any[]; severity: string[]; recommendations: string[] }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",
@@ -677,7 +803,7 @@ Answer the user's question based on the current system state and your security e
   }> {
     try {
       const response = await openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
           {
             role: "system",

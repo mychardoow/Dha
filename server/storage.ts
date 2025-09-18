@@ -30,8 +30,19 @@ import {
   type DhaOffice, type InsertDhaOffice,
   type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
   type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
-  type DocumentVerificationRecord, type InsertDocumentVerificationRecord,
-  type DocumentVerificationHistory, type InsertDocumentVerificationHistory,
+  // AI Assistant types
+  type AiDocumentSession, type InsertAiDocumentSession,
+  type DocumentAutoFillTemplate, type InsertDocumentAutoFillTemplate,
+  type OcrFieldDefinition, type InsertOcrFieldDefinition,
+  type AiKnowledgeBase, type InsertAiKnowledgeBase,
+  type AiConversationAnalytics, type InsertAiConversationAnalytics,
+  
+  // Comprehensive Document Verification System types
+  type BatchVerificationRequest, type InsertBatchVerificationRequest,
+  type BatchVerificationItem, type InsertBatchVerificationItem,
+  type ApiVerificationAccess, type InsertApiVerificationAccess,
+  type RealtimeVerificationSession, type InsertRealtimeVerificationSession,
+  type GovDatabaseValidation, type InsertGovDatabaseValidation,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards,
@@ -44,7 +55,12 @@ import {
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
   auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
   refugeeDocuments, diplomaticPassports, documentDelivery, dhaOffices,
-  amsCertificates, permitStatusChanges, documentVerificationStatus
+  amsCertificates, permitStatusChanges, documentVerificationStatus,
+  // AI Assistant tables
+  aiDocumentSessions, documentAutoFillTemplates, ocrFieldDefinitions, aiKnowledgeBase, aiConversationAnalytics,
+  // Comprehensive Document Verification System tables
+  documentVerificationRecords, documentVerificationHistory, batchVerificationRequests,
+  batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -404,6 +420,60 @@ export interface IStorage {
   updateChatSession(id: string, updates: Partial<ChatSession>): Promise<void>;
   assignChatSessionToAdmin(sessionId: string, adminId: string): Promise<void>;
   closeChatSession(sessionId: string): Promise<void>;
+
+  // ===================== AI ASSISTANT METHODS =====================
+  
+  // AI Document Sessions
+  getAiDocumentSession(id: string): Promise<AiDocumentSession | undefined>;
+  getAiDocumentSessions(filters?: {
+    userId?: string;
+    conversationId?: string;
+    documentType?: string;
+    processingStatus?: string;
+    limit?: number;
+  }): Promise<AiDocumentSession[]>;
+  createAiDocumentSession(session: InsertAiDocumentSession): Promise<AiDocumentSession>;
+  updateAiDocumentSession(id: string, updates: Partial<AiDocumentSession>): Promise<void>;
+  
+  // Document Auto-Fill Templates
+  getDocumentAutoFillTemplate(id: string): Promise<DocumentAutoFillTemplate | undefined>;
+  getDocumentAutoFillTemplates(filters?: {
+    documentType?: string;
+    targetFormType?: string;
+    isActive?: boolean;
+  }): Promise<DocumentAutoFillTemplate[]>;
+  createDocumentAutoFillTemplate(template: InsertDocumentAutoFillTemplate): Promise<DocumentAutoFillTemplate>;
+  updateDocumentAutoFillTemplate(id: string, updates: Partial<DocumentAutoFillTemplate>): Promise<void>;
+  
+  // OCR Field Definitions
+  getOcrFieldDefinition(id: string): Promise<OcrFieldDefinition | undefined>;
+  getOcrFieldDefinitions(filters?: {
+    fieldName?: string;
+    category?: string;
+    dataType?: string;
+  }): Promise<OcrFieldDefinition[]>;
+  createOcrFieldDefinition(definition: InsertOcrFieldDefinition): Promise<OcrFieldDefinition>;
+  updateOcrFieldDefinition(id: string, updates: Partial<OcrFieldDefinition>): Promise<void>;
+  
+  // AI Knowledge Base
+  getAiKnowledgeBaseEntry(id: string): Promise<AiKnowledgeBase | undefined>;
+  getAiKnowledgeBase(filters?: {
+    category?: string;
+    documentType?: string;
+    topic?: string;
+    language?: string;
+    isActive?: boolean;
+    limit?: number;
+  }): Promise<AiKnowledgeBase[]>;
+  createAiKnowledgeBaseEntry(entry: InsertAiKnowledgeBase): Promise<AiKnowledgeBase>;
+  updateAiKnowledgeBaseEntry(id: string, updates: Partial<AiKnowledgeBase>): Promise<void>;
+  searchAiKnowledgeBase(query: string, category?: string, documentType?: string): Promise<AiKnowledgeBase[]>;
+  
+  // AI Conversation Analytics
+  getAiConversationAnalytics(id: string): Promise<AiConversationAnalytics | undefined>;
+  getConversationAnalytics(conversationId: string): Promise<AiConversationAnalytics | undefined>;
+  createConversationAnalytics(analytics: InsertAiConversationAnalytics): Promise<AiConversationAnalytics>;
+  updateConversationAnalytics(id: string, updates: Partial<AiConversationAnalytics>): Promise<void>;
   
   // Chat Messages
   getChatMessages(chatSessionId: string): Promise<ChatMessage[]>;
@@ -496,6 +566,72 @@ export interface IStorage {
   createSecurityMetric(metric: InsertSecurityMetric): Promise<SecurityMetric>;
   getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]>;
   getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]>;
+  
+  // ===================== COMPREHENSIVE DOCUMENT VERIFICATION SYSTEM METHODS =====================
+  
+  // Document Verification Records
+  getDocumentVerificationRecord(id: string): Promise<DocumentVerificationRecord | undefined>;
+  getDocumentVerificationRecordByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined>;
+  getDocumentVerificationRecordByDocumentNumber(documentNumber: string, documentType?: string): Promise<DocumentVerificationRecord[]>;
+  createDocumentVerificationRecord(record: InsertDocumentVerificationRecord): Promise<DocumentVerificationRecord>;
+  updateDocumentVerificationRecord(id: string, updates: Partial<DocumentVerificationRecord>): Promise<void>;
+  incrementVerificationCount(verificationCode: string): Promise<void>;
+  revokeDocumentVerification(id: string, reason: string): Promise<void>;
+  searchVerificationRecords(query: {
+    documentType?: string;
+    isActive?: boolean;
+    fraudRiskLevel?: string;
+    dateRange?: { from: Date; to: Date };
+    limit?: number;
+  }): Promise<DocumentVerificationRecord[]>;
+  
+  // Document Verification History
+  getVerificationHistory(verificationRecordId: string): Promise<DocumentVerificationHistory[]>;
+  createVerificationHistoryEntry(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory>;
+  getVerificationHistoryByIp(ipAddress: string, hours?: number): Promise<DocumentVerificationHistory[]>;
+  getVerificationAnalytics(dateRange?: { from: Date; to: Date }): Promise<{
+    totalVerifications: number;
+    successfulVerifications: number;
+    failedVerifications: number;
+    uniqueDocuments: number;
+    topDocumentTypes: Array<{ documentType: string; count: number }>;
+    verificationMethods: Array<{ method: string; count: number }>;
+    fraudIndicators: Array<{ indicator: string; count: number }>;
+  }>;
+  
+  // Batch Verification
+  getBatchVerificationRequest(id: string): Promise<BatchVerificationRequest | undefined>;
+  getBatchVerificationRequests(requesterId?: string, status?: string): Promise<BatchVerificationRequest[]>;
+  createBatchVerificationRequest(request: InsertBatchVerificationRequest): Promise<BatchVerificationRequest>;
+  updateBatchVerificationRequest(id: string, updates: Partial<BatchVerificationRequest>): Promise<void>;
+  getBatchVerificationItems(batchRequestId: string): Promise<BatchVerificationItem[]>;
+  createBatchVerificationItem(item: InsertBatchVerificationItem): Promise<BatchVerificationItem>;
+  updateBatchVerificationItem(id: string, updates: Partial<BatchVerificationItem>): Promise<void>;
+  processBatchVerificationItem(itemId: string, result: any): Promise<void>;
+  
+  // API Verification Access
+  getApiVerificationAccess(apiKeyId: string): Promise<ApiVerificationAccess | undefined>;
+  getAllApiVerificationAccess(isActive?: boolean): Promise<ApiVerificationAccess[]>;
+  createApiVerificationAccess(access: InsertApiVerificationAccess): Promise<ApiVerificationAccess>;
+  updateApiVerificationAccess(id: string, updates: Partial<ApiVerificationAccess>): Promise<void>;
+  incrementApiUsage(apiKeyId: string, successful: boolean): Promise<void>;
+  resetApiUsageCounters(apiKeyId: string): Promise<void>;
+  suspendApiAccess(id: string, reason: string): Promise<void>;
+  
+  // Real-time Verification Sessions
+  getRealtimeVerificationSession(sessionId: string): Promise<RealtimeVerificationSession | undefined>;
+  createRealtimeVerificationSession(session: InsertRealtimeVerificationSession): Promise<RealtimeVerificationSession>;
+  updateRealtimeVerificationSession(id: string, updates: Partial<RealtimeVerificationSession>): Promise<void>;
+  getActiveVerificationSessions(): Promise<RealtimeVerificationSession[]>;
+  expireVerificationSession(sessionId: string): Promise<void>;
+  incrementSessionVerificationCount(sessionId: string): Promise<void>;
+  
+  // Government Database Validations
+  getGovDatabaseValidation(id: string): Promise<GovDatabaseValidation | undefined>;
+  getGovDatabaseValidationsByRecord(verificationRecordId: string): Promise<GovDatabaseValidation[]>;
+  createGovDatabaseValidation(validation: InsertGovDatabaseValidation): Promise<GovDatabaseValidation>;
+  updateGovDatabaseValidation(id: string, updates: Partial<GovDatabaseValidation>): Promise<void>;
+  getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -558,6 +694,13 @@ export class MemStorage implements IStorage {
   private documentVerificationStatusMap: Map<string, DocumentVerificationStatus>;
   private documentVerificationHistoryMap: Map<string, DocumentVerificationHistory>;
   private documentVerificationRecordsMap: Map<string, DocumentVerificationRecord>;
+  
+  // Comprehensive Document Verification System storage
+  private batchVerificationRequests: Map<string, BatchVerificationRequest>;
+  private batchVerificationItems: Map<string, BatchVerificationItem>;
+  private apiVerificationAccess: Map<string, ApiVerificationAccess>;
+  private realtimeVerificationSessions: Map<string, RealtimeVerificationSession>;
+  private govDatabaseValidations: Map<string, GovDatabaseValidation>;
 
   constructor() {
     this.users = new Map();
@@ -619,6 +762,13 @@ export class MemStorage implements IStorage {
     this.documentVerificationStatusMap = new Map();
     this.documentVerificationHistoryMap = new Map();
     this.documentVerificationRecordsMap = new Map();
+    
+    // Initialize comprehensive verification system storage
+    this.batchVerificationRequests = new Map();
+    this.batchVerificationItems = new Map();
+    this.apiVerificationAccess = new Map();
+    this.realtimeVerificationSessions = new Map();
+    this.govDatabaseValidations = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -3157,6 +3307,472 @@ export class MemStorage implements IStorage {
     }
   }
 
+  // ===================== COMPREHENSIVE DOCUMENT VERIFICATION SYSTEM METHODS =====================
+  
+  // Document Verification Records
+  async getDocumentVerificationRecord(id: string): Promise<DocumentVerificationRecord | undefined> {
+    return this.documentVerificationRecordsMap.get(id);
+  }
+
+  async getDocumentVerificationRecordByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined> {
+    return Array.from(this.documentVerificationRecordsMap.values())
+      .find(record => record.verificationCode === verificationCode);
+  }
+
+  async getDocumentVerificationRecordByDocumentNumber(documentNumber: string, documentType?: string): Promise<DocumentVerificationRecord[]> {
+    let records = Array.from(this.documentVerificationRecordsMap.values())
+      .filter(record => record.documentNumber === documentNumber);
+    
+    if (documentType) {
+      records = records.filter(record => record.documentType === documentType);
+    }
+    
+    return records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createDocumentVerificationRecord(record: InsertDocumentVerificationRecord): Promise<DocumentVerificationRecord> {
+    const id = randomUUID();
+    const verificationRecord: DocumentVerificationRecord = {
+      ...record,
+      id,
+      verificationCount: 0,
+      lastVerifiedAt: null,
+      aiAuthenticityScore: null,
+      aiVerificationMetadata: null,
+      revokedAt: null,
+      revocationReason: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.documentVerificationRecordsMap.set(id, verificationRecord);
+    return verificationRecord;
+  }
+
+  async updateDocumentVerificationRecord(id: string, updates: Partial<DocumentVerificationRecord>): Promise<void> {
+    const record = this.documentVerificationRecordsMap.get(id);
+    if (record) {
+      const updated = { ...record, ...updates, updatedAt: new Date() };
+      this.documentVerificationRecordsMap.set(id, updated);
+    }
+  }
+
+  async incrementVerificationCount(verificationCode: string): Promise<void> {
+    const record = await this.getDocumentVerificationRecordByCode(verificationCode);
+    if (record) {
+      await this.updateDocumentVerificationRecord(record.id, {
+        verificationCount: record.verificationCount + 1,
+        lastVerifiedAt: new Date()
+      });
+    }
+  }
+
+  async revokeDocumentVerification(id: string, reason: string): Promise<void> {
+    const record = this.documentVerificationRecordsMap.get(id);
+    if (record) {
+      await this.updateDocumentVerificationRecord(id, {
+        revokedAt: new Date(),
+        revocationReason: reason,
+        isActive: false
+      });
+    }
+  }
+
+  async searchVerificationRecords(query: {
+    documentType?: string;
+    isActive?: boolean;
+    fraudRiskLevel?: string;
+    dateRange?: { from: Date; to: Date };
+    limit?: number;
+  }): Promise<DocumentVerificationRecord[]> {
+    let records = Array.from(this.documentVerificationRecordsMap.values());
+    
+    if (query.documentType) {
+      records = records.filter(r => r.documentType === query.documentType);
+    }
+    
+    if (query.isActive !== undefined) {
+      records = records.filter(r => r.isActive === query.isActive);
+    }
+    
+    if (query.fraudRiskLevel) {
+      records = records.filter(r => r.fraudRiskLevel === query.fraudRiskLevel);
+    }
+    
+    if (query.dateRange) {
+      records = records.filter(r => 
+        r.createdAt >= query.dateRange!.from && r.createdAt <= query.dateRange!.to
+      );
+    }
+    
+    records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    if (query.limit) {
+      records = records.slice(0, query.limit);
+    }
+    
+    return records;
+  }
+  
+  // Document Verification History
+  async getVerificationHistory(verificationRecordId: string): Promise<DocumentVerificationHistory[]> {
+    const history = Array.from(this.documentVerificationHistoryMap.values())
+      .filter(entry => entry.verificationRecordId === verificationRecordId);
+    return history.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createVerificationHistoryEntry(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    const id = randomUUID();
+    const historyEntry: DocumentVerificationHistory = {
+      ...history,
+      id,
+      createdAt: new Date()
+    };
+    this.documentVerificationHistoryMap.set(id, historyEntry);
+    return historyEntry;
+  }
+
+  async getVerificationHistoryByIp(ipAddress: string, hours: number = 24): Promise<DocumentVerificationHistory[]> {
+    const cutoffTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
+    return Array.from(this.documentVerificationHistoryMap.values())
+      .filter(entry => entry.ipAddress === ipAddress && entry.createdAt >= cutoffTime)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getVerificationAnalytics(dateRange?: { from: Date; to: Date }) {
+    let history = Array.from(this.documentVerificationHistoryMap.values());
+    
+    if (dateRange) {
+      history = history.filter(h => h.createdAt >= dateRange.from && h.createdAt <= dateRange.to);
+    }
+    
+    const totalVerifications = history.length;
+    const successfulVerifications = history.filter(h => h.isSuccessful).length;
+    const failedVerifications = totalVerifications - successfulVerifications;
+    
+    const uniqueDocuments = new Set(history.map(h => h.verificationRecordId)).size;
+    
+    // Group by document type
+    const documentTypeMap = new Map<string, number>();
+    history.forEach(h => {
+      // Get document type from verification record
+      const record = Array.from(this.documentVerificationRecordsMap.values())
+        .find(r => r.id === h.verificationRecordId);
+      if (record) {
+        const count = documentTypeMap.get(record.documentType) || 0;
+        documentTypeMap.set(record.documentType, count + 1);
+      }
+    });
+    
+    const topDocumentTypes = Array.from(documentTypeMap.entries())
+      .map(([documentType, count]) => ({ documentType, count }))
+      .sort((a, b) => b.count - a.count);
+    
+    // Group by verification method
+    const methodMap = new Map<string, number>();
+    history.forEach(h => {
+      const count = methodMap.get(h.verificationMethod) || 0;
+      methodMap.set(h.verificationMethod, count + 1);
+    });
+    
+    const verificationMethods = Array.from(methodMap.entries())
+      .map(([method, count]) => ({ method, count }))
+      .sort((a, b) => b.count - a.count);
+    
+    // Extract fraud indicators
+    const indicatorMap = new Map<string, number>();
+    history.forEach(h => {
+      if (h.fraudIndicators) {
+        Object.keys(h.fraudIndicators as any).forEach(indicator => {
+          const count = indicatorMap.get(indicator) || 0;
+          indicatorMap.set(indicator, count + 1);
+        });
+      }
+    });
+    
+    const fraudIndicators = Array.from(indicatorMap.entries())
+      .map(([indicator, count]) => ({ indicator, count }))
+      .sort((a, b) => b.count - a.count);
+    
+    return {
+      totalVerifications,
+      successfulVerifications,
+      failedVerifications,
+      uniqueDocuments,
+      topDocumentTypes,
+      verificationMethods,
+      fraudIndicators
+    };
+  }
+  
+  // Batch Verification
+  async getBatchVerificationRequest(id: string): Promise<BatchVerificationRequest | undefined> {
+    return this.batchVerificationRequests.get(id);
+  }
+
+  async getBatchVerificationRequests(requesterId?: string, status?: string): Promise<BatchVerificationRequest[]> {
+    let requests = Array.from(this.batchVerificationRequests.values());
+    
+    if (requesterId) {
+      requests = requests.filter(r => r.requesterId === requesterId);
+    }
+    
+    if (status) {
+      requests = requests.filter(r => r.status === status);
+    }
+    
+    return requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createBatchVerificationRequest(request: InsertBatchVerificationRequest): Promise<BatchVerificationRequest> {
+    const id = randomUUID();
+    const batchRequest: BatchVerificationRequest = {
+      ...request,
+      id,
+      processedDocuments: 0,
+      successfulVerifications: 0,
+      failedVerifications: 0,
+      startedAt: null,
+      completedAt: null,
+      progressPercentage: 0,
+      currentDocumentIndex: 0,
+      lastProcessedAt: null,
+      averageVerificationTime: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.batchVerificationRequests.set(id, batchRequest);
+    return batchRequest;
+  }
+
+  async updateBatchVerificationRequest(id: string, updates: Partial<BatchVerificationRequest>): Promise<void> {
+    const request = this.batchVerificationRequests.get(id);
+    if (request) {
+      const updated = { ...request, ...updates, updatedAt: new Date() };
+      this.batchVerificationRequests.set(id, updated);
+    }
+  }
+
+  async getBatchVerificationItems(batchRequestId: string): Promise<BatchVerificationItem[]> {
+    return Array.from(this.batchVerificationItems.values())
+      .filter(item => item.batchRequestId === batchRequestId)
+      .sort((a, b) => a.itemIndex - b.itemIndex);
+  }
+
+  async createBatchVerificationItem(item: InsertBatchVerificationItem): Promise<BatchVerificationItem> {
+    const id = randomUUID();
+    const batchItem: BatchVerificationItem = {
+      ...item,
+      id,
+      processedAt: null,
+      processingTime: null,
+      retryCount: 0,
+      createdAt: new Date()
+    };
+    this.batchVerificationItems.set(id, batchItem);
+    return batchItem;
+  }
+
+  async updateBatchVerificationItem(id: string, updates: Partial<BatchVerificationItem>): Promise<void> {
+    const item = this.batchVerificationItems.get(id);
+    if (item) {
+      const updated = { ...item, ...updates };
+      this.batchVerificationItems.set(id, updated);
+    }
+  }
+
+  async processBatchVerificationItem(itemId: string, result: any): Promise<void> {
+    const item = this.batchVerificationItems.get(itemId);
+    if (item) {
+      await this.updateBatchVerificationItem(itemId, {
+        status: result.isValid ? 'completed' : 'failed',
+        processedAt: new Date(),
+        verificationResult: result,
+        isValid: result.isValid,
+        confidenceScore: result.confidenceScore,
+        errorCode: result.errorCode,
+        errorMessage: result.errorMessage
+      });
+    }
+  }
+  
+  // API Verification Access
+  async getApiVerificationAccess(apiKeyId: string): Promise<ApiVerificationAccess | undefined> {
+    return Array.from(this.apiVerificationAccess.values())
+      .find(access => access.apiKeyId === apiKeyId);
+  }
+
+  async getAllApiVerificationAccess(isActive?: boolean): Promise<ApiVerificationAccess[]> {
+    let accesses = Array.from(this.apiVerificationAccess.values());
+    
+    if (isActive !== undefined) {
+      accesses = accesses.filter(a => a.isActive === isActive);
+    }
+    
+    return accesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createApiVerificationAccess(access: InsertApiVerificationAccess): Promise<ApiVerificationAccess> {
+    const id = randomUUID();
+    const apiAccess: ApiVerificationAccess = {
+      ...access,
+      id,
+      currentDailyUsage: 0,
+      currentHourlyUsage: 0,
+      totalRequests: 0,
+      successfulRequests: 0,
+      failedRequests: 0,
+      lastUsedAt: null,
+      suspendedAt: null,
+      monthlyBill: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.apiVerificationAccess.set(id, apiAccess);
+    return apiAccess;
+  }
+
+  async updateApiVerificationAccess(id: string, updates: Partial<ApiVerificationAccess>): Promise<void> {
+    const access = this.apiVerificationAccess.get(id);
+    if (access) {
+      const updated = { ...access, ...updates, updatedAt: new Date() };
+      this.apiVerificationAccess.set(id, updated);
+    }
+  }
+
+  async incrementApiUsage(apiKeyId: string, successful: boolean): Promise<void> {
+    const access = await this.getApiVerificationAccess(apiKeyId);
+    if (access) {
+      await this.updateApiVerificationAccess(access.id, {
+        totalRequests: access.totalRequests + 1,
+        successfulRequests: successful ? access.successfulRequests + 1 : access.successfulRequests,
+        failedRequests: successful ? access.failedRequests : access.failedRequests + 1,
+        currentDailyUsage: access.currentDailyUsage + 1,
+        currentHourlyUsage: access.currentHourlyUsage + 1,
+        lastUsedAt: new Date()
+      });
+    }
+  }
+
+  async resetApiUsageCounters(apiKeyId: string): Promise<void> {
+    const access = await this.getApiVerificationAccess(apiKeyId);
+    if (access) {
+      await this.updateApiVerificationAccess(access.id, {
+        currentDailyUsage: 0,
+        currentHourlyUsage: 0
+      });
+    }
+  }
+
+  async suspendApiAccess(id: string, reason: string): Promise<void> {
+    await this.updateApiVerificationAccess(id, {
+      isActive: false,
+      suspendedAt: new Date(),
+      suspensionReason: reason
+    });
+  }
+  
+  // Real-time Verification Sessions
+  async getRealtimeVerificationSession(sessionId: string): Promise<RealtimeVerificationSession | undefined> {
+    return Array.from(this.realtimeVerificationSessions.values())
+      .find(session => session.sessionId === sessionId);
+  }
+
+  async createRealtimeVerificationSession(session: InsertRealtimeVerificationSession): Promise<RealtimeVerificationSession> {
+    const id = randomUUID();
+    const realtimeSession: RealtimeVerificationSession = {
+      ...session,
+      id,
+      currentVerifications: 0,
+      lastActivity: new Date(),
+      riskScore: 0,
+      rateLimited: false,
+      blockedAt: null,
+      createdAt: new Date()
+    };
+    this.realtimeVerificationSessions.set(id, realtimeSession);
+    return realtimeSession;
+  }
+
+  async updateRealtimeVerificationSession(id: string, updates: Partial<RealtimeVerificationSession>): Promise<void> {
+    const session = this.realtimeVerificationSessions.get(id);
+    if (session) {
+      const updated = { ...session, ...updates };
+      this.realtimeVerificationSessions.set(id, updated);
+    }
+  }
+
+  async getActiveVerificationSessions(): Promise<RealtimeVerificationSession[]> {
+    const now = new Date();
+    return Array.from(this.realtimeVerificationSessions.values())
+      .filter(session => session.status === 'active' && session.expiresAt > now)
+      .sort((a, b) => b.lastActivity.getTime() - a.lastActivity.getTime());
+  }
+
+  async expireVerificationSession(sessionId: string): Promise<void> {
+    const session = await this.getRealtimeVerificationSession(sessionId);
+    if (session) {
+      await this.updateRealtimeVerificationSession(session.id, {
+        status: 'expired'
+      });
+    }
+  }
+
+  async incrementSessionVerificationCount(sessionId: string): Promise<void> {
+    const session = await this.getRealtimeVerificationSession(sessionId);
+    if (session) {
+      await this.updateRealtimeVerificationSession(session.id, {
+        currentVerifications: session.currentVerifications + 1,
+        lastActivity: new Date()
+      });
+    }
+  }
+  
+  // Government Database Validations
+  async getGovDatabaseValidation(id: string): Promise<GovDatabaseValidation | undefined> {
+    return this.govDatabaseValidations.get(id);
+  }
+
+  async getGovDatabaseValidationsByRecord(verificationRecordId: string): Promise<GovDatabaseValidation[]> {
+    return Array.from(this.govDatabaseValidations.values())
+      .filter(validation => validation.verificationRecordId === verificationRecordId)
+      .sort((a, b) => b.requestTimestamp.getTime() - a.requestTimestamp.getTime());
+  }
+
+  async createGovDatabaseValidation(validation: InsertGovDatabaseValidation): Promise<GovDatabaseValidation> {
+    const id = randomUUID();
+    const govValidation: GovDatabaseValidation = {
+      ...validation,
+      id,
+      responseTimestamp: null,
+      responseTime: null,
+      retryCount: 0,
+      createdAt: new Date()
+    };
+    this.govDatabaseValidations.set(id, govValidation);
+    return govValidation;
+  }
+
+  async updateGovDatabaseValidation(id: string, updates: Partial<GovDatabaseValidation>): Promise<void> {
+    const validation = this.govDatabaseValidations.get(id);
+    if (validation) {
+      const updated = { ...validation, ...updates };
+      this.govDatabaseValidations.set(id, updated);
+    }
+  }
+
+  async getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]> {
+    let validations = Array.from(this.govDatabaseValidations.values())
+      .filter(v => v.validationType === validationType);
+    
+    if (dateRange) {
+      validations = validations.filter(v => 
+        v.requestTimestamp >= dateRange.from && v.requestTimestamp <= dateRange.to
+      );
+    }
+    
+    return validations.sort((a, b) => b.requestTimestamp.getTime() - a.requestTimestamp.getTime());
+  }
+  
   // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
   
   async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
