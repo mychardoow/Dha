@@ -5,7 +5,7 @@ import BiometricScanner from "@/components/BiometricScanner";
 import FraudDetection from "@/components/FraudDetection";
 import DocumentProcessor from "@/components/DocumentProcessor";
 import QuantumEncryption from "@/components/QuantumEncryption";
-import MonitoringDashboard from "@/components/MonitoringDashboard";
+// Monitoring functionality is now available via dedicated monitoring route
 import DeploymentPackage from "@/components/DeploymentPackage";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useToast } from "@/hooks/use-toast";
@@ -154,7 +154,19 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Comprehensive security dashboard with live threat intelligence</p>
           </div>
           <ErrorBoundary>
-            <MonitoringDashboard />
+            <Card className="security-card">
+              <CardHeader>
+                <CardTitle className="text-secure">System Monitoring</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Advanced monitoring capabilities are available through the dedicated monitoring dashboard.
+                </p>
+                <a href="/monitoring" className="text-secure hover:underline">
+                  → Access Full Monitoring Dashboard
+                </a>
+              </CardContent>
+            </Card>
           </ErrorBoundary>
         </div>
       </section>

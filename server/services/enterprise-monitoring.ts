@@ -355,8 +355,39 @@ class EnterpriseMonitoringService extends EventEmitter {
   }
 
   private async checkAuthHealth(): Promise<boolean> {
-    // Check authentication service health
-    return true; // Placeholder
+    try {
+      // Check authentication service health by testing critical auth operations
+      const startTime = Date.now();
+      
+      // Test database connection for auth tables
+      const dbHealth = await this.checkDatabaseHealth();
+      if (!dbHealth) return false;
+      
+      // Test session storage accessibility
+      const sessionTest = Math.random().toString(36);
+      const testKey = `health_check_${sessionTest}`;
+      
+      try {
+        // Simple storage test
+        const storage = require('../storage').storage;
+        const testUser = await storage.createUser({
+          username: `health_test_${Date.now()}`,
+          email: `health@test.${Date.now()}.com`,
+          passwordHash: 'test_hash'
+        });
+        
+        // Clean up test user
+        await storage.updateUser(testUser.id, { isActive: false });
+        
+        return true;
+      } catch (error) {
+        console.error('[EnterpriseMonitoring] Auth health check failed:', error);
+        return false;
+      }
+    } catch (error) {
+      console.error('[EnterpriseMonitoring] Auth health check error:', error);
+      return false;
+    }
   }
 
   /**

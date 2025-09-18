@@ -26,6 +26,7 @@ const AIAnalytics = lazy(() => import("./pages/admin/AIAnalytics"));
 const GovernmentOperations = lazy(() => 
   import("./pages/admin/GovernmentOperations").then(module => ({ default: module.GovernmentOperations }))
 );
+const MonitoringDashboard = lazy(() => import("./pages/MonitoringDashboard"));
 
 // Loading fallback component for admin routes
 function AdminLoadingFallback() {
@@ -105,6 +106,13 @@ function App() {
               <AdminGuard>
                 <Suspense fallback={<AdminLoadingFallback />}>
                   <GovernmentOperations />
+                </Suspense>
+              </AdminGuard>
+            </Route>
+            <Route path="/admin/monitoring">
+              <AdminGuard>
+                <Suspense fallback={<AdminLoadingFallback />}>
+                  <MonitoringDashboard />
                 </Suspense>
               </AdminGuard>
             </Route>

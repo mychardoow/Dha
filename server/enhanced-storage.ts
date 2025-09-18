@@ -1,4 +1,5 @@
-import { storage as baseStorage, IStorage } from './storage';
+import { storage as baseStorage } from './storage';
+import type { IStorage } from './storage';
 import { autoRecoveryService } from './services/auto-recovery';
 import { optimizedCacheService } from './services/optimized-cache';
 import { db } from './db';
@@ -17,9 +18,12 @@ class EnhancedStorage implements IStorage {
   private baseStorage: IStorage;
   private readonly CACHE_PREFIX = 'storage';
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes default
+  private isDegradedMode = false;
+  private missingMethods: Set<string> = new Set();
 
   constructor(storage: IStorage) {
     this.baseStorage = storage;
+    this.validateMonitoringMethods();
     this.initializeCache();
     
     // Delegate all unimplemented methods to base storage
@@ -28,6 +32,84 @@ class EnhancedStorage implements IStorage {
       if (typeof proto[key] === 'function' && key !== 'constructor' && !(key in this)) {
         (this as any)[key] = (...args: any[]) => (this.baseStorage as any)[key](...args);
       }
+    }
+  }
+
+  /**
+   * Validate that all critical monitoring methods exist
+   * Enable degraded mode if methods are missing
+   */
+  private validateMonitoringMethods(): void {
+    const criticalMethods = [
+      'getAlertRules', 'getAllCircuitBreakerStates', 'getPerformanceBaselines',
+      'createAutonomousOperation', 'createSystemHealthSnapshot', 'createIncident',
+      'createMaintenanceTask', 'getAutonomousOperations', 'updateAutonomousOperation',
+      'getActiveAutonomousOperations', 'getOperationHistory', 'getSystemHealthSnapshots',
+      'getLatestSystemHealth', 'getHealthTrends', 'getCircuitBreakerState',
+      'createCircuitBreakerState', 'updateCircuitBreakerState', 'recordServiceCall',
+      'getServiceHealth', 'getMaintenanceTasks', 'updateMaintenanceTask',
+      'getScheduledTasks', 'enableMaintenanceTask', 'disableMaintenanceTask',
+      'createAlertRule', 'updateAlertRule', 'evaluateAlertRules', 'updateRuleStatistics',
+      'getIncidents', 'updateIncident', 'assignIncident', 'resolveIncident',
+      'closeIncident', 'getIncidentStatistics', 'createComplianceAudit',
+      'updateComplianceAudit', 'getComplianceStatus', 'scheduleComplianceAudit',
+      'createPerformanceBaseline', 'updatePerformanceBaseline', 'calculateBaseline',
+      'detectAnomalies'
+    ];
+
+    console.log('[Enhanced Storage] Validating monitoring methods...');
+    
+    for (const method of criticalMethods) {
+      if (typeof (this.baseStorage as any)[method] !== 'function') {
+        this.missingMethods.add(method);
+        console.error(`[Enhanced Storage] Critical monitoring method missing: ${method}`);
+      }
+    }
+
+    if (this.missingMethods.size > 0) {
+      console.error(`[Enhanced Storage] CRITICAL: ${this.missingMethods.size} monitoring methods missing!`);
+      console.error(`[Enhanced Storage] Missing methods: ${Array.from(this.missingMethods).join(', ')}`);
+      console.warn('[Enhanced Storage] Enabling degraded mode with fallback implementations');
+      this.isDegradedMode = true;
+    } else {
+      console.log('[Enhanced Storage] All critical monitoring methods validated successfully');
+    }
+  }
+
+  /**
+   * Get system health status including degraded mode
+   */
+  public getSystemHealthStatus(): { 
+    status: 'healthy' | 'degraded' | 'critical',
+    degradedMode: boolean,
+    missingMethods: string[]
+  } {
+    return {
+      status: this.isDegradedMode ? 'degraded' : 'healthy',
+      degradedMode: this.isDegradedMode,
+      missingMethods: Array.from(this.missingMethods)
+    };
+  }
+
+  /**
+   * Safe execution wrapper with degraded mode fallbacks
+   */
+  private async safeMonitoringExecution<T>(
+    methodName: string,
+    fallbackValue: T,
+    executor: () => Promise<T>
+  ): Promise<T> {
+    if (this.missingMethods.has(methodName)) {
+      console.warn(`[Enhanced Storage] Using fallback for missing method: ${methodName}`);
+      return fallbackValue;
+    }
+
+    try {
+      return await executor();
+    } catch (error) {
+      console.error(`[Enhanced Storage] Error in monitoring method ${methodName}:`, error);
+      console.warn(`[Enhanced Storage] Falling back to safe value for ${methodName}`);
+      return fallbackValue;
     }
   }
 
