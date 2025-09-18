@@ -1784,7 +1784,7 @@ export class ComprehensiveVerificationService extends EventEmitter {
         userAgent: request.userAgent || '',
         location: request.location ? JSON.stringify(request.location) : 'unknown',
         sessionVerifications: session.currentVerifications || 0
-      });
+      };
       
       return analysis.riskScore || 75;
     } catch (error) {

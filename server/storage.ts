@@ -43,6 +43,16 @@ import {
   type ApiVerificationAccess, type InsertApiVerificationAccess,
   type RealtimeVerificationSession, type InsertRealtimeVerificationSession,
   type GovDatabaseValidation, type InsertGovDatabaseValidation,
+  
+  // Autonomous Monitoring Bot types
+  type AutonomousOperation, type InsertAutonomousOperation,
+  type SystemHealthSnapshot, type InsertSystemHealthSnapshot,
+  type CircuitBreakerState, type InsertCircuitBreakerState,
+  type MaintenanceTask, type InsertMaintenanceTask,
+  type AlertRule, type InsertAlertRule,
+  type Incident, type InsertIncident,
+  type GovernmentComplianceAudit, type InsertGovernmentComplianceAudit,
+  type PerformanceBaseline, type InsertPerformanceBaseline,
   users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards,
@@ -60,7 +70,10 @@ import {
   aiDocumentSessions, documentAutoFillTemplates, ocrFieldDefinitions, aiKnowledgeBase, aiConversationAnalytics,
   // Comprehensive Document Verification System tables
   documentVerificationRecords, documentVerificationHistory, batchVerificationRequests,
-  batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations
+  batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations,
+  // Autonomous Monitoring Bot tables
+  autonomousOperations, systemHealthSnapshots, circuitBreakerStates, maintenanceTasks,
+  alertRules, incidents, governmentComplianceAudit, performanceBaselines
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -632,6 +645,145 @@ export interface IStorage {
   createGovDatabaseValidation(validation: InsertGovDatabaseValidation): Promise<GovDatabaseValidation>;
   updateGovDatabaseValidation(id: string, updates: Partial<GovDatabaseValidation>): Promise<void>;
   getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]>;
+  
+  // ===================== AUTONOMOUS MONITORING METHODS =====================
+  
+  // Autonomous Operations
+  getAutonomousOperation(id: string): Promise<AutonomousOperation | undefined>;
+  getAutonomousOperations(filters?: {
+    actionType?: string;
+    targetService?: string;
+    status?: string;
+    triggeredBy?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AutonomousOperation[]>;
+  createAutonomousOperation(operation: InsertAutonomousOperation): Promise<AutonomousOperation>;
+  updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<void>;
+  getActiveAutonomousOperations(): Promise<AutonomousOperation[]>;
+  getOperationHistory(targetService: string, actionType?: string, limit?: number): Promise<AutonomousOperation[]>;
+  
+  // System Health Snapshots
+  getSystemHealthSnapshot(id: string): Promise<SystemHealthSnapshot | undefined>;
+  getSystemHealthSnapshots(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    threatLevel?: string;
+    limit?: number;
+  }): Promise<SystemHealthSnapshot[]>;
+  createSystemHealthSnapshot(snapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot>;
+  getLatestSystemHealth(): Promise<SystemHealthSnapshot | undefined>;
+  getHealthTrends(metricName: string, hours: number): Promise<{
+    timestamps: Date[];
+    values: number[];
+    average: number;
+    trend: 'up' | 'down' | 'stable';
+  }>;
+  getPerformanceBaseline(serviceName: string, metricName: string): Promise<PerformanceBaseline | undefined>;
+  
+  // Circuit Breaker States
+  getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined>;
+  getAllCircuitBreakerStates(): Promise<CircuitBreakerState[]>;
+  createCircuitBreakerState(state: InsertCircuitBreakerState): Promise<CircuitBreakerState>;
+  updateCircuitBreakerState(serviceName: string, updates: Partial<CircuitBreakerState>): Promise<void>;
+  recordServiceCall(serviceName: string, success: boolean, responseTime: number): Promise<void>;
+  getServiceHealth(serviceName: string): Promise<{
+    state: string;
+    successRate: number;
+    avgResponseTime: number;
+    isHealthy: boolean;
+  }>;
+  
+  // Maintenance Tasks
+  getMaintenanceTask(id: string): Promise<MaintenanceTask | undefined>;
+  getMaintenanceTasks(filters?: {
+    taskType?: string;
+    isEnabled?: boolean;
+    status?: string;
+    nextRunTime?: Date;
+  }): Promise<MaintenanceTask[]>;
+  createMaintenanceTask(task: InsertMaintenanceTask): Promise<MaintenanceTask>;
+  updateMaintenanceTask(id: string, updates: Partial<MaintenanceTask>): Promise<void>;
+  getScheduledTasks(): Promise<MaintenanceTask[]>;
+  getTaskHistory(taskId: string, limit?: number): Promise<AutonomousOperation[]>;
+  enableMaintenanceTask(id: string): Promise<void>;
+  disableMaintenanceTask(id: string): Promise<void>;
+  
+  // Alert Rules
+  getAlertRule(id: string): Promise<AlertRule | undefined>;
+  getAlertRules(filters?: {
+    category?: string;
+    isEnabled?: boolean;
+    severity?: string;
+  }): Promise<AlertRule[]>;
+  createAlertRule(rule: InsertAlertRule): Promise<AlertRule>;
+  updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<void>;
+  evaluateAlertRules(metricName: string, value: number): Promise<AlertRule[]>;
+  updateRuleStatistics(ruleId: string, triggered: boolean, falsePositive?: boolean): Promise<void>;
+  
+  // Incidents
+  getIncident(id: string): Promise<Incident | undefined>;
+  getIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    category?: string;
+    assignedTo?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<Incident[]>;
+  createIncident(incident: InsertIncident): Promise<Incident>;
+  updateIncident(id: string, updates: Partial<Incident>): Promise<void>;
+  assignIncident(id: string, assignedTo: string, assignedTeam?: string): Promise<void>;
+  resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void>;
+  closeIncident(id: string, closedBy: string): Promise<void>;
+  getIncidentStatistics(timeframe: 'day' | 'week' | 'month'): Promise<{
+    totalIncidents: number;
+    openIncidents: number;
+    resolvedIncidents: number;
+    averageResolutionTime: number;
+    incidentsByCategory: Array<{ category: string; count: number }>;
+    incidentsBySeverity: Array<{ severity: string; count: number }>;
+  }>;
+  
+  // Government Compliance Audit
+  getGovernmentComplianceAudit(id: string): Promise<GovernmentComplianceAudit | undefined>;
+  getComplianceAudits(filters?: {
+    complianceRequirement?: string;
+    regulatoryFramework?: string;
+    complianceStatus?: string;
+    auditType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<GovernmentComplianceAudit[]>;
+  createComplianceAudit(audit: InsertGovernmentComplianceAudit): Promise<GovernmentComplianceAudit>;
+  updateComplianceAudit(id: string, updates: Partial<GovernmentComplianceAudit>): Promise<void>;
+  getComplianceStatus(requirementType: string): Promise<{
+    overallStatus: 'compliant' | 'non_compliant' | 'partial';
+    lastAuditDate: Date;
+    nextAuditDate: Date;
+    violations: number;
+    riskLevel: string;
+  }>;
+  scheduleComplianceAudit(requirement: string, framework: string, scheduledDate: Date): Promise<void>;
+  
+  // Performance Baselines
+  getPerformanceBaselines(filters?: {
+    metricName?: string;
+    serviceName?: string;
+    lastCalculated?: Date;
+  }): Promise<PerformanceBaseline[]>;
+  createPerformanceBaseline(baseline: InsertPerformanceBaseline): Promise<PerformanceBaseline>;
+  updatePerformanceBaseline(id: string, updates: Partial<PerformanceBaseline>): Promise<void>;
+  calculateBaseline(serviceName: string, metricName: string, dataPoints: number[]): Promise<PerformanceBaseline>;
+  detectAnomalies(serviceName: string, metricName: string, currentValue: number): Promise<{
+    isAnomaly: boolean;
+    severity: 'low' | 'medium' | 'high';
+    deviationScore: number;
+    baseline: number;
+  }>;
 }
 
 export class MemStorage implements IStorage {
@@ -701,6 +853,16 @@ export class MemStorage implements IStorage {
   private apiVerificationAccess: Map<string, ApiVerificationAccess>;
   private realtimeVerificationSessions: Map<string, RealtimeVerificationSession>;
   private govDatabaseValidations: Map<string, GovDatabaseValidation>;
+  
+  // Autonomous Monitoring System storage
+  private autonomousOperations: Map<string, AutonomousOperation>;
+  private systemHealthSnapshots: Map<string, SystemHealthSnapshot>;
+  private circuitBreakerStates: Map<string, CircuitBreakerState>;
+  private maintenanceTasks: Map<string, MaintenanceTask>;
+  private alertRules: Map<string, AlertRule>;
+  private incidents: Map<string, Incident>;
+  private governmentComplianceAudits: Map<string, GovernmentComplianceAudit>;
+  private performanceBaselines: Map<string, PerformanceBaseline>;
 
   constructor() {
     this.users = new Map();
@@ -769,6 +931,16 @@ export class MemStorage implements IStorage {
     this.apiVerificationAccess = new Map();
     this.realtimeVerificationSessions = new Map();
     this.govDatabaseValidations = new Map();
+    
+    // Initialize autonomous monitoring system storage
+    this.autonomousOperations = new Map();
+    this.systemHealthSnapshots = new Map();
+    this.circuitBreakerStates = new Map();
+    this.maintenanceTasks = new Map();
+    this.alertRules = new Map();
+    this.incidents = new Map();
+    this.governmentComplianceAudits = new Map();
+    this.performanceBaselines = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -3773,6 +3945,746 @@ export class MemStorage implements IStorage {
     return validations.sort((a, b) => b.requestTimestamp.getTime() - a.requestTimestamp.getTime());
   }
   
+  // ===================== AUTONOMOUS MONITORING METHODS =====================
+  
+  // Autonomous Operations
+  async getAutonomousOperation(id: string): Promise<AutonomousOperation | undefined> {
+    return this.autonomousOperations.get(id);
+  }
+
+  async getAutonomousOperations(filters?: {
+    actionType?: string;
+    targetService?: string;
+    status?: string;
+    triggeredBy?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AutonomousOperation[]> {
+    let operations = Array.from(this.autonomousOperations.values());
+    
+    if (filters) {
+      if (filters.actionType) operations = operations.filter(op => op.actionType === filters.actionType);
+      if (filters.targetService) operations = operations.filter(op => op.targetService === filters.targetService);
+      if (filters.status) operations = operations.filter(op => op.status === filters.status);
+      if (filters.triggeredBy) operations = operations.filter(op => op.triggeredBy === filters.triggeredBy);
+      if (filters.startDate) operations = operations.filter(op => op.startedAt >= filters.startDate!);
+      if (filters.endDate) operations = operations.filter(op => op.startedAt <= filters.endDate!);
+    }
+    
+    operations.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    return filters?.limit ? operations.slice(0, filters.limit) : operations;
+  }
+
+  async createAutonomousOperation(operation: InsertAutonomousOperation): Promise<AutonomousOperation> {
+    const id = randomUUID();
+    const autonomousOp: AutonomousOperation = {
+      ...operation,
+      id,
+      executionOrder: operation.executionOrder || 1,
+      retryCount: operation.retryCount || 0,
+      maxRetryAttempts: operation.maxRetryAttempts || 3,
+      priority: operation.priority || 'medium',
+      timeout: operation.timeout || 300,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.autonomousOperations.set(id, autonomousOp);
+    return autonomousOp;
+  }
+
+  async updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<void> {
+    const operation = this.autonomousOperations.get(id);
+    if (operation) {
+      const updated = { ...operation, ...updates, updatedAt: new Date() };
+      this.autonomousOperations.set(id, updated);
+    }
+  }
+
+  async getActiveAutonomousOperations(): Promise<AutonomousOperation[]> {
+    return Array.from(this.autonomousOperations.values())
+      .filter(op => op.status === 'executing' || op.status === 'pending')
+      .sort((a, b) => a.executionOrder - b.executionOrder);
+  }
+
+  async getOperationHistory(targetService: string, actionType?: string, limit?: number): Promise<AutonomousOperation[]> {
+    let operations = Array.from(this.autonomousOperations.values())
+      .filter(op => op.targetService === targetService);
+    
+    if (actionType) {
+      operations = operations.filter(op => op.actionType === actionType);
+    }
+    
+    operations.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    return limit ? operations.slice(0, limit) : operations;
+  }
+
+  // System Health Snapshots
+  async getSystemHealthSnapshot(id: string): Promise<SystemHealthSnapshot | undefined> {
+    return this.systemHealthSnapshots.get(id);
+  }
+
+  async getSystemHealthSnapshots(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    threatLevel?: string;
+    limit?: number;
+  }): Promise<SystemHealthSnapshot[]> {
+    let snapshots = Array.from(this.systemHealthSnapshots.values());
+    
+    if (filters) {
+      if (filters.startDate) snapshots = snapshots.filter(s => s.timestamp >= filters.startDate!);
+      if (filters.endDate) snapshots = snapshots.filter(s => s.timestamp <= filters.endDate!);
+      if (filters.threatLevel) snapshots = snapshots.filter(s => s.threatLevel === filters.threatLevel);
+    }
+    
+    snapshots.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return filters?.limit ? snapshots.slice(0, filters.limit) : snapshots;
+  }
+
+  async createSystemHealthSnapshot(snapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot> {
+    const id = randomUUID();
+    const healthSnapshot: SystemHealthSnapshot = {
+      ...snapshot,
+      id,
+      timestamp: new Date(),
+      createdAt: new Date()
+    };
+    this.systemHealthSnapshots.set(id, healthSnapshot);
+    return healthSnapshot;
+  }
+
+  async getLatestSystemHealth(): Promise<SystemHealthSnapshot | undefined> {
+    const snapshots = Array.from(this.systemHealthSnapshots.values());
+    return snapshots.length > 0 ? 
+      snapshots.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] : undefined;
+  }
+
+  async getHealthTrends(metricName: string, hours: number): Promise<{
+    timestamps: Date[];
+    values: number[];
+    average: number;
+    trend: 'up' | 'down' | 'stable';
+  }> {
+    const cutoffTime = new Date(Date.now() - (hours * 60 * 60 * 1000));
+    const snapshots = Array.from(this.systemHealthSnapshots.values())
+      .filter(s => s.timestamp >= cutoffTime)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    
+    const timestamps = snapshots.map(s => s.timestamp);
+    const values = snapshots.map(s => (s.resourceMetrics as any)[metricName] || 0);
+    const average = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    
+    // Simple trend calculation
+    let trend: 'up' | 'down' | 'stable' = 'stable';
+    if (values.length >= 2) {
+      const first = values[0];
+      const last = values[values.length - 1];
+      const diff = last - first;
+      if (Math.abs(diff) > average * 0.1) { // 10% threshold
+        trend = diff > 0 ? 'up' : 'down';
+      }
+    }
+    
+    return { timestamps, values, average, trend };
+  }
+
+  async getPerformanceBaseline(serviceName: string, metricName: string): Promise<PerformanceBaseline | undefined> {
+    return Array.from(this.performanceBaselines.values())
+      .find(baseline => baseline.serviceName === serviceName && baseline.metricName === metricName);
+  }
+
+  // Circuit Breaker States
+  async getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined> {
+    return Array.from(this.circuitBreakerStates.values())
+      .find(state => state.serviceName === serviceName);
+  }
+
+  async getAllCircuitBreakerStates(): Promise<CircuitBreakerState[]> {
+    return Array.from(this.circuitBreakerStates.values())
+      .sort((a, b) => a.serviceName.localeCompare(b.serviceName));
+  }
+
+  async createCircuitBreakerState(state: InsertCircuitBreakerState): Promise<CircuitBreakerState> {
+    const id = randomUUID();
+    const breakerState: CircuitBreakerState = {
+      ...state,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.circuitBreakerStates.set(id, breakerState);
+    return breakerState;
+  }
+
+  async updateCircuitBreakerState(serviceName: string, updates: Partial<CircuitBreakerState>): Promise<void> {
+    const state = Array.from(this.circuitBreakerStates.values())
+      .find(s => s.serviceName === serviceName);
+    if (state) {
+      const updated = { ...state, ...updates, updatedAt: new Date() };
+      this.circuitBreakerStates.set(state.id, updated);
+    }
+  }
+
+  async recordServiceCall(serviceName: string, success: boolean, responseTime: number): Promise<void> {
+    const state = await this.getCircuitBreakerState(serviceName);
+    if (state) {
+      const totalCalls = state.successCount + state.failureCount + 1;
+      const updates = {
+        totalRequests: totalCalls,
+        successCount: success ? state.successCount + 1 : state.successCount,
+        failureCount: success ? state.failureCount : state.failureCount + 1,
+        averageResponseTime: ((state.averageResponseTime * (totalCalls - 1)) + responseTime) / totalCalls,
+        lastRequestAt: new Date()
+      };
+      await this.updateCircuitBreakerState(serviceName, updates);
+    }
+  }
+
+  async getServiceHealth(serviceName: string): Promise<{
+    state: string;
+    successRate: number;
+    avgResponseTime: number;
+    isHealthy: boolean;
+  }> {
+    const state = await this.getCircuitBreakerState(serviceName);
+    if (!state) {
+      return { state: 'unknown', successRate: 0, avgResponseTime: 0, isHealthy: false };
+    }
+    
+    const totalRequests = state.successCount + state.failureCount;
+    const successRate = totalRequests > 0 ? (state.successCount / totalRequests) * 100 : 0;
+    
+    return {
+      state: state.state,
+      successRate,
+      avgResponseTime: state.averageResponseTime,
+      isHealthy: state.state === 'closed' && successRate >= 90
+    };
+  }
+
+  // Maintenance Tasks
+  async getMaintenanceTask(id: string): Promise<MaintenanceTask | undefined> {
+    return this.maintenanceTasks.get(id);
+  }
+
+  async getMaintenanceTasks(filters?: {
+    taskType?: string;
+    isEnabled?: boolean;
+    status?: string;
+    nextRunTime?: Date;
+  }): Promise<MaintenanceTask[]> {
+    let tasks = Array.from(this.maintenanceTasks.values());
+    
+    if (filters) {
+      if (filters.taskType) tasks = tasks.filter(t => t.taskType === filters.taskType);
+      if (filters.isEnabled !== undefined) tasks = tasks.filter(t => t.isEnabled === filters.isEnabled);
+      if (filters.status) tasks = tasks.filter(t => t.status === filters.status);
+      if (filters.nextRunTime) tasks = tasks.filter(t => t.nextRunTime <= filters.nextRunTime!);
+    }
+    
+    return tasks.sort((a, b) => a.taskName.localeCompare(b.taskName));
+  }
+
+  async createMaintenanceTask(task: InsertMaintenanceTask): Promise<MaintenanceTask> {
+    const id = randomUUID();
+    const maintenanceTask: MaintenanceTask = {
+      ...task,
+      id,
+      runCount: 0,
+      successCount: 0,
+      failureCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.maintenanceTasks.set(id, maintenanceTask);
+    return maintenanceTask;
+  }
+
+  async updateMaintenanceTask(id: string, updates: Partial<MaintenanceTask>): Promise<void> {
+    const task = this.maintenanceTasks.get(id);
+    if (task) {
+      const updated = { ...task, ...updates, updatedAt: new Date() };
+      this.maintenanceTasks.set(id, updated);
+    }
+  }
+
+  async getScheduledTasks(): Promise<MaintenanceTask[]> {
+    const now = new Date();
+    return Array.from(this.maintenanceTasks.values())
+      .filter(task => task.isEnabled && task.nextRunTime <= now)
+      .sort((a, b) => a.nextRunTime.getTime() - b.nextRunTime.getTime());
+  }
+
+  async getTaskHistory(taskId: string, limit?: number): Promise<AutonomousOperation[]> {
+    const operations = Array.from(this.autonomousOperations.values())
+      .filter(op => op.actionParameters && (op.actionParameters as any).taskId === taskId)
+      .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+    
+    return limit ? operations.slice(0, limit) : operations;
+  }
+
+  async enableMaintenanceTask(id: string): Promise<void> {
+    await this.updateMaintenanceTask(id, { isEnabled: true });
+  }
+
+  async disableMaintenanceTask(id: string): Promise<void> {
+    await this.updateMaintenanceTask(id, { isEnabled: false });
+  }
+
+  // Alert Rules
+  async getAlertRule(id: string): Promise<AlertRule | undefined> {
+    return this.alertRules.get(id);
+  }
+
+  async getAlertRules(filters?: {
+    category?: string;
+    isEnabled?: boolean;
+    severity?: string;
+  }): Promise<AlertRule[]> {
+    let rules = Array.from(this.alertRules.values());
+    
+    if (filters) {
+      if (filters.category) rules = rules.filter(r => r.category === filters.category);
+      if (filters.isEnabled !== undefined) rules = rules.filter(r => r.isEnabled === filters.isEnabled);
+      if (filters.severity) rules = rules.filter(r => r.severity === filters.severity);
+    }
+    
+    return rules.sort((a, b) => a.ruleName.localeCompare(b.ruleName));
+  }
+
+  async createAlertRule(rule: InsertAlertRule): Promise<AlertRule> {
+    const id = randomUUID();
+    const alertRule: AlertRule = {
+      ...rule,
+      id,
+      triggerCount: 0,
+      falsePositiveCount: 0,
+      accuracy: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.alertRules.set(id, alertRule);
+    return alertRule;
+  }
+
+  async updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<void> {
+    const rule = this.alertRules.get(id);
+    if (rule) {
+      const updated = { ...rule, ...updates, updatedAt: new Date() };
+      this.alertRules.set(id, updated);
+    }
+  }
+
+  async evaluateAlertRules(metricName: string, value: number): Promise<AlertRule[]> {
+    const rules = Array.from(this.alertRules.values())
+      .filter(rule => rule.isEnabled && rule.metricName === metricName);
+    
+    const triggeredRules: AlertRule[] = [];
+    
+    for (const rule of rules) {
+      let triggered = false;
+      switch (rule.operator) {
+        case 'greater_than':
+          triggered = value > rule.threshold;
+          break;
+        case 'less_than':
+          triggered = value < rule.threshold;
+          break;
+        case 'equals':
+          triggered = value === rule.threshold;
+          break;
+        case 'not_equals':
+          triggered = value !== rule.threshold;
+          break;
+      }
+      
+      if (triggered) {
+        triggeredRules.push(rule);
+        await this.updateRuleStatistics(rule.id, true);
+      }
+    }
+    
+    return triggeredRules;
+  }
+
+  async updateRuleStatistics(ruleId: string, triggered: boolean, falsePositive?: boolean): Promise<void> {
+    const rule = this.alertRules.get(ruleId);
+    if (rule) {
+      const updates: Partial<AlertRule> = {
+        lastTriggeredAt: triggered ? new Date() : rule.lastTriggeredAt
+      };
+      
+      if (triggered) {
+        updates.triggerCount = rule.triggerCount + 1;
+      }
+      
+      if (falsePositive) {
+        updates.falsePositiveCount = rule.falsePositiveCount + 1;
+      }
+      
+      if (rule.triggerCount > 0) {
+        updates.accuracy = ((rule.triggerCount - rule.falsePositiveCount) / rule.triggerCount) * 100;
+      }
+      
+      await this.updateAlertRule(ruleId, updates);
+    }
+  }
+
+  // Incidents
+  async getIncident(id: string): Promise<Incident | undefined> {
+    return this.incidents.get(id);
+  }
+
+  async getIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    category?: string;
+    assignedTo?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<Incident[]> {
+    let incidents = Array.from(this.incidents.values());
+    
+    if (filters) {
+      if (filters.status) incidents = incidents.filter(i => i.status === filters.status);
+      if (filters.severity) incidents = incidents.filter(i => i.severity === filters.severity);
+      if (filters.category) incidents = incidents.filter(i => i.category === filters.category);
+      if (filters.assignedTo) incidents = incidents.filter(i => i.assignedTo === filters.assignedTo);
+      if (filters.startDate) incidents = incidents.filter(i => i.createdAt >= filters.startDate!);
+      if (filters.endDate) incidents = incidents.filter(i => i.createdAt <= filters.endDate!);
+    }
+    
+    incidents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return filters?.limit ? incidents.slice(0, filters.limit) : incidents;
+  }
+
+  async createIncident(incident: InsertIncident): Promise<Incident> {
+    const id = randomUUID();
+    const newIncident: Incident = {
+      ...incident,
+      id,
+      incidentId: `INC-${Date.now()}-${randomUUID().substring(0, 8).toUpperCase()}`,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.incidents.set(id, newIncident);
+    return newIncident;
+  }
+
+  async updateIncident(id: string, updates: Partial<Incident>): Promise<void> {
+    const incident = this.incidents.get(id);
+    if (incident) {
+      const updated = { ...incident, ...updates, updatedAt: new Date() };
+      this.incidents.set(id, updated);
+    }
+  }
+
+  async assignIncident(id: string, assignedTo: string, assignedTeam?: string): Promise<void> {
+    await this.updateIncident(id, { assignedTo, assignedTeam, status: 'assigned' });
+  }
+
+  async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
+    await this.updateIncident(id, { 
+      status: 'resolved', 
+      resolution, 
+      resolvedBy, 
+      resolvedAt: new Date() 
+    });
+  }
+
+  async closeIncident(id: string, closedBy: string): Promise<void> {
+    await this.updateIncident(id, { 
+      status: 'closed', 
+      closedBy, 
+      closedAt: new Date() 
+    });
+  }
+
+  async getIncidentStatistics(timeframe: 'day' | 'week' | 'month'): Promise<{
+    totalIncidents: number;
+    openIncidents: number;
+    resolvedIncidents: number;
+    averageResolutionTime: number;
+    incidentsByCategory: Array<{ category: string; count: number }>;
+    incidentsBySeverity: Array<{ severity: string; count: number }>;
+  }> {
+    const now = new Date();
+    let cutoffTime: Date;
+    
+    switch (timeframe) {
+      case 'day':
+        cutoffTime = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+        break;
+      case 'week':
+        cutoffTime = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        break;
+      case 'month':
+        cutoffTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        break;
+    }
+    
+    const incidents = Array.from(this.incidents.values())
+      .filter(incident => incident.createdAt >= cutoffTime);
+    
+    const totalIncidents = incidents.length;
+    const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'assigned').length;
+    const resolvedIncidents = incidents.filter(i => i.status === 'resolved' || i.status === 'closed').length;
+    
+    const resolvedWithTime = incidents.filter(i => i.resolvedAt);
+    const averageResolutionTime = resolvedWithTime.length > 0 
+      ? resolvedWithTime.reduce((sum, i) => sum + (i.resolvedAt!.getTime() - i.createdAt.getTime()), 0) / resolvedWithTime.length 
+      : 0;
+    
+    const categoryMap = new Map<string, number>();
+    const severityMap = new Map<string, number>();
+    
+    incidents.forEach(incident => {
+      categoryMap.set(incident.category, (categoryMap.get(incident.category) || 0) + 1);
+      severityMap.set(incident.severity, (severityMap.get(incident.severity) || 0) + 1);
+    });
+    
+    return {
+      totalIncidents,
+      openIncidents,
+      resolvedIncidents,
+      averageResolutionTime,
+      incidentsByCategory: Array.from(categoryMap.entries()).map(([category, count]) => ({ category, count })),
+      incidentsBySeverity: Array.from(severityMap.entries()).map(([severity, count]) => ({ severity, count }))
+    };
+  }
+
+  // Government Compliance Audit
+  async getGovernmentComplianceAudit(id: string): Promise<GovernmentComplianceAudit | undefined> {
+    return this.governmentComplianceAudits.get(id);
+  }
+
+  async getComplianceAudits(filters?: {
+    complianceRequirement?: string;
+    regulatoryFramework?: string;
+    complianceStatus?: string;
+    auditType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<GovernmentComplianceAudit[]> {
+    let audits = Array.from(this.governmentComplianceAudits.values());
+    
+    if (filters) {
+      if (filters.complianceRequirement) audits = audits.filter(a => a.complianceRequirement === filters.complianceRequirement);
+      if (filters.regulatoryFramework) audits = audits.filter(a => a.regulatoryFramework === filters.regulatoryFramework);
+      if (filters.complianceStatus) audits = audits.filter(a => a.complianceStatus === filters.complianceStatus);
+      if (filters.auditType) audits = audits.filter(a => a.auditType === filters.auditType);
+      if (filters.startDate) audits = audits.filter(a => a.scheduledDate >= filters.startDate!);
+      if (filters.endDate) audits = audits.filter(a => a.scheduledDate <= filters.endDate!);
+    }
+    
+    audits.sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime());
+    return filters?.limit ? audits.slice(0, filters.limit) : audits;
+  }
+
+  async createComplianceAudit(audit: InsertGovernmentComplianceAudit): Promise<GovernmentComplianceAudit> {
+    const id = randomUUID();
+    const complianceAudit: GovernmentComplianceAudit = {
+      ...audit,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.governmentComplianceAudits.set(id, complianceAudit);
+    return complianceAudit;
+  }
+
+  async updateComplianceAudit(id: string, updates: Partial<GovernmentComplianceAudit>): Promise<void> {
+    const audit = this.governmentComplianceAudits.get(id);
+    if (audit) {
+      const updated = { ...audit, ...updates, updatedAt: new Date() };
+      this.governmentComplianceAudits.set(id, updated);
+    }
+  }
+
+  async getComplianceStatus(requirementType: string): Promise<{
+    overallStatus: 'compliant' | 'non_compliant' | 'partial';
+    lastAuditDate: Date;
+    nextAuditDate: Date;
+    violations: number;
+    riskLevel: string;
+  }> {
+    const audits = Array.from(this.governmentComplianceAudits.values())
+      .filter(audit => audit.complianceRequirement === requirementType)
+      .sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime());
+    
+    const lastAudit = audits[0];
+    
+    if (!lastAudit) {
+      return {
+        overallStatus: 'non_compliant',
+        lastAuditDate: new Date(0),
+        nextAuditDate: new Date(),
+        violations: 0,
+        riskLevel: 'high'
+      };
+    }
+    
+    const violations = audits.filter(a => a.complianceStatus === 'non_compliant').length;
+    const compliantCount = audits.filter(a => a.complianceStatus === 'compliant').length;
+    const totalCount = audits.length;
+    
+    let overallStatus: 'compliant' | 'non_compliant' | 'partial';
+    if (compliantCount === totalCount) {
+      overallStatus = 'compliant';
+    } else if (compliantCount === 0) {
+      overallStatus = 'non_compliant';
+    } else {
+      overallStatus = 'partial';
+    }
+    
+    const riskLevel = violations > 5 ? 'high' : violations > 2 ? 'medium' : 'low';
+    
+    return {
+      overallStatus,
+      lastAuditDate: lastAudit.scheduledDate,
+      nextAuditDate: new Date(lastAudit.scheduledDate.getTime() + (30 * 24 * 60 * 60 * 1000)), // 30 days
+      violations,
+      riskLevel
+    };
+  }
+
+  async scheduleComplianceAudit(requirement: string, framework: string, scheduledDate: Date): Promise<void> {
+    await this.createComplianceAudit({
+      complianceRequirement: requirement,
+      regulatoryFramework: framework,
+      auditType: 'scheduled',
+      scheduledDate,
+      complianceStatus: 'pending',
+      auditScope: 'full_system',
+      findings: {},
+      riskAssessment: 'medium',
+      correctiveActions: [],
+      auditEvidence: []
+    });
+  }
+
+  // Performance Baselines
+  async getPerformanceBaselines(filters?: {
+    metricName?: string;
+    serviceName?: string;
+    lastCalculated?: Date;
+  }): Promise<PerformanceBaseline[]> {
+    let baselines = Array.from(this.performanceBaselines.values());
+    
+    if (filters) {
+      if (filters.metricName) baselines = baselines.filter(b => b.metricName === filters.metricName);
+      if (filters.serviceName) baselines = baselines.filter(b => b.serviceName === filters.serviceName);
+      if (filters.lastCalculated) baselines = baselines.filter(b => b.lastCalculatedAt >= filters.lastCalculated!);
+    }
+    
+    return baselines.sort((a, b) => b.lastCalculatedAt.getTime() - a.lastCalculatedAt.getTime());
+  }
+
+  async createPerformanceBaseline(baseline: InsertPerformanceBaseline): Promise<PerformanceBaseline> {
+    const id = randomUUID();
+    const performanceBaseline: PerformanceBaseline = {
+      ...baseline,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.performanceBaselines.set(id, performanceBaseline);
+    return performanceBaseline;
+  }
+
+  async updatePerformanceBaseline(id: string, updates: Partial<PerformanceBaseline>): Promise<void> {
+    const baseline = this.performanceBaselines.get(id);
+    if (baseline) {
+      const updated = { ...baseline, ...updates, updatedAt: new Date() };
+      this.performanceBaselines.set(id, updated);
+    }
+  }
+
+  async calculateBaseline(serviceName: string, metricName: string, dataPoints: number[]): Promise<PerformanceBaseline> {
+    if (dataPoints.length === 0) {
+      throw new Error('Cannot calculate baseline with no data points');
+    }
+    
+    const sum = dataPoints.reduce((a, b) => a + b, 0);
+    const mean = sum / dataPoints.length;
+    
+    // Calculate standard deviation
+    const variance = dataPoints.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / dataPoints.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    const min = Math.min(...dataPoints);
+    const max = Math.max(...dataPoints);
+    
+    // Calculate percentiles
+    const sortedData = [...dataPoints].sort((a, b) => a - b);
+    const p50 = sortedData[Math.floor(sortedData.length * 0.5)];
+    const p90 = sortedData[Math.floor(sortedData.length * 0.9)];
+    const p95 = sortedData[Math.floor(sortedData.length * 0.95)];
+    const p99 = sortedData[Math.floor(sortedData.length * 0.99)];
+    
+    return await this.createPerformanceBaseline({
+      serviceName,
+      metricName,
+      baselineValue: mean,
+      standardDeviation,
+      minimumValue: min,
+      maximumValue: max,
+      sampleSize: dataPoints.length,
+      confidenceInterval: 95,
+      statisticalSignificance: dataPoints.length >= 30 ? 0.95 : 0.8,
+      seasonalAdjustment: false,
+      trendDirection: 'stable',
+      dataQualityScore: 100,
+      outlierCount: 0,
+      calculationMethod: 'statistical',
+      lastCalculatedAt: new Date(),
+      percentileValues: {
+        p50,
+        p90,
+        p95,
+        p99
+      }
+    });
+  }
+
+  async detectAnomalies(serviceName: string, metricName: string, currentValue: number): Promise<{
+    isAnomaly: boolean;
+    severity: 'low' | 'medium' | 'high';
+    deviationScore: number;
+    baseline: number;
+  }> {
+    const baseline = await this.getPerformanceBaseline(serviceName, metricName);
+    
+    if (!baseline) {
+      return {
+        isAnomaly: false,
+        severity: 'low',
+        deviationScore: 0,
+        baseline: 0
+      };
+    }
+    
+    const deviationScore = Math.abs(currentValue - baseline.baselineValue) / baseline.standardDeviation;
+    const isAnomaly = deviationScore > 2; // 2 standard deviations
+    
+    let severity: 'low' | 'medium' | 'high' = 'low';
+    if (deviationScore > 4) {
+      severity = 'high';
+    } else if (deviationScore > 3) {
+      severity = 'medium';
+    }
+    
+    return {
+      isAnomaly,
+      severity,
+      deviationScore,
+      baseline: baseline.baselineValue
+    };
+  }
+  
   // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
   
   async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
@@ -3812,3 +4724,4 @@ export class MemStorage implements IStorage {
 }
 
 export const storage = new MemStorage();
+export { IStorage };
