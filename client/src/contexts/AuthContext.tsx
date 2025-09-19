@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useLocation } from "wouter";
 
 interface User {
@@ -19,8 +19,30 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Check if we're in development/preview mode
+const isDevelopment = import.meta.env.MODE === 'development' || 
+                      import.meta.env.DEV || 
+                      window.location.hostname === 'localhost';
+
+// Mock admin user for development/preview mode
+const MOCK_ADMIN_USER: User = {
+  id: "preview-admin-001",
+  username: "admin",
+  email: "admin@dha.gov.za",
+  role: "admin"
+};
+
+const MOCK_TOKEN = "preview-mode-token-12345";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
+    // Auto-authenticate in development mode
+    if (isDevelopment) {
+      localStorage.setItem("user", JSON.stringify(MOCK_ADMIN_USER));
+      localStorage.setItem("authToken", MOCK_TOKEN);
+      return MOCK_ADMIN_USER;
+    }
+    
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -35,6 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [token, setToken] = useState<string | null>(() => {
+    // Auto-authenticate in development mode
+    if (isDevelopment) {
+      return MOCK_TOKEN;
+    }
+    
     const storedToken = localStorage.getItem("authToken");
     if (storedToken) {
       return storedToken;
@@ -47,6 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [, setLocation] = useLocation();
+
+  // Log preview mode authentication
+  useEffect(() => {
+    if (isDevelopment && user) {
+      console.log("🚀 Preview Mode Active - Auto-authenticated as admin");
+      console.log("👤 User:", user);
+      console.log("✅ All features unlocked for testing");
+    }
+  }, []);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem("authToken", newToken);
