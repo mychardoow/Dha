@@ -7,14 +7,28 @@ import { pool } from "./db";
 
 const app = express();
 
-// Configure session store with PostgreSQL
-const pgStore = connectPgSimple(session);
-const sessionConfig = {
-  store: new pgStore({
+// Configure session store based on database availability
+let sessionStore: any;
+
+if (pool) {
+  // Database available - use PostgreSQL store
+  console.log('[Session] Using PostgreSQL session store');
+  const pgStore = connectPgSimple(session);
+  sessionStore = new pgStore({
     pool,
     tableName: 'user_sessions',
     createTableIfMissing: true,
-  }),
+  });
+} else {
+  // Database unavailable - use in-memory store
+  console.warn('[Session] Database unavailable - using in-memory session store');
+  console.warn('[Session] Sessions will be lost on server restart');
+  // MemoryStore is the default when no store is specified
+  sessionStore = undefined;
+}
+
+const sessionConfig = {
+  ...(sessionStore && { store: sessionStore }),
   secret: process.env.SESSION_SECRET || (() => {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('CRITICAL: SESSION_SECRET environment variable is required in production');
