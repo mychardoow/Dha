@@ -3,6 +3,38 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
+// Environment detection utility
+const isPreviewMode = (): boolean => Boolean(process.env.REPL_ID);
+
+// Simple shutdown manager for database cleanup
+class DatabaseShutdownManager {
+  private shutdownHandlers: Array<{ name: string; handler: () => Promise<void> }> = [];
+
+  addShutdownHandler(name: string, handler: () => Promise<void>): void {
+    this.shutdownHandlers.push({ name, handler });
+  }
+
+  async shutdown(): Promise<void> {
+    if (isPreviewMode()) {
+      console.log('[Database] Preview mode - skipping shutdown');
+      return;
+    }
+
+    console.log('[Database] Production mode - performing database shutdown');
+    for (const { name, handler } of this.shutdownHandlers) {
+      try {
+        console.log(`[Database] Running ${name}...`);
+        await handler();
+        console.log(`[Database] ✓ ${name} completed`);
+      } catch (error) {
+        console.error(`[Database] ✗ ${name} failed:`, error);
+      }
+    }
+  }
+}
+
+const dbShutdownManager = new DatabaseShutdownManager();
+
 neonConfig.webSocketConstructor = ws;
 
 // Check and validate DATABASE_URL
@@ -103,18 +135,51 @@ if (pool) {
 
 // Automatic connection health check (only if pool exists and is valid)
 if (pool && connectionString && isValidDatabaseUrl(connectionString)) {
-  setInterval(async () => {
+  const healthCheckInterval = setInterval(async () => {
     try {
-      const client = await pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+      // Add timeout to prevent hanging health checks
+      const healthCheckPromise = new Promise(async (resolve, reject) => {
+        try {
+          const client = await pool!.connect();
+          await client.query('SELECT 1');
+          client.release();
+          resolve(true);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      // Race between health check and timeout
+      await Promise.race([
+        healthCheckPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Health check timeout')), 5000)
+        )
+      ]);
+
       connectionHealthy = true;
       lastHealthCheck = Date.now();
+      // Reduce log noise in preview mode
+      if (process.env.NODE_ENV !== 'development' && !process.env.REPL_ID) {
+        console.log('[Database] Health check passed');
+      }
     } catch (error) {
-      console.error('[Database] Health check failed:', error);
+      // Don't spam error logs in preview mode - log less frequently
+      if (Date.now() - lastHealthCheck > 300000) { // Only log every 5 minutes
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn('[Database] Health check failed (non-critical in preview mode):', errorMessage);
+      }
       connectionHealthy = false;
+      
+      // In preview mode, don't let health check failures kill the server
+      if (isPreviewMode()) {
+        console.log('[Database] Continuing despite health check failure in preview mode...');
+      }
     }
-  }, 30000); // Check every 30 seconds
+  }, 60000); // Check every 60 seconds instead of 30 to reduce load
+
+  // Store interval reference to prevent garbage collection
+  (global as any).__DB_HEALTH_CHECK_INTERVAL = healthCheckInterval;
 }
 
 // Create drizzle instance only if pool exists
@@ -131,17 +196,39 @@ export const getConnectionStatus = () => ({
   error: databaseUrlError
 });
 
-// Graceful shutdown (only if pool exists)
+// Register database shutdown handlers
 if (pool) {
-  process.on('SIGINT', async () => {
+  dbShutdownManager.addShutdownHandler('database-pool', async () => {
     console.log('[Database] Closing connection pool...');
-    if (pool) await pool.end();
-    process.exit(0);
+    if (pool) {
+      await pool.end();
+      console.log('[Database] Pool closed successfully');
+    }
+  });
+  
+  // Also clean up health check interval on shutdown
+  const healthCheckInterval = (global as any).__DB_HEALTH_CHECK_INTERVAL;
+  if (healthCheckInterval) {
+    dbShutdownManager.addShutdownHandler('database-health-check', async () => {
+      clearInterval(healthCheckInterval);
+      console.log('[Database] Health check interval cleared');
+    });
+  }
+
+  // Setup signal handlers for database shutdown
+  process.on('SIGTERM', () => {
+    dbShutdownManager.shutdown().then(() => {
+      if (!isPreviewMode()) {
+        process.exit(0);
+      }
+    });
   });
 
-  process.on('SIGTERM', async () => {
-    console.log('[Database] Closing connection pool...');
-    if (pool) await pool.end();
-    process.exit(0);
+  process.on('SIGINT', () => {
+    dbShutdownManager.shutdown().then(() => {
+      if (!isPreviewMode()) {
+        process.exit(0);
+      }
+    });
   });
 }

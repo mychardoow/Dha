@@ -1,6 +1,107 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 
+// Environment detection utilities
+const isPreviewMode = (): boolean => Boolean(process.env.REPL_ID);
+
+// Coordinated shutdown management
+class ShutdownManager {
+  public isShuttingDown = false;
+  private shutdownHandlers: Array<{ name: string; handler: () => Promise<void> }> = [];
+
+  addShutdownHandler(name: string, handler: () => Promise<void>): void {
+    this.shutdownHandlers.push({ name, handler });
+  }
+
+  async shutdown(reason: string): Promise<void> {
+    if (this.isShuttingDown) {
+      console.log(`[Shutdown] Already shutting down, ignoring ${reason}`);
+      return;
+    }
+
+    this.isShuttingDown = true;
+    console.log(`[Shutdown] Initiated: ${reason}`);
+
+    // In preview mode, don't actually shut down - just log and return
+    if (isPreviewMode()) {
+      console.log('[Shutdown] Preview mode detected - maintaining server instead of shutting down');
+      return;
+    }
+
+    // Production mode - perform graceful shutdown
+    console.log('[Shutdown] Production mode - performing graceful shutdown');
+    
+    for (const { name, handler } of this.shutdownHandlers) {
+      try {
+        console.log(`[Shutdown] Running ${name}...`);
+        await handler();
+        console.log(`[Shutdown] ✓ ${name} completed`);
+      } catch (error) {
+        console.error(`[Shutdown] ✗ ${name} failed:`, error);
+      }
+    }
+
+    console.log('[Shutdown] All handlers completed - exiting');
+    process.exit(0);
+  }
+}
+
+const shutdownManager = new ShutdownManager();
+
+// Setup error handlers and signal handlers
+process.on('uncaughtException', (error: Error) => {
+  console.error('CRITICAL: Uncaught Exception:', error);
+  console.error('Stack:', error.stack);
+  
+  if (isPreviewMode() || process.env.NODE_ENV === 'development') {
+    console.log('[Error] Continuing despite uncaught exception in preview/dev mode...');
+  } else {
+    console.log('[Error] Exiting due to uncaught exception in production...');
+    shutdownManager.shutdown('uncaught exception').catch(() => {
+      process.exit(1);
+    });
+  }
+});
+
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  console.error('CRITICAL: Unhandled Promise Rejection at:', promise);
+  console.error('Reason:', reason);
+  
+  if (isPreviewMode() || process.env.NODE_ENV === 'development') {
+    console.log('[Error] Continuing despite unhandled rejection in preview/dev mode...');
+  } else {
+    console.log('[Error] Exiting due to unhandled rejection in production...');
+    shutdownManager.shutdown('unhandled rejection').catch(() => {
+      process.exit(1);
+    });
+  }
+});
+
+// Setup signal handlers
+process.on('SIGTERM', () => {
+  shutdownManager.shutdown('SIGTERM received');
+});
+
+process.on('SIGINT', () => {
+  shutdownManager.shutdown('SIGINT received');
+});
+
+// Setup keepalive only in preview mode
+let keepaliveInterval: NodeJS.Timeout | null = null;
+if (isPreviewMode()) {
+  console.log('[Keepalive] Setting up preview mode keepalive...');
+  keepaliveInterval = setInterval(() => {
+    // Silent heartbeat to keep process alive in preview mode
+  }, 30000);
+  
+  shutdownManager.addShutdownHandler('keepalive-cleanup', async () => {
+    if (keepaliveInterval) {
+      clearInterval(keepaliveInterval);
+      console.log('[Keepalive] Cleared keepalive interval');
+    }
+  });
+}
+
 // Defer heavy imports to allow server to start even if they fail
 let registerRoutes: any;
 let setupVite: any;
@@ -88,7 +189,8 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Server initialization function - converted from async IIFE to prevent exit
+async function initializeServer() {
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  DHA Digital Services Platform - Starting Server');
   console.log('═══════════════════════════════════════════════════════════════');
@@ -275,7 +377,8 @@ app.use((req, res, next) => {
   // Use the httpServer from routes (which has WebSocket and monitoring) if available, otherwise fallback to app
   const listener = (server as any)?.listen ? server : app;
   
-  listener.listen(port, '0.0.0.0', () => {
+  // Start the server and keep it running
+  const serverInstance = listener.listen(port, '0.0.0.0', () => {
     const logFn = typeof log === 'function' ? log : console.log;
     logFn(`
 ═══════════════════════════════════════════════════════════════
@@ -285,5 +388,59 @@ app.use((req, res, next) => {
   🔗 Preview: Available in Replit preview
 ═══════════════════════════════════════════════════════════════
     `);
+    
+    // Log mode detection
+    if (isPreviewMode()) {
+      console.log('[Server] Preview mode detected - server will remain active');
+    } else {
+      console.log('[Server] Production mode - server will honor shutdown signals');
+    }
   });
-})();
+
+  // Keep reference to server instance to prevent garbage collection
+  (global as any).__DHA_SERVER_INSTANCE = serverInstance;
+  
+  return serverInstance;
+}
+
+// Initialize the server with proper error handling
+initializeServer().catch((error) => {
+  console.error('FATAL: Server initialization failed:', error);
+  console.error('Stack:', error.stack);
+  
+  // In preview mode, try to continue with basic server
+  if (isPreviewMode()) {
+    console.log('[Server] Attempting to start basic fallback server...');
+    
+    // Create a basic fallback server
+    const fallbackApp = express();
+    fallbackApp.use(express.json());
+    
+    fallbackApp.get('/api/health/basic', (req, res) => {
+      res.json({
+        status: 'fallback',
+        message: 'Basic server running after initialization failure',
+        timestamp: new Date().toISOString(),
+        error: 'Main server initialization failed'
+      });
+    });
+    
+    fallbackApp.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) {
+        res.status(503).json({ 
+          error: 'Service temporarily unavailable - server initialization failed',
+          fallback: true
+        });
+      } else {
+        res.send('<h1>DHA Digital Services Platform</h1><p>Server starting in fallback mode...</p>');
+      }
+    });
+    
+    const port = Number(process.env.PORT || 5000);
+    fallbackApp.listen(port, '0.0.0.0', () => {
+      console.log(`[Server] Fallback server running on port ${port}`);
+    });
+  } else {
+    process.exit(1);
+  }
+});
