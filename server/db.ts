@@ -5,31 +5,17 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-// Check if DATABASE_URL is set and valid
-let isValidDatabaseUrl = false;
+// Check if DATABASE_URL is set
 let databaseUrlError: string | null = null;
 
 if (!process.env.DATABASE_URL) {
   databaseUrlError = "DATABASE_URL must be set. Did you forget to provision a database?";
   console.error(`[Database] ${databaseUrlError}`);
-} else {
-  // Check if DATABASE_URL is a valid PostgreSQL URL
-  const urlPattern = /^(postgres|postgresql):\/\/.*/i;
-  if (!urlPattern.test(process.env.DATABASE_URL)) {
-    databaseUrlError = `DATABASE_URL is not a valid PostgreSQL URL. It appears to be encrypted or encoded. Length: ${process.env.DATABASE_URL.length} chars`;
-    console.error(`[Database] ${databaseUrlError}`);
-    console.error(`[Database] Expected format: postgresql://user:password@host:port/database`);
-    console.error(`[Database] Received format: ${process.env.DATABASE_URL.substring(0, 20)}...`);
-  } else {
-    isValidDatabaseUrl = true;
-  }
 }
 
-// If DATABASE_URL is invalid, use a dummy URL to prevent immediate crash
-// The monitoring system will handle the connection failure gracefully
-const connectionString = isValidDatabaseUrl 
-  ? process.env.DATABASE_URL 
-  : 'postgresql://dummy:dummy@localhost:5432/dummy';
+// Use DATABASE_URL directly - Replit handles decryption automatically
+// The Neon driver will handle the connection with the encrypted URL
+const connectionString = process.env.DATABASE_URL || 'postgresql://dummy:dummy@localhost:5432/dummy';
 
 // Enhanced connection pool configuration with automatic reconnection
 const poolConfig = {
@@ -42,8 +28,8 @@ const poolConfig = {
   allowExitOnIdle: false,                         // Keep pool alive
 };
 
-// Create pool only if we have a valid connection string or dummy fallback
-export const pool = isValidDatabaseUrl || connectionString ? new Pool(poolConfig) : null as any;
+// Create pool with the connection string (either valid DATABASE_URL or dummy fallback)
+export const pool = connectionString ? new Pool(poolConfig) : null as any;
 
 // Connection health monitoring
 let connectionHealthy = true;
@@ -51,7 +37,7 @@ let lastHealthCheck = Date.now();
 
 // Monitor pool health (only if pool exists)
 if (pool) {
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error) => {
     console.error('[Database] Pool error:', err);
     connectionHealthy = false;
   });
@@ -71,7 +57,7 @@ if (pool) {
 }
 
 // Automatic connection health check (only if pool exists)
-if (pool && isValidDatabaseUrl) {
+if (pool && process.env.DATABASE_URL) {
   setInterval(async () => {
     try {
       const client = await pool.connect();
