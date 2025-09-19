@@ -34,6 +34,7 @@ import {
   insertDhaApplicantSchema,
   updateUserSchema,
   documentVerificationSchema,
+  adminDocumentVerificationSchema,
   productionBackupSchema,
   documentTemplateSchema,
   dhaApplicationCreationSchema,
@@ -60,7 +61,6 @@ import {
   alertRuleCreationSchema,
   alertRuleUpdateSchema,
   // Verification validation schemas
-  documentVerificationSchema,
   publicVerificationSchema,
   documentLookupSchema,
   apiVerificationRequestSchema,
@@ -1571,7 +1571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/documents/:id/verify", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const validatedData = documentVerificationSchema.parse(req.body);
+      const validatedData = adminDocumentVerificationSchema.parse(req.body);
       const { isApproved, notes } = validatedData;
       
       // Check if document exists
@@ -1848,9 +1848,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Apply PII scrubbing to history before sending response
       const sanitizedHistory = history.map(entry => ({
         ...entry,
-        verifierIpAddress: privacyProtectionService.anonymizeIP(entry.verifierIpAddress),
-        verifierUserAgent: privacyProtectionService.anonymizeSecurityEvent({ userAgent: entry.verifierUserAgent }).userAgent,
-        location: typeof entry.location === 'object' ? JSON.stringify(entry.location) : (entry.location || 'Unknown')
+        verifierIpAddress: 'anonymized',
+        verifierUserAgent: 'anonymized', 
+        location: 'Unknown'
       }));
       
       res.json(sanitizedHistory);
@@ -1870,8 +1870,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const history = await storage.createDocumentVerificationHistory({
         verificationRecordId: documentId,
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent") || ""
+        verificationMethod: 'manual',
+        isSuccessful: true,
+        ipAddress: req.ip || null,
+        userAgent: req.get('User-Agent') || null
       });
       
       res.json({ message: "History entry created", history });
@@ -2577,7 +2579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { verificationCode, documentType } = validationResult.data;
+      const { verificationCode } = validationResult.data;
+      const documentType = req.body.documentType;
 
       if (!verificationCode || !documentType) {
         return res.status(400).json({ error: "Verification code and document type required" });
@@ -4686,10 +4689,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await verificationService.verifyDocument({
-        code: code.toUpperCase(),
+        verificationCode: code.toUpperCase(),
+        verificationMethod: 'manual_entry',
         ipAddress: req.ip,
         userAgent: req.get('User-Agent'),
-        location: req.get('CF-IPCountry') || 'Unknown'
+        location: { country: req.get('CF-IPCountry') || 'Unknown' }
       });
       
       res.json(result);
@@ -4744,10 +4748,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const result = await verificationService.verifyDocument({
-        code: code.toUpperCase(),
+        verificationMethod: 'qr_scan',
+        qrData: code.toUpperCase(),
         ipAddress: req.ip,
         userAgent: req.get('User-Agent') || deviceInfo?.userAgent,
-        location: location || req.get('CF-IPCountry') || 'Unknown'
+        location: location ? { country: location } : { country: req.get('CF-IPCountry') || 'Unknown' }
       });
       
       // Log the scan attempt
@@ -5392,18 +5397,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const data = birthCertSchema.parse(req.body);
-      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(data);
+      const birthCertData = {
+        fullName: data.childDetails.fullName,
+        dateOfBirth: data.childDetails.dateOfBirth,
+        placeOfBirth: data.childDetails.placeOfBirth,
+        gender: data.childDetails.gender,
+        nationality: data.childDetails.nationality,
+        mother: {
+          fullName: data.parentDetails.mother.fullName,
+          idNumber: data.parentDetails.mother.idNumber || '',
+          nationality: data.parentDetails.mother.nationality
+        },
+        father: data.parentDetails.father ? {
+          fullName: data.parentDetails.father.fullName,
+          idNumber: data.parentDetails.father.idNumber || '',
+          nationality: data.parentDetails.father.nationality
+        } : {
+          fullName: 'Not provided',
+          nationality: 'Unknown'
+        },
+        registrationNumber: data.registrationNumber,
+        dateOfRegistration: data.registrationDetails.dateOfRegistration,
+        registrationOffice: data.registrationDetails.registrationOffice
+      };
+      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(birthCertData);
       
       // Log PDF generation
-      await auditTrailService.log({
-        userId: (req.user as any).id,
-        action: 'GENERATE_PDF',
-        resourceType: 'BIRTH_CERTIFICATE',
-        resourceId: data.registrationNumber,
-        details: { documentType: 'birth_certificate' },
-        ipAddress: req.ip || '',
-        userAgent: req.get('User-Agent') || ''
-      });
+      await auditTrailService.logUserAction(
+        'GENERATE_PDF',
+        'success',
+        {
+          userId: (req.user as any).id,
+          entityType: 'BIRTH_CERTIFICATE',
+          entityId: data.registrationNumber,
+          actionDetails: { documentType: 'birth_certificate' },
+          ipAddress: req.ip || '',
+          userAgent: req.get('User-Agent') || ''
+        }
+      );
       
       generatePDFResponse(res, pdfBuffer, 'birth-certificate.pdf', 'birth_certificate');
     } catch (error) {
@@ -5546,14 +5577,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/pdf/verify/:verificationCode", verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'pdf_verify'), asyncHandler(async (req: Request, res: Response) => {
     try {
       const { verificationCode } = req.params;
-      const verification = await verificationService.verifyDocument(verificationCode);
+      const verification = await verificationService.verifyDocument({ verificationCode: verificationCode, verificationMethod: 'manual_entry', ipAddress: req.ip, userAgent: req.get('User-Agent') });
       
       if (verification && verification.isValid) {
         res.json({
           valid: true,
           documentType: verification.documentType,
           documentNumber: verification.documentNumber,
-          issueDate: verification.issueDate,
+          issuedDate: verification.issuedDate,
           verificationDate: new Date().toISOString(),
           securityFeatures: verification.securityFeatures
         });
@@ -5651,14 +5682,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        const verificationResult = await verificationService.verifyByCode(code);
+        const verificationResult = await verificationService.verifyDocument({ verificationMethod: 'qr_scan', qrData: code, ipAddress: req.ip, userAgent: req.get('User-Agent') });
         
         res.json({
           success: true,
-          verified: verificationResult.valid,
+          verified: verificationResult.isValid,
           documentType: verificationResult.documentType,
-          issueDate: verificationResult.issueDate,
-          status: verificationResult.status,
+          issuedDate: verificationResult.issuedDate,
           verificationMethod: 'qr_code',
           timestamp: new Date().toISOString()
         });
