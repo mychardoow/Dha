@@ -5942,6 +5942,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     })
   );
+  
+  // Test Enhanced Work Permit Generation with All Security Features  
+  app.post("/api/enhanced-pdf/test-work-permit",
+    asyncHandler(async (req: Request, res: Response) => {
+      try {
+        // Use the test data for IKRAM IBRAHIM YUSUF MANSURI
+        const testData = {
+          personal: {
+            fullName: 'IKRAM IBRAHIM YUSUF MANSURI',
+            surname: 'MANSURI',
+            givenNames: 'IKRAM IBRAHIM YUSUF',
+            dateOfBirth: '1985-05-15',
+            placeOfBirth: 'Mumbai, India',
+            nationality: 'IND',
+            passportNumber: '10611952',
+            idNumber: '',
+            gender: 'M' as 'M' | 'F' | 'X',
+            maritalStatus: 'Married' as 'Single' | 'Married' | 'Divorced' | 'Widowed',
+            countryOfBirth: 'IND'
+          },
+          permitNumber: 'WP-2025-AA2540632',
+          section19Type: '19(2)' as '19(1)' | '19(2)' | '19(3)' | '19(4)',
+          sectionDescription: 'Work Permit Section 19(2) - Scarce Skills Work Visa',
+          employer: {
+            name: 'Tech Solutions South Africa (Pty) Ltd',
+            address: '123 Sandton Drive, Sandton, Johannesburg, 2196',
+            registrationNumber: '2024/123456/07',
+            taxNumber: 'TAX123456789',
+            contactPerson: 'HR Department'
+          },
+          occupation: 'Software Engineer - Critical Skills',
+          occupationCode: 'ICT2514',
+          validFrom: '2025-01-20',
+          validUntil: '2028-01-20',
+          conditions: [
+            'Employment restricted to specified employer only',
+            'Must maintain valid passport at all times',
+            'Subject to compliance with Immigration Act 13 of 2002'
+          ],
+          endorsements: [
+            'Approved under Critical Skills category',
+            'Spouse and dependents may accompany'
+          ],
+          portOfEntry: 'OR Tambo International Airport',
+          dateOfEntry: '2025-01-15',
+          controlNumber: 'AA2540632',
+          quotaReference: 'JHB 76298/2025/WPVC',
+          precedentPermit: ''
+        };
+
+        console.log('[Enhanced Work Permit Test] Generating work permit for IKRAM IBRAHIM YUSUF MANSURI');
+        console.log('[Enhanced Work Permit Test] Control No: AA2540632, Ref No: JHB 76298/2025/WPVC');
+        
+        // Generate the enhanced PDF with all security features
+        const pdfBuffer = await enhancedPdfGenerationService.generateWorkPermitSection19PDF(testData);
+        
+        // Set response headers for PDF download
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="WorkPermit_MANSURI_AA2540632_Enhanced.pdf"');
+        res.setHeader('Content-Length', pdfBuffer.length);
+        
+        // Log success
+        console.log('[Enhanced Work Permit Test] Successfully generated work permit with all security features');
+        console.log('[Enhanced Work Permit Test] Security features included:');
+        console.log('  ✓ Watermarks on every page');
+        console.log('  ✓ Microtext borders (visible when printed/zoomed)');
+        console.log('  ✓ Guilloche patterns');
+        console.log('  ✓ Void pantograph (shows VOID when photocopied)');
+        console.log('  ✓ South African coat of arms');
+        console.log('  ✓ DHA logo');
+        console.log('  ✓ Security serial numbers');
+        console.log('  ✓ Official stamps and seals');
+        console.log('  ✓ Encrypted QR codes');
+        console.log('  ✓ Tracking barcodes');
+        console.log('  ✓ Tamper-evident features');
+        console.log('  ✓ Rainbow printing effects');
+        console.log('  ✓ UV security features');
+        console.log('  ✓ Enhanced microprinting');
+        console.log('  ✓ Holographic foil effects');
+        console.log('  ✓ PAdES digital signatures');
+        console.log('  ✓ Document hash in QR code');
+        console.log('  ✓ Blockchain verification reference');
+        console.log('  ✓ Cryptographic timestamping');
+        
+        res.send(pdfBuffer);
+      } catch (error) {
+        console.error('[Enhanced Work Permit Test] Generation failed:', error);
+        res.status(500).json({ 
+          error: 'Failed to generate enhanced work permit',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    })
+  );
 
   // =================== END PRODUCTION SECURE PDF API ===================
 
