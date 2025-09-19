@@ -729,14 +729,14 @@ export class MonitoringOrchestrator extends EventEmitter {
     try {
       // Storage is already imported at the top of the file
       
-      if (typeof storage.getSystemHealthStatus === 'function') {
-        const healthStatus = storage.getSystemHealthStatus();
+      if (typeof storage.getSystemHealthSnapshots === 'function') {
+        const healthSnapshots = await storage.getSystemHealthSnapshots();
         
-        if (healthStatus.degradedMode) {
-          const missingCount = healthStatus.missingMethods.length;
+        // Check if we have recent health snapshots
+        if (Array.isArray(healthSnapshots) && healthSnapshots.length === 0) {
           return { 
-            passed: missingCount === 0, 
-            reason: missingCount > 0 ? `${missingCount} monitoring methods missing` : undefined 
+            passed: true, 
+            reason: 'No health snapshots yet - system starting up' 
           };
         }
       }

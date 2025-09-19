@@ -5,10 +5,10 @@ import { selfHealingService } from './self-healing-service';
 import { enhancedErrorDetectionService } from './enhanced-error-detection';
 import { proactiveMaintenanceService } from './proactive-maintenance-service';
 import { intelligentAlertingService } from './intelligent-alerting-service';
-import { storage } from '../enhanced-storage';
+import { storage } from '../storage';
 
 export interface MonitoringWebSocketMessage {
-  type: 'subscribe' | 'unsubscribe' | 'health_update' | 'alert' | 'autonomous_action' | 'incident' | 'maintenance' | 'error' | 'status';
+  type: 'subscribe' | 'unsubscribe' | 'health_update' | 'alert' | 'autonomous_action' | 'incident' | 'maintenance' | 'error' | 'status' | 'analysis_update' | 'test';
   data?: any;
   timestamp?: string;
   channels?: string[];
@@ -151,11 +151,6 @@ export class WebSocketMonitoringService {
       data: { connected: true, clientId, timestamp: new Date() }
     });
 
-    socket.on('pong', () => {
-      client.isAlive = true;
-      client.lastPing = new Date();
-    });
-
     // Send welcome message
     this.sendToClient(client, {
       type: 'status',
@@ -174,9 +169,9 @@ export class WebSocketMonitoringService {
   /**
    * Handle client message
    */
-  private async handleClientMessage(client: WebSocketClient, data: Buffer): Promise<void> {
+  private async handleClientMessage(client: WebSocketClient, data: any): Promise<void> {
     try {
-      const message: MonitoringWebSocketMessage = JSON.parse(data.toString());
+      const message: MonitoringWebSocketMessage = JSON.parse(Buffer.isBuffer(data) ? data.toString() : data.toString());
 
       switch (message.type) {
         case 'subscribe':
@@ -242,13 +237,6 @@ export class WebSocketMonitoringService {
     });
   }
 
-  /**
-   * Handle client disconnect
-   */
-  private handleClientDisconnect(client: WebSocketClient, code: number, reason: Buffer): void {
-    this.clients.delete(client.id);
-    console.log(`[WebSocketMonitoring] Client disconnected: ${client.id} (code: ${code}, reason: ${reason.toString()}) (${this.clients.size} remaining)`);
-  }
 
   /**
    * Setup service event listeners
@@ -435,7 +423,7 @@ export class WebSocketMonitoringService {
    */
   private startHeartbeat(): void {
     this.heartbeatInterval = setInterval(() => {
-      for (const [clientId, client] of this.clients) {
+      for (const [clientId, client] of Array.from(this.clients)) {
         if (!client.isAlive) {
           console.log(`[WebSocketMonitoring] Terminating unresponsive client: ${clientId}`);
           client.socket.terminate();
@@ -567,7 +555,7 @@ export class WebSocketMonitoringService {
       return notifications.map(notification => ({
         id: notification.id,
         title: notification.title,
-        description: notification.description,
+        description: notification.title || '',
         severity: notification.priority,
         category: notification.category,
         timestamp: notification.createdAt.toISOString(),
@@ -586,7 +574,7 @@ export class WebSocketMonitoringService {
   private broadcast(channel: string, message: MonitoringWebSocketMessage): void {
     let sentCount = 0;
 
-    for (const client of this.clients.values()) {
+    for (const client of Array.from(this.clients.values())) {
       if (client.subscriptions.has(channel) && client.socket.readyState === WebSocket.OPEN) {
         this.sendToClient(client, message);
         sentCount++;
@@ -613,7 +601,7 @@ export class WebSocketMonitoringService {
       }
     } catch (error) {
       console.error(`[WebSocketMonitoring] Error sending message to client ${client.id}:`, error);
-      this.handleClientDisconnect(client, 1011, Buffer.from('Send error'));
+      this.handleClientDisconnect(client.id, 1011, Buffer.from('Send error'));
     }
   }
 
@@ -650,7 +638,7 @@ export class WebSocketMonitoringService {
     }
 
     // Close all client connections
-    for (const client of this.clients.values()) {
+    for (const client of Array.from(this.clients.values())) {
       client.socket.close(1001, 'Server shutting down');
     }
     this.clients.clear();

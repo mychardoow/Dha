@@ -238,7 +238,8 @@ export class MilitaryGradeAIAssistant {
   async processCommand(request: MilitaryAIRequest): Promise<MilitaryAIResponse> {
     // Check if bot mode is specified and route accordingly
     if (request.botMode) {
-      return await this.processBotModeCommand(request);
+      // For now, continue with standard processing until bot mode is fully implemented
+      console.log(`[Military AI] Bot mode ${request.botMode} requested - processing as standard command`);
     }
     
     // Continue with standard military processing
@@ -248,7 +249,7 @@ export class MilitaryGradeAIAssistant {
       // Step 1: Security clearance validation
       const clearanceValidation = await this.validateClearance(request);
       if (!clearanceValidation.valid) {
-        return this.createSecurityDeniedResponse(request, clearanceValidation.reason);
+        return this.createSecurityDeniedResponse(request, clearanceValidation.reason || 'Security clearance validation failed');
       }
 
       // Step 2: Content policy enforcement
@@ -260,7 +261,7 @@ export class MilitaryGradeAIAssistant {
       // Step 3: Command authorization
       const commandAuth = await this.authorizeCommand(request);
       if (!commandAuth.authorized) {
-        return this.createCommandDeniedResponse(request, commandAuth.reason);
+        return this.createCommandDeniedResponse(request, commandAuth.reason || 'Command authorization denied');
       }
 
       // Step 4: Create audit entry
@@ -276,7 +277,18 @@ export class MilitaryGradeAIAssistant {
       await this.logSecurityEvent(request, filteredResponse, auditEntry);
 
       return {
-        ...filteredResponse,
+        success: filteredResponse.success ?? true,
+        content: filteredResponse.content,
+        classificationLevel: filteredResponse.classificationLevel || ClassificationLevel.UNCLASSIFIED,
+        error: filteredResponse.error,
+        securityWarnings: filteredResponse.securityWarnings,
+        restrictions: filteredResponse.restrictions,
+        metadata: filteredResponse.metadata,
+        botMode: filteredResponse.botMode,
+        executionResult: filteredResponse.executionResult,
+        actionsTaken: filteredResponse.actionsTaken,
+        suggestions: filteredResponse.suggestions,
+        systemStatus: filteredResponse.systemStatus,
         auditEntry,
         clearanceValidated: true,
         commandAuthorized: true
@@ -950,6 +962,4 @@ For classified operations, contact your commanding officer.`;
 }
 
 // Export singleton instance
-}
-
 export const militaryGradeAIAssistant = new MilitaryGradeAIAssistant();
