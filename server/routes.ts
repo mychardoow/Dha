@@ -396,6 +396,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mock Login Endpoint for Preview Mode
+  app.post("/api/auth/mock-login", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { username, password } = req.body;
+
+      // Check for mock admin credentials
+      if (username === "admin" && password === "admin123") {
+        // Create mock admin user
+        const mockAdminUser = {
+          id: "mock-admin-001",
+          username: "admin",
+          email: "admin@dha.gov.za",
+          role: "admin"
+        };
+
+        // Generate token with admin privileges
+        const token = generateToken(mockAdminUser);
+
+        // Log successful mock login
+        await storage.createSecurityEvent({
+          userId: mockAdminUser.id,
+          eventType: "mock_login_successful",
+          severity: "low",
+          details: { 
+            email: mockAdminUser.email,
+            mockMode: true
+          },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || ""
+        });
+
+        res.json({
+          message: "Mock login successful",
+          token,
+          user: mockAdminUser,
+          mockMode: true
+        });
+      } else {
+        // Log failed mock login
+        await storage.createSecurityEvent({
+          eventType: "mock_login_failed",
+          severity: "medium",
+          details: { username },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || ""
+        });
+        
+        return res.status(401).json({ error: "Invalid mock credentials" });
+      }
+    } catch (error) {
+      console.error("Mock login error:", error);
+      res.status(500).json({ error: "Mock login failed" });
+    }
+  }));
+
   // Registration
   app.post("/api/auth/register", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {

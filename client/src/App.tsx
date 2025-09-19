@@ -4,6 +4,9 @@ import { Suspense, lazy, useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
+import AuthGuard from "@/components/AuthGuard";
+import Login from "@/pages/Login";
 import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
 import DocumentServices from "./pages/DocumentServices";
@@ -46,75 +49,131 @@ function App() {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <div className="min-h-screen bg-background">
+      <AuthProvider>
+        <ErrorBoundary>
+          <div className="min-h-screen bg-background">
           <Switch>
-            <Route path="/" component={DocumentGenerationPage} />
-            <Route path="/ai-assistant" component={AIAssistantPage} />
-            <Route path="/documents" component={DocumentGenerationPage} />
-            <Route path="/document-services" component={DocumentServices} />
-            <Route path="/document-generation" component={DocumentGenerationPage} />
-            <Route path="/pdf-test" component={PDFTestPage} />
-            <Route path="/verify" component={DocumentVerificationPage} />
-            <Route path="/verify/:code" component={DocumentVerificationPage} />
-            <Route path="/debug" component={DebugDashboard} />
+            <Route path="/login" component={Login} />
+            
+            {/* Protected Routes */}
+            <Route path="/">
+              <AuthGuard>
+                <DocumentGenerationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/ai-assistant">
+              <AuthGuard>
+                <AIAssistantPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/documents">
+              <AuthGuard>
+                <DocumentGenerationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/document-services">
+              <AuthGuard>
+                <DocumentServices />
+              </AuthGuard>
+            </Route>
+            <Route path="/document-generation">
+              <AuthGuard>
+                <DocumentGenerationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/pdf-test">
+              <AuthGuard>
+                <PDFTestPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/verify">
+              <AuthGuard>
+                <DocumentVerificationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/verify/:code">
+              <AuthGuard>
+                <DocumentVerificationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/debug">
+              <AuthGuard>
+                <DebugDashboard />
+              </AuthGuard>
+            </Route>
             
             {/* Admin Routes - Protected with code splitting */}
             <Route path="/admin/dashboard">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <AdminDashboard />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <AdminDashboard />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/users">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <UserManagement />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <UserManagement />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/documents">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <DocumentManagement />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <DocumentManagement />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/security">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <SecurityCenter />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <SecurityCenter />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/system">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <SystemMonitoring />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <SystemMonitoring />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/ai-analytics">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <AIAnalytics />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <AIAnalytics />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/government-operations">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <GovernmentOperations />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <GovernmentOperations />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             <Route path="/admin/monitoring">
-              <AdminGuard>
-                <Suspense fallback={<AdminLoadingFallback />}>
-                  <MonitoringDashboard />
-                </Suspense>
-              </AdminGuard>
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <MonitoringDashboard />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
             </Route>
             
             <Route component={NotFoundPage} />
@@ -141,7 +200,8 @@ function App() {
         )}
         
         <Toaster />
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
