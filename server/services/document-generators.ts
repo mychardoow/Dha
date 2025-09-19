@@ -34,7 +34,9 @@ import type {
   RetiredPersonVisaData,
   ExchangeVisaData,
   RelativesVisaData,
-  PermanentResidencePermitData
+  PermanentResidencePermitData,
+  CertificateOfExemptionData,
+  CertificateOfSouthAfricanCitizenshipData
 } from "@shared/schema";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
@@ -2430,7 +2432,380 @@ export class PermanentResidencePermitGenerator extends BaseDocumentTemplate {
   }
 }
 
-// Export all generators - ALL 21 DHA DOCUMENT TYPES COMPLETE
+/**
+ * Certificate of Exemption Generator (Section 6(2) of Act No.88 of 1995)
+ */
+export class CertificateOfExemptionGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: CertificateOfExemptionData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 40,
+          info: {
+            Title: 'Certificate of Exemption - Section 6(2) of Act No.88 of 1995',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Official Certificate of Exemption',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add SA Coat of Arms and headers
+        this.addGovernmentHeader(doc, "CERTIFICATE OF EXEMPTION", "DHA-EXEMP");
+
+        let yPos = 140;
+
+        // District Office details (exact design match)
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.districtOffice.name.toUpperCase(), 50, yPos);
+        yPos += 15;
+        
+        doc.fontSize(9)
+           .text(data.districtOffice.address, 50, yPos);
+        yPos += 15;
+        
+        doc.fontSize(9)
+           .text(`${data.districtOffice.postalCode}`, 50, yPos);
+        yPos += 30;
+
+        // Reference Number and File fields
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Reference Number: ${data.referenceNumber}`, 50, yPos);
+        
+        doc.fontSize(10)
+           .text(`File: ${data.fileNumber}`, 350, yPos);
+        yPos += 40;
+
+        // Main title (exact match)
+        doc.fontSize(14)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("CERTIFICATE OF EXEMPTION IN TERMS OF", 50, yPos, { align: 'center', width: 495 });
+        yPos += 18;
+        
+        doc.fontSize(14)
+           .text("SECTION 6(2) OF ACT NO.88 OF 1995", 50, yPos, { align: 'center', width: 495 });
+        yPos += 40;
+
+        // Exemption text section
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.exemptionDetails.exemptionText, 50, yPos, { width: 495, align: 'justify' });
+        yPos += 80;
+
+        // Validity period if provided
+        if (data.exemptionDetails.validityPeriod) {
+          doc.fontSize(10)
+             .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+             .text(`Validity Period: ${data.exemptionDetails.validityPeriod}`, 50, yPos);
+          yPos += 25;
+        }
+
+        // Conditions if provided
+        if (data.exemptionDetails.conditions && data.exemptionDetails.conditions.length > 0) {
+          doc.fontSize(10)
+             .font(SA_GOVERNMENT_DESIGN.fonts.header)
+             .text("CONDITIONS:", 50, yPos);
+          yPos += 15;
+          
+          for (const condition of data.exemptionDetails.conditions) {
+            doc.fontSize(9)
+               .font(SA_GOVERNMENT_DESIGN.fonts.body)
+               .text(`• ${condition}`, 60, yPos);
+            yPos += 15;
+          }
+          yPos += 10;
+        }
+
+        // PARTICULARS OF EXEMPTED PERSON section
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("PARTICULARS OF EXEMPTED PERSON", 50, yPos);
+        yPos += 25;
+
+        // Draw box for particulars
+        doc.save();
+        doc.rect(50, yPos, 495, 120)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .lineWidth(1)
+           .stroke();
+        doc.restore();
+        
+        yPos += 15;
+
+        // Personal details fields
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Full Name: ${data.exemptedPerson.fullName}`, 60, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Date of Birth: ${this.formatSADate(data.exemptedPerson.dateOfBirth)}`, 60, yPos);
+        yPos += 20;
+
+        if (data.exemptedPerson.identityNumber) {
+          doc.fontSize(10)
+             .text(`Identity Number: ${data.exemptedPerson.identityNumber}`, 60, yPos);
+          yPos += 20;
+        }
+
+        doc.fontSize(10)
+           .text(`Nationality: ${data.exemptedPerson.nationality}`, 60, yPos);
+        yPos += 40;
+
+        // Director-General signature section
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Date: ${this.formatSADate(data.issuingDate)}`, 50, yPos);
+        
+        doc.fontSize(10)
+           .text("____________________", 350, yPos);
+        yPos += 15;
+        
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .text(data.directorGeneral.name, 350, yPos);
+        yPos += 15;
+        
+        doc.fontSize(9)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .text("Director-General: Home Affairs", 350, yPos);
+
+        // Add security features
+        yPos = 720;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "certificate_of_exemption" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 50, yPos, { width: 60, height: 60 });
+        }
+
+        this.addMicrotext(doc, 130, yPos + 20);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Certificate of South African Citizenship Generator (Section 10, SA Citizenship Act 1995)
+ */
+export class CertificateOfSouthAfricanCitizenshipGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: CertificateOfSouthAfricanCitizenshipData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 40,
+          info: {
+            Title: 'Certificate of South African Citizenship',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Official Certificate of South African Citizenship',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        let yPos = 80;
+
+        // SA Coat of Arms at top center (exact design match)
+        doc.save();
+        doc.rect(272, yPos, 60, 60)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .lineWidth(2)
+           .stroke();
+        doc.fontSize(8)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("COAT OF\nARMS", 287, yPos + 25, { width: 30, align: "center" });
+        doc.restore();
+        
+        yPos += 80;
+
+        // "Republic of South Africa" in elegant script
+        doc.fontSize(18)
+           .font('Times-Italic')
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("Republic of South Africa", 50, yPos, { align: 'center', width: 495 });
+        yPos += 30;
+
+        // "Department of Home Affairs" subtitle
+        doc.fontSize(14)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .text("Department of Home Affairs", 50, yPos, { align: 'center', width: 495 });
+        yPos += 40;
+
+        // Main title
+        doc.fontSize(16)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("Certificate of South African Citizenship", 50, yPos, { align: 'center', width: 495 });
+        yPos += 25;
+
+        // Subtitle with legal reference
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("(Section 10, South African Citizenship Act 1995)", 50, yPos, { align: 'center', width: 495 });
+        yPos += 40;
+
+        // Certificate number and reference
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Certificate No: ${data.certificateNumber}`, 50, yPos);
+        
+        doc.fontSize(10)
+           .text(`Reference: ${data.referenceNumber}`, 350, yPos);
+        yPos += 30;
+
+        // Formal certificate text (exact design match)
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.certificateText.purposeStatement, 50, yPos, { width: 495, align: 'justify' });
+        yPos += 40;
+
+        // Legal certification text
+        const certificationText = `It is hereby certified that ${data.holder.fullName} concerning whose particulars are set out below, is a South African citizen by ${data.certificateText.citizenshipType}.`;
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .text(certificationText, 50, yPos, { width: 495, align: 'justify' });
+        yPos += 50;
+
+        // PARTICULARS RELATING TO HOLDER section
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("PARTICULARS RELATING TO HOLDER", 50, yPos);
+        yPos += 25;
+
+        // Draw box for holder particulars
+        doc.save();
+        doc.rect(50, yPos, 495, 140)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .lineWidth(1)
+           .stroke();
+        doc.restore();
+        
+        yPos += 15;
+
+        // Holder details
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Name: ${data.holder.fullName}`, 60, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Place of Birth: ${data.holder.placeOfBirth}`, 60, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Date of Birth: ${this.formatSADate(data.holder.dateOfBirth)}`, 60, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Identity Number: ${data.holder.identityNumber}`, 60, yPos);
+        yPos += 20;
+
+        if (data.holder.particulars) {
+          doc.fontSize(10)
+             .text(`Particulars: ${data.holder.particulars}`, 60, yPos);
+          yPos += 20;
+        }
+
+        if (data.holder.gender) {
+          doc.fontSize(10)
+             .text(`Gender: ${data.holder.gender}`, 60, yPos);
+        }
+        
+        yPos += 40;
+
+        // "By order of the Minister" section
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.ministerialAuthorization.byOrderOfMinister, 50, yPos);
+        yPos += 25;
+
+        // Department signature area
+        doc.fontSize(10)
+           .text(`Date: ${this.formatSADate(data.issuingDate)}`, 50, yPos);
+        
+        doc.fontSize(10)
+           .text("____________________________", 300, yPos);
+        yPos += 15;
+        
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .text(data.ministerialAuthorization.directorGeneralName, 300, yPos);
+        yPos += 15;
+        
+        doc.fontSize(9)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .text(`Issuing Office: ${data.issuingOffice}`, 300, yPos);
+
+        // Official stamp indication
+        if (data.ministerialAuthorization.officialStamp) {
+          doc.save();
+          doc.circle(450, yPos - 30, 25)
+             .strokeColor(SA_GOVERNMENT_DESIGN.colors.stamping_blue)
+             .lineWidth(2)
+             .stroke();
+          doc.fontSize(8)
+             .fillColor(SA_GOVERNMENT_DESIGN.colors.stamping_blue)
+             .text("OFFICIAL\nSTAMP", 435, yPos - 38, { width: 30, align: "center" });
+          doc.restore();
+        }
+
+        // Add security features
+        yPos = 720;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "certificate_of_south_african_citizenship" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 50, yPos, { width: 60, height: 60 });
+        }
+
+        this.addMicrotext(doc, 130, yPos + 20);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+// Export all generators - ALL 23 DHA DOCUMENT TYPES COMPLETE
 export const documentGenerators = {
   // Identity Documents (3)
   IdentityDocumentBookGenerator,
@@ -2458,5 +2833,9 @@ export const documentGenerators = {
   RetiredPersonVisaGenerator,
   ExchangeVisaGenerator,
   RelativesVisaGenerator,
-  PermanentResidencePermitGenerator
+  PermanentResidencePermitGenerator,
+  
+  // Additional DHA Documents (2)
+  CertificateOfExemptionGenerator,
+  CertificateOfSouthAfricanCitizenshipGenerator
 };

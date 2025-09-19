@@ -288,7 +288,8 @@ export class MilitaryGradeContinuousMonitoring extends EventEmitter {
 
       } catch (error) {
         console.error('[24/7 Monitor] Heartbeat monitoring error:', error);
-        this.errorHistory.push({ timestamp: Date.now(), error: error.message });
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.errorHistory.push({ timestamp: Date.now(), error: errorMessage });
       }
     }, NANO_SECOND_PRECISION.HEARTBEAT_INTERVAL);
   }
@@ -485,6 +486,7 @@ export class MilitaryGradeContinuousMonitoring extends EventEmitter {
       };
 
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         timestamp: Date.now(),
         systemId: this.systemId,
@@ -498,7 +500,7 @@ export class MilitaryGradeContinuousMonitoring extends EventEmitter {
         processId: process.pid,
         threadCount: 0,
         errorCount: 1,
-        lastError: error.message
+        lastError: errorMessage
       };
     }
   }
@@ -558,7 +560,8 @@ export class MilitaryGradeContinuousMonitoring extends EventEmitter {
       }
 
       // Trigger critical alert for restart failure
-      await this.triggerCriticalAlert('AUTO_RESTART_FAILED', `Failed to restart ${serviceId}: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await this.triggerCriticalAlert('AUTO_RESTART_FAILED', `Failed to restart ${serviceId}: ${errorMessage}`);
     }
   }
 

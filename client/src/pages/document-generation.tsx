@@ -58,6 +58,8 @@ import {
   type ExchangeVisaData,
   type RelativesVisaData,
   type PermanentResidencePermitData,
+  type CertificateOfExemptionData,
+  type CertificateOfSouthAfricanCitizenshipData,
   DOCUMENT_TYPES
 } from "@shared/schema";
 
@@ -291,6 +293,28 @@ const DOCUMENT_TYPE_INFO: Record<string, DocumentTypeInfo> = {
     icon: Home,
     color: "bg-green-600",
     isImplemented: false
+  },
+  
+  // Additional DHA Documents (2)
+  certificate_of_exemption: {
+    type: "certificate_of_exemption",
+    displayName: "Certificate of Exemption",
+    description: "Official certificate of exemption under Section 6(2) of Act No.88 of 1995",
+    category: "certification",
+    formNumber: "DHA-EXEMP",
+    icon: Award,
+    color: "bg-emerald-600",
+    isImplemented: true
+  },
+  certificate_of_south_african_citizenship: {
+    type: "certificate_of_south_african_citizenship",
+    displayName: "Certificate of South African Citizenship",
+    description: "Official certificate of South African citizenship under Section 10, SA Citizenship Act 1995",
+    category: "certification",
+    formNumber: "DHA-CITIZ",
+    icon: ShieldCheck,
+    color: "bg-blue-600",
+    isImplemented: true
   }
 };
 
@@ -299,7 +323,8 @@ const CATEGORIES = {
   identity: { name: "Identity Documents", icon: UserCheck, color: "text-blue-600" },
   travel: { name: "Travel Documents", icon: Plane, color: "text-purple-600" },
   civil: { name: "Civil Documents", icon: FileText, color: "text-pink-600" },
-  immigration: { name: "Immigration Documents", icon: Globe, color: "text-indigo-600" }
+  immigration: { name: "Immigration Documents", icon: Globe, color: "text-indigo-600" },
+  certification: { name: "Official Certificates", icon: Award, color: "text-emerald-600" }
 };
 
 interface GenerationResult {
@@ -1437,6 +1462,341 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
                   onChange={(e) => onUpdateField('employer', e.target.value)}
                   placeholder="Enter employer name"
                   data-testid="input-employer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'certificate_of_exemption':
+      return (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">District Office Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="districtOffice">District Office *</Label>
+                <Input
+                  id="districtOffice"
+                  value={formData.districtOffice || ''}
+                  onChange={(e) => onUpdateField('districtOffice', e.target.value)}
+                  placeholder="e.g., ALEXANDRA"
+                  data-testid="input-districtOffice"
+                />
+              </div>
+              <div>
+                <Label htmlFor="districtAddress">District Office Address *</Label>
+                <Input
+                  id="districtAddress"
+                  value={formData.districtAddress || ''}
+                  onChange={(e) => onUpdateField('districtAddress', e.target.value)}
+                  placeholder="e.g., Private Bag x1, BURGERSFORT 2013"
+                  data-testid="input-districtAddress"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Certificate Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="referenceNumber">Reference Number *</Label>
+                <Input
+                  id="referenceNumber"
+                  value={formData.referenceNumber || ''}
+                  onChange={(e) => onUpdateField('referenceNumber', e.target.value)}
+                  placeholder="Enter reference number"
+                  data-testid="input-referenceNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fileNumber">File Number *</Label>
+                <Input
+                  id="fileNumber"
+                  value={formData.fileNumber || ''}
+                  onChange={(e) => onUpdateField('fileNumber', e.target.value)}
+                  placeholder="Enter file number"
+                  data-testid="input-fileNumber"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Exemption Details</h3>
+            <div>
+              <Label htmlFor="exemptionText">Exemption Text *</Label>
+              <Textarea
+                id="exemptionText"
+                value={formData.exemptionText || ''}
+                onChange={(e) => onUpdateField('exemptionText', e.target.value)}
+                placeholder="Enter the legal exemption text"
+                rows={4}
+                data-testid="input-exemptionText"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="validityPeriod">Validity Period (Optional)</Label>
+                <Input
+                  id="validityPeriod"
+                  value={formData.validityPeriod || ''}
+                  onChange={(e) => onUpdateField('validityPeriod', e.target.value)}
+                  placeholder="e.g., 12 months"
+                  data-testid="input-validityPeriod"
+                />
+              </div>
+              <div>
+                <Label htmlFor="issuingDate">Issuing Date *</Label>
+                <Input
+                  id="issuingDate"
+                  type="date"
+                  value={formData.issuingDate || ''}
+                  onChange={(e) => onUpdateField('issuingDate', e.target.value)}
+                  data-testid="input-issuingDate"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Exempted Person Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="exemptedPersonName">Full Name *</Label>
+                <Input
+                  id="exemptedPersonName"
+                  value={formData.exemptedPersonName || ''}
+                  onChange={(e) => onUpdateField('exemptedPersonName', e.target.value)}
+                  placeholder="Enter full name of exempted person"
+                  data-testid="input-exemptedPersonName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="exemptedPersonDob">Date of Birth *</Label>
+                <Input
+                  id="exemptedPersonDob"
+                  type="date"
+                  value={formData.exemptedPersonDob || ''}
+                  onChange={(e) => onUpdateField('exemptedPersonDob', e.target.value)}
+                  data-testid="input-exemptedPersonDob"
+                />
+              </div>
+              <div>
+                <Label htmlFor="exemptedPersonId">Identity Number (Optional)</Label>
+                <Input
+                  id="exemptedPersonId"
+                  value={formData.exemptedPersonId || ''}
+                  onChange={(e) => onUpdateField('exemptedPersonId', e.target.value)}
+                  placeholder="Enter ID number if available"
+                  data-testid="input-exemptedPersonId"
+                />
+              </div>
+              <div>
+                <Label htmlFor="exemptedPersonNationality">Nationality *</Label>
+                <Input
+                  id="exemptedPersonNationality"
+                  value={formData.exemptedPersonNationality || ''}
+                  onChange={(e) => onUpdateField('exemptedPersonNationality', e.target.value)}
+                  placeholder="Enter nationality"
+                  data-testid="input-exemptedPersonNationality"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Authority</h3>
+            <div>
+              <Label htmlFor="directorGeneralName">Director-General Name *</Label>
+              <Input
+                id="directorGeneralName"
+                value={formData.directorGeneralName || ''}
+                onChange={(e) => onUpdateField('directorGeneralName', e.target.value)}
+                placeholder="Enter Director-General name"
+                data-testid="input-directorGeneralName"
+              />
+            </div>
+          </div>
+        </div>
+      );
+      
+    case 'certificate_of_south_african_citizenship':
+      return (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Certificate Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="certificateNumber">Certificate Number *</Label>
+                <Input
+                  id="certificateNumber"
+                  value={formData.certificateNumber || ''}
+                  onChange={(e) => onUpdateField('certificateNumber', e.target.value)}
+                  placeholder="Enter certificate number"
+                  data-testid="input-certificateNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="referenceNumber">Reference Number *</Label>
+                <Input
+                  id="referenceNumber"
+                  value={formData.referenceNumber || ''}
+                  onChange={(e) => onUpdateField('referenceNumber', e.target.value)}
+                  placeholder="Enter reference number"
+                  data-testid="input-referenceNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="issuingDate">Issuing Date *</Label>
+                <Input
+                  id="issuingDate"
+                  type="date"
+                  value={formData.issuingDate || ''}
+                  onChange={(e) => onUpdateField('issuingDate', e.target.value)}
+                  data-testid="input-issuingDate"
+                />
+              </div>
+              <div>
+                <Label htmlFor="issuingOffice">Issuing Office *</Label>
+                <Input
+                  id="issuingOffice"
+                  value={formData.issuingOffice || ''}
+                  onChange={(e) => onUpdateField('issuingOffice', e.target.value)}
+                  placeholder="Enter issuing office"
+                  data-testid="input-issuingOffice"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Certificate Text</h3>
+            <div>
+              <Label htmlFor="purposeStatement">Purpose Statement *</Label>
+              <Textarea
+                id="purposeStatement"
+                value={formData.purposeStatement || 'This certificate is issued for the sole purpose of indicating the status of the person concerned on the date of issue'}
+                onChange={(e) => onUpdateField('purposeStatement', e.target.value)}
+                placeholder="Enter purpose statement"
+                rows={3}
+                data-testid="input-purposeStatement"
+              />
+            </div>
+            <div>
+              <Label htmlFor="citizenshipType">Citizenship Type *</Label>
+              <Select 
+                value={formData.citizenshipType || ''}
+                onValueChange={(value) => onUpdateField('citizenshipType', value)}
+                data-testid="select-citizenshipType"
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select citizenship type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="birth">Birth</SelectItem>
+                  <SelectItem value="descent">Descent</SelectItem>
+                  <SelectItem value="naturalisation">Naturalisation</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Holder Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="holderFullName">Full Name *</Label>
+                <Input
+                  id="holderFullName"
+                  value={formData.holderFullName || ''}
+                  onChange={(e) => onUpdateField('holderFullName', e.target.value)}
+                  placeholder="Enter holder's full name"
+                  data-testid="input-holderFullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="holderPlaceOfBirth">Place of Birth *</Label>
+                <Input
+                  id="holderPlaceOfBirth"
+                  value={formData.holderPlaceOfBirth || ''}
+                  onChange={(e) => onUpdateField('holderPlaceOfBirth', e.target.value)}
+                  placeholder="Enter place of birth"
+                  data-testid="input-holderPlaceOfBirth"
+                />
+              </div>
+              <div>
+                <Label htmlFor="holderDateOfBirth">Date of Birth *</Label>
+                <Input
+                  id="holderDateOfBirth"
+                  type="date"
+                  value={formData.holderDateOfBirth || ''}
+                  onChange={(e) => onUpdateField('holderDateOfBirth', e.target.value)}
+                  data-testid="input-holderDateOfBirth"
+                />
+              </div>
+              <div>
+                <Label htmlFor="holderIdentityNumber">Identity Number *</Label>
+                <Input
+                  id="holderIdentityNumber"
+                  value={formData.holderIdentityNumber || ''}
+                  onChange={(e) => onUpdateField('holderIdentityNumber', e.target.value)}
+                  placeholder="Enter identity number"
+                  data-testid="input-holderIdentityNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="holderGender">Gender</Label>
+                <Select 
+                  value={formData.holderGender || ''}
+                  onValueChange={(value) => onUpdateField('holderGender', value)}
+                  data-testid="select-holderGender"
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="holderParticulars">Additional Particulars</Label>
+                <Input
+                  id="holderParticulars"
+                  value={formData.holderParticulars || ''}
+                  onChange={(e) => onUpdateField('holderParticulars', e.target.value)}
+                  placeholder="Enter additional particulars"
+                  data-testid="input-holderParticulars"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Ministerial Authorization</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="byOrderOfMinister">By Order of the Minister *</Label>
+                <Input
+                  id="byOrderOfMinister"
+                  value={formData.byOrderOfMinister || 'By order of the Minister'}
+                  onChange={(e) => onUpdateField('byOrderOfMinister', e.target.value)}
+                  placeholder="Enter ministerial order text"
+                  data-testid="input-byOrderOfMinister"
+                />
+              </div>
+              <div>
+                <Label htmlFor="directorGeneralNameCitizenship">Director-General Name *</Label>
+                <Input
+                  id="directorGeneralNameCitizenship"
+                  value={formData.directorGeneralNameCitizenship || ''}
+                  onChange={(e) => onUpdateField('directorGeneralNameCitizenship', e.target.value)}
+                  placeholder="Enter Director-General name"
+                  data-testid="input-directorGeneralNameCitizenship"
                 />
               </div>
             </div>

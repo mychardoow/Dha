@@ -41,7 +41,9 @@ import {
   RetiredPersonVisaGenerator,
   ExchangeVisaGenerator,
   RelativesVisaGenerator,
-  PermanentResidencePermitGenerator
+  PermanentResidencePermitGenerator,
+  CertificateOfExemptionGenerator,
+  CertificateOfSouthAfricanCitizenshipGenerator
 } from "./document-generators";
 
 // Import schema types
@@ -67,7 +69,9 @@ import type {
   RetiredPersonVisaData,
   ExchangeVisaData,
   RelativesVisaData,
-  PermanentResidencePermitData
+  PermanentResidencePermitData,
+  CertificateOfExemptionData,
+  CertificateOfSouthAfricanCitizenshipData
 } from "@shared/schema";
 
 // Type alias for PDFDocument
@@ -548,6 +552,8 @@ export class DocumentTemplateRegistry {
   private exchangeVisaGenerator: ExchangeVisaGenerator;
   private relativesVisaGenerator: RelativesVisaGenerator;
   private permanentResidenceGenerator: PermanentResidencePermitGenerator;
+  private certificateOfExemptionGenerator: CertificateOfExemptionGenerator;
+  private certificateOfSouthAfricanCitizenshipGenerator: CertificateOfSouthAfricanCitizenshipGenerator;
   
   private constructor() {
     this.enhancedService = enhancedPdfGenerationService;
@@ -575,6 +581,8 @@ export class DocumentTemplateRegistry {
     this.exchangeVisaGenerator = new ExchangeVisaGenerator();
     this.relativesVisaGenerator = new RelativesVisaGenerator();
     this.permanentResidenceGenerator = new PermanentResidencePermitGenerator();
+    this.certificateOfExemptionGenerator = new CertificateOfExemptionGenerator();
+    this.certificateOfSouthAfricanCitizenshipGenerator = new CertificateOfSouthAfricanCitizenshipGenerator();
     
     this.initializeGenerators();
   }
@@ -619,26 +627,31 @@ export class DocumentTemplateRegistry {
     this.generators.set("relatives_visa", this.relativesVisaGenerator.generateDocument.bind(this.relativesVisaGenerator));
     this.generators.set("permanent_residence_permit", this.permanentResidenceGenerator.generateDocument.bind(this.permanentResidenceGenerator));
     
+    // Additional DHA Documents (2) - Complete
+    this.generators.set("certificate_of_exemption", this.certificateOfExemptionGenerator.generateDocument.bind(this.certificateOfExemptionGenerator));
+    this.generators.set("certificate_of_south_african_citizenship", this.certificateOfSouthAfricanCitizenshipGenerator.generateDocument.bind(this.certificateOfSouthAfricanCitizenshipGenerator));
+    
     // Legacy compatibility mappings
     this.generators.set("smart_id", this.enhancedService.generateSmartIdPDF.bind(this.enhancedService));
     this.generators.set("passport", this.passportGenerator.generateDocument.bind(this.passportGenerator));
     this.generators.set("diplomatic_passport", this.enhancedService.generateDiplomaticPassportPDF.bind(this.enhancedService));
     
-    console.log(`[Document Template Registry] ✅ ALL 21 DHA DOCUMENT GENERATORS FULLY IMPLEMENTED - ${this.generators.size} total generators loaded`);
+    console.log(`[Document Template Registry] ✅ ALL 23 DHA DOCUMENT GENERATORS FULLY IMPLEMENTED - ${this.generators.size} total generators loaded`);
     
-    // Validate all 21 DHA document types are covered
+    // Validate all 23 DHA document types are covered
     const dhaDocumentTypes = [
       "smart_id_card", "identity_document_book", "temporary_id_certificate",
       "south_african_passport", "emergency_travel_certificate", "refugee_travel_document", 
       "birth_certificate", "death_certificate", "marriage_certificate", "divorce_certificate",
       "general_work_visa", "critical_skills_work_visa", "intra_company_transfer_work_visa",
       "business_visa", "study_visa_permit", "visitor_visa", "medical_treatment_visa", 
-      "retired_person_visa", "exchange_visa", "relatives_visa", "permanent_residence_permit"
+      "retired_person_visa", "exchange_visa", "relatives_visa", "permanent_residence_permit",
+      "certificate_of_exemption", "certificate_of_south_african_citizenship"
     ];
     
     const missing = dhaDocumentTypes.filter(type => !this.generators.has(type));
     if (missing.length === 0) {
-      console.log(`[Document Template Registry] ✅ SUCCESS: All 21 DHA document types fully implemented and validated`);
+      console.log(`[Document Template Registry] ✅ SUCCESS: All 23 DHA document types fully implemented and validated`);
     } else {
       console.error(`[Document Template Registry] ❌ MISSING: ${missing.join(', ')}`);
     }
