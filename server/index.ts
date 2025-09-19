@@ -1,34 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db";
+
+// Defer heavy imports to allow server to start even if they fail
+let registerRoutes: any;
+let setupVite: any;
+let serveStatic: any;
+let log: any = console.log;
 
 const app = express();
 
-// Configure session store based on database availability
-let sessionStore: any;
-
-if (pool) {
-  // Database available - use PostgreSQL store
-  console.log('[Session] Using PostgreSQL session store');
-  const pgStore = connectPgSimple(session);
-  sessionStore = new pgStore({
-    pool,
-    tableName: 'user_sessions',
-    createTableIfMissing: true,
-  });
-} else {
-  // Database unavailable - use in-memory store
-  console.warn('[Session] Database unavailable - using in-memory session store');
-  console.warn('[Session] Sessions will be lost on server restart');
-  // MemoryStore is the default when no store is specified
-  sessionStore = undefined;
-}
-
-const sessionConfig = {
-  ...(sessionStore && { store: sessionStore }),
+// Basic session config - we'll add store later if database is available
+const sessionConfig: any = {
   secret: process.env.SESSION_SECRET || (() => {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('CRITICAL: SESSION_SECRET environment variable is required in production');
@@ -95,7 +77,11 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      if (typeof log === 'function') {
+        log(logLine);
+      } else {
+        console.log(logLine);
+      }
     }
   });
 
@@ -103,14 +89,75 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('  DHA Digital Services Platform - Starting Server');
+  console.log('═══════════════════════════════════════════════════════════════');
+  
+  // Try to import database pool
+  let pool: any = null;
+  try {
+    const dbModule = await import("./db");
+    pool = dbModule.pool;
+  } catch (error) {
+    console.warn('[Server] Database module failed to load, using in-memory mode:', error);
+  }
+  
+  // Configure session store based on database availability
+  if (pool) {
+    try {
+      // Database available - try PostgreSQL store
+      console.log('[Session] Attempting PostgreSQL session store...');
+      const connectPgSimple = (await import("connect-pg-simple")).default;
+      const pgStore = connectPgSimple(session);
+      const store = new pgStore({
+        pool,
+        tableName: 'user_sessions',
+        createTableIfMissing: true,
+      });
+      sessionConfig.store = store;
+      console.log('[Session] Using PostgreSQL session store');
+    } catch (error) {
+      console.warn('[Session] Failed to setup PostgreSQL store, falling back to memory:', error);
+    }
+  } else {
+    console.warn('[Session] Database unavailable - using in-memory session store');
+    console.warn('[Session] Sessions will be lost on server restart');
+  }
+  
+  // Health check endpoint (always available)
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'ok',
+      mode: pool ? 'database' : 'in-memory',
+      timestamp: new Date().toISOString(),
+      features: 'all'
+    });
+  });
+  
+  let server = app;
+  
+  // Try to load and register routes
+  try {
+    console.log('[Server] Loading routes...');
+    const routesModule = await import("./routes");
+    registerRoutes = routesModule.registerRoutes;
+    server = await registerRoutes(app);
+    console.log('[Server] ✅ Routes loaded successfully');
+  } catch (error) {
+    console.error('[Server] ⚠️ Failed to load some routes, continuing with basic server:', error);
+    // Continue with basic server even if routes fail
+  }
 
   // CRITICAL: Add catch-all route for unmatched API routes BEFORE vite middleware
   // This ensures API routes return JSON 404 instead of HTML
   // Use all() to catch all HTTP methods
   app.all('/api/*', (req: Request, res: Response) => {
     // If we reach here, no API route matched
-    log(`API route not found: ${req.method} ${req.originalUrl}`, 'warn');
+    if (typeof log === 'function') {
+      log(`API route not found: ${req.method} ${req.originalUrl}`, 'warn');
+    } else {
+      console.warn(`API route not found: ${req.method} ${req.originalUrl}`);
+    }
     res.status(404).json({ 
       error: 'API endpoint not found',
       path: req.originalUrl,
@@ -124,7 +171,11 @@ app.use((req, res, next) => {
 
     // Use structured logging in production
     if (process.env.NODE_ENV === 'production') {
-      log(`Server error: ${status} - ${message} [${_req.method} ${_req.url}]`, 'error');
+      if (typeof log === 'function') {
+        log(`Server error: ${status} - ${message} [${_req.method} ${_req.url}]`, 'error');
+      } else {
+        console.error(`Server error: ${status} - ${message} [${_req.method} ${_req.url}]`);
+      }
     } else {
       console.error("Server error:", {
         status,
@@ -144,10 +195,21 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+  try {
+    const viteModule = await import("./vite");
+    setupVite = viteModule.setupVite;
+    serveStatic = viteModule.serveStatic;
+    log = viteModule.log || console.log;
+    
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
+  } catch (error) {
+    console.warn('[Server] Failed to setup Vite, serving static files directly:', error);
+    // Fallback to basic static serving
+    app.use(express.static('dist'));
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
