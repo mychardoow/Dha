@@ -305,131 +305,8 @@ export class CryptographicSignatureService {
     console.log('[Cryptographic Service] Government certificate validation passed');
   }
 
-  /**
-   * Load government certificate chain with validation
-   */
-  private async loadGovernmentCertificateChain(): Promise<forge.pki.Certificate[]> {
-    const certificateChain: forge.pki.Certificate[] = [];
-    
-    try {
-      // Load root CA certificate
-      const rootCACert = process.env.DHA_ROOT_CA_CERT;
-      if (!rootCACert) {
-        throw new Error('Missing DHA Root CA certificate');
-      }
-      
-      const rootCertificate = forge.pki.certificateFromPem(rootCACert);
-      certificateChain.push(rootCertificate);
-      
-      // Load intermediate CA certificates
-      const intermediateCACert = process.env.DHA_INTERMEDIATE_CA_CERT;
-      if (intermediateCACert) {
-        const intermediateCertificate = forge.pki.certificateFromPem(intermediateCACert);
-        certificateChain.push(intermediateCertificate);
-      }
-      
-      return certificateChain;
-    } catch (error) {
-      throw new Error(`Failed to load government certificate chain: ${error}`);
-    }
-  }
 
-  /**
-   * Validate certificate chain integrity
-   */
-  private async validateCertificateChainIntegrity(
-    signingCert: forge.pki.Certificate, 
-    certificateChain: forge.pki.Certificate[]
-  ): Promise<void> {
-    if (certificateChain.length === 0) {
-      throw new Error('CRITICAL: Empty certificate chain');
-    }
 
-    // Verify each certificate in the chain
-    for (let i = 0; i < certificateChain.length - 1; i++) {
-      const cert = certificateChain[i];
-      const issuerCert = certificateChain[i + 1];
-      
-      try {
-        // Verify signature
-        const verified = cert.verify(issuerCert);
-        if (!verified) {
-          throw new Error(`Certificate chain validation failed at position ${i}`);
-        }
-      } catch (error) {
-        throw new Error(`Certificate chain integrity check failed: ${error}`);
-      }
-    }
-
-    // Verify signing certificate against its issuer
-    const issuerCert = certificateChain.find(cert => 
-      cert.subject.getField('CN')?.value === signingCert.issuer.getField('CN')?.value
-    );
-    
-    if (!issuerCert) {
-      throw new Error('CRITICAL: Signing certificate issuer not found in certificate chain');
-    }
-
-    const verified = signingCert.verify(issuerCert);
-    if (!verified) {
-      throw new Error('CRITICAL: Signing certificate verification failed against issuer');
-    }
-
-    console.log('[Cryptographic Service] Certificate chain integrity validated');
-  }
-
-  /**
-   * Validate revocation services (OCSP and CRL) accessibility
-   */
-  private async validateRevocationServices(): Promise<void> {
-    // Skip revocation service validation in development mode
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[Cryptographic Service] Skipping revocation service validation in development mode');
-      return;
-    }
-
-    const errors: string[] = [];
-
-    // Test OCSP service
-    if (DHA_PKI_CONFIG.requireOCSP) {
-      try {
-        const ocspResponse = await fetch(DHA_PKI_CONFIG.ocspResponder, {
-          method: 'GET',
-          headers: { 'User-Agent': 'DHA-CryptoService/1.0' }
-        });
-        
-        if (!ocspResponse.ok && ocspResponse.status !== 405) { // 405 Method Not Allowed is acceptable for OCSP
-          errors.push(`OCSP service not accessible: ${ocspResponse.status}`);
-        }
-      } catch (error) {
-        errors.push(`OCSP service validation failed: ${error}`);
-      }
-    }
-
-    // Test CRL service
-    if (DHA_PKI_CONFIG.requireCRL) {
-      try {
-        const crlResponse = await fetch(DHA_PKI_CONFIG.crlDistributionPoint, {
-          method: 'HEAD',
-          headers: { 'User-Agent': 'DHA-CryptoService/1.0' }
-        });
-        
-        if (!crlResponse.ok) {
-          errors.push(`CRL service not accessible: ${crlResponse.status}`);
-        }
-      } catch (error) {
-        errors.push(`CRL service validation failed: ${error}`);
-      }
-    }
-
-    if (errors.length > 0 && DHA_PKI_CONFIG.enforceProductionSecurity) {
-      throw new Error(`CRITICAL: Revocation services validation failed: ${errors.join(', ')}`);
-    } else if (errors.length > 0) {
-      console.warn('[Cryptographic Service] WARNING: Revocation services not fully accessible:', errors);
-    } else {
-      console.log('[Cryptographic Service] Revocation services validated successfully');
-    }
-  }
 
   /**
    * Sign PDF document with PAdES-B-T signature (includes timestamp)
@@ -562,7 +439,7 @@ export class CryptographicSignatureService {
     
     // Create signer info
     p7.addSigner({
-      key: this.signingCertificate.privateKey,
+      key: this.signingCertificate.privateKey as forge.pki.rsa.PrivateKey,
       certificate: this.signingCertificate.certificate,
       digestAlgorithm: forge.pki.oids.sha512,
       authenticatedAttributes: [
@@ -576,7 +453,7 @@ export class CryptographicSignatureService {
         },
         {
           type: forge.pki.oids.signingTime,
-          value: new Date()
+          value: new Date().toISOString()
         },
         // Add custom DHA attributes
         {
@@ -698,7 +575,7 @@ export class CryptographicSignatureService {
     pdfDoc.setCreationDate(metadata.issuanceDate);
     
     // Add custom security properties
-    const infoDict = pdfDoc.getInfoDict();
+    const infoDict = (pdfDoc as any).getInfoDict();
     infoDict.set(PDFName.of('DHADocumentType'), PDFString.of(metadata.documentType));
     infoDict.set(PDFName.of('DHADocumentId'), PDFString.of(metadata.documentId));
     infoDict.set(PDFName.of('DHAIssuingOffice'), PDFString.of(metadata.issuingOffice));
@@ -776,30 +653,6 @@ export class CryptographicSignatureService {
     return chain;
   }
 
-  /**
-   * Extract key usage from certificate
-   */
-  private extractKeyUsage(certificate: forge.pki.Certificate): string[] {
-    const keyUsageExt = certificate.getExtension('keyUsage');
-    const usages: string[] = [];
-    
-    if (keyUsageExt && keyUsageExt.digitalSignature) {
-      usages.push('digitalSignature');
-    }
-    if (keyUsageExt && keyUsageExt.nonRepudiation) {
-      usages.push('nonRepudiation');
-    }
-    
-    return usages;
-  }
-
-  /**
-   * Extract extended key usage from certificate
-   */
-  private extractExtendedKeyUsage(certificate: forge.pki.Certificate): string[] {
-    const extKeyUsageExt = certificate.getExtension('extKeyUsage');
-    return extKeyUsageExt ? extKeyUsageExt.codeSigning || [] : [];
-  }
 
   // Placeholder methods for timestamp and validation operations
   private createTimestampRequest(signature: Buffer): Buffer {
