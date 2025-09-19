@@ -7,12 +7,20 @@ import { privacyProtectionService } from "../services/privacy-protection";
 
 const JWT_SECRET = (() => {
   if (!process.env.JWT_SECRET) {
-    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
+    }
+    console.warn('WARNING: JWT_SECRET missing - using development fallback key (NOT FOR PRODUCTION)');
+    return 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
   }
   
   // Validate JWT secret strength for government security standards
   if (process.env.JWT_SECRET.length < 64) {
-    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security');
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security in production');
+    }
+    console.warn('WARNING: JWT_SECRET too short - using development fallback key (NOT FOR PRODUCTION)');
+    return 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
   }
   
   return process.env.JWT_SECRET;

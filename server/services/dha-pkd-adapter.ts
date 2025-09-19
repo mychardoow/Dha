@@ -101,15 +101,23 @@ export class DHAPKDAdapter {
   };
 
   constructor() {
-    this.pkdBaseUrl = process.env.ICAO_PKD_BASE_URL!;
-    this.apiKey = process.env.ICAO_PKD_API_KEY!;
+    const pkdBaseUrl = process.env.ICAO_PKD_BASE_URL;
+    const apiKey = process.env.ICAO_PKD_API_KEY;
     
-    if (!this.pkdBaseUrl) {
-      throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_BASE_URL environment variable is required for ICAO PKD integration');
+    // Only throw errors in production - provide development fallbacks
+    if (!pkdBaseUrl || !apiKey) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_BASE_URL and ICAO_PKD_API_KEY environment variables are required for ICAO PKD integration in production');
+      }
+      
+      console.warn('[DHA PKD Adapter] WARNING: Using development fallback configuration - NOT FOR PRODUCTION');
+      this.pkdBaseUrl = 'https://dev-pkd.icao.int';
+      this.apiKey = 'dev-pkd-api-key';
+      return;
     }
-    if (!this.apiKey) {
-      throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_API_KEY environment variable is required for ICAO PKD integration');
-    }
+    
+    this.pkdBaseUrl = pkdBaseUrl;
+    this.apiKey = apiKey;
   }
 
   /**

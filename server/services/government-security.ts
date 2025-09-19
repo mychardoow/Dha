@@ -103,25 +103,36 @@ class GovernmentSecurityService {
   private securityIncidents: Map<string, any> = new Map();
   private encryptionKeys: Map<string, Buffer> = new Map();
   private certificateStore: Map<string, any> = new Map();
+  private masterEncryptionKey: string;
 
   constructor() {
-    this.validateEnvironment();
+    this.masterEncryptionKey = this.validateEnvironment();
     this.initializeSecurityMonitoring();
     this.loadSecurityCertificates();
   }
 
   /**
    * Validate critical environment variables on startup
-   * Fail fast if ENCRYPTION_MASTER_KEY is missing
+   * Provides development mode fallback for ENCRYPTION_MASTER_KEY
    */
-  private validateEnvironment(): void {
+  private validateEnvironment(): string {
     if (!process.env.ENCRYPTION_MASTER_KEY) {
-      throw new Error('[Government Security] ENCRYPTION_MASTER_KEY environment variable is required for cryptographic operations. Service cannot start without proper encryption key.');
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('[Government Security] CRITICAL SECURITY ERROR: ENCRYPTION_MASTER_KEY environment variable is required for cryptographic operations in production.');
+      }
+      console.warn('[Government Security] WARNING: ENCRYPTION_MASTER_KEY missing - using development fallback key (NOT FOR PRODUCTION)');
+      return 'dev-encryption-master-key-for-testing-only-12345678901234567890123456789012';
     }
     
     if (process.env.ENCRYPTION_MASTER_KEY.length < 32) {
-      throw new Error('[Government Security] ENCRYPTION_MASTER_KEY must be at least 32 characters long for adequate security.');
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('[Government Security] CRITICAL SECURITY ERROR: ENCRYPTION_MASTER_KEY must be at least 32 characters long for adequate security in production.');
+      }
+      console.warn('[Government Security] WARNING: ENCRYPTION_MASTER_KEY too short - using development fallback key (NOT FOR PRODUCTION)');
+      return 'dev-encryption-master-key-for-testing-only-12345678901234567890123456789012';
     }
+    
+    return process.env.ENCRYPTION_MASTER_KEY;
   }
 
   private initializeSecurityMonitoring(): void {
@@ -162,7 +173,7 @@ class GovernmentSecurityService {
     
     // Standard government encryption for lower classifications
     const salt = randomBytes(this.SALT_LENGTH);
-    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY!, salt);
+    const key = this.deriveKey(this.masterEncryptionKey, salt);
     const iv = randomBytes(this.IV_LENGTH);
     const cipher = createCipheriv(this.ENCRYPTION_ALGORITHM, key, iv, { authTagLength: this.TAG_LENGTH });
     
@@ -193,7 +204,7 @@ class GovernmentSecurityService {
     this.validateHexInput('encrypted', encryptedData.encrypted);
     
     const salt = Buffer.from(encryptedData.salt, 'hex');
-    const key = this.deriveKey(process.env.ENCRYPTION_MASTER_KEY!, salt);
+    const key = this.deriveKey(this.masterEncryptionKey, salt);
     const iv = Buffer.from(encryptedData.iv, 'hex');
     const tag = Buffer.from(encryptedData.tag, 'hex');
     
