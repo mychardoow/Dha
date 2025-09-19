@@ -16,6 +16,7 @@ import * as path from "path";
 import QRCode from "qrcode";
 import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service";
 import { verificationService } from "./verification-service";
+import { enhancedVerificationUtilities, type VerificationData } from "./enhanced-verification-utilities";
 
 // Type alias for PDFDocument
 type PDFKit = InstanceType<typeof PDFDocument>;
@@ -474,9 +475,38 @@ export class EnhancedPDFGenerationService {
         // Execute document-specific layout
         const finalYPos = await layoutFunction(doc);
         
-        // Add verification QR code with encrypted data and tracking barcode
-        const verificationCode = crypto.randomBytes(16).toString('hex');
-        await this.addVerificationQR(doc, verificationCode, finalYPos + 20);
+        // Generate enhanced 16-character verification code (XXXX-XXXX-XXXX-XXXX format)
+        const verificationCode = enhancedVerificationUtilities.generateVerificationCode();
+        
+        // Generate document hash for anti-tampering
+        const verificationData: VerificationData = {
+          documentId: crypto.randomUUID(),
+          documentType: documentType,
+          documentHash: '',  // Will be set after PDF generation
+          issuingDate: new Date().toISOString(),
+          expiryDate: data.validUntil || data.expiryDate,
+          holderName: data.personal?.fullName || data.personal?.name || data.fullName,
+          issueOffice: data.issueOffice || 'DHA Digital Services',
+          controlNumber: data.controlNumber || verificationCode,
+          serialNumber: this.generateSecuritySerialNumber(),
+          permitNumber: data.permitNumber,
+          securityFeatures: {
+            brailleEncoded: true,
+            holographicSeal: true,
+            digitalSignature: '',
+            blockchainAnchor: ''
+          }
+        };
+        
+        // Generate and add enhanced QR code with full metadata
+        const qrCodePath = await enhancedVerificationUtilities.generateEnhancedQRCode(verificationData, verificationCode);
+        await this.addEnhancedVerificationQR(doc, qrCodePath, verificationCode, finalYPos + 20);
+        
+        // Generate and add Code128 tracking barcode
+        const officeCode = data.issueOffice?.substring(0, 3).toUpperCase() || 'JHB';
+        const sequence = Math.floor(Math.random() * 999999) + 1;
+        const barcodeResult = await enhancedVerificationUtilities.generateCode128Barcode(officeCode, documentType, sequence);
+        await this.addTrackingBarcode(doc, barcodeResult, finalYPos + 80);
         
         // Add blockchain verification reference
         this.addBlockchainReference(doc, verificationCode);
@@ -522,13 +552,32 @@ export class EnhancedPDFGenerationService {
               // Continue with unsigned PDF in development mode
             }
             
-            // Store verification data
+            // Calculate final document hash
+            const documentHash = enhancedVerificationUtilities.generateDocumentHash({
+              ...verificationData,
+              documentHash: crypto.createHash('sha256').update(signedPDF).digest('hex')
+            });
+            
+            // Generate blockchain anchor for permanent record
+            const blockchainAnchor = enhancedVerificationUtilities.generateBlockchainAnchor(documentHash);
+            
+            // Store enhanced verification data with all security features
             await this.storeVerificationData(verificationCode, {
               documentType,
-              documentId: verificationCode,
+              documentId: verificationData.documentId,
+              verificationCode: verificationCode,
+              documentHash: documentHash,
               personalDetails: data.personal,
               issueDate: new Date(),
-              cryptographicHash: crypto.createHash('sha512').update(signedPDF).digest('hex')
+              expiryDate: data.validUntil || data.expiryDate,
+              cryptographicHash: crypto.createHash('sha512').update(signedPDF).digest('hex'),
+              securityFeatures: {
+                ...verificationData.securityFeatures,
+                digitalSignature: signingMetadata.documentId,
+                blockchainAnchor: blockchainAnchor
+              },
+              barcodeData: barcodeResult.barcodeData,
+              qrCodeUrl: `https://verify.dha.gov.za/qr/${verificationCode}`
             });
             
             console.log(`[Enhanced PDF Service] Generated secure ${documentType} with cryptographic signature`);
@@ -1445,12 +1494,58 @@ export class EnhancedPDFGenerationService {
   }
 
   /**
+   * Add enhanced verification QR code with full metadata
+   */
+  private async addEnhancedVerificationQR(doc: PDFKit, qrCodePath: string, verificationCode: string, y: number): Promise<void> {
+    try {
+      const x = 420;
+      
+      // QR code border and label
+      doc.save();
+      doc.roundedRect(x - 5, y - 5, 110, 110, 5)
+         .strokeColor(SA_COLORS.green)
+         .lineWidth(2)
+         .stroke();
+      
+      // Add QR code image
+      if (await fs.access(qrCodePath).then(() => true).catch(() => false)) {
+        doc.image(qrCodePath, x, y, { width: 100, height: 100 });
+      }
+      
+      // Verification code below QR
+      doc.fontSize(9)
+         .font('Helvetica-Bold')
+         .fillColor(SA_COLORS.black)
+         .text('Verification Code:', x - 5, y + 110, { width: 120, align: 'center' });
+      
+      doc.fontSize(10)
+         .font('Courier-Bold')
+         .fillColor(SA_COLORS.blue)
+         .text(verificationCode, x - 5, y + 125, { width: 120, align: 'center' });
+      
+      // Scan instruction
+      doc.fontSize(7)
+         .font('Helvetica')
+         .fillColor(SA_COLORS.security_blue)
+         .text('Scan to verify authenticity', x - 5, y + 145, { width: 120, align: 'center' });
+      
+      doc.restore();
+    } catch (error) {
+      console.error('[Enhanced PDF Service] Failed to add enhanced QR code:', error);
+      // Fallback to basic QR code
+      await this.addVerificationQR(doc, verificationCode, y);
+    }
+  }
+
+  /**
    * Add tracking barcode with document information
    */
-  private async addTrackingBarcode(doc: PDFKit, verificationCode: string, y: number): Promise<void> {
+  private async addTrackingBarcode(doc: PDFKit, barcodeResult: any, y: number): Promise<void> {
     try {
-      // Generate barcode data
-      const barcodeData = `DHA${verificationCode.toUpperCase()}`;
+      // Handle both old format (string) and new format (object)
+      const isNewFormat = typeof barcodeResult === 'object' && barcodeResult.barcodeData;
+      const barcodeData = isNewFormat ? barcodeResult.barcodeData : `DHA${barcodeResult}`;
+      const imagePath = isNewFormat ? barcodeResult.imagePath : null;
       
       // Simulate Code 128 barcode pattern
       doc.save();

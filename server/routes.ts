@@ -19,6 +19,7 @@ import { enhancedPdfGenerationService } from "./services/enhanced-pdf-generation
 import { cryptographicSignatureService } from "./services/cryptographic-signature-service";
 import { securePDFAPIService } from "./services/secure-pdf-api-service";
 import { verificationService } from "./services/verification-service";
+import { enhancedVerificationUtilities } from "./services/enhanced-verification-utilities";
 import { notificationService } from "./services/notification-service";
 import { initializeWebSocket, getWebSocketService } from "./websocket";
 import { auditTrailService } from "./services/audit-trail-service";
@@ -2289,6 +2290,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // QR Code Verification Endpoint - Enhanced with full document metadata
+  app.get("/api/verify/qr/:code", geoIPValidationMiddleware, verificationRateLimit, auditMiddleware('verification', 'qr_verify'), async (req: Request, res: Response) => {
+    try {
+      const { code } = req.params;
+      const { d: encodedData } = req.query; // QR data parameter
+      
+      if (!code) {
+        return res.status(400).json({ error: "Verification code is required" });
+      }
+      
+      // Validate the verification code format
+      if (!enhancedVerificationUtilities.validateVerificationCode(code)) {
+        // Try legacy format for backward compatibility
+        if (code.length !== 32 && code.length !== 12) {
+          return res.status(400).json({ 
+            error: "Invalid verification code format",
+            details: "Code must be in XXXX-XXXX-XXXX-XXXX format or legacy format"
+          });
+        }
+      }
+      
+      let qrData = null;
+      if (encodedData && typeof encodedData === 'string') {
+        try {
+          // Parse QR code data if provided
+          const decodedData = Buffer.from(encodedData, 'base64url').toString();
+          qrData = JSON.parse(decodedData);
+        } catch (parseError) {
+          console.error("QR data parse error:", parseError);
+        }
+      }
+      
+      // Use verification service for comprehensive verification
+      const verificationRequest = {
+        verificationCode: code,
+        verificationMethod: 'qr_scan' as const,
+        qrData: encodedData as string,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        location: {
+          country: (req as any).geoLocation?.country,
+          region: (req as any).geoLocation?.region,
+          city: (req as any).geoLocation?.city
+        }
+      };
+      
+      const result = await verificationService.verify(verificationRequest);
+      
+      // Log verification attempt
+      await storage.createSecurityEvent({
+        eventType: "qr_verification",
+        severity: "low",
+        details: { 
+          verificationCode: code,
+          isValid: result.isValid,
+          documentType: result.documentType,
+          qrData: qrData
+        },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+      
+      // Return comprehensive verification result
+      res.json({
+        isValid: result.isValid,
+        verificationId: result.verificationId,
+        documentType: result.documentType,
+        documentNumber: result.documentNumber,
+        issuedDate: result.issuedDate,
+        expiryDate: result.expiryDate,
+        holderName: result.holderName,
+        issueOffice: result.issueOffice,
+        verificationCount: result.verificationCount,
+        lastVerified: result.lastVerified,
+        securityFeatures: result.securityFeatures,
+        fraudAssessment: result.fraudAssessment,
+        message: result.isValid ? "Document successfully verified" : result.errorMessage || "Verification failed",
+        qrData: qrData, // Include parsed QR data if available
+        verificationUrl: `${process.env.VERIFICATION_URL || 'https://verify.dha.gov.za'}/verify/${code}`
+      });
+
+    } catch (error) {
+      console.error("QR verification error:", error);
+      res.status(500).json({ error: "QR verification failed" });
+    }
+  });
+
   // Document template management
   app.get("/api/templates", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
@@ -2745,86 +2833,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== DOCUMENT VERIFICATION ENDPOINTS ====================
 
-  // Verify Document by Verification Code
+  // Enhanced Document Verification Endpoint - Supports multiple verification methods
   app.post("/api/verify/document", verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'manual_verify'), async (req: Request, res: Response) => {
     try {
-      // Validate using Zod schema
-      const validationResult = documentVerificationSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          error: "Invalid request format",
-          details: validationResult.error.issues 
-        });
-      }
-
-      const { verificationCode } = validationResult.data;
-      const documentType = req.body.documentType;
-
-      if (!verificationCode || !documentType) {
-        return res.status(400).json({ error: "Verification code and document type required" });
-      }
-
-      let document = null;
-      let isValid = false;
-
-      // Check each document type
-      switch (documentType) {
-        case 'birth_certificate':
-          document = await storage.getBirthCertificateByVerificationCode(verificationCode);
-          break;
-        case 'marriage_certificate':
-          document = await storage.getMarriageCertificateByVerificationCode(verificationCode);
-          break;
-        case 'passport':
-          document = await storage.getPassportByVerificationCode(verificationCode);
-          break;
-        case 'death_certificate':
-          document = await storage.getDeathCertificateByVerificationCode(verificationCode);
-          break;
-        case 'work_permit':
-          document = await storage.getWorkPermitByVerificationCode(verificationCode);
-          break;
-        case 'permanent_visa':
-          document = await storage.getPermanentVisaByVerificationCode(verificationCode);
-          break;
-        case 'id_card':
-          document = await storage.getIdCardByVerificationCode(verificationCode);
-          break;
-        default:
-          return res.status(400).json({ error: "Invalid document type" });
-      }
-
-      isValid = document !== undefined;
-
-      // Log verification attempt
-      await storage.createDocumentVerification({
+      const { 
+        verificationCode, 
         documentType,
-        documentId: document?.id || '',
-        verificationCode,
-        verificationResult: isValid ? 'valid' : 'invalid',
-        verifierIpAddress: req.ip,
-        verifierUserAgent: req.get("User-Agent")
+        documentHash,
+        qrData,
+        documentNumber,
+        includeHistory = false,
+        includeSecurityFeatures = true
+      } = req.body;
+
+      // Validate verification code format if provided
+      if (verificationCode) {
+        // Support both new XXXX-XXXX-XXXX-XXXX format and legacy formats
+        const isNewFormat = enhancedVerificationUtilities.validateVerificationCode(verificationCode);
+        const isLegacyFormat = verificationCode.length === 32 || verificationCode.length === 12;
+        
+        if (!isNewFormat && !isLegacyFormat) {
+          return res.status(400).json({ 
+            error: "Invalid verification code format",
+            details: "Code must be in XXXX-XXXX-XXXX-XXXX format or legacy format"
+          });
+        }
+      }
+
+      // Build comprehensive verification request
+      const verificationRequest = {
+        verificationCode: verificationCode,
+        documentNumber: documentNumber,
+        documentType: documentType,
+        verificationMethod: 'document_lookup' as const,
+        includeHistory: includeHistory,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+        location: {
+          country: (req as any).geoLocation?.country,
+          region: (req as any).geoLocation?.region,
+          city: (req as any).geoLocation?.city
+        }
+      };
+
+      // Use comprehensive verification service
+      const result = await verificationService.verify(verificationRequest);
+      
+      // Enhanced verification with hash checking if provided
+      let integrityCheck = null;
+      if (documentHash && result.isValid) {
+        // Verify document integrity using multiple hash locations
+        const verificationData: any = {
+          documentId: result.verificationId,
+          documentType: result.documentType || documentType,
+          documentHash: documentHash,
+          issuingDate: result.issuedDate || new Date().toISOString(),
+          expiryDate: result.expiryDate,
+          holderName: result.holderName,
+          issueOffice: result.issueOffice
+        };
+        
+        // Generate expected hash
+        const expectedHash = enhancedVerificationUtilities.generateDocumentHash(verificationData);
+        integrityCheck = {
+          providedHash: documentHash,
+          expectedHash: expectedHash,
+          isValid: documentHash === expectedHash,
+          message: documentHash === expectedHash ? 
+            "Document integrity verified" : 
+            "WARNING: Document may have been tampered with"
+        };
+      }
+
+      // Log comprehensive verification attempt
+      const auditLog = {
+        timestamp: new Date(),
+        verificationCode: verificationCode,
+        documentType: documentType || result.documentType,
+        documentNumber: documentNumber,
+        isValid: result.isValid,
+        integrityCheck: integrityCheck,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || "",
+        location: verificationRequest.location,
+        verificationMethod: 'manual_entry',
+        fraudAssessment: result.fraudAssessment
+      };
+      
+      await storage.createSecurityEvent({
+        eventType: "document_verification_comprehensive",
+        severity: result.isValid ? "low" : "medium",
+        details: auditLog
       });
 
-      if (isValid && document) {
-        res.json({
-          isValid: true,
-          document: {
-            id: document.id,
-            type: documentType,
-            verificationCode: document.verificationCode,
-            createdAt: document.createdAt,
-            status: 'verified'
-          },
-          verificationTimestamp: new Date()
-        });
-      } else {
-        res.json({
-          isValid: false,
-          message: "Document not found or verification code invalid",
-          verificationTimestamp: new Date()
-        });
+      // Generate verification signature for this check
+      const verificationSignature = crypto
+        .createHmac('sha256', process.env.VERIFICATION_SECRET || 'default')
+        .update(JSON.stringify({
+          verificationId: result.verificationId,
+          timestamp: Date.now(),
+          isValid: result.isValid
+        }))
+        .digest('hex');
+
+      // Return comprehensive verification result
+      const response: any = {
+        isValid: result.isValid,
+        verificationId: result.verificationId,
+        documentType: result.documentType || documentType,
+        documentNumber: result.documentNumber || documentNumber,
+        issuedDate: result.issuedDate,
+        expiryDate: result.expiryDate,
+        holderName: result.holderName,
+        issueOffice: result.issueOffice,
+        issuingOfficer: result.issuingOfficer,
+        verificationCount: result.verificationCount,
+        lastVerified: result.lastVerified,
+        integrityCheck: integrityCheck,
+        verificationSignature: verificationSignature,
+        auditTrail: {
+          logged: true,
+          timestamp: auditLog.timestamp,
+          ipAddress: auditLog.ipAddress,
+          method: auditLog.verificationMethod
+        }
+      };
+
+      // Add security features if requested
+      if (includeSecurityFeatures && result.securityFeatures) {
+        response.securityFeatures = result.securityFeatures;
+        response.antiTamperingStatus = {
+          digitalSignatureValid: result.securityFeatures.digitalSignature || false,
+          hashValid: result.securityFeatures.hashValid || false,
+          blockchainAnchored: result.securityFeatures.antiTamperHash || false
+        };
       }
+
+      // Add fraud assessment if available
+      if (result.fraudAssessment) {
+        response.fraudAssessment = result.fraudAssessment;
+      }
+
+      // Add verification history if requested
+      if (includeHistory && result.verificationHistory) {
+        response.verificationHistory = result.verificationHistory;
+      }
+
+      // Add verification URL for manual checking
+      response.verificationUrl = `${process.env.VERIFICATION_URL || 'https://verify.dha.gov.za'}/verify/${verificationCode}`;
+      
+      res.json(response);
 
     } catch (error) {
       console.error("Document verification error:", error);
