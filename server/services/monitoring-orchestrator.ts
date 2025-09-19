@@ -428,7 +428,7 @@ export class MonitoringOrchestrator extends EventEmitter {
   private async forceStopAllServices(): Promise<void> {
     console.log('[MonitoringOrchestrator] Force stopping all services...');
     
-    for (const [name, status] of this.services) {
+    for (const [name, status] of Array.from(this.services)) {
       if (status.status !== 'stopped') {
         this.updateServiceStatus(name, 'stopped');
       }
@@ -456,7 +456,9 @@ export class MonitoringOrchestrator extends EventEmitter {
     details?: any
   ): Promise<void> {
     try {
-      await storage.createAutonomousOperation({
+      // Record action in storage if method exists
+      if (typeof (storage as any).createAutonomousOperation === 'function') {
+        await (storage as any).createAutonomousOperation({
         actionType: actionType as any,
         targetService,
         triggeredBy: 'monitoring_orchestrator',
@@ -473,7 +475,8 @@ export class MonitoringOrchestrator extends EventEmitter {
           systemManagement: true,
           auditRequired: actionType.includes('shutdown') || actionType.includes('restart')
         }
-      } as InsertAutonomousOperation);
+        } as InsertAutonomousOperation);
+      }
       
     } catch (error) {
       console.error('[MonitoringOrchestrator] Error recording orchestration action:', error);
@@ -544,7 +547,7 @@ export class MonitoringOrchestrator extends EventEmitter {
     };
 
     // Check each service status
-    for (const [name, status] of this.services) {
+    for (const [name, status] of Array.from(this.services)) {
       healthStatus.services[name] = {
         status: status.status,
         startedAt: status.startedAt,
@@ -653,7 +656,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
     } catch (error) {
       console.error('[MonitoringOrchestrator] Boot self-checks failed with error:', error);
-      failures.push(`System error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      failures.push(`System error: ${errorMessage}`);
       return { passed: false, failures, checks };
     }
   }
@@ -680,7 +684,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
       return { passed: true };
     } catch (error) {
-      return { passed: false, reason: `Storage error: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { passed: false, reason: `Storage error: ${errorMessage}` };
     }
   }
 
@@ -705,7 +710,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
       return { passed: true };
     } catch (error) {
-      return { passed: false, reason: `Enhanced storage check failed: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { passed: false, reason: `Enhanced storage check failed: ${errorMessage}` };
     }
   }
 
@@ -738,16 +744,18 @@ export class MonitoringOrchestrator extends EventEmitter {
         console.log('[MonitoringOrchestrator] Database connectivity check passed');
         return { passed: true };
       } catch (queryError) {
-        console.warn('[MonitoringOrchestrator] Database query failed, but allowing monitoring to continue:', queryError.message);
+        const queryErrorMessage = queryError instanceof Error ? queryError.message : String(queryError);
+        console.warn('[MonitoringOrchestrator] Database query failed, but allowing monitoring to continue:', queryErrorMessage);
         // Return passed: true to allow monitoring system to continue
-        return { passed: true, reason: `Database query failed (non-critical): ${queryError.message}` };
+        return { passed: true, reason: `Database query failed (non-critical): ${queryErrorMessage}` };
       }
 
     } catch (error) {
-      console.warn('[MonitoringOrchestrator] Database connectivity check error (non-critical):', error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn('[MonitoringOrchestrator] Database connectivity check error (non-critical):', errorMessage);
       // Don't fail the entire boot process due to database issues
       // Monitoring should continue even without database
-      return { passed: true, reason: `Database check error (non-critical): ${error.message}` };
+      return { passed: true, reason: `Database check error (non-critical): ${errorMessage}` };
     }
   }
 
@@ -772,7 +780,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
       return { passed: true };
     } catch (error) {
-      return { passed: false, reason: `Configuration validation failed: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { passed: false, reason: `Configuration validation failed: ${errorMessage}` };
     }
   }
 
@@ -797,13 +806,15 @@ export class MonitoringOrchestrator extends EventEmitter {
             return { passed: false, reason: `Service ${serviceName} could not be loaded` };
           }
         } catch (error) {
-          return { passed: false, reason: `Failed to import ${serviceName}: ${error.message}` };
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          return { passed: false, reason: `Failed to import ${serviceName}: ${errorMessage}` };
         }
       }
 
       return { passed: true };
     } catch (error) {
-      return { passed: false, reason: `Dependency check failed: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { passed: false, reason: `Dependency check failed: ${errorMessage}` };
     }
   }
 
@@ -827,7 +838,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
       return { passed: true };
     } catch (error) {
-      return { passed: false, reason: `Resource check failed: ${error.message}` };
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { passed: false, reason: `Resource check failed: ${errorMessage}` };
     }
   }
 
