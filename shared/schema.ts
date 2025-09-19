@@ -11,13 +11,42 @@ export const severityEnum = pgEnum('severity', ['low', 'medium', 'high', 'critic
 export const genderEnum = pgEnum('gender', ['M', 'F', 'X']); // Including non-binary option
 export const statusEnum = pgEnum('status', ['active', 'inactive', 'suspended', 'revoked', 'expired', 'pending']);
 
-// Document and Processing Enums
+// Document and Processing Enums - Complete 21 DHA Document Types
 export const documentTypeEnum = pgEnum('document_type', [
-  'birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate',
+  // Identity Documents (3)
+  'smart_id_card',
+  'identity_document_book',
+  'temporary_id_certificate',
+  
+  // Travel Documents (3)
+  'south_african_passport',
+  'emergency_travel_certificate',
+  'refugee_travel_document',
+  
+  // Civil Documents (4)
+  'birth_certificate',
+  'death_certificate', 
+  'marriage_certificate',
+  'divorce_certificate',
+  
+  // Immigration Documents (11)
+  'general_work_visa',
+  'critical_skills_work_visa',
+  'intra_company_transfer_work_visa',
+  'business_visa',
+  'study_visa_permit',
+  'visitor_visa',
+  'medical_treatment_visa',
+  'retired_person_visa',
+  'exchange_visa',
+  'relatives_visa',
+  'permanent_residence_permit',
+  
+  // Legacy compatibility (keep existing data working)
   'passport', 'sa_id', 'smart_id', 'temporary_id',
-  'study_permit', 'work_permit', 'business_permit', 'visitor_visa', 'transit_visa',
+  'study_permit', 'work_permit', 'business_permit', 'transit_visa',
   'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
-  'diplomatic_passport', 'exchange_permit', 'relatives_visa', 'emergency_travel_document'
+  'diplomatic_passport', 'exchange_permit'
 ]);
 
 export const processingStatusEnum = pgEnum('processing_status', [
@@ -5112,5 +5141,424 @@ export const insertAlertRuleSchema = createInsertSchema(alertRules);
 export const insertIncidentSchema = createInsertSchema(incidents);
 export const insertGovernmentComplianceAuditSchema = createInsertSchema(governmentComplianceAudit);
 export const insertPerformanceBaselineSchema = createInsertSchema(performanceBaselines);
+
+// ===================== COMPLETE 21 DHA DOCUMENT VALIDATION SCHEMAS =====================
+
+// Base personal details schema used across all document types
+export const personalDetailsSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  surname: z.string().min(1, "Surname is required"),
+  givenNames: z.string().min(1, "Given names are required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  placeOfBirth: z.string().min(1, "Place of birth is required"),
+  nationality: z.string().min(1, "Nationality is required"),
+  passportNumber: z.string().optional(),
+  idNumber: z.string().optional(),
+  gender: z.enum(["M", "F", "X"]),
+  maritalStatus: z.enum(["Single", "Married", "Divorced", "Widowed"]).optional(),
+  countryOfBirth: z.string().min(1, "Country of birth is required"),
+  photograph: z.string().optional() // Base64 encoded
+});
+
+// 1. SMART ID CARD
+export const smartIdCardSchema = z.object({
+  documentType: z.literal("smart_id_card"),
+  personal: personalDetailsSchema,
+  idNumber: z.string().min(13, "Valid SA ID number is required"),
+  cardNumber: z.string().min(1, "Card number is required"),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
+  issuingOffice: z.string().min(1, "Issuing office is required"),
+  emergencyContact: z.object({
+    name: z.string(),
+    relationship: z.string(),
+    contactNumber: z.string()
+  }).optional()
+});
+
+// 2. IDENTITY DOCUMENT BOOK (Green Book)
+export const identityDocumentBookSchema = z.object({
+  documentType: z.literal("identity_document_book"),
+  personal: personalDetailsSchema,
+  idNumber: z.string().min(13, "Valid SA ID number is required"),
+  bookNumber: z.string().min(1, "Book number is required"),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  issuingOffice: z.string().min(1, "Issuing office is required"),
+  previousIdNumber: z.string().optional(),
+  parentDetails: z.object({
+    motherFullName: z.string(),
+    fatherFullName: z.string()
+  }).optional()
+});
+
+// 3. TEMPORARY ID CERTIFICATE
+export const temporaryIdCertificateSchema = z.object({
+  documentType: z.literal("temporary_id_certificate"),
+  personal: personalDetailsSchema,
+  temporaryCertificateNumber: z.string().min(1, "Certificate number is required"),
+  reasonForIssue: z.string().min(1, "Reason for issue is required"),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  expiryDate: z.string().min(1, "Expiry date is required"),
+  issuingOffice: z.string().min(1, "Issuing office is required"),
+  applicationReference: z.string().min(1, "Application reference is required")
+});
+
+// 4. SOUTH AFRICAN PASSPORT
+export const southAfricanPassportSchema = z.object({
+  documentType: z.literal("south_african_passport"),
+  personal: personalDetailsSchema,
+  passportNumber: z.string().min(1, "Passport number is required"),
+  passportType: z.enum(["Ordinary", "Official", "Diplomatic"]).default("Ordinary"),
+  dateOfIssue: z.string().min(1, "Date of issue is required"),
+  dateOfExpiry: z.string().min(1, "Date of expiry is required"),
+  placeOfIssue: z.string().min(1, "Place of issue is required"),
+  issuingAuthority: z.string().default("Department of Home Affairs"),
+  height: z.string().optional(),
+  eyeColor: z.string().optional(),
+  endorsements: z.array(z.string()).optional()
+});
+
+// 5. EMERGENCY TRAVEL CERTIFICATE
+export const emergencyTravelCertificateSchema = z.object({
+  documentType: z.literal("emergency_travel_certificate"),
+  personal: personalDetailsSchema,
+  certificateNumber: z.string().min(1, "Certificate number is required"),
+  reasonForIssue: z.string().min(1, "Reason for emergency issue is required"),
+  dateOfIssue: z.string().min(1, "Date of issue is required"),
+  dateOfExpiry: z.string().min(1, "Date of expiry is required"),
+  placeOfIssue: z.string().min(1, "Place of issue is required"),
+  travelDestination: z.string().min(1, "Travel destination is required"),
+  validForReturn: z.boolean().default(true)
+});
+
+// 6. REFUGEE TRAVEL DOCUMENT
+export const refugeeTravelDocumentSchema = z.object({
+  documentType: z.literal("refugee_travel_document"),
+  personal: personalDetailsSchema,
+  refugeeNumber: z.string().min(1, "Refugee number is required"),
+  unhcrNumber: z.string().optional(),
+  countryOfOrigin: z.string().min(1, "Country of origin is required"),
+  dateOfEntry: z.string().min(1, "Date of entry into SA is required"),
+  refugeeStatus: z.enum(["Refugee", "Asylum Seeker"]),
+  dateOfIssue: z.string().min(1, "Date of issue is required"),
+  dateOfExpiry: z.string().min(1, "Date of expiry is required"),
+  travelRestrictions: z.array(z.string()).optional()
+});
+
+// 7. BIRTH CERTIFICATE
+export const birthCertificateSchema = z.object({
+  documentType: z.literal("birth_certificate"),
+  childFullName: z.string().min(1, "Child's full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  placeOfBirth: z.string().min(1, "Place of birth is required"),
+  sex: z.enum(["Male", "Female"]),
+  motherFullName: z.string().min(1, "Mother's full name is required"),
+  motherAge: z.number().min(1).optional(),
+  motherNationality: z.string().min(1, "Mother's nationality is required"),
+  fatherFullName: z.string().min(1, "Father's full name is required"),
+  fatherAge: z.number().min(1).optional(),
+  fatherNationality: z.string().min(1, "Father's nationality is required"),
+  registrationNumber: z.string().min(1, "Registration number is required"),
+  registrationDate: z.string().min(1, "Registration date is required"),
+  attendantType: z.string().optional(),
+  attendantName: z.string().optional()
+});
+
+// 8. DEATH CERTIFICATE
+export const deathCertificateSchema = z.object({
+  documentType: z.literal("death_certificate"),
+  deceasedFullName: z.string().min(1, "Deceased's full name is required"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+  dateOfDeath: z.string().min(1, "Date of death is required"),
+  placeOfDeath: z.string().min(1, "Place of death is required"),
+  causeOfDeath: z.string().min(1, "Cause of death is required"),
+  mannerOfDeath: z.enum(["Natural", "Accident", "Suicide", "Homicide", "Undetermined"]).optional(),
+  certifyingPhysician: z.string().min(1, "Certifying physician is required"),
+  physicianRegistrationNumber: z.string().min(1, "Physician registration number is required"),
+  informantName: z.string().min(1, "Informant name is required"),
+  relationshipToDeceased: z.string().min(1, "Relationship to deceased is required"),
+  registrationNumber: z.string().min(1, "Registration number is required"),
+  registrationDate: z.string().min(1, "Registration date is required")
+});
+
+// 9. MARRIAGE CERTIFICATE
+export const marriageCertificateSchema = z.object({
+  documentType: z.literal("marriage_certificate"),
+  partner1FullName: z.string().min(1, "Partner 1 full name is required"),
+  partner1Age: z.number().min(18, "Must be at least 18 years old"),
+  partner1Nationality: z.string().min(1, "Partner 1 nationality is required"),
+  partner1Occupation: z.string().optional(),
+  partner2FullName: z.string().min(1, "Partner 2 full name is required"),
+  partner2Age: z.number().min(18, "Must be at least 18 years old"),
+  partner2Nationality: z.string().min(1, "Partner 2 nationality is required"),
+  partner2Occupation: z.string().optional(),
+  marriageDate: z.string().min(1, "Marriage date is required"),
+  marriagePlace: z.string().min(1, "Marriage place is required"),
+  marriageType: z.enum(["Civil", "Religious", "Customary"]),
+  officiantName: z.string().min(1, "Officiant name is required"),
+  witness1Name: z.string().min(1, "Witness 1 name is required"),
+  witness2Name: z.string().min(1, "Witness 2 name is required"),
+  registrationNumber: z.string().min(1, "Registration number is required"),
+  registrationDate: z.string().min(1, "Registration date is required")
+});
+
+// 10. DIVORCE CERTIFICATE
+export const divorceCertificateSchema = z.object({
+  documentType: z.literal("divorce_certificate"),
+  husband: z.object({
+    fullName: z.string().min(1, "Husband's full name is required"),
+    idNumber: z.string().optional(),
+    nationality: z.string().min(1, "Husband's nationality is required")
+  }),
+  wife: z.object({
+    fullName: z.string().min(1, "Wife's full name is required"),
+    idNumber: z.string().optional(),
+    nationality: z.string().min(1, "Wife's nationality is required")
+  }),
+  marriageDate: z.string().min(1, "Marriage date is required"),
+  marriageCertificateNumber: z.string().min(1, "Marriage certificate number is required"),
+  divorceDate: z.string().min(1, "Divorce date is required"),
+  divorceCourt: z.string().min(1, "Divorce court is required"),
+  divorceDecreeNumber: z.string().min(1, "Divorce decree number is required"),
+  groundsForDivorce: z.string().min(1, "Grounds for divorce are required")
+});
+
+// 11-21. IMMIGRATION DOCUMENTS (Visas and Permits)
+const employerDetailsSchema = z.object({
+  name: z.string().min(1, "Employer name is required"),
+  address: z.string().min(1, "Employer address is required"),
+  registrationNumber: z.string().min(1, "Registration number is required"),
+  taxNumber: z.string().min(1, "Tax number is required"),
+  contactPerson: z.string().min(1, "Contact person is required")
+});
+
+// 11. GENERAL WORK VISA
+export const generalWorkVisaSchema = z.object({
+  documentType: z.literal("general_work_visa"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  employer: employerDetailsSchema,
+  occupation: z.string().min(1, "Occupation is required"),
+  jobTitle: z.string().min(1, "Job title is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required"),
+  conditions: z.array(z.string()).optional(),
+  portOfEntry: z.string().min(1, "Port of entry is required")
+});
+
+// 12. CRITICAL SKILLS WORK VISA
+export const criticalSkillsWorkVisaSchema = z.object({
+  documentType: z.literal("critical_skills_work_visa"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  criticalSkillArea: z.string().min(1, "Critical skill area is required"),
+  qualifications: z.array(z.object({
+    degree: z.string(),
+    institution: z.string(),
+    year: z.string(),
+    country: z.string()
+  })).min(1, "At least one qualification is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required"),
+  conditions: z.array(z.string()).optional()
+});
+
+// 13. INTRA-COMPANY TRANSFER WORK VISA
+export const intraCompanyTransferWorkVisaSchema = z.object({
+  documentType: z.literal("intra_company_transfer_work_visa"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  parentCompany: employerDetailsSchema,
+  subsidiaryCompany: employerDetailsSchema,
+  transferPosition: z.string().min(1, "Transfer position is required"),
+  transferDuration: z.string().min(1, "Transfer duration is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 14. BUSINESS VISA
+export const businessVisaSchema = z.object({
+  documentType: z.literal("business_visa"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  businessType: z.string().min(1, "Business type is required"),
+  investmentAmount: z.string().min(1, "Investment amount is required"),
+  businessPlan: z.string().min(1, "Business plan is required"),
+  jobsToBeCreated: z.number().min(1, "Number of jobs to be created is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 15. STUDY VISA/PERMIT
+export const studyVisaPermitSchema = z.object({
+  documentType: z.literal("study_visa_permit"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  institution: z.object({
+    name: z.string().min(1, "Institution name is required"),
+    address: z.string().min(1, "Institution address is required"),
+    registrationNumber: z.string().min(1, "Institution registration number is required")
+  }),
+  course: z.string().min(1, "Course/qualification is required"),
+  studyLevel: z.enum(["Certificate", "Diploma", "Degree", "Postgraduate"]),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 16. VISITOR VISA
+export const visitorVisaSchema = z.object({
+  documentType: z.literal("visitor_visa"),
+  personal: personalDetailsSchema,
+  visaNumber: z.string().min(1, "Visa number is required"),
+  purposeOfVisit: z.string().min(1, "Purpose of visit is required"),
+  durationOfStay: z.string().min(1, "Duration of stay is required"),
+  accommodation: z.string().min(1, "Accommodation details are required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required"),
+  numberOfEntries: z.enum(["Single", "Multiple"])
+});
+
+// 17. MEDICAL TREATMENT VISA
+export const medicalTreatmentVisaSchema = z.object({
+  documentType: z.literal("medical_treatment_visa"),
+  personal: personalDetailsSchema,
+  visaNumber: z.string().min(1, "Visa number is required"),
+  medicalCondition: z.string().min(1, "Medical condition is required"),
+  treatingHospital: z.string().min(1, "Treating hospital is required"),
+  estimatedTreatmentDuration: z.string().min(1, "Estimated treatment duration is required"),
+  accompanyingPersons: z.array(z.string()).optional(),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 18. RETIRED PERSON'S VISA
+export const retiredPersonVisaSchema = z.object({
+  documentType: z.literal("retired_person_visa"),
+  personal: personalDetailsSchema,
+  visaNumber: z.string().min(1, "Visa number is required"),
+  retirementDate: z.string().min(1, "Retirement date is required"),
+  monthlyIncome: z.string().min(1, "Monthly income proof is required"),
+  pensionFundDetails: z.string().min(1, "Pension fund details are required"),
+  medicalAidCover: z.string().min(1, "Medical aid cover is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 19. EXCHANGE VISA
+export const exchangeVisaSchema = z.object({
+  documentType: z.literal("exchange_visa"),
+  personal: personalDetailsSchema,
+  visaNumber: z.string().min(1, "Visa number is required"),
+  exchangeProgram: z.string().min(1, "Exchange program is required"),
+  hostInstitution: z.string().min(1, "Host institution is required"),
+  sponsoringOrganization: z.string().min(1, "Sponsoring organization is required"),
+  programDuration: z.string().min(1, "Program duration is required"),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 20. RELATIVES VISA
+export const relativesVisaSchema = z.object({
+  documentType: z.literal("relatives_visa"),
+  personal: personalDetailsSchema,
+  visaNumber: z.string().min(1, "Visa number is required"),
+  relationship: z.string().min(1, "Relationship to SA citizen/resident is required"),
+  sponsor: z.object({
+    fullName: z.string().min(1, "Sponsor full name is required"),
+    idNumber: z.string().min(1, "Sponsor ID number is required"),
+    relationship: z.string().min(1, "Relationship to applicant is required"),
+    address: z.string().min(1, "Sponsor address is required"),
+    contactNumber: z.string().min(1, "Sponsor contact number is required")
+  }),
+  validFrom: z.string().min(1, "Valid from date is required"),
+  validUntil: z.string().min(1, "Valid until date is required")
+});
+
+// 21. PERMANENT RESIDENCE PERMIT
+export const permanentResidencePermitSchema = z.object({
+  documentType: z.literal("permanent_residence_permit"),
+  personal: personalDetailsSchema,
+  permitNumber: z.string().min(1, "Permit number is required"),
+  categoryOfAdmission: z.string().min(1, "Category of admission is required"),
+  dateOfAdmission: z.string().min(1, "Date of admission is required"),
+  conditions: z.array(z.string()).optional(),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  issuingOffice: z.string().min(1, "Issuing office is required"),
+  previousPermitNumber: z.string().optional()
+});
+
+// Document generation request schema that accepts any of the 21 document types
+export const documentGenerationRequestSchema = z.discriminatedUnion("documentType", [
+  smartIdCardSchema,
+  identityDocumentBookSchema,
+  temporaryIdCertificateSchema,
+  southAfricanPassportSchema,
+  emergencyTravelCertificateSchema,
+  refugeeTravelDocumentSchema,
+  birthCertificateSchema,
+  deathCertificateSchema,
+  marriageCertificateSchema,
+  divorceCertificateSchema,
+  generalWorkVisaSchema,
+  criticalSkillsWorkVisaSchema,
+  intraCompanyTransferWorkVisaSchema,
+  businessVisaSchema,
+  studyVisaPermitSchema,
+  visitorVisaSchema,
+  medicalTreatmentVisaSchema,
+  retiredPersonVisaSchema,
+  exchangeVisaSchema,
+  relativesVisaSchema,
+  permanentResidencePermitSchema
+]);
+
+// Export all document type schemas for individual use
+export const documentTypeSchemas = {
+  smart_id_card: smartIdCardSchema,
+  identity_document_book: identityDocumentBookSchema,
+  temporary_id_certificate: temporaryIdCertificateSchema,
+  south_african_passport: southAfricanPassportSchema,
+  emergency_travel_certificate: emergencyTravelCertificateSchema,
+  refugee_travel_document: refugeeTravelDocumentSchema,
+  birth_certificate: birthCertificateSchema,
+  death_certificate: deathCertificateSchema,
+  marriage_certificate: marriageCertificateSchema,
+  divorce_certificate: divorceCertificateSchema,
+  general_work_visa: generalWorkVisaSchema,
+  critical_skills_work_visa: criticalSkillsWorkVisaSchema,
+  intra_company_transfer_work_visa: intraCompanyTransferWorkVisaSchema,
+  business_visa: businessVisaSchema,
+  study_visa_permit: studyVisaPermitSchema,
+  visitor_visa: visitorVisaSchema,
+  medical_treatment_visa: medicalTreatmentVisaSchema,
+  retired_person_visa: retiredPersonVisaSchema,
+  exchange_visa: exchangeVisaSchema,
+  relatives_visa: relativesVisaSchema,
+  permanent_residence_permit: permanentResidencePermitSchema
+} as const;
+
+// Type exports for all document schemas
+export type DocumentGenerationRequest = z.infer<typeof documentGenerationRequestSchema>;
+export type SmartIdCardData = z.infer<typeof smartIdCardSchema>;
+export type IdentityDocumentBookData = z.infer<typeof identityDocumentBookSchema>;
+export type TemporaryIdCertificateData = z.infer<typeof temporaryIdCertificateSchema>;
+export type SouthAfricanPassportData = z.infer<typeof southAfricanPassportSchema>;
+export type EmergencyTravelCertificateData = z.infer<typeof emergencyTravelCertificateSchema>;
+export type RefugeeTravelDocumentData = z.infer<typeof refugeeTravelDocumentSchema>;
+export type BirthCertificateData = z.infer<typeof birthCertificateSchema>;
+export type DeathCertificateData = z.infer<typeof deathCertificateSchema>;
+export type MarriageCertificateData = z.infer<typeof marriageCertificateSchema>;
+export type DivorceCertificateData = z.infer<typeof divorceCertificateSchema>;
+export type GeneralWorkVisaData = z.infer<typeof generalWorkVisaSchema>;
+export type CriticalSkillsWorkVisaData = z.infer<typeof criticalSkillsWorkVisaSchema>;
+export type IntraCompanyTransferWorkVisaData = z.infer<typeof intraCompanyTransferWorkVisaSchema>;
+export type BusinessVisaData = z.infer<typeof businessVisaSchema>;
+export type StudyVisaPermitData = z.infer<typeof studyVisaPermitSchema>;
+export type VisitorVisaData = z.infer<typeof visitorVisaSchema>;
+export type MedicalTreatmentVisaData = z.infer<typeof medicalTreatmentVisaSchema>;
+export type RetiredPersonVisaData = z.infer<typeof retiredPersonVisaSchema>;
+export type ExchangeVisaData = z.infer<typeof exchangeVisaSchema>;
+export type RelativesVisaData = z.infer<typeof relativesVisaSchema>;
+export type PermanentResidencePermitData = z.infer<typeof permanentResidencePermitSchema>;
 
 

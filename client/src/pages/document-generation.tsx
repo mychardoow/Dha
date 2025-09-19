@@ -1,3 +1,9 @@
+/**
+ * UNIFIED DHA DOCUMENT GENERATION INTERFACE
+ * Comprehensive interface for all 21 South African DHA document types
+ * with dynamic forms, preview mode, and exact design specifications
+ */
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -11,482 +17,358 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { 
+import {
   FileText, Download, Eye, Shield, CheckCircle, QrCode, Calendar, User, Hash,
   Baby, Heart, Plane, Skull, Briefcase, CreditCard, UserCheck, Search,
   Building2, Scan, Clock, AlertTriangle, FileCheck, Camera, Upload,
-  Users, Globe, Lock, ShieldCheck
+  Users, Globe, Lock, ShieldCheck, Fingerprint, Award, Stamp,
+  BookOpen, MapPin, Phone, Mail, Home, Star, Plus, Minus, Info,
+  ExternalLink, Zap, Target, Settings, HelpCircle
 } from "lucide-react";
 
-// ==================== FORM SCHEMAS ====================
+// Import unified schemas from shared
+import { 
+  documentGenerationRequestSchema, 
+  documentTypeSchemas,
+  type DocumentGenerationRequest,
+  type SmartIdCardData,
+  type IdentityDocumentBookData,
+  type TemporaryIdCertificateData,
+  type SouthAfricanPassportData,
+  type EmergencyTravelCertificateData,
+  type RefugeeTravelDocumentData,
+  type BirthCertificateData,
+  type DeathCertificateData,
+  type MarriageCertificateData,
+  type DivorceCertificateData,
+  type GeneralWorkVisaData,
+  type CriticalSkillsWorkVisaData,
+  type IntraCompanyTransferWorkVisaData,
+  type BusinessVisaData,
+  type StudyVisaPermitData,
+  type VisitorVisaData,
+  type MedicalTreatmentVisaData,
+  type RetiredPersonVisaData,
+  type ExchangeVisaData,
+  type RelativesVisaData,
+  type PermanentResidencePermitData,
+  DOCUMENT_TYPES
+} from "@shared/schema";
 
-// Refugee Document Schema
-const refugeeDocumentSchema = z.object({
-  documentType: z.enum(["section22_permit", "asylum_permit", "refugee_id", "refugee_travel"]),
-  fullName: z.string().min(1, "Full name is required"),
-  unhcrNumber: z.string().optional(),
-  countryOfOrigin: z.string().min(1, "Country of origin is required"),
-  dateOfEntry: z.string().min(1, "Date of entry is required"),
-  campLocation: z.string().optional(),
-  permitNumber: z.string().optional(),
-  permitExpiryDate: z.string().optional(),
-  maroonPassportNumber: z.string().optional(),
-});
-
-// Diplomatic Passport Schema
-const diplomaticPassportSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  placeOfBirth: z.string().min(1, "Place of birth is required"),
-  sex: z.enum(["M", "F", "X"]),
-  nationality: z.string().min(1, "Nationality is required"),
-  diplomaticNoteNumber: z.string().min(1, "Diplomatic note number is required"),
-  embassy: z.string().min(1, "Embassy is required"),
-  consulate: z.string().optional(),
-  diplomaticRank: z.string().min(1, "Diplomatic rank is required"),
-  immunityStatus: z.enum(["full", "partial", "none"]),
-  countryOfAccreditation: z.string().min(1, "Country of accreditation is required"),
-  emergencyContactEmbassy: z.string().min(1, "Emergency contact is required"),
-});
-
-const birthCertificateSchema = z.object({
-  childFullName: z.string().min(1, "Child's full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  placeOfBirth: z.string().min(1, "Place of birth is required"),
-  sex: z.enum(["male", "female", "other"]),
-  motherFullName: z.string().min(1, "Mother's full name is required"),
-  motherAge: z.number().min(1).optional(),
-  fatherFullName: z.string().min(1, "Father's full name is required"),
-  fatherAge: z.number().min(1).optional(),
-  attendantType: z.string().optional(),
-  attendantName: z.string().optional()
-});
-
-const marriageCertificateSchema = z.object({
-  partner1FullName: z.string().min(1, "Partner 1 full name is required"),
-  partner1Age: z.number().min(18, "Must be at least 18 years old"),
-  partner1Occupation: z.string().optional(),
-  partner2FullName: z.string().min(1, "Partner 2 full name is required"),
-  partner2Age: z.number().min(18, "Must be at least 18 years old"),
-  partner2Occupation: z.string().optional(),
-  marriageDate: z.string().min(1, "Marriage date is required"),
-  marriagePlace: z.string().min(1, "Marriage place is required"),
-  officiantName: z.string().min(1, "Officiant name is required"),
-  witness1Name: z.string().optional(),
-  witness2Name: z.string().optional()
-});
-
-const passportSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  placeOfBirth: z.string().min(1, "Place of birth is required"),
-  sex: z.enum(["M", "F", "X"]),
-  nationality: z.string().min(1, "Nationality is required"),
-  height: z.string().optional(),
-  eyeColor: z.string().optional(),
-  expiryDate: z.string().min(1, "Expiry date is required")
-});
-
-const deathCertificateSchema = z.object({
-  deceasedFullName: z.string().min(1, "Deceased full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  dateOfDeath: z.string().min(1, "Date of death is required"),
-  placeOfDeath: z.string().min(1, "Place of death is required"),
-  causeOfDeath: z.string().min(1, "Cause of death is required"),
-  mannerOfDeath: z.string().optional(),
-  certifyingPhysician: z.string().min(1, "Certifying physician is required"),
-  informantName: z.string().optional(),
-  relationshipToDeceased: z.string().optional()
-});
-
-const workPermitSchema = z.object({
-  employeeFullName: z.string().min(1, "Employee full name is required"),
-  employeeNationality: z.string().min(1, "Employee nationality is required"),
-  employeePassportNumber: z.string().min(1, "Employee passport number is required"),
-  employerName: z.string().min(1, "Employer name is required"),
-  jobTitle: z.string().min(1, "Job title is required"),
-  workLocation: z.string().min(1, "Work location is required"),
-  validFrom: z.string().min(1, "Valid from date is required"),
-  validUntil: z.string().min(1, "Valid until date is required"),
-  jobDescription: z.string().optional()
-});
-
-const permanentVisaSchema = z.object({
-  holderFullName: z.string().min(1, "Holder full name is required"),
-  holderNationality: z.string().min(1, "Holder nationality is required"),
-  holderPassportNumber: z.string().min(1, "Holder passport number is required"),
-  visaType: z.string().min(1, "Visa type is required"),
-  visaCategory: z.string().min(1, "Visa category is required"),
-  countryOfIssue: z.string().min(1, "Country of issue is required"),
-  validFrom: z.string().min(1, "Valid from date is required"),
-  expiryDate: z.string().optional(),
-  portOfEntry: z.string().optional()
-});
-
-const idCardSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  sex: z.enum(["M", "F", "X"]),
-  nationality: z.string().min(1, "Nationality is required"),
-  address: z.string().min(1, "Address is required"),
-  expiryDate: z.string().min(1, "Expiry date is required"),
-  parentNames: z.string().optional(),
-  emergencyContact: z.string().optional()
-});
-
-const verificationSchema = z.object({
-  verificationCode: z.string().min(1, "Verification code is required"),
-  documentType: z.enum([
-    "birth_certificate", "marriage_certificate", "passport", 
-    "death_certificate", "work_permit", "permanent_visa", "id_card"
-  ]).optional()
-});
-
-// Certificate form schema for general certificates
-const certificateFormSchema = z.object({
-  type: z.string().min(1, "Certificate type is required"),
-  templateType: z.string().min(1, "Template type is required"),
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  expiresAt: z.string().optional(),
-  data: z.record(z.any()).optional()
-});
-
-// ==================== DHA FORM SCHEMAS ====================
-
-// DHA Applicant Profile Schema
-const dhaApplicantSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  surname: z.string().min(1, "Surname is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  placeOfBirth: z.string().min(1, "Place of birth is required"),
-  citizenshipStatus: z.enum(["citizen", "permanent_resident", "temporary_resident", "foreign_national"]),
-  idNumber: z.string().min(13, "Valid ID number is required"),
-  passportNumber: z.string().optional(),
-  nationality: z.string().min(1, "Nationality is required"),
-  contactDetails: z.object({
-    phone: z.string().min(1, "Phone number is required"),
-    email: z.string().email("Valid email is required"),
-    address: z.string().min(1, "Address is required")
-  }),
-  parentDetails: z.object({
-    motherFullName: z.string().optional(),
-    fatherFullName: z.string().optional()
-  }).optional()
-});
-
-// DHA Application Schema
-const dhaApplicationSchema = z.object({
-  applicantId: z.string().min(1, "Applicant ID is required"),
-  applicationType: z.enum([
-    "new_passport", "passport_renewal", "emergency_travel_document",
-    "id_book", "smart_id_card", "birth_certificate", "marriage_certificate", "death_certificate"
-  ]),
-  priorityLevel: z.enum(["urgent", "standard", "low"]).default("standard"),
-  documents: z.array(z.string()).optional(),
-  specialRequests: z.string().optional()
-});
-
-// MRZ Scanning Schema
-const mrzScanSchema = z.object({
-  applicantId: z.string().min(1, "Applicant ID is required"),
-  applicationId: z.string().min(1, "Application ID is required"),
-  mrzLine1: z.string().min(30, "MRZ Line 1 must be at least 30 characters"),
-  mrzLine2: z.string().min(30, "MRZ Line 2 must be at least 30 characters"),
-  passportImage: z.string().optional()
-});
-
-// Identity Verification Schema
-const identityVerificationSchema = z.object({
-  applicantId: z.string().min(1, "Applicant ID is required"),
-  applicationId: z.string().min(1, "Application ID is required"),
-  idNumber: z.string().min(13, "Valid ID number is required"),
-  fullName: z.string().min(1, "Full name is required"),
-  dateOfBirth: z.string().min(1, "Date of birth is required"),
-  placeOfBirth: z.string().optional()
-});
-
-// Background Check Consent Schema
-const backgroundCheckSchema = z.object({
-  applicantId: z.string().min(1, "Applicant ID is required"),
-  applicationId: z.string().min(1, "Application ID is required"),
-  purpose: z.enum(["employment", "immigration", "adoption", "firearm_license", "other"]),
-  consentGiven: z.boolean().refine(val => val === true, "Consent is required for background check"),
-  additionalInfo: z.string().optional()
-});
-
-// Permit form schema for general permits
-const permitFormSchema = z.object({
-  type: z.string().min(1, "Permit type is required"),
-  templateType: z.string().min(1, "Template type is required"),
-  title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
-  expiresAt: z.string().optional(),
-  data: z.record(z.any()).optional(),
-  conditions: z.record(z.any()).optional()
-});
-
-// ==================== INTERFACES ====================
-
-interface DocumentTemplate {
-  id: string;
-  name: string;
-  type: "certificate" | "permit";
+// Document type definitions
+interface DocumentTypeInfo {
+  type: string;
+  displayName: string;
+  description: string;
   category: string;
-  description?: string;
+  formNumber: string;
+  icon: React.ComponentType<any>;
+  color: string;
+  isImplemented: boolean;
 }
 
-interface Certificate {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  status: "active" | "expired" | "revoked";
-  serialNumber: string;
-  issuedAt: string;
-  expiresAt?: string;
-  verificationCode: string;
-  userId: string;
+// All 21 DHA document types with metadata
+const DOCUMENT_TYPE_INFO: Record<string, DocumentTypeInfo> = {
+  // Identity Documents (3)
+  smart_id_card: {
+    type: "smart_id_card",
+    displayName: "Smart ID Card",
+    description: "Polycarbonate smart ID card with biometric chip and laser engraving",
+    category: "identity",
+    formNumber: "DHA-24",
+    icon: CreditCard,
+    color: "bg-blue-500",
+    isImplemented: true
+  },
+  identity_document_book: {
+    type: "identity_document_book",
+    displayName: "Identity Document Book",
+    description: "Traditional green book identity document",
+    category: "identity",
+    formNumber: "BI-9",
+    icon: BookOpen,
+    color: "bg-green-500",
+    isImplemented: true
+  },
+  temporary_id_certificate: {
+    type: "temporary_id_certificate",
+    displayName: "Temporary ID Certificate",
+    description: "Temporary identity certificate for urgent cases",
+    category: "identity",
+    formNumber: "DHA-73",
+    icon: FileCheck,
+    color: "bg-orange-500",
+    isImplemented: false
+  },
+  
+  // Travel Documents (3)
+  south_african_passport: {
+    type: "south_african_passport",
+    displayName: "South African Passport",
+    description: "Machine-readable South African passport with ICAO compliance",
+    category: "travel",
+    formNumber: "DHA-73",
+    icon: Plane,
+    color: "bg-purple-500",
+    isImplemented: true
+  },
+  emergency_travel_certificate: {
+    type: "emergency_travel_certificate",
+    displayName: "Emergency Travel Certificate",
+    description: "Emergency travel document for urgent travel situations",
+    category: "travel",
+    formNumber: "DHA-1738",
+    icon: AlertTriangle,
+    color: "bg-red-500",
+    isImplemented: false
+  },
+  refugee_travel_document: {
+    type: "refugee_travel_document",
+    displayName: "Refugee Travel Document",
+    description: "UNHCR compliant travel document for refugees",
+    category: "travel",
+    formNumber: "DHA-1590",
+    icon: Globe,
+    color: "bg-teal-500",
+    isImplemented: false
+  },
+  
+  // Civil Documents (4)
+  birth_certificate: {
+    type: "birth_certificate",
+    displayName: "Birth Certificate",
+    description: "Official birth certificate (unabridged format)",
+    category: "civil",
+    formNumber: "BI-24",
+    icon: Baby,
+    color: "bg-pink-500",
+    isImplemented: true
+  },
+  death_certificate: {
+    type: "death_certificate",
+    displayName: "Death Certificate",
+    description: "Official death certificate with medical details",
+    category: "civil",
+    formNumber: "BI-1663",
+    icon: Skull,
+    color: "bg-gray-500",
+    isImplemented: false
+  },
+  marriage_certificate: {
+    type: "marriage_certificate",
+    displayName: "Marriage Certificate",
+    description: "Official marriage certificate for civil, religious or customary marriages",
+    category: "civil",
+    formNumber: "BI-130",
+    icon: Heart,
+    color: "bg-rose-500",
+    isImplemented: true
+  },
+  divorce_certificate: {
+    type: "divorce_certificate",
+    displayName: "Divorce Certificate",
+    description: "Official divorce certificate with decree details",
+    category: "civil",
+    formNumber: "BI-281",
+    icon: Users,
+    color: "bg-slate-500",
+    isImplemented: false
+  },
+  
+  // Immigration Documents (11)
+  general_work_visa: {
+    type: "general_work_visa",
+    displayName: "General Work Visa",
+    description: "General work visa for employment in South Africa",
+    category: "immigration",
+    formNumber: "BI-1738",
+    icon: Briefcase,
+    color: "bg-indigo-500",
+    isImplemented: true
+  },
+  critical_skills_work_visa: {
+    type: "critical_skills_work_visa",
+    displayName: "Critical Skills Work Visa",
+    description: "Work visa for critical and scarce skills occupations",
+    category: "immigration",
+    formNumber: "DHA-1739",
+    icon: Star,
+    color: "bg-yellow-500",
+    isImplemented: true
+  },
+  intra_company_transfer_work_visa: {
+    type: "intra_company_transfer_work_visa",
+    displayName: "Intra-Company Transfer Work Visa",
+    description: "Work visa for intra-company transfers",
+    category: "immigration",
+    formNumber: "DHA-1740",
+    icon: Building2,
+    color: "bg-cyan-500",
+    isImplemented: false
+  },
+  business_visa: {
+    type: "business_visa",
+    displayName: "Business Visa",
+    description: "Business visa for entrepreneurs and investors",
+    category: "immigration",
+    formNumber: "DHA-1741",
+    icon: Target,
+    color: "bg-emerald-500",
+    isImplemented: false
+  },
+  study_visa_permit: {
+    type: "study_visa_permit",
+    displayName: "Study Visa/Permit",
+    description: "Study visa for international students",
+    category: "immigration",
+    formNumber: "DHA-1742",
+    icon: BookOpen,
+    color: "bg-blue-400",
+    isImplemented: false
+  },
+  visitor_visa: {
+    type: "visitor_visa",
+    displayName: "Visitor Visa",
+    description: "Tourist and visitor visa",
+    category: "immigration",
+    formNumber: "DHA-1743",
+    icon: Camera,
+    color: "bg-lime-500",
+    isImplemented: false
+  },
+  medical_treatment_visa: {
+    type: "medical_treatment_visa",
+    displayName: "Medical Treatment Visa",
+    description: "Visa for medical treatment purposes",
+    category: "immigration",
+    formNumber: "DHA-1744",
+    icon: Heart,
+    color: "bg-red-400",
+    isImplemented: false
+  },
+  retired_person_visa: {
+    type: "retired_person_visa",
+    displayName: "Retired Person's Visa",
+    description: "Visa for retired persons",
+    category: "immigration",
+    formNumber: "DHA-1745",
+    icon: User,
+    color: "bg-amber-500",
+    isImplemented: false
+  },
+  exchange_visa: {
+    type: "exchange_visa",
+    displayName: "Exchange Visa",
+    description: "Visa for exchange programs",
+    category: "immigration",
+    formNumber: "DHA-1746",
+    icon: Globe,
+    color: "bg-violet-500",
+    isImplemented: false
+  },
+  relatives_visa: {
+    type: "relatives_visa",
+    displayName: "Relatives Visa",
+    description: "Visa for visiting relatives",
+    category: "immigration",
+    formNumber: "DHA-1747",
+    icon: Users,
+    color: "bg-orange-400",
+    isImplemented: false
+  },
+  permanent_residence_permit: {
+    type: "permanent_residence_permit",
+    displayName: "Permanent Residence Permit",
+    description: "Permanent residence permit for long-term residents",
+    category: "immigration",
+    formNumber: "BI-947",
+    icon: Home,
+    color: "bg-green-600",
+    isImplemented: false
+  }
+};
+
+// Category definitions
+const CATEGORIES = {
+  identity: { name: "Identity Documents", icon: UserCheck, color: "text-blue-600" },
+  travel: { name: "Travel Documents", icon: Plane, color: "text-purple-600" },
+  civil: { name: "Civil Documents", icon: FileText, color: "text-pink-600" },
+  immigration: { name: "Immigration Documents", icon: Globe, color: "text-indigo-600" }
+};
+
+interface GenerationResult {
+  success: boolean;
+  documentId?: string;
   documentUrl?: string;
-  qrCodeUrl?: string;
-}
-
-interface Permit {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  status: "active" | "expired" | "revoked";
-  permitNumber: string;
-  issuedAt: string;
-  expiresAt?: string;
-  verificationCode: string;
-  userId: string;
-  conditions?: Record<string, any>;
-  documentUrl?: string;
-  qrCodeUrl?: string;
-}
-
-interface BaseDocument {
-  id: string;
-  userId: string;
-  verificationCode: string;
-  createdAt: string;
-}
-
-interface BirthCertificate extends BaseDocument {
-  childFullName: string;
-  dateOfBirth: string;
-  placeOfBirth: string;
-  sex: string;
-  motherFullName: string;
-  fatherFullName: string;
-  registrationNumber: string;
-}
-
-interface MarriageCertificate extends BaseDocument {
-  partner1FullName: string;
-  partner2FullName: string;
-  marriageDate: string;
-  marriagePlace: string;
-  licenseNumber: string;
-}
-
-interface Passport extends BaseDocument {
-  fullName: string;
-  dateOfBirth: string;
-  nationality: string;
-  passportNumber: string;
-  expiryDate: string;
-  sex: string;
-}
-
-interface DeathCertificate extends BaseDocument {
-  deceasedFullName: string;
-  dateOfDeath: string;
-  placeOfDeath: string;
-  causeOfDeath: string;
-  registrationNumber: string;
-}
-
-interface WorkPermit extends BaseDocument {
-  employeeFullName: string;
-  employerName: string;
-  jobTitle: string;
-  permitNumber: string;
-  validFrom: string;
-  validUntil: string;
-}
-
-interface PermanentVisa extends BaseDocument {
-  holderFullName: string;
-  visaType: string;
-  visaNumber: string;
-  countryOfIssue: string;
-  validFrom: string;
-}
-
-interface IdCard extends BaseDocument {
-  fullName: string;
-  dateOfBirth: string;
-  address: string;
-  idNumber: string;
-  expiryDate: string;
-}
-
-interface VerificationResult {
-  isValid: boolean;
-  documentType?: string;
   verificationCode?: string;
-  verificationTimestamp: string;
   message?: string;
+  error?: string;
+  metadata?: any;
+  securityFeatures?: any;
 }
 
-type DocumentType = "birth_certificate" | "marriage_certificate" | "passport" | 
-                   "death_certificate" | "work_permit" | "permanent_visa" | "id_card";
-
-export default function DocumentGenerationPage() {
+export default function UnifiedDocumentGenerationPage() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("generate");
-  const [documentType, setDocumentType] = useState<"certificate" | "permit">("certificate");
+  
+  // State management
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [isPreviewMode, setIsPreviewMode] = useState(true);
+  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [showOcrData, setShowOcrData] = useState(false);
   
-  // Forms
-  const certificateForm = useForm<z.infer<typeof certificateFormSchema>>({
-    resolver: zodResolver(certificateFormSchema),
-    defaultValues: {
-      type: "",
-      templateType: "",
-      title: "",
-      description: "",
-      expiresAt: "",
-      data: {}
-    }
+  // Dynamic form state
+  const [formData, setFormData] = useState<any>({});
+  
+  // Fetch supported document types from API
+  const { data: supportedTypes, isLoading: isLoadingTypes } = useQuery({
+    queryKey: ["/api/documents/types"],
+    enabled: true
   });
 
-  const permitForm = useForm<z.infer<typeof permitFormSchema>>({
-    resolver: zodResolver(permitFormSchema),
-    defaultValues: {
-      type: "",
-      templateType: "",
-      title: "",
-      description: "",
-      expiresAt: "",
-      data: {},
-      conditions: {}
-    }
-  });
-
-  // Queries
-  const { data: templates = [] } = useQuery({
-    queryKey: ['/api/templates', documentType],
-    enabled: !!documentType
-  });
-
-  const { data: certificates = [] } = useQuery({
-    queryKey: ['/api/certificates']
-  });
-
-  const { data: permits = [] } = useQuery({
-    queryKey: ['/api/permits']
-  });
-
-  // Mutations
-  const generateCertificateMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof certificateFormSchema>) => {
-      const response = await apiRequest('POST', '/api/certificates', data);
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/certificates'] });
-      certificateForm.reset();
-      toast({
-        title: "Certificate Generated",
-        description: "Your certificate has been generated successfully.",
-        className: "border-green-500 bg-green-50"
+  // Document generation mutation
+  const generateDocumentMutation = useMutation({
+    mutationFn: async ({ documentData, preview }: { documentData: any; preview: boolean }) => {
+      const response = await apiRequest(`/api/documents/generate${preview ? '?preview=true' : ''}`, {
+        method: 'POST',
+        body: JSON.stringify(documentData),
       });
+      return response;
     },
-    onError: (error: any) => {
-      toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate certificate",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const generatePermitMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof permitFormSchema>) => {
-      const response = await apiRequest('POST', '/api/permits', data);
-      return await response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/permits'] });
-      permitForm.reset();
-      toast({
-        title: "Permit Generated",
-        description: "Your permit has been generated successfully.",
-        className: "border-green-500 bg-green-50"
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate permit",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const onCertificateSubmit = (values: z.infer<typeof certificateFormSchema>) => {
-    generateCertificateMutation.mutate(values);
-  };
-
-  const onPermitSubmit = (values: z.infer<typeof permitFormSchema>) => {
-    generatePermitMutation.mutate(values);
-  };
-
-  // Passport OCR Functions
-  const handlePassportUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
+    onSuccess: (result) => {
+      setGenerationResult(result);
+      if (result.success) {
         toast({
-          title: "Invalid File",
-          description: "Please upload an image file (JPEG, PNG)",
-          variant: "destructive"
+          title: "Document Generated",
+          description: result.message || "Document generated successfully",
+          className: "border-green-500 bg-green-50"
         });
-        return;
       }
-      setPassportFile(file);
-      setShowOcrData(false);
-      setExtractedData(null);
-    }
-  };
-
-  const extractPassportData = async () => {
-    if (!passportFile) {
+    },
+    onError: (error: any) => {
       toast({
-        title: "No File Selected",
-        description: "Please select a passport image first",
+        title: "Generation Failed",
+        description: error.message || "Failed to generate document",
         variant: "destructive"
       });
-      return;
     }
+  });
 
-    setIsExtracting(true);
-    
-    try {
+  // OCR extraction mutation for passport auto-fill
+  const extractPassportDataMutation = useMutation({
+    mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append('passportImage', passportFile);
-      formData.append('targetFormType', 'passport_application');
+      formData.append('passportImage', file);
+      formData.append('targetFormType', 'unified_document');
       formData.append('enableAutoFill', 'true');
 
       const response = await fetch('/api/ai/passport/extract', {
@@ -501,1345 +383,1162 @@ export default function DocumentGenerationPage() {
         throw new Error('Failed to extract passport data');
       }
 
-      const result = await response.json();
-      
+      return response.json();
+    },
+    onSuccess: (result) => {
       if (result.success) {
         setExtractedData(result);
-        setShowOcrData(true);
-        
-        // Auto-fill forms if data is available
-        if (result.autoFillData) {
-          autoFillForms(result.autoFillData);
-        }
-        
+        autoFillFormFromOCR(result.autoFillData);
         toast({
           title: "Extraction Successful",
           description: `Data extracted with ${result.ocrConfidence}% confidence`,
           className: "border-green-500 bg-green-50"
         });
-      } else {
-        throw new Error(result.error || 'Extraction failed');
       }
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       toast({
         title: "Extraction Failed",
         description: error.message || "Failed to extract passport data",
         variant: "destructive"
       });
-    } finally {
-      setIsExtracting(false);
+    }
+  });
+
+  // Auto-fill form from OCR data
+  const autoFillFormFromOCR = (ocrData: any) => {
+    if (!ocrData) return;
+    
+    const updatedFormData = { ...formData };
+    
+    // Map OCR data to form fields based on document type
+    if (ocrData.fullName) {
+      updatedFormData.fullName = ocrData.fullName;
+      updatedFormData.childFullName = ocrData.fullName;
+      updatedFormData.holderFullName = ocrData.fullName;
+    }
+    
+    if (ocrData.dateOfBirth) {
+      updatedFormData.dateOfBirth = ocrData.dateOfBirth;
+    }
+    
+    if (ocrData.nationality) {
+      updatedFormData.nationality = ocrData.nationality;
+      updatedFormData.holderNationality = ocrData.nationality;
+    }
+    
+    if (ocrData.passportNumber) {
+      updatedFormData.passportNumber = ocrData.passportNumber;
+      updatedFormData.holderPassportNumber = ocrData.passportNumber;
+    }
+    
+    setFormData(updatedFormData);
+  };
+
+  // Handle passport file upload
+  const handlePassportUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload an image file (JPEG, PNG)",
+          variant: "destructive"
+        });
+        return;
+      }
+      setPassportFile(file);
+      extractPassportDataMutation.mutate(file);
     }
   };
 
-  const autoFillForms = (data: any) => {
-    // Auto-fill certificate form if applicable
-    if (documentType === "certificate") {
-      certificateForm.setValue("title", data.fullName || "");
-      certificateForm.setValue("description", `Document for ${data.fullName}`);
+  // Generate document
+  const handleGenerateDocument = async (downloadMode = false) => {
+    if (!selectedDocumentType) {
+      toast({
+        title: "No Document Type Selected",
+        description: "Please select a document type first",
+        variant: "destructive"
+      });
+      return;
     }
-    
-    // Auto-fill permit form if applicable
-    if (documentType === "permit") {
-      permitForm.setValue("title", data.fullName || "");
-      permitForm.setValue("description", `Permit for ${data.fullName}`);
+
+    try {
+      const documentData: DocumentGenerationRequest = {
+        documentType: selectedDocumentType as any,
+        ...formData
+      };
+
+      // Validate the data using the appropriate schema
+      const schema = documentTypeSchemas[selectedDocumentType as keyof typeof documentTypeSchemas];
+      if (schema) {
+        const validation = schema.safeParse(documentData);
+        if (!validation.success) {
+          toast({
+            title: "Form Validation Error",
+            description: "Please fill in all required fields correctly",
+            variant: "destructive"
+          });
+          console.error("Validation errors:", validation.error.errors);
+          return;
+        }
+      }
+
+      // Generate document
+      if (downloadMode) {
+        // Direct download
+        const response = await fetch('/api/documents/generate?download=true', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify(documentData)
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${selectedDocumentType}_${Date.now()}.pdf`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+        } else {
+          throw new Error('Download failed');
+        }
+      } else {
+        // Generate with metadata
+        await generateDocumentMutation.mutateAsync({
+          documentData,
+          preview: isPreviewMode
+        });
+      }
+
+    } catch (error: any) {
+      toast({
+        title: "Generation Error",
+        description: error.message || "Failed to generate document",
+        variant: "destructive"
+      });
     }
-    
-    toast({
-      title: "Forms Auto-filled",
-      description: "Document forms have been populated with extracted data",
-      className: "border-blue-500 bg-blue-50"
-    });
   };
+
+  // Update form data
+  const updateFormField = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Get filtered document types by category
+  const getDocumentsByCategory = (category: string) => {
+    return Object.values(DOCUMENT_TYPE_INFO).filter(doc => doc.category === category);
+  };
+
+  // Get currently selected document info
+  const selectedDocInfo = selectedDocumentType ? DOCUMENT_TYPE_INFO[selectedDocumentType] : null;
 
   return (
-    <div className="min-h-screen dha-page">
-      {/* Official DHA Header */}
-      <div className="dha-header">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <div className="official-seal w-16 h-16 flex items-center justify-center text-3xl">
-                🇿🇦
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-white">
-                  Department of Home Affairs
-                </h1>
-                <p className="text-white/90">Republic of South Africa • Digital Services Platform</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <ShieldCheck className="h-8 w-8 text-green-600" />
             </div>
-            <p className="text-white/80 max-w-2xl mx-auto mb-4">
-              Official government document services, certificate generation, and citizen verification portal.
-            </p>
-            <Badge className="dha-badge">
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Government Authorized
-            </Badge>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                DHA Document Generation System
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Generate all 21 official South African DHA documents with security features
+              </p>
+            </div>
+          </div>
+          
+          {/* Statistics Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {Object.entries(CATEGORIES).map(([key, category]) => {
+              const count = getDocumentsByCategory(key).length;
+              const implemented = getDocumentsByCategory(key).filter(d => d.isImplemented).length;
+              return (
+                <Card key={key} className="p-4">
+                  <div className="flex items-center gap-3">
+                    <category.icon className={`h-5 w-5 ${category.color}`} />
+                    <div>
+                      <p className="text-sm font-medium">{category.name}</p>
+                      <p className="text-xs text-gray-500">{implemented}/{count} implemented</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 government-card p-2">
-            <TabsTrigger value="generate" data-testid="tab-generate">
-              <FileText className="h-4 w-4 mr-2" />
-              Generate Documents
-            </TabsTrigger>
-            <TabsTrigger value="certificates" data-testid="tab-certificates">
-              <Shield className="h-4 w-4 mr-2" />
-              Certificates ({(certificates as Certificate[]).length})
-            </TabsTrigger>
-            <TabsTrigger value="permits" data-testid="tab-permits">
-              <User className="h-4 w-4 mr-2" />
-              Permits ({(permits as Permit[]).length})
-            </TabsTrigger>
-            <TabsTrigger value="dha" data-testid="tab-dha">
-              <Building2 className="h-4 w-4 mr-2" />
-              DHA Services
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Generate Documents Tab */}
-          <TabsContent value="generate" className="space-y-6">
-            <Card className="government-card">
-              <CardHeader className="border-b border-certificate-green">
-                <CardTitle className="text-primary flex items-center gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Panel - Document Type Selector */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5" />
-                  Official DHA Document Generator
+                  Document Type Selection
                 </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Generate authentic government documents with advanced security features and digital verification
-                </p>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Badge variant={isPreviewMode ? "default" : "secondary"}>
+                    {isPreviewMode ? "Preview Mode" : "Production Mode"}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                    className="h-6 px-2"
+                  >
+                    {isPreviewMode ? <Eye className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Document Type Selection */}
-                  <div className="flex gap-4">
-                    <Button
-                      variant={documentType === "certificate" ? "default" : "outline"}
-                      onClick={() => setDocumentType("certificate")}
-                      className="flex-1"
-                      data-testid="button-select-certificate"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Certificate
-                    </Button>
-                    <Button
-                      variant={documentType === "permit" ? "default" : "outline"}
-                      onClick={() => setDocumentType("permit")}
-                      className="flex-1"
-                      data-testid="button-select-permit"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Permit
-                    </Button>
+                <ScrollArea className="h-96">
+                  {/* Category Filter */}
+                  <div className="mb-4">
+                    <Label className="text-xs font-medium">Filter by Category</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="All categories" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">All categories</SelectItem>
+                        {Object.entries(CATEGORIES).map(([key, category]) => (
+                          <SelectItem key={key} value={key}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <Separator />
-
-                  {/* Passport OCR Section */}
-                  <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Scan className="h-5 w-5" />
-                        Passport/Visa OCR Auto-Fill
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        Upload a passport or visa image to automatically extract and fill document information
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex gap-4">
-                        <div className="flex-1">
-                          <Label htmlFor="passport-upload" className="cursor-pointer">
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
-                              {passportFile ? (
-                                <div className="space-y-2">
-                                  <FileCheck className="h-10 w-10 mx-auto text-green-600" />
-                                  <p className="text-sm font-medium">{passportFile.name}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {(passportFile.size / 1024).toFixed(2)} KB
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <Upload className="h-10 w-10 mx-auto text-gray-400" />
-                                  <p className="text-sm font-medium">Click to upload passport/visa image</p>
-                                  <p className="text-xs text-gray-500">JPEG, PNG (Max 50MB)</p>
-                                </div>
-                              )}
-                            </div>
-                          </Label>
-                          <Input
-                            id="passport-upload"
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={handlePassportUpload}
-                            data-testid="input-passport-upload"
-                          />
-                        </div>
-                        <div className="flex flex-col gap-2 justify-center">
-                          <Button
-                            type="button"
-                            onClick={extractPassportData}
-                            disabled={!passportFile || isExtracting}
-                            className="min-w-[140px]"
-                            data-testid="button-extract-passport"
+                  {/* Document Type Grid */}
+                  <div className="space-y-2">
+                    {Object.values(DOCUMENT_TYPE_INFO)
+                      .filter(doc => !selectedCategory || doc.category === selectedCategory)
+                      .map((docInfo) => {
+                        const Icon = docInfo.icon;
+                        const isSelected = selectedDocumentType === docInfo.type;
+                        
+                        return (
+                          <Card 
+                            key={docInfo.type}
+                            className={`p-3 cursor-pointer transition-all hover:shadow-md ${
+                              isSelected 
+                                ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20' 
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                            onClick={() => {
+                              setSelectedDocumentType(docInfo.type);
+                              setGenerationResult(null);
+                              setFormData({});
+                            }}
+                            data-testid={`select-document-${docInfo.type}`}
                           >
-                            {isExtracting ? (
-                              <>
-                                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                                Extracting...
-                              </>
-                            ) : (
-                              <>
-                                <Scan className="h-4 w-4 mr-2" />
-                                Extract Data
-                              </>
-                            )}
-                          </Button>
-                          {passportFile && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setPassportFile(null);
-                                setExtractedData(null);
-                                setShowOcrData(false);
-                              }}
-                              data-testid="button-clear-passport"
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Display Extracted Data */}
-                      {showOcrData && extractedData && (
-                        <Card className="mt-4 bg-white">
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-sm flex items-center justify-between">
-                              <span className="flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                Extracted Information
-                              </span>
-                              <Badge variant={extractedData.aiAnalysis?.documentAuthenticity === 'authentic' ? 'default' : 'secondary'}>
-                                {extractedData.aiAnalysis?.documentAuthenticity || 'Unknown'}
-                              </Badge>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              {extractedData.extractedData?.fullName && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Full Name</Label>
-                                  <p className="font-medium">{extractedData.extractedData.fullName}</p>
-                                </div>
-                              )}
-                              {extractedData.extractedData?.passportNumber && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Passport Number</Label>
-                                  <p className="font-medium">{extractedData.extractedData.passportNumber}</p>
-                                </div>
-                              )}
-                              {extractedData.extractedData?.controlNumber && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Control Number</Label>
-                                  <p className="font-medium">{extractedData.extractedData.controlNumber}</p>
-                                </div>
-                              )}
-                              {extractedData.extractedData?.nationality && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Nationality</Label>
-                                  <p className="font-medium">{extractedData.extractedData.nationality}</p>
-                                </div>
-                              )}
-                              {extractedData.extractedData?.dateOfBirth && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Date of Birth</Label>
-                                  <p className="font-medium">{extractedData.extractedData.dateOfBirth}</p>
-                                </div>
-                              )}
-                              {extractedData.extractedData?.dateOfExpiry && (
-                                <div>
-                                  <Label className="text-xs text-gray-500">Expiry Date</Label>
-                                  <p className="font-medium">{extractedData.extractedData.dateOfExpiry}</p>
-                                </div>
-                              )}
-                            </div>
-                            {extractedData.suggestions && extractedData.suggestions.length > 0 && (
-                              <div className="mt-3 pt-3 border-t">
-                                <Label className="text-xs text-gray-500">Suggestions</Label>
-                                <ul className="text-xs text-gray-600 mt-1 space-y-1">
-                                  {extractedData.suggestions.map((suggestion: string, idx: number) => (
-                                    <li key={idx} className="flex items-start gap-1">
-                                      <span className="text-blue-500 mt-0.5">•</span>
-                                      <span>{suggestion}</span>
-                                    </li>
-                                  ))}
-                                </ul>
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded-lg ${docInfo.color} bg-opacity-20`}>
+                                <Icon className="h-4 w-4" />
                               </div>
-                            )}
-                            <div className="mt-3 flex items-center justify-between">
-                              <Badge variant="outline" className="text-xs">
-                                OCR Confidence: {extractedData.ocrConfidence}%
-                              </Badge>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => autoFillForms(extractedData.autoFillData)}
-                                data-testid="button-apply-autofill"
-                              >
-                                <FileCheck className="h-3 w-3 mr-1" />
-                                Apply to Forms
-                              </Button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="text-sm font-medium truncate">
+                                    {docInfo.displayName}
+                                  </h4>
+                                  {docInfo.isImplemented ? (
+                                    <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                  ) : (
+                                    <Clock className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-500 mb-1">{docInfo.formNumber}</p>
+                                <p className="text-xs text-gray-400 line-clamp-2">
+                                  {docInfo.description}
+                                </p>
+                              </div>
                             </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  <Separator />
-
-                  {/* Certificate Form */}
-                  {documentType === "certificate" && (
-                    <Form {...certificateForm}>
-                      <form onSubmit={certificateForm.handleSubmit(onCertificateSubmit)} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={certificateForm.control}
-                            name="type"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Certificate Type</FormLabel>
-                                <FormControl>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <SelectTrigger data-testid="select-certificate-type">
-                                      <SelectValue placeholder="Select certificate type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="completion">Completion Certificate</SelectItem>
-                                      <SelectItem value="achievement">Achievement Certificate</SelectItem>
-                                      <SelectItem value="compliance">Compliance Certificate</SelectItem>
-                                      <SelectItem value="training">Training Certificate</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={certificateForm.control}
-                            name="templateType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Template</FormLabel>
-                                <FormControl>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <SelectTrigger data-testid="select-certificate-template">
-                                      <SelectValue placeholder="Select template" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {(templates as DocumentTemplate[])
-                                        .filter((t: DocumentTemplate) => t.type === "certificate")
-                                        .map((template: DocumentTemplate) => (
-                                          <SelectItem key={template.id} value={template.id}>
-                                            {template.name}
-                                          </SelectItem>
-                                        ))
-                                      }
-                                      <SelectItem value="default">Default Official Template</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={certificateForm.control}
-                          name="title"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Certificate Title</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="e.g., Certificate of Completion"
-                                  data-testid="input-certificate-title"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={certificateForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  {...field} 
-                                  placeholder="Detailed description of the certificate..."
-                                  rows={3}
-                                  data-testid="textarea-certificate-description"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={certificateForm.control}
-                          name="expiresAt"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Expiry Date (Optional)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  type="date"
-                                  data-testid="input-certificate-expiry"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <Button 
-                          type="submit" 
-                          className="w-full"
-                          disabled={generateCertificateMutation.isPending}
-                          data-testid="button-generate-certificate"
-                        >
-                          {generateCertificateMutation.isPending ? "Generating..." : "Generate Certificate"}
-                        </Button>
-                      </form>
-                    </Form>
-                  )}
-
-                  {/* Permit Form */}
-                  {documentType === "permit" && (
-                    <Form {...permitForm}>
-                      <form onSubmit={permitForm.handleSubmit(onPermitSubmit)} className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={permitForm.control}
-                            name="type"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Permit Type</FormLabel>
-                                <FormControl>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <SelectTrigger data-testid="select-permit-type">
-                                      <SelectValue placeholder="Select permit type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="building">Building Permit</SelectItem>
-                                      <SelectItem value="business">Business Permit</SelectItem>
-                                      <SelectItem value="special_event">Special Event Permit</SelectItem>
-                                      <SelectItem value="environmental">Environmental Permit</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={permitForm.control}
-                            name="templateType"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Template</FormLabel>
-                                <FormControl>
-                                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <SelectTrigger data-testid="select-permit-template">
-                                      <SelectValue placeholder="Select template" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {(templates as DocumentTemplate[])
-                                        .filter((t: DocumentTemplate) => t.type === "permit")
-                                        .map((template: DocumentTemplate) => (
-                                          <SelectItem key={template.id} value={template.id}>
-                                            {template.name}
-                                          </SelectItem>
-                                        ))
-                                      }
-                                      <SelectItem value="default">Default Official Template</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-
-                        <FormField
-                          control={permitForm.control}
-                          name="title"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Permit Title</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="e.g., Building Construction Permit"
-                                  data-testid="input-permit-title"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={permitForm.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  {...field} 
-                                  placeholder="Detailed description of the permit..."
-                                  rows={3}
-                                  data-testid="textarea-permit-description"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={permitForm.control}
-                          name="expiresAt"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Expiry Date (Optional)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  type="date"
-                                  data-testid="input-permit-expiry"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <Button 
-                          type="submit" 
-                          className="w-full"
-                          disabled={generatePermitMutation.isPending}
-                          data-testid="button-generate-permit"
-                        >
-                          {generatePermitMutation.isPending ? "Generating..." : "Generate Permit"}
-                        </Button>
-                      </form>
-                    </Form>
-                  )}
-                </div>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                </ScrollArea>
               </CardContent>
             </Card>
-          </TabsContent>
+          </div>
 
-          {/* Certificates Tab */}
-          <TabsContent value="certificates">
-            <div className="space-y-4">
-              {(certificates as Certificate[]).map((certificate: Certificate) => (
-                <Card key={certificate.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Shield className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold text-lg" data-testid={`text-certificate-title-${certificate.id}`}>
-                            {certificate.title}
-                          </h3>
-                          <Badge variant={certificate.status === "active" ? "default" : "secondary"}>
-                            {certificate.status}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-3">{certificate.description}</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Hash className="h-4 w-4" />
-                            <span>Serial: {certificate.serialNumber}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>Issued: {new Date(certificate.issuedAt).toLocaleDateString()}</span>
-                          </div>
-                          {certificate.expiresAt && (
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>Expires: {new Date(certificate.expiresAt).toLocaleDateString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {certificate.documentUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(certificate.documentUrl, '_blank')}
-                            data-testid={`button-download-certificate-${certificate.id}`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {certificate.qrCodeUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(certificate.qrCodeUrl, '_blank')}
-                            data-testid={`button-qr-certificate-${certificate.id}`}
-                          >
-                            <QrCode className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          data-testid={`button-view-certificate-${certificate.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(certificates as Certificate[]).length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Certificates Yet</h3>
-                    <p className="text-muted-foreground">
-                      Generate your first certificate using the Document Generator.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
+          {/* Right Panel - Dynamic Form and Results */}
+          <div className="lg:col-span-2">
+            <Tabs defaultValue="form" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="form">Document Form</TabsTrigger>
+                <TabsTrigger value="ocr">OCR Auto-Fill</TabsTrigger>
+                <TabsTrigger value="result">Generation Result</TabsTrigger>
+              </TabsList>
 
-          {/* Permits Tab */}
-          <TabsContent value="permits">
-            <div className="space-y-4">
-              {(permits as Permit[]).map((permit: Permit) => (
-                <Card key={permit.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <User className="h-5 w-5 text-primary" />
-                          <h3 className="font-semibold text-lg" data-testid={`text-permit-title-${permit.id}`}>
-                            {permit.title}
-                          </h3>
-                          <Badge variant={permit.status === "active" ? "default" : "secondary"}>
-                            {permit.status}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-3">{permit.description}</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Hash className="h-4 w-4" />
-                            <span>Number: {permit.permitNumber}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>Issued: {new Date(permit.issuedAt).toLocaleDateString()}</span>
-                          </div>
-                          {permit.expiresAt && (
-                            <div className="flex items-center gap-2">
-                              <Calendar className="h-4 w-4" />
-                              <span>Expires: {new Date(permit.expiresAt).toLocaleDateString()}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 ml-4">
-                        {permit.documentUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(permit.documentUrl, '_blank')}
-                            data-testid={`button-download-permit-${permit.id}`}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {permit.qrCodeUrl && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => window.open(permit.qrCodeUrl, '_blank')}
-                            data-testid={`button-qr-permit-${permit.id}`}
-                          >
-                            <QrCode className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          data-testid={`button-view-permit-${permit.id}`}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(permits as Permit[]).length === 0 && (
-                <Card>
-                  <CardContent className="p-12 text-center">
-                    <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">No Permits Yet</h3>
-                    <p className="text-muted-foreground">
-                      Generate your first permit using the Document Generator.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* DHA Services Tab */}
-          <TabsContent value="dha">
-            <div className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                
-                {/* DHA Applicant Profile */}
+              {/* Document Form Tab */}
+              <TabsContent value="form">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <UserCheck className="h-5 w-5" />
-                      Create Applicant Profile
+                      {selectedDocInfo && <selectedDocInfo.icon className="h-5 w-5" />}
+                      {selectedDocInfo ? selectedDocInfo.displayName : "Select Document Type"}
                     </CardTitle>
+                    {selectedDocInfo && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Badge variant="outline">{selectedDocInfo.formNumber}</Badge>
+                          <Badge variant="outline">{CATEGORIES[selectedDocInfo.category as keyof typeof CATEGORIES].name}</Badge>
+                          <Badge variant={selectedDocInfo.isImplemented ? "default" : "secondary"}>
+                            {selectedDocInfo.isImplemented ? "Available" : "Coming Soon"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">{selectedDocInfo.description}</p>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
-                    <Form {...useForm({
-                      resolver: zodResolver(dhaApplicantSchema),
-                      defaultValues: {
-                        fullName: "",
-                        surname: "",
-                        dateOfBirth: "",
-                        placeOfBirth: "",
-                        citizenshipStatus: "citizen",
-                        idNumber: "",
-                        nationality: "South African",
-                        contactDetails: {
-                          phone: "",
-                          email: "",
-                          address: ""
-                        }
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            name="fullName"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Full Name</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="John" {...field} data-testid="input-dha-full-name" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            name="surname"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Surname</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Smith" {...field} data-testid="input-dha-surname" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            name="dateOfBirth"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Date of Birth</FormLabel>
-                                <FormControl>
-                                  <Input type="date" {...field} data-testid="input-dha-dob" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            name="placeOfBirth"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Place of Birth</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="Cape Town" {...field} data-testid="input-dha-pob" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <FormField
-                          name="idNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>South African ID Number</FormLabel>
-                              <FormControl>
-                                <Input placeholder="8001015009087" {...field} data-testid="input-dha-id-number" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="citizenshipStatus"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Citizenship Status</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-dha-citizenship">
-                                    <SelectValue placeholder="Select citizenship status" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="citizen">South African Citizen</SelectItem>
-                                  <SelectItem value="permanent_resident">Permanent Resident</SelectItem>
-                                  <SelectItem value="temporary_resident">Temporary Resident</SelectItem>
-                                  <SelectItem value="foreign_national">Foreign National</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="space-y-4">
-                          <h4 className="font-medium">Contact Details</h4>
-                          <FormField
-                            name="contactDetails.email"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                  <Input type="email" placeholder="john@example.com" {...field} data-testid="input-dha-email" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            name="contactDetails.phone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="+27 12 345 6789" {...field} data-testid="input-dha-phone" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            name="contactDetails.address"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Physical Address</FormLabel>
-                                <FormControl>
-                                  <Textarea placeholder="123 Main Street, Cape Town, 8001" {...field} data-testid="input-dha-address" />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                        <Button type="submit" className="w-full" data-testid="button-create-dha-applicant">
-                          <UserCheck className="h-4 w-4 mr-2" />
-                          Create DHA Profile
-                        </Button>
-                      </form>
-                    </Form>
+                    {selectedDocumentType ? (
+                      <DynamicDocumentForm
+                        documentType={selectedDocumentType}
+                        formData={formData}
+                        onUpdateField={updateFormField}
+                        isImplemented={selectedDocInfo?.isImplemented || false}
+                      />
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">Select a document type to begin</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
+              </TabsContent>
 
-                {/* DHA Application Submission */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Submit DHA Application
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...useForm({
-                      resolver: zodResolver(dhaApplicationSchema),
-                      defaultValues: {
-                        applicantId: "",
-                        applicationType: "new_passport",
-                        priorityLevel: "standard"
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <FormField
-                          name="applicantId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Applicant Profile</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-dha-applicant">
-                                    <SelectValue placeholder="Select applicant profile" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="sample-id">John Smith (8001015009087)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="applicationType"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Application Type</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-dha-application-type">
-                                    <SelectValue placeholder="Select application type" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="new_passport">New Passport</SelectItem>
-                                  <SelectItem value="passport_renewal">Passport Renewal</SelectItem>
-                                  <SelectItem value="emergency_travel_document">Emergency Travel Document</SelectItem>
-                                  <SelectItem value="id_book">ID Book</SelectItem>
-                                  <SelectItem value="smart_id_card">Smart ID Card</SelectItem>
-                                  <SelectItem value="birth_certificate">Birth Certificate</SelectItem>
-                                  <SelectItem value="marriage_certificate">Marriage Certificate</SelectItem>
-                                  <SelectItem value="death_certificate">Death Certificate</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="priorityLevel"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Priority Level</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-dha-priority">
-                                    <SelectValue placeholder="Select priority level" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="standard">Standard (4-6 weeks)</SelectItem>
-                                  <SelectItem value="urgent">Urgent (2-3 weeks) - Additional fee</SelectItem>
-                                  <SelectItem value="low">Low Priority (6-8 weeks)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="specialRequests"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Special Requests (Optional)</FormLabel>
-                              <FormControl>
-                                <Textarea placeholder="Any special requirements or requests..." {...field} data-testid="input-dha-special-requests" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" data-testid="button-submit-dha-application">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Submit Application
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-
-              </div>
-
-              {/* Verification Services */}
-              <div className="grid gap-6 md:grid-cols-3">
-                
-                {/* MRZ Passport Scanning */}
+              {/* OCR Auto-Fill Tab */}
+              <TabsContent value="ocr">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Scan className="h-5 w-5" />
-                      Passport MRZ Scanner
+                      Passport OCR Auto-Fill
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...useForm({
-                      resolver: zodResolver(mrzScanSchema),
-                      defaultValues: {
-                        applicantId: "",
-                        applicationId: "",
-                        mrzLine1: "",
-                        mrzLine2: ""
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <FormField
-                          name="mrzLine1"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>MRZ Line 1</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="P<ZAFSMITH<<JOHN<<<<<<<<<<<<<<<<<<<<<<" 
-                                  {...field} 
-                                  data-testid="input-mrz-line1"
-                                  className="font-mono text-xs"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="mrzLine2"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>MRZ Line 2</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="A12345678ZAF8001015M2501017<<<<<<<<<<<<<<<4" 
-                                  {...field} 
-                                  data-testid="input-mrz-line2"
-                                  className="font-mono text-xs"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                          <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-sm text-gray-600">Upload passport photo</p>
-                          <Button variant="outline" size="sm" className="mt-2" data-testid="button-upload-passport">
-                            <Upload className="h-4 w-4 mr-2" />
-                            Choose File
-                          </Button>
-                        </div>
-                        <Button type="submit" className="w-full" data-testid="button-scan-mrz">
-                          <Scan className="h-4 w-4 mr-2" />
-                          Parse MRZ Data
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-
-                {/* Identity Verification */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserCheck className="h-5 w-5" />
-                      NPR Verification
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...useForm({
-                      resolver: zodResolver(identityVerificationSchema),
-                      defaultValues: {
-                        applicantId: "",
-                        applicationId: "",
-                        idNumber: "",
-                        fullName: "",
-                        dateOfBirth: ""
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <FormField
-                          name="idNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>ID Number</FormLabel>
-                              <FormControl>
-                                <Input placeholder="8001015009087" {...field} data-testid="input-verify-id-number" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="fullName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Full Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="John Smith" {...field} data-testid="input-verify-full-name" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          name="dateOfBirth"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Date of Birth</FormLabel>
-                              <FormControl>
-                                <Input type="date" {...field} data-testid="input-verify-dob" />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" data-testid="button-verify-identity">
-                          <UserCheck className="h-4 w-4 mr-2" />
-                          Verify with NPR
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-
-                {/* Background Check */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5" />
-                      Background Check
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Form {...useForm({
-                      resolver: zodResolver(backgroundCheckSchema),
-                      defaultValues: {
-                        applicantId: "",
-                        applicationId: "",
-                        purpose: "employment",
-                        consentGiven: false
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <FormField
-                          name="purpose"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Purpose</FormLabel>
-                              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-background-purpose">
-                                    <SelectValue placeholder="Select purpose" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="employment">Employment</SelectItem>
-                                  <SelectItem value="immigration">Immigration</SelectItem>
-                                  <SelectItem value="adoption">Adoption</SelectItem>
-                                  <SelectItem value="firearm_license">Firearm License</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <div className="border border-amber-200 bg-amber-50 p-3 rounded-lg">
-                          <div className="flex items-start gap-2">
-                            <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-                            <div className="text-sm">
-                              <p className="font-medium text-amber-800">POPIA Consent Required</p>
-                              <p className="text-amber-700">
-                                This will check your criminal record with SAPS. Your personal information will be processed according to POPIA.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        <FormField
-                          name="consentGiven"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  data-testid="checkbox-background-consent"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="text-sm">
-                                  I consent to a background check being performed
-                                </FormLabel>
-                                <p className="text-xs text-muted-foreground">
-                                  This is required for certain application types
-                                </p>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" data-testid="button-background-check">
-                          <Shield className="h-4 w-4 mr-2" />
-                          Request Background Check
-                        </Button>
-                      </form>
-                    </Form>
-                  </CardContent>
-                </Card>
-
-              </div>
-
-              {/* Application Status Tracking */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
-                    Application Status Tracker
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid gap-4">
-                      <div className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="default">DHA2025NP123456</Badge>
-                            <span className="text-sm text-muted-foreground">New Passport Application</span>
-                          </div>
-                          <Badge variant="outline" className="text-blue-600">
-                            <Clock className="h-3 w-3 mr-1" />
-                            Identity Verification
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Submitted: 2025-01-10</span>
-                          <span>Est. Completion: 2025-02-15</span>
-                        </div>
-                        <div className="mt-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs text-muted-foreground">Progress</span>
-                            <span className="text-xs text-muted-foreground">25%</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div className="bg-blue-600 h-2 rounded-full" style={{width: '25%'}}></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="border border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No Active Applications</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Submit your first DHA application to track its progress here.
-                      </p>
-                      <Button variant="outline" data-testid="button-new-application">
-                        <FileText className="h-4 w-4 mr-2" />
-                        New Application
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Public Verification */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Search className="h-5 w-5" />
-                    Document Verification Portal
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Verify the authenticity of DHA-issued documents using their verification codes.
+                    <p className="text-sm text-gray-600">
+                      Upload a passport image to automatically extract and fill form data
                     </p>
-                    <Form {...useForm({
-                      resolver: zodResolver(verificationSchema),
-                      defaultValues: {
-                        verificationCode: ""
-                      }
-                    })}>
-                      <form className="space-y-4">
-                        <FormField
-                          name="verificationCode"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Verification Code</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  placeholder="DHA2025NP123456" 
-                                  {...field} 
-                                  data-testid="input-verification-code"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button type="submit" className="w-full" data-testid="button-verify-document">
-                          <Search className="h-4 w-4 mr-2" />
-                          Verify Document
-                        </Button>
-                      </form>
-                    </Form>
-                    
-                    <div className="border border-green-200 bg-green-50 p-3 rounded-lg hidden" data-testid="verification-result">
-                      <div className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
-                        <div className="text-sm">
-                          <p className="font-medium text-green-800">Document Verified</p>
-                          <p className="text-green-700">
-                            This document is authentic and was issued by the Department of Home Affairs.
-                          </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                        <div className="text-center">
+                          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                          <div className="mt-4">
+                            <Label htmlFor="passport-upload" className="cursor-pointer">
+                              <span className="mt-2 block text-sm font-medium text-gray-900">
+                                Upload passport image
+                              </span>
+                              <span className="mt-1 block text-sm text-gray-500">
+                                PNG, JPG up to 10MB
+                              </span>
+                            </Label>
+                            <Input
+                              id="passport-upload"
+                              type="file"
+                              className="sr-only"
+                              accept="image/*"
+                              onChange={handlePassportUpload}
+                              disabled={extractPassportDataMutation.isPending}
+                            />
+                          </div>
                         </div>
                       </div>
+                      
+                      {extractPassportDataMutation.isPending && (
+                        <div className="text-center py-4">
+                          <div className="inline-flex items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-500"></div>
+                            <span className="text-sm text-gray-600">Extracting data...</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {extractedData && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <h4 className="font-medium text-green-900 mb-2">Extracted Data</h4>
+                          <div className="text-sm text-green-800 space-y-1">
+                            <p><strong>Name:</strong> {extractedData.autoFillData?.fullName || 'N/A'}</p>
+                            <p><strong>Date of Birth:</strong> {extractedData.autoFillData?.dateOfBirth || 'N/A'}</p>
+                            <p><strong>Nationality:</strong> {extractedData.autoFillData?.nationality || 'N/A'}</p>
+                            <p><strong>Passport Number:</strong> {extractedData.autoFillData?.passportNumber || 'N/A'}</p>
+                            <p><strong>Confidence:</strong> {extractedData.ocrConfidence}%</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Generation Result Tab */}
+              <TabsContent value="result">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileCheck className="h-5 w-5" />
+                      Document Generation Result
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {generationResult ? (
+                      <GenerationResultDisplay result={generationResult} />
+                    ) : (
+                      <div className="text-center py-12">
+                        <FileCheck className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500">No document generated yet</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+
+            {/* Action Buttons */}
+            {selectedDocumentType && (
+              <Card className="mt-4">
+                <CardContent className="pt-6">
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleGenerateDocument(false)}
+                      disabled={generateDocumentMutation.isPending || !selectedDocInfo?.isImplemented}
+                      className="flex-1"
+                      data-testid="button-generate"
+                    >
+                      {generateDocumentMutation.isPending ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Generating...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          {isPreviewMode ? 'Generate Preview' : 'Generate Document'}
+                        </div>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => handleGenerateDocument(true)}
+                      disabled={generateDocumentMutation.isPending || !selectedDocInfo?.isImplemented}
+                      data-testid="button-download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsPreviewMode(!isPreviewMode)}
+                      data-testid="button-toggle-preview"
+                    >
+                      {isPreviewMode ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
                   </div>
+                  
+                  {!selectedDocInfo?.isImplemented && (
+                    <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                      <div className="flex items-center gap-2 text-orange-800">
+                        <Clock className="h-4 w-4" />
+                        <span className="text-sm font-medium">Coming Soon</span>
+                      </div>
+                      <p className="text-sm text-orange-700 mt-1">
+                        This document type is not yet implemented. It will be available in a future update.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
+/**
+ * Dynamic Document Form Component
+ * Renders different form fields based on selected document type
+ */
+interface DynamicDocumentFormProps {
+  documentType: string;
+  formData: any;
+  onUpdateField: (field: string, value: any) => void;
+  isImplemented: boolean;
+}
+
+function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemented }: DynamicDocumentFormProps) {
+  if (!isImplemented) {
+    return (
+      <div className="text-center py-8">
+        <Clock className="h-8 w-8 text-orange-500 mx-auto mb-3" />
+        <p className="text-gray-600">Form will be available when document type is implemented</p>
+      </div>
+    );
+  }
+
+  // Common personal information fields
+  const renderPersonalFields = () => (
+    <div className="space-y-4">
+      <h3 className="font-medium text-gray-900 border-b pb-2">Personal Information</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="fullName">Full Name *</Label>
+          <Input
+            id="fullName"
+            value={formData.fullName || ''}
+            onChange={(e) => onUpdateField('fullName', e.target.value)}
+            placeholder="Enter full name"
+            data-testid="input-fullName"
+          />
+        </div>
+        <div>
+          <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            value={formData.dateOfBirth || ''}
+            onChange={(e) => onUpdateField('dateOfBirth', e.target.value)}
+            data-testid="input-dateOfBirth"
+          />
+        </div>
+        <div>
+          <Label htmlFor="placeOfBirth">Place of Birth</Label>
+          <Input
+            id="placeOfBirth"
+            value={formData.placeOfBirth || ''}
+            onChange={(e) => onUpdateField('placeOfBirth', e.target.value)}
+            placeholder="Enter place of birth"
+            data-testid="input-placeOfBirth"
+          />
+        </div>
+        <div>
+          <Label htmlFor="nationality">Nationality *</Label>
+          <Input
+            id="nationality"
+            value={formData.nationality || ''}
+            onChange={(e) => onUpdateField('nationality', e.target.value)}
+            placeholder="Enter nationality"
+            data-testid="input-nationality"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Render specific form fields based on document type
+  switch (documentType) {
+    case 'smart_id_card':
+    case 'identity_document_book':
+      return (
+        <div className="space-y-6">
+          {renderPersonalFields()}
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Identity Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="idNumber">ID Number *</Label>
+                <Input
+                  id="idNumber"
+                  value={formData.idNumber || ''}
+                  onChange={(e) => onUpdateField('idNumber', e.target.value)}
+                  placeholder="13-digit ID number"
+                  maxLength={13}
+                  data-testid="input-idNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="issuingOffice">Issuing Office</Label>
+                <Input
+                  id="issuingOffice"
+                  value={formData.issuingOffice || ''}
+                  onChange={(e) => onUpdateField('issuingOffice', e.target.value)}
+                  placeholder="e.g., Cape Town Home Affairs"
+                  data-testid="input-issuingOffice"
+                />
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
+      );
+
+    case 'south_african_passport':
+      return (
+        <div className="space-y-6">
+          {renderPersonalFields()}
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Passport Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="passportNumber">Passport Number *</Label>
+                <Input
+                  id="passportNumber"
+                  value={formData.passportNumber || ''}
+                  onChange={(e) => onUpdateField('passportNumber', e.target.value)}
+                  placeholder="Enter passport number"
+                  data-testid="input-passportNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="passportType">Passport Type</Label>
+                <Select value={formData.passportType || ''} onValueChange={(value) => onUpdateField('passportType', value)}>
+                  <SelectTrigger data-testid="select-passportType">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ordinary">Ordinary</SelectItem>
+                    <SelectItem value="diplomatic">Diplomatic</SelectItem>
+                    <SelectItem value="official">Official</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="dateOfIssue">Date of Issue *</Label>
+                <Input
+                  id="dateOfIssue"
+                  type="date"
+                  value={formData.dateOfIssue || ''}
+                  onChange={(e) => onUpdateField('dateOfIssue', e.target.value)}
+                  data-testid="input-dateOfIssue"
+                />
+              </div>
+              <div>
+                <Label htmlFor="dateOfExpiry">Date of Expiry *</Label>
+                <Input
+                  id="dateOfExpiry"
+                  type="date"
+                  value={formData.dateOfExpiry || ''}
+                  onChange={(e) => onUpdateField('dateOfExpiry', e.target.value)}
+                  data-testid="input-dateOfExpiry"
+                />
+              </div>
+              <div>
+                <Label htmlFor="placeOfIssue">Place of Issue</Label>
+                <Input
+                  id="placeOfIssue"
+                  value={formData.placeOfIssue || ''}
+                  onChange={(e) => onUpdateField('placeOfIssue', e.target.value)}
+                  placeholder="e.g., Cape Town"
+                  data-testid="input-placeOfIssue"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'birth_certificate':
+      return (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Child Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="childFullName">Child's Full Name *</Label>
+                <Input
+                  id="childFullName"
+                  value={formData.childFullName || ''}
+                  onChange={(e) => onUpdateField('childFullName', e.target.value)}
+                  placeholder="Enter child's full name"
+                  data-testid="input-childFullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sex">Sex *</Label>
+                <Select value={formData.sex || ''} onValueChange={(value) => onUpdateField('sex', value)}>
+                  <SelectTrigger data-testid="select-sex">
+                    <SelectValue placeholder="Select sex" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                <Input
+                  id="dateOfBirth"
+                  type="date"
+                  value={formData.dateOfBirth || ''}
+                  onChange={(e) => onUpdateField('dateOfBirth', e.target.value)}
+                  data-testid="input-dateOfBirth"
+                />
+              </div>
+              <div>
+                <Label htmlFor="placeOfBirth">Place of Birth *</Label>
+                <Input
+                  id="placeOfBirth"
+                  value={formData.placeOfBirth || ''}
+                  onChange={(e) => onUpdateField('placeOfBirth', e.target.value)}
+                  placeholder="Enter place of birth"
+                  data-testid="input-placeOfBirth"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Parents Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="motherFullName">Mother's Full Name *</Label>
+                <Input
+                  id="motherFullName"
+                  value={formData.motherFullName || ''}
+                  onChange={(e) => onUpdateField('motherFullName', e.target.value)}
+                  placeholder="Enter mother's full name"
+                  data-testid="input-motherFullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="motherNationality">Mother's Nationality</Label>
+                <Input
+                  id="motherNationality"
+                  value={formData.motherNationality || ''}
+                  onChange={(e) => onUpdateField('motherNationality', e.target.value)}
+                  placeholder="Enter mother's nationality"
+                  data-testid="input-motherNationality"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fatherFullName">Father's Full Name *</Label>
+                <Input
+                  id="fatherFullName"
+                  value={formData.fatherFullName || ''}
+                  onChange={(e) => onUpdateField('fatherFullName', e.target.value)}
+                  placeholder="Enter father's full name"
+                  data-testid="input-fatherFullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fatherNationality">Father's Nationality</Label>
+                <Input
+                  id="fatherNationality"
+                  value={formData.fatherNationality || ''}
+                  onChange={(e) => onUpdateField('fatherNationality', e.target.value)}
+                  placeholder="Enter father's nationality"
+                  data-testid="input-fatherNationality"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Registration Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="registrationNumber">Registration Number</Label>
+                <Input
+                  id="registrationNumber"
+                  value={formData.registrationNumber || ''}
+                  onChange={(e) => onUpdateField('registrationNumber', e.target.value)}
+                  placeholder="Auto-generated if empty"
+                  data-testid="input-registrationNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="registrationDate">Registration Date</Label>
+                <Input
+                  id="registrationDate"
+                  type="date"
+                  value={formData.registrationDate || ''}
+                  onChange={(e) => onUpdateField('registrationDate', e.target.value)}
+                  data-testid="input-registrationDate"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'marriage_certificate':
+      return (
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Marriage Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="marriageDate">Marriage Date *</Label>
+                <Input
+                  id="marriageDate"
+                  type="date"
+                  value={formData.marriageDate || ''}
+                  onChange={(e) => onUpdateField('marriageDate', e.target.value)}
+                  data-testid="input-marriageDate"
+                />
+              </div>
+              <div>
+                <Label htmlFor="marriagePlace">Marriage Place *</Label>
+                <Input
+                  id="marriagePlace"
+                  value={formData.marriagePlace || ''}
+                  onChange={(e) => onUpdateField('marriagePlace', e.target.value)}
+                  placeholder="Enter place of marriage"
+                  data-testid="input-marriagePlace"
+                />
+              </div>
+              <div>
+                <Label htmlFor="marriageType">Marriage Type</Label>
+                <Select value={formData.marriageType || ''} onValueChange={(value) => onUpdateField('marriageType', value)}>
+                  <SelectTrigger data-testid="select-marriageType">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="civil">Civil Marriage</SelectItem>
+                    <SelectItem value="religious">Religious Marriage</SelectItem>
+                    <SelectItem value="customary">Customary Marriage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Partner 1 Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="partner1FullName">Full Name *</Label>
+                <Input
+                  id="partner1FullName"
+                  value={formData.partner1FullName || ''}
+                  onChange={(e) => onUpdateField('partner1FullName', e.target.value)}
+                  placeholder="Enter partner 1 full name"
+                  data-testid="input-partner1FullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner1Age">Age *</Label>
+                <Input
+                  id="partner1Age"
+                  type="number"
+                  min="18"
+                  value={formData.partner1Age || ''}
+                  onChange={(e) => onUpdateField('partner1Age', parseInt(e.target.value) || '')}
+                  data-testid="input-partner1Age"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner1Nationality">Nationality</Label>
+                <Input
+                  id="partner1Nationality"
+                  value={formData.partner1Nationality || ''}
+                  onChange={(e) => onUpdateField('partner1Nationality', e.target.value)}
+                  placeholder="Enter nationality"
+                  data-testid="input-partner1Nationality"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner1Occupation">Occupation</Label>
+                <Input
+                  id="partner1Occupation"
+                  value={formData.partner1Occupation || ''}
+                  onChange={(e) => onUpdateField('partner1Occupation', e.target.value)}
+                  placeholder="Enter occupation"
+                  data-testid="input-partner1Occupation"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Partner 2 Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="partner2FullName">Full Name *</Label>
+                <Input
+                  id="partner2FullName"
+                  value={formData.partner2FullName || ''}
+                  onChange={(e) => onUpdateField('partner2FullName', e.target.value)}
+                  placeholder="Enter partner 2 full name"
+                  data-testid="input-partner2FullName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner2Age">Age *</Label>
+                <Input
+                  id="partner2Age"
+                  type="number"
+                  min="18"
+                  value={formData.partner2Age || ''}
+                  onChange={(e) => onUpdateField('partner2Age', parseInt(e.target.value) || '')}
+                  data-testid="input-partner2Age"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner2Nationality">Nationality</Label>
+                <Input
+                  id="partner2Nationality"
+                  value={formData.partner2Nationality || ''}
+                  onChange={(e) => onUpdateField('partner2Nationality', e.target.value)}
+                  placeholder="Enter nationality"
+                  data-testid="input-partner2Nationality"
+                />
+              </div>
+              <div>
+                <Label htmlFor="partner2Occupation">Occupation</Label>
+                <Input
+                  id="partner2Occupation"
+                  value={formData.partner2Occupation || ''}
+                  onChange={(e) => onUpdateField('partner2Occupation', e.target.value)}
+                  placeholder="Enter occupation"
+                  data-testid="input-partner2Occupation"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Marriage Officials and Witnesses</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="officiantName">Marriage Officer *</Label>
+                <Input
+                  id="officiantName"
+                  value={formData.officiantName || ''}
+                  onChange={(e) => onUpdateField('officiantName', e.target.value)}
+                  placeholder="Enter marriage officer name"
+                  data-testid="input-officiantName"
+                />
+              </div>
+              <div>
+                <Label htmlFor="witness1Name">Witness 1</Label>
+                <Input
+                  id="witness1Name"
+                  value={formData.witness1Name || ''}
+                  onChange={(e) => onUpdateField('witness1Name', e.target.value)}
+                  placeholder="Enter witness 1 name"
+                  data-testid="input-witness1Name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="witness2Name">Witness 2</Label>
+                <Input
+                  id="witness2Name"
+                  value={formData.witness2Name || ''}
+                  onChange={(e) => onUpdateField('witness2Name', e.target.value)}
+                  placeholder="Enter witness 2 name"
+                  data-testid="input-witness2Name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="registrationNumber">Registration Number</Label>
+                <Input
+                  id="registrationNumber"
+                  value={formData.registrationNumber || ''}
+                  onChange={(e) => onUpdateField('registrationNumber', e.target.value)}
+                  placeholder="Auto-generated if empty"
+                  data-testid="input-registrationNumber"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    case 'general_work_visa':
+    case 'critical_skills_work_visa':
+      return (
+        <div className="space-y-6">
+          {renderPersonalFields()}
+          
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Visa Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="permitNumber">Permit Number</Label>
+                <Input
+                  id="permitNumber"
+                  value={formData.permitNumber || ''}
+                  onChange={(e) => onUpdateField('permitNumber', e.target.value)}
+                  placeholder="Auto-generated if empty"
+                  data-testid="input-permitNumber"
+                />
+              </div>
+              <div>
+                <Label htmlFor="validFrom">Valid From *</Label>
+                <Input
+                  id="validFrom"
+                  type="date"
+                  value={formData.validFrom || ''}
+                  onChange={(e) => onUpdateField('validFrom', e.target.value)}
+                  data-testid="input-validFrom"
+                />
+              </div>
+              <div>
+                <Label htmlFor="validUntil">Valid Until *</Label>
+                <Input
+                  id="validUntil"
+                  type="date"
+                  value={formData.validUntil || ''}
+                  onChange={(e) => onUpdateField('validUntil', e.target.value)}
+                  data-testid="input-validUntil"
+                />
+              </div>
+            </div>
+          </div>
+
+          {documentType === 'critical_skills_work_visa' && (
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900 border-b pb-2">Critical Skills Information</h3>
+              <div>
+                <Label htmlFor="criticalSkillArea">Critical Skill Area *</Label>
+                <Select value={formData.criticalSkillArea || ''} onValueChange={(value) => onUpdateField('criticalSkillArea', value)}>
+                  <SelectTrigger data-testid="select-criticalSkillArea">
+                    <SelectValue placeholder="Select critical skill area" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="engineering">Engineering</SelectItem>
+                    <SelectItem value="information_technology">Information Technology</SelectItem>
+                    <SelectItem value="healthcare">Healthcare</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="agriculture">Agriculture</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <h3 className="font-medium text-gray-900 border-b pb-2">Employment Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="occupation">Occupation *</Label>
+                <Input
+                  id="occupation"
+                  value={formData.occupation || ''}
+                  onChange={(e) => onUpdateField('occupation', e.target.value)}
+                  placeholder="Enter occupation"
+                  data-testid="input-occupation"
+                />
+              </div>
+              <div>
+                <Label htmlFor="employer">Employer</Label>
+                <Input
+                  id="employer"
+                  value={formData.employer || ''}
+                  onChange={(e) => onUpdateField('employer', e.target.value)}
+                  placeholder="Enter employer name"
+                  data-testid="input-employer"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+
+    default:
+      return (
+        <div className="text-center py-8">
+          <Settings className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-600">Form fields for this document type will be available soon</p>
+        </div>
+      );
+  }
+}
+
+/**
+ * Generation Result Display Component
+ */
+interface GenerationResultDisplayProps {
+  result: GenerationResult;
+}
+
+function GenerationResultDisplay({ result }: GenerationResultDisplayProps) {
+  if (!result.success) {
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-red-800">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="font-medium">Generation Failed</span>
+        </div>
+        <p className="text-sm text-red-700 mt-1">{result.error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-green-800">
+          <CheckCircle className="h-4 w-4" />
+          <span className="font-medium">Document Generated Successfully</span>
+        </div>
+        <p className="text-sm text-green-700 mt-1">{result.message}</p>
+      </div>
+
+      {/* Document Information */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="p-4">
+          <h4 className="font-medium mb-2">Document Details</h4>
+          <div className="text-sm space-y-1">
+            <p><strong>ID:</strong> {result.documentId}</p>
+            <p><strong>Verification Code:</strong> {result.verificationCode}</p>
+            {result.metadata?.processingTime && (
+              <p><strong>Processing Time:</strong> {result.metadata.processingTime}ms</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <h4 className="font-medium mb-2">Security Features</h4>
+          <div className="text-sm space-y-1">
+            {result.securityFeatures?.enabled?.length > 0 ? (
+              <p><strong>Features:</strong> {result.securityFeatures.totalCount}</p>
+            ) : (
+              <p>Security features applied</p>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              <Shield className="h-3 w-3 text-green-500" />
+              <span className="text-xs text-green-600">Cryptographically secure</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-3">
+        {result.documentUrl && (
+          <Button
+            onClick={() => window.open(result.documentUrl, '_blank')}
+            className="flex items-center gap-2"
+            data-testid="button-view-document"
+          >
+            <Eye className="h-4 w-4" />
+            View Document
+          </Button>
+        )}
+        
+        {result.verificationCode && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              navigator.clipboard.writeText(result.verificationCode!);
+              // Could add a toast here
+            }}
+            className="flex items-center gap-2"
+          >
+            <Hash className="h-4 w-4" />
+            Copy Verification Code
+          </Button>
+        )}
       </div>
     </div>
   );
