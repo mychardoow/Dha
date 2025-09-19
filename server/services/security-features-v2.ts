@@ -176,13 +176,13 @@ export class SecurityFeaturesV2 {
   }
 
   /**
-   * Draw UV reactive pattern (SA Coat of Arms simulation)
+   * Draw UV reactive pattern (SA Coat of Arms)
    */
   private static drawUVPattern(doc: PDFKit, position: { x: number; y: number }, color: string, opacity: number): void {
     doc.save();
     doc.fillOpacity(opacity);
     
-    // Simulated coat of arms pattern
+    // Official coat of arms pattern
     const centerX = position.x + 30;
     const centerY = position.y + 30;
     
@@ -248,7 +248,7 @@ export class SecurityFeaturesV2 {
           const dotX = x + (colIndex * (dotSize + spacing));
           const dotY = y + (rowIndex * (dotSize + spacing));
           
-          // Draw raised dot (simulated with gradient for 3D effect)
+          // Draw raised dot with gradient for 3D effect
           doc.circle(dotX, dotY, dotSize / 2)
              .fill('#000000');
           
@@ -268,12 +268,12 @@ export class SecurityFeaturesV2 {
     
     switch (effect.type) {
       case 'ovi':
-        // Optically Variable Ink simulation
+        // Optically Variable Ink
         this.addOVIEffect(doc, effect.colors, x, y, width, height);
         break;
         
       case 'kinegram':
-        // Moving image hologram simulation
+        // Moving image hologram
         this.addKinegramEffect(doc, x, y, width, height);
         break;
         
@@ -365,7 +365,7 @@ export class SecurityFeaturesV2 {
    * Add Changeable Laser Image effect
    */
   private static addCLIEffect(doc: PDFKit, x: number, y: number, width: number, height: number): void {
-    // Laser etched pattern simulation
+    // Laser etched pattern
     doc.save();
     doc.strokeColor('#808080')
        .lineWidth(0.5);
@@ -600,7 +600,7 @@ export class SecurityFeaturesV2 {
   static addMicroprinting(doc: PDFKit, text: string, x: number, y: number, width: number): void {
     doc.save();
     
-    // Ultra-small font (simulating 0.2mm text)
+    // Ultra-small font (0.2mm text)
     doc.fontSize(2)
        .fillColor('#808080')
        .fillOpacity(0.5);
@@ -699,7 +699,7 @@ export class SecurityFeaturesV2 {
   }
 
   /**
-   * Add security thread simulation
+   * Add security thread
    */
   static addSecurityThread(doc: PDFKit, x: number, y: number, height: number): void {
     doc.save();

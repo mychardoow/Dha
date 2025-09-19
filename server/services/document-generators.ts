@@ -26,6 +26,7 @@ import type {
   DeathCertificateData,
   MarriageCertificateData,
   DivorceCertificateData,
+  GeneralWorkVisaData,
   CriticalSkillsWorkVisaData,
   IntraCompanyTransferWorkVisaData,
   BusinessVisaData,
@@ -151,7 +152,7 @@ export class IdentityDocumentBookGenerator extends BaseDocumentTemplate {
         this.addMicrotext(doc, 170, yPos + 20);
 
         // Serial number
-        const serialNumber = data.serialNumber || this.generateSerialNumber("ID");
+        const serialNumber = this.generateSerialNumber("ID");
         doc.fontSize(8)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
            .text(`Serial: ${serialNumber}`, 300, yPos + 60);
@@ -214,7 +215,7 @@ export class SouthAfricanPassportGenerator extends BaseDocumentTemplate {
 
         let yPos = 140;
 
-        // Passport cover simulation
+        // Passport cover
         doc.save();
         doc.rect(50, yPos, 500, 350)
            .fill(SA_GOVERNMENT_DESIGN.colors.blue);
@@ -281,7 +282,7 @@ export class SouthAfricanPassportGenerator extends BaseDocumentTemplate {
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
            .text(`Place of Issue / Uitgereik te: ${data.placeOfIssue}`, 70, yPos);
 
-        // Machine Readable Zone (MRZ) simulation
+        // Machine Readable Zone (MRZ)
         yPos += 50;
         doc.fontSize(10)
            .font('Courier')
@@ -927,12 +928,12 @@ export class TemporaryIdCertificateGenerator extends BaseDocumentTemplate {
         // Certificate specific fields
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Certificate Number / Sertifikaat Nommer: ${data.certificateNumber}`, 70, yPos);
+           .text(`Certificate Number / Sertifikaat Nommer: ${data.temporaryCertificateNumber}`, 70, yPos);
         yPos += 25;
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Issue Date / Uitgereik: ${this.formatSADate(data.issueDate)}`, 70, yPos);
+           .text(`Issue Date / Uitgereik: ${this.formatSADate(data.issuingDate)}`, 70, yPos);
         yPos += 25;
 
         doc.fontSize(10)
@@ -942,7 +943,7 @@ export class TemporaryIdCertificateGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Reason / Rede: ${data.reason}`, 70, yPos);
+           .text(`Reason / Rede: ${data.reasonForIssue}`, 70, yPos);
 
         // Add security features
         yPos = 580;
@@ -954,7 +955,7 @@ export class TemporaryIdCertificateGenerator extends BaseDocumentTemplate {
 
         this.addMicrotext(doc, 170, yPos + 20);
 
-        const barcodeData = await this.generateBarcode(data.certificateNumber);
+        const barcodeData = await this.generateBarcode(data.temporaryCertificateNumber);
         if (barcodeData) {
           const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
           doc.image(barcodeBuffer, 350, yPos, { width: 150, height: 30 });
@@ -1022,7 +1023,7 @@ export class EmergencyTravelCertificateGenerator extends BaseDocumentTemplate {
         this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
         yPos += 35;
 
-        this.addBilingualField(doc, 'passport_number', data.passportNumber, 70, yPos);
+        this.addBilingualField(doc, 'certificate_number', data.certificateNumber, 70, yPos);
         yPos += 35;
 
         this.addBilingualField(doc, 'nationality', data.personal.nationality, 70, yPos);
@@ -1034,17 +1035,17 @@ export class EmergencyTravelCertificateGenerator extends BaseDocumentTemplate {
         // Emergency specific fields
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
-           .text(`Emergency Reason / Noodgeval Rede: ${data.emergencyReason}`, 70, yPos);
+           .text(`Emergency Reason / Noodgeval Rede: ${data.reasonForIssue}`, 70, yPos);
         yPos += 25;
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.validUntil)}`, 70, yPos);
+           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.dateOfExpiry)}`, 70, yPos);
         yPos += 25;
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Authorized Travel To / Gemagtig om te reis na: ${data.authorizedDestination}`, 70, yPos);
+           .text(`Authorized Travel To / Gemagtig om te reis na: ${data.travelDestination}`, 70, yPos);
 
         // Add photograph placeholder
         doc.save();
@@ -1109,7 +1110,7 @@ export class RefugeeTravelDocumentGenerator extends BaseDocumentTemplate {
         this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
         yPos += 35;
 
-        this.addBilingualField(doc, 'document_number', data.documentNumber, 70, yPos);
+        this.addBilingualField(doc, 'refugee_number', data.refugeeNumber, 70, yPos);
         yPos += 35;
 
         this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
@@ -1121,7 +1122,7 @@ export class RefugeeTravelDocumentGenerator extends BaseDocumentTemplate {
         // Refugee specific fields
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Refugee Status Number / Vlugtelingstatus Nommer: ${data.refugeeStatusNumber}`, 70, yPos);
+           .text(`Refugee Status / Vlugtelingstatus: ${data.refugeeStatus}`, 70, yPos);
         yPos += 25;
 
         doc.fontSize(10)
@@ -1136,7 +1137,7 @@ export class RefugeeTravelDocumentGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.validUntil)}`, 70, yPos);
+           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.dateOfExpiry)}`, 70, yPos);
 
         // Add photograph placeholder
         doc.save();
@@ -1356,7 +1357,7 @@ export class DivorceCertificateGenerator extends BaseDocumentTemplate {
         doc.fontSize(12)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(data.courtOrderNumber, 280, yPos);
+           .text(data.marriageCertificateNumber, 280, yPos);
         
         yPos += 30;
 
@@ -1367,7 +1368,7 @@ export class DivorceCertificateGenerator extends BaseDocumentTemplate {
         doc.fontSize(12)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(data.courtName, 280, yPos);
+           .text(data.divorceCourt, 280, yPos);
         
         yPos += 40;
 
@@ -1382,7 +1383,7 @@ export class DivorceCertificateGenerator extends BaseDocumentTemplate {
         doc.fontSize(11)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(data.formerSpouse1FullName, 70, yPos);
+           .text(data.husband.fullName, 70, yPos);
         
         yPos += 40;
 
@@ -1397,19 +1398,19 @@ export class DivorceCertificateGenerator extends BaseDocumentTemplate {
         doc.fontSize(11)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(data.formerSpouse2FullName, 70, yPos);
+           .text(data.wife.fullName, 70, yPos);
         
         yPos += 40;
 
         // Registration details
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text(`Registration Number / Registrasie Nommer: ${data.registrationNumber}`, 70, yPos);
+           .text(`Marriage Certificate Number / Huweliksertifikaat Nommer: ${data.marriageCertificateNumber}`, 70, yPos);
         
         yPos += 15;
 
         doc.fontSize(10)
-           .text(`Registration Date / Registrasie Datum: ${this.formatSADate(data.registrationDate)}`, 70, yPos);
+           .text(`Divorce Finalized / Egskeiding Gefinaliseer: ${this.formatSADate(data.divorceDate)}`, 70, yPos);
 
         // Security features at bottom
         yPos = 680;
@@ -1421,7 +1422,7 @@ export class DivorceCertificateGenerator extends BaseDocumentTemplate {
 
         this.addMicrotext(doc, 150, yPos + 10);
 
-        const barcodeData = await this.generateBarcode(data.registrationNumber);
+        const barcodeData = await this.generateBarcode(data.marriageCertificateNumber);
         if (barcodeData) {
           const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
           doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
@@ -1613,14 +1614,14 @@ export class IntraCompanyTransferWorkVisaGenerator extends BaseDocumentTemplate 
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Source Company / Bronmaatskappy: ${data.sourceCompany}`, 50, yPos);
+           .text(`Role / Rol: ${data.role}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Destination Company / Bestemmingsmaatskappy: ${data.destinationCompany}`, 50, yPos);
+           .text(`Transfer Duration / Oordrag Duur: ${data.transferDuration}`, 50, yPos);
         yPos += 20;
 
-        this.addBilingualField(doc, 'occupation', data.occupation, 50, yPos);
+        this.addBilingualField(doc, 'salary_level', data.salaryLevel, 50, yPos);
         yPos += 35;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -1685,7 +1686,7 @@ export class BusinessVisaGenerator extends BaseDocumentTemplate {
         let yPos = 140;
 
         // Personal information
-        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
         yPos += 35;
 
         this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
