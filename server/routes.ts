@@ -4,7 +4,7 @@ import crypto from "crypto";
 import fs from "fs/promises";
 import path from "path";
 import QRCode from "qrcode";
-import { storage } from "./enhanced-storage";
+import { storage } from "./storage";
 import { authenticate, hashPassword, verifyPassword, generateToken, requireRole, requireApiKey } from "./middleware/auth";
 import { authLimiter, apiLimiter, uploadLimiter, securityHeaders, fraudDetection, ipFilter, securityLogger } from "./middleware/security";
 import { auditTrailMiddleware } from "./middleware/audit-trail-middleware";
@@ -109,6 +109,7 @@ import { governmentSecurityService } from "./services/government-security";
 import { enterpriseMonitoringService } from "./services/enterprise-monitoring";
 import { disasterRecoveryService } from "./services/disaster-recovery";
 import { aiAssistantService } from "./services/ai-assistant";
+import { militaryGradeAIAssistant } from "./services/military-grade-ai-assistant";
 import { antivirusService } from "./services/antivirus-scanner";
 import { ocrAutoFillService } from "./services/ocr-autofill";
 import { complianceAuditService } from "./services/compliance-audit";
@@ -4344,6 +4345,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =================== AI ASSISTANT AND INTELLIGENCE API ROUTES ===================
+  
+  // Military AI Command - Multi-mode bot system with Agent, Assistant, and Security Bot
+  app.post("/api/ai/military-command", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const userId = (req as any).user.id;
+      const userRole = (req as any).user.role;
+      
+      // Parse request with bot mode support
+      const {
+        message,
+        commandType,
+        classificationLevel,
+        botMode,
+        autoExecute,
+        targetAction,
+        executionContext,
+        userContext,
+        conversationId
+      } = req.body;
+      
+      // Validate required fields
+      if (!message || !commandType || !classificationLevel || !userContext || !conversationId) {
+        return res.status(400).json({ 
+          error: "Missing required fields for military command" 
+        });
+      }
+      
+      // Process command with military-grade AI assistant
+      const response = await militaryGradeAIAssistant.processCommand({
+        message,
+        commandType,
+        classificationLevel,
+        userContext: {
+          ...userContext,
+          userId,
+          auditTrailRequired: true
+        },
+        conversationId,
+        botMode,
+        targetAction,
+        executionContext,
+        autoExecute,
+        operationalContext: `User Role: ${userRole}`,
+        securityProtocol: "MILITARY_GRADE_V2"
+      });
+      
+      // Log security event for audit
+      if (response.auditEntry) {
+        await storage.createSecurityEvent({
+          userId,
+          eventType: "military_ai_command",
+          severity: response.success ? "low" : "high",
+          details: {
+            commandType,
+            classificationLevel,
+            botMode,
+            success: response.success,
+            auditId: response.auditEntry.auditId
+          }
+        });
+      }
+      
+      // Return response with all bot mode data
+      res.json({
+        success: response.success,
+        content: response.content,
+        classificationLevel: response.classificationLevel,
+        error: response.error,
+        securityWarnings: response.securityWarnings,
+        auditEntry: response.auditEntry,
+        clearanceValidated: response.clearanceValidated,
+        commandAuthorized: response.commandAuthorized,
+        restrictions: response.restrictions,
+        metadata: response.metadata,
+        botMode: response.botMode,
+        executionResult: response.executionResult,
+        actionsTaken: response.actionsTaken,
+        suggestions: response.suggestions,
+        systemStatus: response.systemStatus
+      });
+    } catch (error) {
+      console.error("Military AI command error:", error);
+      res.status(500).json({ 
+        error: "Military command processing failed",
+        success: false,
+        classificationLevel: "UNCLASSIFIED",
+        clearanceValidated: false,
+        commandAuthorized: false
+      });
+    }
+  }));
   
   // AI Chat - Generate response with comprehensive security and validation
   app.post("/api/ai/chat", authenticate, consentMiddleware.requireAIConsent, apiLimiter, asyncHandler(async (req: Request, res: Response) => {

@@ -31,7 +31,17 @@ import {
   Key,
   AlertCircle,
   Crown,
-  Star
+  Star,
+  Cpu,
+  Wrench,
+  ShieldCheck,
+  BrainCircuit,
+  Settings,
+  PlayCircle,
+  Sparkles,
+  Bug,
+  Code,
+  Search
 } from "lucide-react";
 
 // Military Classification Levels
@@ -73,6 +83,31 @@ enum CommandType {
   CLASSIFIED_INQUIRY = "CLASSIFIED_INQUIRY"
 }
 
+// Bot Modes
+enum BotMode {
+  AGENT = "AGENT",
+  ASSISTANT = "ASSISTANT",
+  SECURITY_BOT = "SECURITY_BOT"
+}
+
+// Agent Actions
+enum AgentAction {
+  FIX_ERROR = "FIX_ERROR",
+  ADD_FEATURE = "ADD_FEATURE",
+  FIND_CODE = "FIND_CODE",
+  DEBUG_ISSUE = "DEBUG_ISSUE",
+  SUGGEST_IMPROVEMENT = "SUGGEST_IMPROVEMENT"
+}
+
+// Security Actions
+enum SecurityAction {
+  SCAN_VULNERABILITIES = "SCAN_VULNERABILITIES",
+  FIX_ERRORS = "FIX_ERRORS",
+  UPDATE_SECURITY = "UPDATE_SECURITY",
+  CHECK_HEALTH = "CHECK_HEALTH",
+  OPTIMIZE_PERFORMANCE = "OPTIMIZE_PERFORMANCE"
+}
+
 interface MilitaryUser {
   id: string;
   name: string;
@@ -96,6 +131,9 @@ interface MilitaryMessage {
   securityWarnings?: string[];
   clearanceValidated: boolean;
   restrictions?: string[];
+  botMode?: BotMode;
+  executionResult?: any;
+  actionsTaken?: string[];
 }
 
 interface AuditEntry {
@@ -173,6 +211,11 @@ export default function MilitaryAIAssistantPage() {
   const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([]);
   const [securityWarnings, setSecurityWarnings] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('command');
+  // New bot mode states
+  const [selectedBotMode, setSelectedBotMode] = useState<BotMode>(BotMode.ASSISTANT);
+  const [isAutoExecute, setIsAutoExecute] = useState(false);
+  const [executionStatus, setExecutionStatus] = useState<string>('');
+  const [botActivity, setBotActivity] = useState<string[]>([]);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -207,6 +250,18 @@ export default function MilitaryAIAssistantPage() {
   // Initialize with secure welcome message
   useEffect(() => {
     if (currentUser) {
+      const modeIcons = {
+        [BotMode.AGENT]: '🔧',
+        [BotMode.ASSISTANT]: '🤖',
+        [BotMode.SECURITY_BOT]: '🛡️'
+      };
+      
+      const modeDescriptions = {
+        [BotMode.AGENT]: 'Fix issues, add features, debug code',
+        [BotMode.ASSISTANT]: 'General assistance and document help',
+        [BotMode.SECURITY_BOT]: 'Security monitoring and auto-fixes'
+      };
+      
       const welcomeMessage: MilitaryMessage = {
         id: 'welcome-mil',
         role: 'assistant',
@@ -219,17 +274,18 @@ export default function MilitaryAIAssistantPage() {
 **MILITARY ROLE:** ${currentUser.militaryRole}
 **BADGE ID:** ${currentUser.securityBadgeId}
 
+**ACTIVE BOT MODE:** ${modeIcons[selectedBotMode]} ${selectedBotMode}
+**MODE CAPABILITY:** ${modeDescriptions[selectedBotMode]}
+
 **AUTHORIZED CLASSIFICATIONS:**
 ${currentUser.accessibleClassifications.map(c => `• ${c}`).join('\n')}
 
-**COMMAND AUTHORITY:** ${currentUser.commandAuthority ? 'GRANTED' : 'DENIED'}
+**AVAILABLE BOT MODES:**
+• 🔧 **AGENT MODE** - Developer assistance, fix errors, add features
+• 🤖 **ASSISTANT MODE** - Execute commands, general help
+• 🛡️ **SECURITY BOT** - Continuous monitoring, auto-fixes
 
-**AVAILABLE OPERATIONS:**
-• Document processing and generation
-• Security analysis and threat assessment
-• Intelligence data queries (clearance-dependent)
-• Operational command support
-• Classified information access
+**COMMAND AUTHORITY:** ${currentUser.commandAuthority ? 'GRANTED' : 'DENIED'}
 
 All interactions are logged for security audit compliance.
 
@@ -271,6 +327,8 @@ How may I assist you with classified operations today, ${currentUser.name}?
           message,
           commandType,
           classificationLevel,
+          botMode: selectedBotMode,
+          autoExecute: isAutoExecute,
           userContext: {
             userId: currentUser.id,
             clearanceLevel: currentUser.clearanceLevel,
@@ -514,7 +572,7 @@ ${error.message}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="destructive" className="flex items-center gap-1 blink">
+              <Badge variant="destructive" className="flex items-center gap-1 animate-pulse">
                 <Activity className="h-3 w-3" />
                 SECURE MODE
               </Badge>
@@ -625,6 +683,60 @@ ${error.message}
                     )}
                   </SelectContent>
                 </Select>
+              </CardContent>
+            </Card>
+
+            {/* Bot Mode Selector */}
+            <Card className="mb-4 border-purple-800 bg-gray-900">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2 text-purple-400">
+                  <BrainCircuit className="h-5 w-5" />
+                  Bot Mode
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedBotMode} onValueChange={(value: BotMode) => setSelectedBotMode(value)}>
+                  <SelectTrigger className="w-full" data-testid="bot-mode-selector">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={BotMode.AGENT}>
+                      <div className="flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Agent Mode
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={BotMode.ASSISTANT}>
+                      <div className="flex items-center gap-2">
+                        <Bot className="h-4 w-4" />
+                        Assistant Mode
+                      </div>
+                    </SelectItem>
+                    <SelectItem value={BotMode.SECURITY_BOT}>
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4" />
+                        Security Bot
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="mt-2 text-xs text-gray-400">
+                  {selectedBotMode === BotMode.AGENT && "Fix errors, add features, debug code"}
+                  {selectedBotMode === BotMode.ASSISTANT && "General assistance and commands"}
+                  {selectedBotMode === BotMode.SECURITY_BOT && "Auto security monitoring & fixes"}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-300">
+                    <input
+                      type="checkbox"
+                      checked={isAutoExecute}
+                      onChange={(e) => setIsAutoExecute(e.target.checked)}
+                      className="rounded border-gray-600"
+                    />
+                    <PlayCircle className="h-4 w-4" />
+                    Auto-Execute Actions
+                  </label>
+                </div>
               </CardContent>
             </Card>
 
@@ -875,16 +987,6 @@ ${error.message}
           </div>
         </div>
       </div>
-      
-      <style jsx>{`
-        .blink {
-          animation: blink 1s infinite;
-        }
-        @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0.3; }
-        }
-      `}</style>
     </div>
   );
 }

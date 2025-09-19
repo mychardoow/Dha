@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
 import { optimizedCacheService } from "./optimized-cache";
 import { getConnectionStatus, pool, db } from "../db";

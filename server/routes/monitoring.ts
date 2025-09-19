@@ -5,7 +5,7 @@ import { enhancedErrorDetectionService } from "../services/enhanced-error-detect
 import { proactiveMaintenanceService } from "../services/proactive-maintenance-service";
 import { intelligentAlertingService } from "../services/intelligent-alerting-service";
 import { webSocketMonitoringService } from "../services/websocket-monitoring";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 
 const router = Router();
 

@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { enhancedMonitoringService } from "./enhanced-monitoring-service";
 import { errorTrackingService } from "./error-tracking";

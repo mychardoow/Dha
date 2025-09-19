@@ -54,6 +54,35 @@ export enum CommandType {
   CLASSIFIED_INQUIRY = "CLASSIFIED_INQUIRY"
 }
 
+// Bot Mode Types - Three distinct operational modes
+export enum BotMode {
+  AGENT = "AGENT",           // Developer assistance mode
+  ASSISTANT = "ASSISTANT",   // General purpose assistance
+  SECURITY_BOT = "SECURITY_BOT" // Autonomous security monitoring
+}
+
+// Agent Mode Actions
+export enum AgentAction {
+  FIX_ERROR = "FIX_ERROR",
+  ADD_FEATURE = "ADD_FEATURE",
+  FIND_CODE = "FIND_CODE",
+  DEBUG_ISSUE = "DEBUG_ISSUE",
+  SUGGEST_IMPROVEMENT = "SUGGEST_IMPROVEMENT",
+  REFACTOR_CODE = "REFACTOR_CODE",
+  ANALYZE_PERFORMANCE = "ANALYZE_PERFORMANCE"
+}
+
+// Security Bot Actions
+export enum SecurityAction {
+  SCAN_VULNERABILITIES = "SCAN_VULNERABILITIES",
+  FIX_ERRORS = "FIX_ERRORS",
+  UPDATE_SECURITY = "UPDATE_SECURITY",
+  CHECK_HEALTH = "CHECK_HEALTH",
+  OPTIMIZE_PERFORMANCE = "OPTIMIZE_PERFORMANCE",
+  DETECT_THREATS = "DETECT_THREATS",
+  AUTO_PATCH = "AUTO_PATCH"
+}
+
 export interface MilitaryUserContext {
   userId: string;
   clearanceLevel: ClearanceLevel;
@@ -76,6 +105,23 @@ export interface MilitaryAIRequest {
   specialAccessRequired?: string[];
   operationalContext?: string;
   securityProtocol?: string;
+  // New bot mode fields
+  botMode?: BotMode;
+  targetAction?: AgentAction | SecurityAction;
+  executionContext?: any;
+  autoExecute?: boolean;
+}
+
+export interface BotExecutionResult {
+  success: boolean;
+  action: string;
+  result?: any;
+  error?: string;
+  logs?: string[];
+  filesModified?: string[];
+  testsRun?: number;
+  issuesFixed?: number;
+  performanceGain?: number;
 }
 
 export interface MilitaryAIResponse {
@@ -89,6 +135,12 @@ export interface MilitaryAIResponse {
   commandAuthorized: boolean;
   restrictions?: string[];
   metadata?: any;
+  // Bot mode response fields
+  botMode?: BotMode;
+  executionResult?: BotExecutionResult;
+  actionsTaken?: string[];
+  suggestions?: string[];
+  systemStatus?: any;
 }
 
 export interface AuditEntry {
@@ -184,6 +236,12 @@ export class MilitaryGradeAIAssistant {
    * Main military-grade AI processing method
    */
   async processCommand(request: MilitaryAIRequest): Promise<MilitaryAIResponse> {
+    // Check if bot mode is specified and route accordingly
+    if (request.botMode) {
+      return await this.processBotModeCommand(request);
+    }
+    
+    // Continue with standard military processing
     const startTime = Date.now();
     
     try {
@@ -892,4 +950,6 @@ For classified operations, contact your commanding officer.`;
 }
 
 // Export singleton instance
+}
+
 export const militaryGradeAIAssistant = new MilitaryGradeAIAssistant();

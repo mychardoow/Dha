@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 import { errorTrackingService } from "./error-tracking";
 import { fraudDetectionService } from "./fraud-detection";
 import { auditTrailService } from "./audit-trail-service";
