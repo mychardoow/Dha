@@ -999,14 +999,13 @@ export class ComprehensiveVerificationService extends EventEmitter {
     const verificationRecord: InsertDocumentVerificationRecord = {
       verificationCode: code,
       documentHash: hash,
-      documentType,
+      documentType: documentType as any, // Cast to valid enum type
       documentNumber,
       documentData,
       userId,
       verificationUrl: url,
       hashtags,
       isActive: true,
-      verificationCount: 0,
       securityFeatures: {
         brailleEncoded: true,
         holographicSeal: true,
@@ -1065,6 +1064,7 @@ export class ComprehensiveVerificationService extends EventEmitter {
       if (!record.isActive) {
         return {
           isValid: false,
+          verificationId: record.id,
           verificationCount: record.verificationCount,
           message: "This document has been revoked or expired.",
           securityFeatures: {
@@ -1102,6 +1102,7 @@ export class ComprehensiveVerificationService extends EventEmitter {
       // Log verification attempt
       await storage.logDocumentVerification({
         verificationRecordId: record.id,
+        verificationMethod: (request as any).verificationMethod || 'unknown',
         ipAddress: request.ipAddress,
         userAgent: request.userAgent,
         location: request.location,
@@ -1173,9 +1174,9 @@ export class ComprehensiveVerificationService extends EventEmitter {
         issuingOfficer: record.issuingOfficer || "Authorized Officer",
         hashtags: record.hashtags,
         verificationHistory: verificationHistory.map(h => ({
-          timestamp: h.verifiedAt.toISOString(),
+          timestamp: h.createdAt.toISOString(),
           ipAddress: h.ipAddress || undefined,
-          location: h.location || undefined,
+          location: h.location ? JSON.stringify(h.location) : undefined,
           verificationMethod: h.verificationMethod || 'unknown',
           isSuccessful: h.isSuccessful || true
         })),
@@ -1559,7 +1560,7 @@ export class ComprehensiveVerificationService extends EventEmitter {
       return history.map(item => ({
         timestamp: item.createdAt.toISOString(),
         ipAddress: item.ipAddress || undefined,
-        location: item.location || undefined,
+        location: item.location ? JSON.stringify(item.location) : undefined,
         verificationMethod: item.verificationMethod || 'unknown',
         isSuccessful: item.isSuccessful || false
       }));
@@ -1692,15 +1693,17 @@ export class ComprehensiveVerificationService extends EventEmitter {
         verificationMethod: (request as any).verificationMethod || 'unknown',
         ipAddress: request.ipAddress,
         userAgent: request.userAgent,
-        location: request.location ? JSON.stringify(request.location) : undefined,
-        sessionId: session.sessionId,
-        userId: request.userId,
+        location: request.location,
         isSuccessful,
-        fraudScore: fraudAssessment.riskScore,
-        riskLevel: fraudAssessment.riskLevel,
-        metadata: {
-          fraudAssessment,
-          timestamp: new Date()
+        fraudIndicators: fraudAssessment.fraudIndicators,
+        behavioralAnalysis: {
+          riskScore: fraudAssessment.riskScore,
+          riskLevel: fraudAssessment.riskLevel,
+          anomalies: fraudAssessment.behavioralAnomalies
+        },
+        anomalyDetection: {
+          geoTemporalAnomalies: fraudAssessment.geoTemporalAnomalies,
+          suspiciousPatterns: fraudAssessment.suspiciousPatterns
         }
       };
       
