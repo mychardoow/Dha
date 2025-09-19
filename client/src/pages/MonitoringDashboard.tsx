@@ -34,7 +34,7 @@ import {
   EyeOff,
   Gauge,
   Brain,
-  Robot,
+  Bot,
   AlertCircle,
   Info,
   ChevronDown,
@@ -637,7 +637,7 @@ export default function MonitoringDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Robot className="w-5 h-5" />
+                <Bot className="w-5 h-5" />
                 <span>Recent Autonomous Actions</span>
               </CardTitle>
             </CardHeader>
