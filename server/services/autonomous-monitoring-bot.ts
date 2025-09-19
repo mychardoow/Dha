@@ -2038,7 +2038,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
     });
     
     const unauthorizedAccess = recentDataAccess.filter(log => 
-      log.metadata?.unauthorized === true
+      (log.actionDetails as any)?.unauthorized === true
     );
     
     return {
