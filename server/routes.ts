@@ -123,6 +123,10 @@ import { militaryDocumentService } from "./services/military-documents";
 import { secureCommunicationsService } from "./services/secure-comms";
 import { z } from "zod";
 import { consentMiddleware } from "./middleware/consent-middleware";
+
+// Import unified document generation system
+import { documentTemplateRegistry } from "./services/document-template-registry";
+import { documentGenerationRequestSchema, documentTypeSchemas } from "@shared/schema";
 import { dataGovernanceService } from "./services/data-governance";
 
 // Constants
@@ -6196,6 +6200,374 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   // =================== END PRODUCTION SECURE PDF API ===================
+
+  // =================== UNIFIED DHA DOCUMENT GENERATION API ===================
+  
+  /**
+   * UNIFIED DOCUMENT GENERATION ENDPOINT
+   * Handles all 21 official DHA document types with exact design specifications
+   * POST /api/documents/generate
+   */
+  app.post("/api/documents/generate", 
+    authenticate, 
+    requireRole(["dha_officer", "admin"]), 
+    apiLimiter, 
+    auditTrailMiddleware,
+    async (req: Request, res: Response) => {
+      const requestId = crypto.randomUUID();
+      const startTime = Date.now();
+      
+      try {
+        console.log(`[Unified Document API] Starting generation request ${requestId}`);
+        
+        // Parse and validate request using discriminated union schema
+        const validation = documentGenerationRequestSchema.safeParse(req.body);
+        if (!validation.success) {
+          console.error(`[Unified Document API] Validation failed:`, validation.error.errors);
+          return res.status(400).json({
+            success: false,
+            error: "Invalid document data",
+            validationErrors: validation.error.errors,
+            requestId,
+            supportedDocumentTypes: documentTemplateRegistry.getSupportedDocumentTypes()
+          });
+        }
+
+        const documentRequest = validation.data;
+        const documentType = documentRequest.documentType;
+        
+        // Check if document type is supported
+        if (!documentTemplateRegistry.isDocumentTypeSupported(documentType)) {
+          return res.status(400).json({
+            success: false,
+            error: `Document type '${documentType}' is not supported`,
+            supportedDocumentTypes: documentTemplateRegistry.getSupportedDocumentTypes(),
+            requestId
+          });
+        }
+
+        // Extract query parameters for preview mode
+        const isPreview = req.query.preview === 'true' || req.query.mode === 'preview';
+        const downloadMode = req.query.download === 'true';
+        
+        console.log(`[Unified Document API] Generating ${documentType} (preview: ${isPreview}, download: ${downloadMode})`);
+
+        // Fraud detection screening
+        const user = (req as any).user;
+        const fraudCheck = await fraudDetectionService.screenDocumentRequest({
+          userId: user.id,
+          documentType,
+          personalDetails: (documentRequest as any).personal || {
+            fullName: (documentRequest as any).fullName || (documentRequest as any).childFullName || "N/A",
+            idNumber: (documentRequest as any).idNumber || (documentRequest as any).passportNumber || "N/A"
+          },
+          requestMetadata: {
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent'),
+            timestamp: new Date(),
+            isPreview
+          }
+        });
+
+        if (fraudCheck.riskLevel === 'high' && !isPreview) {
+          console.warn(`[Unified Document API] High fraud risk detected for request ${requestId}`);
+          return res.status(429).json({
+            success: false,
+            error: "Request requires additional verification",
+            riskLevel: fraudCheck.riskLevel,
+            flags: fraudCheck.flags,
+            requestId,
+            contactSupport: true
+          });
+        }
+
+        // Log audit trail
+        await auditTrailService.logDocumentGenerationStart({
+          requestId,
+          documentType,
+          userId: user.id,
+          officerName: user.username,
+          applicantId: (documentRequest as any).personal?.idNumber || 
+                      (documentRequest as any).idNumber || 
+                      (documentRequest as any).passportNumber || 'N/A',
+          timestamp: new Date(),
+          ipAddress: req.ip,
+          userAgent: req.get('User-Agent'),
+          isPreview
+        });
+
+        // Generate document using unified registry
+        const result = await documentTemplateRegistry.generateDocument(documentRequest, isPreview);
+        
+        if (!result.success) {
+          console.error(`[Unified Document API] Generation failed:`, result.error);
+          
+          // Log failure
+          await auditTrailService.logDocumentGenerationFailure({
+            requestId,
+            documentType,
+            error: result.error || "Unknown error",
+            processingTime: Date.now() - startTime,
+            userId: user.id
+          });
+          
+          return res.status(500).json({
+            success: false,
+            error: result.error,
+            requestId,
+            documentType,
+            processingTime: Date.now() - startTime
+          });
+        }
+
+        // Log successful generation
+        const processingTime = Date.now() - startTime;
+        await auditTrailService.logDocumentGenerationSuccess({
+          requestId,
+          documentType,
+          documentId: result.documentId,
+          verificationCode: result.verificationCode,
+          processingTime,
+          userId: user.id,
+          securityFeatures: Object.keys(result.securityFeatures).filter(key => 
+            result.securityFeatures[key as keyof typeof result.securityFeatures] === true
+          ).length
+        });
+
+        console.log(`[Unified Document API] Successfully generated ${documentType} (${processingTime}ms)`);
+
+        // Handle different response modes
+        if (downloadMode) {
+          // Direct PDF download
+          try {
+            const pdfPath = path.join(DOCUMENTS_DIR, `${result.documentId}.pdf`);
+            const pdfBuffer = await fs.readFile(pdfPath);
+            
+            // Set PDF headers
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${documentType}_${result.documentId}.pdf"`);
+            res.setHeader('Content-Length', pdfBuffer.length);
+            
+            // Send PDF buffer
+            res.send(pdfBuffer);
+            return;
+          } catch (error) {
+            console.error(`[Unified Document API] Failed to read generated PDF:`, error);
+          }
+        }
+
+        // JSON response with metadata
+        const response = {
+          success: true,
+          requestId,
+          documentType,
+          documentId: result.documentId,
+          verificationCode: result.verificationCode,
+          qrCodeUrl: result.qrCodeUrl,
+          documentUrl: result.documentUrl,
+          downloadUrl: `${result.documentUrl}?download=true`,
+          previewUrl: isPreview ? result.documentUrl : `${result.documentUrl}?preview=true`,
+          
+          // Security features summary
+          securityFeatures: {
+            enabled: Object.keys(result.securityFeatures).filter(key => 
+              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
+            ),
+            totalCount: Object.keys(result.securityFeatures).filter(key => 
+              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
+            ).length,
+            details: result.securityFeatures
+          },
+          
+          // Document metadata
+          metadata: {
+            ...result.metadata,
+            processingTime,
+            fileSize: result.documentUrl ? "Available" : "Processing",
+            isPreview,
+            generatedAt: new Date().toISOString()
+          },
+
+          // Verification info
+          verification: {
+            qrCode: result.qrCodeUrl,
+            verificationCode: result.verificationCode,
+            verificationUrl: `https://verify.dha.gov.za/verify/${result.verificationCode}`,
+            publicVerificationUrl: `/api/verify/public/${result.verificationCode}`
+          },
+
+          // Additional info
+          message: isPreview ? 
+            `${documentType} preview generated successfully with SAMPLE watermarks` : 
+            `${documentType} generated successfully with all security features`,
+          
+          warning: isPreview ? 
+            "This is a PREVIEW document with SAMPLE watermarks. Not valid for official use." : 
+            undefined
+        };
+
+        res.json(response);
+
+      } catch (error) {
+        const processingTime = Date.now() - startTime;
+        console.error(`[Unified Document API] Unexpected error in request ${requestId}:`, error);
+        
+        // Log failure
+        try {
+          await auditTrailService.logDocumentGenerationFailure({
+            requestId,
+            documentType: req.body?.documentType || 'unknown',
+            error: error instanceof Error ? error.message : 'Unexpected error',
+            processingTime,
+            userId: (req as any).user?.id
+          });
+        } catch (auditError) {
+          console.error(`[Unified Document API] Failed to log audit trail:`, auditError);
+        }
+
+        res.status(500).json({
+          success: false,
+          error: "Internal server error during document generation",
+          requestId,
+          processingTime,
+          details: error instanceof Error ? error.message : "Unknown error",
+          contactSupport: true
+        });
+      }
+    }
+  );
+
+  /**
+   * GET SUPPORTED DOCUMENT TYPES
+   * Returns list of all supported document types and their schemas
+   * GET /api/documents/types
+   */
+  app.get("/api/documents/types", 
+    authenticate, 
+    apiLimiter,
+    async (req: Request, res: Response) => {
+      try {
+        const supportedTypes = documentTemplateRegistry.getSupportedDocumentTypes();
+        
+        // Build comprehensive response with schemas and metadata
+        const documentTypes = supportedTypes.map(type => {
+          const schema = documentTypeSchemas[type as keyof typeof documentTypeSchemas];
+          
+          return {
+            type,
+            displayName: type.split('_').map(word => 
+              word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' '),
+            category: this.getDocumentCategory(type),
+            formNumber: this.getFormNumber(type),
+            requiredFields: schema ? this.extractRequiredFields(schema) : [],
+            description: this.getDocumentDescription(type),
+            isImplemented: true,
+            securityFeatures: [
+              "Watermarks", "Guilloche Patterns", "Holographic Effects", 
+              "Microtext", "QR Codes", "Barcodes", "Digital Signatures",
+              "Cryptographic Hash", "Tamper Evidence", "Serial Numbers"
+            ]
+          };
+        });
+        
+        res.json({
+          success: true,
+          totalTypes: supportedTypes.length,
+          implementedTypes: supportedTypes.length,
+          categories: {
+            identity: documentTypes.filter(d => d.category === 'identity').length,
+            travel: documentTypes.filter(d => d.category === 'travel').length,
+            civil: documentTypes.filter(d => d.category === 'civil').length,
+            immigration: documentTypes.filter(d => d.category === 'immigration').length
+          },
+          documentTypes,
+          apiUsage: {
+            generateEndpoint: "POST /api/documents/generate",
+            previewMode: "Add ?preview=true or ?mode=preview",
+            downloadMode: "Add ?download=true",
+            supportedFormats: ["PDF"],
+            authentication: "Required - DHA Officer or Admin role"
+          }
+        });
+        
+      } catch (error) {
+        console.error("[Unified Document API] Failed to get document types:", error);
+        res.status(500).json({
+          success: false,
+          error: "Failed to retrieve document types",
+          details: error instanceof Error ? error.message : "Unknown error"
+        });
+      }
+    }
+  );
+
+  // Helper methods (these would typically be in a utility class)
+  function getDocumentCategory(type: string): string {
+    if (['smart_id_card', 'identity_document_book', 'temporary_id_certificate'].includes(type)) {
+      return 'identity';
+    }
+    if (['south_african_passport', 'emergency_travel_certificate', 'refugee_travel_document'].includes(type)) {
+      return 'travel';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    return 'immigration';
+  }
+
+  function getFormNumber(type: string): string {
+    const formNumbers: Record<string, string> = {
+      smart_id_card: "DHA-24",
+      identity_document_book: "BI-9",
+      temporary_id_certificate: "DHA-73",
+      south_african_passport: "DHA-73",
+      emergency_travel_certificate: "DHA-1738",
+      refugee_travel_document: "DHA-1590",
+      birth_certificate: "BI-24",
+      death_certificate: "BI-1663",
+      marriage_certificate: "BI-130",
+      divorce_certificate: "BI-281",
+      general_work_visa: "BI-1738",
+      critical_skills_work_visa: "DHA-1739",
+      permanent_residence_permit: "BI-947"
+    };
+    return formNumbers[type] || "DHA-GENERIC";
+  }
+
+  function getDocumentDescription(type: string): string {
+    const descriptions: Record<string, string> = {
+      smart_id_card: "Polycarbonate smart ID card with biometric chip and laser engraving",
+      identity_document_book: "Traditional green book identity document",
+      temporary_id_certificate: "Temporary identity certificate for urgent cases",
+      south_african_passport: "Machine-readable South African passport with ICAO compliance",
+      emergency_travel_certificate: "Emergency travel document for urgent travel situations",
+      refugee_travel_document: "UNHCR compliant travel document for refugees",
+      birth_certificate: "Official birth certificate (unabridged format)",
+      death_certificate: "Official death certificate with medical details",
+      marriage_certificate: "Official marriage certificate for civil, religious or customary marriages",
+      divorce_certificate: "Official divorce certificate with decree details",
+      general_work_visa: "General work visa for employment in South Africa",
+      critical_skills_work_visa: "Work visa for critical and scarce skills occupations",
+      permanent_residence_permit: "Permanent residence permit for long-term residents"
+    };
+    return descriptions[type] || "Official South African government document";
+  }
+
+  function extractRequiredFields(schema: any): string[] {
+    // Extract required fields from Zod schema - this is a simplified version
+    try {
+      const shape = schema._def?.shape || {};
+      return Object.keys(shape).filter(key => {
+        const field = shape[key];
+        return field?._def && !field.isOptional();
+      });
+    } catch {
+      return ['documentType', 'personal'];
+    }
+  }
+
+  // =================== END UNIFIED DHA DOCUMENT GENERATION API ===================
 
   // =================== END SECURITY MONITORING API ROUTES ===================
 
