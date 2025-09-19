@@ -5,7 +5,7 @@ import { enhancedErrorDetectionService } from "./enhanced-error-detection";
 import { proactiveMaintenanceService } from "./proactive-maintenance-service";
 import { intelligentAlertingService } from "./intelligent-alerting-service";
 import { webSocketMonitoringService } from "./websocket-monitoring";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 import { db, pool, getConnectionStatus } from "../db";
 import { type InsertAutonomousOperation } from "@shared/schema";
 import { Server } from "http";

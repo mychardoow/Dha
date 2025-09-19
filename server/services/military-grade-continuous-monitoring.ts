@@ -6,7 +6,7 @@
 import { EventEmitter } from "events";
 import { performance } from "perf_hooks";
 import { Worker } from "worker_threads";
-import { storage } from "../enhanced-storage";
+import { storage } from "../storage";
 import { monitoringOrchestrator } from "./monitoring-orchestrator";
 import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
 import { enhancedMonitoringService } from "./enhanced-monitoring-service";
