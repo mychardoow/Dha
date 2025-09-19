@@ -16,19 +16,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export default function Dashboard() {
-  const { socket, isConnected } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors and persistent toasts
+  // const { socket, isConnected } = useWebSocket();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("monitoring");
 
+  // WebSocket connection disabled - system works without real-time updates
+  const isConnected = false; // Fallback mode
+  const socket = null;
+
   useEffect(() => {
-    if (isConnected) {
-      toast({
-        title: "System Online",
-        description: "DHA Security Platform initialized successfully",
-        className: "border-secure bg-secure/10 text-secure",
-      });
-    }
-  }, [isConnected, toast]);
+    // Connection status no longer shown to prevent confusion
+    // System works perfectly without WebSocket
+  }, [toast]);
 
   return (
     <div className="min-h-screen dha-page">

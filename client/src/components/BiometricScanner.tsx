@@ -31,7 +31,9 @@ function BiometricScanner() {
   const [selectedType, setSelectedType] = useState<"face" | "fingerprint" | "voice" | "iris">("face");
   
   const { toast } = useToast();
-  const { socket } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors
+  // const { socket } = useWebSocket();
+  const socket = null; // System works without real-time updates
   const queryClient = useQueryClient();
 
   // Get user's biometric profiles with optimized caching

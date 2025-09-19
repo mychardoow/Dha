@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentCardSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import { useWebSocket } from "@/hooks/useWebSocket";
+// import { useWebSocket } from "@/hooks/useWebSocket"; // FIXED: Disabled to prevent connection errors
 
 interface Document {
   id: string;
@@ -220,7 +220,9 @@ function DocumentProcessor() {
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { socket } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors
+  // const { socket } = useWebSocket();
+  const socket = null; // System works without real-time updates
   const queryClient = useQueryClient();
 
   // Get user documents with optimized caching

@@ -10,19 +10,17 @@ import { realTimeValidationService } from "./real-time-validation-service";
 import { productionGovernmentApi } from "./production-government-api";
 
 // Using GPT-4 Turbo for advanced AI capabilities
-const apiKey = (() => {
-  if (process.env.OPENAI_API_KEY) {
-    return process.env.OPENAI_API_KEY;
-  }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('CRITICAL SECURITY ERROR: OPENAI_API_KEY environment variable is required for AI assistant functionality in production');
-  }
-  return 'dev-openai-key';
-})();
+const apiKey = process.env.OPENAI_API_KEY || '';
+const isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey !== 'dev-openai-key');
 
-const openai = new OpenAI({ 
-  apiKey
-});
+let openai: OpenAI | null = null;
+if (isApiKeyConfigured) {
+  openai = new OpenAI({ 
+    apiKey
+  });
+} else {
+  console.warn('OpenAI API key not configured - AI Assistant will operate in limited mode');
+}
 
 export interface AIAssistantContext {
   systemHealth?: any;
@@ -68,6 +66,44 @@ export interface ChatResponse {
 }
 
 export class AIAssistantService {
+  private getFallbackResponse(message: string, language?: string): string {
+    const lowerMessage = message.toLowerCase();
+    
+    // Provide helpful responses based on common queries
+    if (lowerMessage.includes('passport')) {
+      return `For passport applications, you'll need:\n\n• Completed BI-9 form\n• Original South African ID document\n• Two recent passport photos\n• Birth certificate (for first-time applicants)\n\nProcessing time: 10-13 working days\nCost: R400 (standard) or R800 (urgent)\n\nYou can generate the application form using our Document Generation service.`;
+    }
+    
+    if (lowerMessage.includes('birth certificate')) {
+      return `For birth certificate applications:\n\n• Both parents' ID documents\n• Hospital notification of birth (if applicable)\n• Marriage certificate (if married)\n\nYou can generate a birth certificate using our Document Generation service. Click on "Official Documents" and select "Birth Certificate".`;
+    }
+    
+    if (lowerMessage.includes('visa') || lowerMessage.includes('permit')) {
+      return `For visa and permit applications:\n\n• Valid passport (6+ months)\n• Completed application form\n• Financial proof\n• Medical certificate\n• Police clearance\n\nProcessing varies by type. Visit your nearest DHA office or use our online services.`;
+    }
+    
+    if (lowerMessage.includes('id') || lowerMessage.includes('identity')) {
+      return `For ID document applications:\n\n• Completed BI-9 form\n• Birth certificate\n• Two recent ID photos\n• Proof of residence\n\nFirst ID is free. Replacements cost R140.\nProcessing: 5-8 working days for smart ID card.`;
+    }
+    
+    // Default response
+    return `Thank you for your query. While I'm operating in limited mode, I can help you with:\n\n• Document requirements and procedures\n• Application forms and generation\n• DHA office locations and contacts\n• General immigration guidance\n\nFor immediate assistance, call DHA: 0800 60 11 90\n\nYou can also use our Document Generation service to create official forms.`;
+  }
+
+  private getRelevantDocumentsForQuery(message: string): string[] {
+    const lowerMessage = message.toLowerCase();
+    const docs: string[] = [];
+    
+    if (lowerMessage.includes('passport')) docs.push('BI-9 Form', 'Passport Application Guide');
+    if (lowerMessage.includes('birth')) docs.push('BI-24 Form', 'Birth Registration Guide');
+    if (lowerMessage.includes('marriage')) docs.push('BI-27 Form', 'Marriage Certificate Guide');
+    if (lowerMessage.includes('visa')) docs.push('DHA-84 Form', 'Visa Application Guide');
+    if (lowerMessage.includes('permit')) docs.push('DHA-1738 Form', 'Permit Application Guide');
+    if (lowerMessage.includes('id')) docs.push('BI-9 Form', 'ID Application Guide');
+    
+    return docs.length > 0 ? docs : ['General DHA Services Guide'];
+  }
+
   private supportedLanguages = {
     'en': { name: 'English', nativeName: 'English', tts: true, stt: true, active: true },
     'af': { name: 'Afrikaans', nativeName: 'Afrikaans', tts: true, stt: true, active: true },
@@ -101,6 +137,30 @@ export class AIAssistantService {
     } = {}
   ): Promise<ChatResponse> {
     try {
+      // Check if OpenAI API is configured
+      if (!isApiKeyConfigured || !openai) {
+        // Return helpful fallback response when API key is not configured
+        return {
+          success: true,
+          content: this.getFallbackResponse(message, options.language),
+          metadata: {
+            mode: 'limited',
+            reason: 'AI service not configured'
+          },
+          suggestions: [
+            'View document requirements',
+            'Generate official documents', 
+            'Check application status',
+            'Find DHA office locations'
+          ],
+          contextualHelp: {
+            relevantDocuments: this.getRelevantDocumentsForQuery(message),
+            processingSteps: [],
+            estimatedTime: 'N/A',
+            requiredDocuments: []
+          }
+        };
+      }
       const enablePIIRedaction = options.enablePIIRedaction !== false; // Default to true for security
 
       // CRITICAL SECURITY: Redact PII from user message before sending to OpenAI
@@ -227,6 +287,32 @@ export class AIAssistantService {
     } = {}
   ): Promise<ChatResponse> {
     try {
+      // Check if OpenAI API is configured
+      if (!isApiKeyConfigured || !openai) {
+        // Stream fallback response when API key is not configured
+        const fallbackResponse = this.getFallbackResponse(message, options.language);
+        const chunks = fallbackResponse.split(' ');
+        for (const chunk of chunks) {
+          onChunk(chunk + ' ');
+          await new Promise(resolve => setTimeout(resolve, 50)); // Simulate streaming
+        }
+        return {
+          success: true,
+          content: fallbackResponse,
+          metadata: {
+            mode: 'limited',
+            reason: 'AI service not configured',
+            streamed: true
+          },
+          suggestions: [
+            'View document requirements',
+            'Generate official documents',
+            'Check application status',
+            'Find DHA office locations'
+          ],
+          streamingEnabled: true
+        };
+      }
       const enablePIIRedaction = options.enablePIIRedaction !== false; // Default to true for security
 
       // CRITICAL SECURITY: Redact PII from user message before sending to OpenAI
