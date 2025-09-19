@@ -88,7 +88,7 @@ export class ProductionGovernmentApi {
     // SAPS Criminal Record Check
     this.baseUrls.set('saps-crc', process.env.SAPS_CRC_BASE_URL || 'https://crc-api.saps.gov.za/v1');
     this.credentials.set('saps-crc', {
-      apiKey: process.env.SAPS_CRC_API_KEY || '',
+      apiKey: process.env.SAPS_API_KEY || process.env.SAPS_CRC_API_KEY || '',
       clientId: process.env.SAPS_CLIENT_ID || '',
       clientSecret: process.env.SAPS_CLIENT_SECRET || '',
       certificatePath: process.env.SAPS_CLIENT_CERT || '',
