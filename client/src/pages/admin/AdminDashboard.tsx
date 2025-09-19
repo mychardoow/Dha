@@ -59,12 +59,35 @@ interface FraudAlert {
 }
 
 interface SystemHealth {
-  status: string;
-  uptime: number;
-  memory: { used: number; total: number; percentage: number };
-  cpu: { percentage: number };
-  database: { status: string; connectionCount: number };
-  integrations: Record<string, { status: string; lastCheck: string }>;
+  // Original expected structure
+  status?: string;
+  uptime?: number;
+  memory?: { used: number; total: number; percentage: number } | number; // Can be object or number
+  cpu?: { percentage: number } | number; // Can be object or number
+  database?: { status: string; connectionCount: number };
+  integrations?: Record<string, { status: string; lastCheck: string }>;
+  // Alternative structure from /api/monitoring/health
+  overall?: string;
+  resources?: {
+    cpu: number;
+    memory: number;
+    disk: number;
+    network: number;
+  };
+  security?: {
+    threatLevel: string;
+    activeIncidents: number;
+    fraudAlerts: number;
+  };
+  compliance?: {
+    score: number;
+    violations: number;
+    uptime: number;
+  };
+  // Simple response structure
+  network?: number;
+  storage?: number;
+  timestamp?: string;
 }
 
 function AdminDashboard() {
@@ -82,6 +105,67 @@ function AdminDashboard() {
     staleTime: 15000, // 15 seconds stale time
     gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
+
+  // Transform the API response to match the expected structure
+  const normalizedSystemHealth = useMemo(() => {
+    if (!systemHealth) return null;
+    
+    // Handle simple response structure {cpu, memory, network, storage, timestamp}
+    if (typeof systemHealth.memory === 'number' && !systemHealth.memory?.percentage) {
+      // Use default total memory of 8GB if not available
+      const defaultTotalMemory = 8 * 1024 * 1024 * 1024; // 8GB in bytes
+      const memoryPercentage = systemHealth.memory || 0;
+      const memoryUsed = (memoryPercentage / 100) * defaultTotalMemory;
+      
+      return {
+        status: 'healthy', // Default to healthy if we have data
+        uptime: 0, // Not provided in simple response
+        memory: {
+          used: memoryUsed,
+          total: defaultTotalMemory,
+          percentage: memoryPercentage
+        },
+        cpu: {
+          percentage: systemHealth.cpu || 0
+        },
+        database: { status: 'unknown', connectionCount: 0 },
+        integrations: {}
+      };
+    }
+    
+    // If it's the autonomous monitoring bot response structure (resources instead of memory/cpu)
+    if (systemHealth.resources && !systemHealth.memory) {
+      // Use default total memory of 8GB if not available
+      const defaultTotalMemory = 8 * 1024 * 1024 * 1024; // 8GB in bytes
+      const memoryPercentage = systemHealth.resources.memory || 0;
+      const memoryUsed = (memoryPercentage / 100) * defaultTotalMemory;
+      
+      return {
+        status: systemHealth.overall || systemHealth.status || 'unknown',
+        uptime: systemHealth.compliance?.uptime || systemHealth.uptime || 0,
+        memory: {
+          used: memoryUsed,
+          total: defaultTotalMemory,
+          percentage: memoryPercentage
+        },
+        cpu: {
+          percentage: systemHealth.resources.cpu || 0
+        },
+        database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
+        integrations: systemHealth.integrations || {}
+      };
+    }
+    
+    // Return as-is if it already has the expected structure with defaults
+    return {
+      status: systemHealth.status || 'unknown',
+      uptime: systemHealth.uptime || 0,
+      memory: systemHealth.memory || { used: 0, total: 8 * 1024 * 1024 * 1024, percentage: 0 },
+      cpu: systemHealth.cpu || { percentage: 0 },
+      database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
+      integrations: systemHealth.integrations || {}
+    };
+  }, [systemHealth]);
 
   // Fetch system metrics with optimized caching
   const { data: metrics, isLoading: metricsLoading } = useQuery<SystemMetric[]>({
@@ -269,14 +353,14 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {healthLoading ? "..." : systemHealth?.status}
+                {healthLoading ? "..." : (normalizedSystemHealth?.status || systemHealth?.overall || "Unknown")}
               </div>
-              <Badge className={getStatusColor(systemHealth?.status || "unknown")}>
-                {systemHealth?.status || "Unknown"}
+              <Badge className={getStatusColor(normalizedSystemHealth?.status || systemHealth?.overall || "unknown")}>
+                {normalizedSystemHealth?.status || systemHealth?.overall || "Unknown"}
               </Badge>
-              {systemHealth && (
+              {(normalizedSystemHealth?.uptime !== undefined || systemHealth?.compliance?.uptime !== undefined) && (
                 <p className="text-xs text-muted-foreground mt-2">
-                  Uptime: {formatUptime(systemHealth.uptime)}
+                  Uptime: {formatUptime(normalizedSystemHealth?.uptime || systemHealth?.compliance?.uptime || 0)}
                 </p>
               )}
             </CardContent>
@@ -325,20 +409,20 @@ function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {systemHealth?.database?.connectionCount || 0}
+                {normalizedSystemHealth?.database?.connectionCount || 0}
               </div>
               <p className="text-xs text-muted-foreground">
                 Active connections
               </p>
-              <Badge className={getStatusColor(systemHealth?.database?.status || "unknown")}>
-                {systemHealth?.database?.status || "Unknown"}
+              <Badge className={getStatusColor(normalizedSystemHealth?.database?.status || "unknown")}>
+                {normalizedSystemHealth?.database?.status || "Unknown"}
               </Badge>
             </CardContent>
           </Card>
         </div>
 
         {/* System Performance */}
-        {systemHealth && (
+        {normalizedSystemHealth && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card data-testid="card-memory-usage">
               <CardHeader>
@@ -350,12 +434,12 @@ function AdminDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Used: {Math.round(systemHealth.memory.used / 1024 / 1024)}MB</span>
-                    <span>Total: {Math.round(systemHealth.memory.total / 1024 / 1024)}MB</span>
+                    <span>Used: {Math.round((normalizedSystemHealth.memory?.used || 0) / 1024 / 1024)}MB</span>
+                    <span>Total: {Math.round((normalizedSystemHealth.memory?.total || 0) / 1024 / 1024)}MB</span>
                   </div>
-                  <Progress value={systemHealth.memory.percentage} className="w-full" />
+                  <Progress value={normalizedSystemHealth.memory?.percentage || 0} className="w-full" />
                   <p className="text-xs text-muted-foreground">
-                    {systemHealth.memory.percentage.toFixed(1)}% utilized
+                    {(normalizedSystemHealth.memory?.percentage || 0).toFixed(1)}% utilized
                   </p>
                 </div>
               </CardContent>
@@ -372,9 +456,9 @@ function AdminDashboard() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>CPU Load</span>
-                    <span>{systemHealth.cpu.percentage.toFixed(1)}%</span>
+                    <span>{(normalizedSystemHealth.cpu?.percentage || 0).toFixed(1)}%</span>
                   </div>
-                  <Progress value={systemHealth.cpu.percentage} className="w-full" />
+                  <Progress value={normalizedSystemHealth.cpu?.percentage || 0} className="w-full" />
                   <p className="text-xs text-muted-foreground">
                     System performance optimal
                   </p>
@@ -488,9 +572,9 @@ function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {systemHealth?.integrations ? (
+                {normalizedSystemHealth?.integrations && Object.keys(normalizedSystemHealth.integrations).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(systemHealth.integrations).map(([name, integration]) => (
+                    {Object.entries(normalizedSystemHealth.integrations).map(([name, integration]) => (
                       <div
                         key={name}
                         className="flex items-center justify-between p-3 border rounded-lg"

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode } from "react";
 import { useLocation } from "wouter";
 
 interface User {
@@ -20,27 +20,33 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    // Check for existing auth on mount
-    const storedToken = localStorage.getItem("authToken");
+  const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem("user");
-    
-    if (storedToken && storedUser) {
+    if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(parsedUser);
+        return JSON.parse(storedUser);
       } catch (error) {
         console.error("Failed to parse stored user:", error);
-        localStorage.removeItem("authToken");
         localStorage.removeItem("user");
+        return null;
       }
     }
-  }, []);
+    return null;
+  });
+
+  const [token, setToken] = useState<string | null>(() => {
+    const storedToken = localStorage.getItem("authToken");
+    if (storedToken) {
+      return storedToken;
+    }
+    // Clean up invalid token if user doesn't exist but token does
+    if (!localStorage.getItem("user") && storedToken) {
+      localStorage.removeItem("authToken");
+    }
+    return null;
+  });
+
+  const [, setLocation] = useLocation();
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem("authToken", newToken);

@@ -65,6 +65,69 @@ export class WebSocketService {
       try {
         const token = socket.handshake.auth.token;
         
+        // DEVELOPMENT MODE: Handle JWT authentication with mock admin support
+        if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+          // If no token provided, use default dev user
+          if (!token) {
+            console.log('[WebSocket] Development mode: No token provided, using default dev user');
+            
+            this.authenticatedSockets.set(socket.id, {
+              id: socket.id,
+              userId: 'dev-user-001',
+              username: 'developer',
+              role: 'admin' // Give admin role in development for testing
+            });
+            
+            return next();
+          }
+          
+          // Token is provided, decode it using the appropriate JWT secret
+          const JWT_SECRET = this.validateJWTSecret() || 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
+          
+          try {
+            const decoded = jwt.verify(token, JWT_SECRET) as any;
+            
+            // Check if this is the mock admin user
+            if (decoded.id === 'mock-admin-001') {
+              console.log('[WebSocket] Development mode: Mock admin user authenticated');
+              this.authenticatedSockets.set(socket.id, {
+                id: socket.id,
+                userId: decoded.id,
+                username: decoded.username || 'admin',
+                role: decoded.role || 'admin'
+              });
+              return next();
+            }
+            
+            // For other users in development mode, try to fetch from storage
+            // but fall back to token data if user not found
+            const user = await storage.getUser(decoded.id);
+            if (user && user.isActive) {
+              this.authenticatedSockets.set(socket.id, {
+                id: socket.id,
+                userId: user.id,
+                username: user.username,
+                role: user.role
+              });
+            } else {
+              // User not found in DB, use token data in development mode
+              console.log(`[WebSocket] Development mode: User ${decoded.id} not found in DB, using token data`);
+              this.authenticatedSockets.set(socket.id, {
+                id: socket.id,
+                userId: decoded.id,
+                username: decoded.username || 'unknown',
+                role: decoded.role || 'user'
+              });
+            }
+            
+            return next();
+          } catch (tokenError) {
+            console.error('WebSocket token verification error in development mode:', tokenError);
+            return next(new Error("Invalid authentication token"));
+          }
+        }
+        
+        // PRODUCTION MODE: Require proper authentication
         if (!token) {
           return next(new Error("Authentication token required"));
         }

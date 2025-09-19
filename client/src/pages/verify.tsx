@@ -59,7 +59,7 @@ interface VerificationResult {
 }
 
 export default function DocumentVerificationPage() {
-  const [params] = useParams();
+  const params = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [verificationCode, setVerificationCode] = useState("");
