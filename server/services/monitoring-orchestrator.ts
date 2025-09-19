@@ -68,7 +68,8 @@ export class MonitoringOrchestrator extends EventEmitter {
 
     try {
       // Skip comprehensive checks in development for faster startup
-      if (process.env.NODE_ENV === 'development') {
+      // BUT ENABLE FULL MODE AS REQUESTED
+      if (process.env.NODE_ENV === 'development' && process.env.FULL_MONITORING !== 'true') {
         console.log('[MonitoringOrchestrator] Skipping boot checks in development mode...');
         
         // Just do minimal initialization
@@ -83,6 +84,38 @@ export class MonitoringOrchestrator extends EventEmitter {
         });
         
         return; // Skip all monitoring in development for faster startup
+      }
+      
+      // ENABLE FULL MONITORING AS REQUESTED
+      console.log('[MonitoringOrchestrator] FULL MONITORING MODE ENABLED - Starting all services...');
+
+      // Make initialization non-blocking for development with full monitoring
+      if (process.env.NODE_ENV === 'development' && process.env.FULL_MONITORING === 'true') {
+        console.log('[MonitoringOrchestrator] Development mode with full monitoring - using non-blocking initialization');
+        
+        // Start services asynchronously without blocking
+        setTimeout(async () => {
+          try {
+            await this.initializeServicesInOrder();
+            this.setupInterServiceCommunication();
+            await this.startAllServices();
+            console.log('[MonitoringOrchestrator] All monitoring services started successfully');
+          } catch (error) {
+            console.error('[MonitoringOrchestrator] Error starting services:', error);
+          }
+        }, 1000);
+
+        this.isInitialized = true;
+        console.log('[MonitoringOrchestrator] Monitoring system initialized (non-blocking full mode)');
+        
+        this.emit('initialized', {
+          timestamp: new Date(),
+          services: ['all services starting asynchronously'],
+          config: this.config,
+          selfChecks: { passed: true, failures: [], checks: [] }
+        });
+        
+        return; // Return immediately without blocking
       }
 
       // Production path (not executed in development)

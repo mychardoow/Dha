@@ -77,7 +77,24 @@ export class SecureCommunicationsService {
   private duressCodeRegistry: Map<string, string> = new Map();
   private auditLog: any[] = [];
 
+  private isInitialized = false;
+
   constructor() {
+    // Defer initialization to prevent blocking during module loading
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Secure Comms] Deferring initialization for development mode');
+      // Initialize immediately in development but without intervals
+      this.setupCryptoProtocols();
+      this.loadDuressCodes();
+    } else {
+      // Initialize everything in production
+      this.initialize();
+    }
+  }
+
+  private initialize(): void {
+    if (this.isInitialized) return;
+    this.isInitialized = true;
     this.initializeSecureComms();
     this.setupCryptoProtocols();
     this.initializeTacticalSystems();
