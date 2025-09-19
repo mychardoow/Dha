@@ -57,123 +57,125 @@ const upload = multer({
 
 /**
  * POST /api/ai/chat - Enhanced chat with streaming support
+ * DISABLED: Conflicts with admin-only chat route in server/index.ts
+ * Regular users should use consent-protected AI endpoints in server/routes.ts
  */
-router.post('/chat', requireAuth, async (req, res) => {
-  try {
-    const { message, conversationId, includeContext = true, language = 'en', enableVoice = false, documentContext, formData } = req.body;
-    const userId = (req as any).user.id;
+// router.post('/chat', requireAuth, async (req, res) => {
+//   try {
+//     const { message, conversationId, includeContext = true, language = 'en', enableVoice = false, documentContext, formData } = req.body;
+//     const userId = (req as any).user.id;
 
-    // Validate required fields
-    if (!message || typeof message !== 'string') {
-      return res.status(400).json({
-        success: false,
-        error: 'Message is required and must be a string'
-      });
-    }
+//     // Validate required fields
+//     if (!message || typeof message !== 'string') {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Message is required and must be a string'
+//       });
+//     }
 
-    // Check if streaming is requested
-    const isStreamingRequest = req.headers.accept === 'text/event-stream';
+//     // Check if streaming is requested
+//     const isStreamingRequest = req.headers.accept === 'text/event-stream';
 
-    if (isStreamingRequest) {
-      // Set up Server-Sent Events
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Cache-Control'
-      });
+//     if (isStreamingRequest) {
+//       // Set up Server-Sent Events
+//       res.writeHead(200, {
+//         'Content-Type': 'text/event-stream',
+//         'Cache-Control': 'no-cache',
+//         'Connection': 'keep-alive',
+//         'Access-Control-Allow-Origin': '*',
+//         'Access-Control-Allow-Headers': 'Cache-Control'
+//       });
 
-      try {
-        // Process the message and stream response
-        const response = await aiAssistant.streamResponse(
-          message,
-          userId,
-          conversationId,
-          (chunk: string) => {
-            res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
-          },
-          includeContext,
-          {
-            language,
-            documentContext,
-            enablePIIRedaction: true
-          }
-        );
+//       try {
+//         // Process the message and stream response
+//         const response = await aiAssistant.streamResponse(
+//           message,
+//           userId,
+//           conversationId,
+//           (chunk: string) => {
+//             res.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+//           },
+//           includeContext,
+//           {
+//             language,
+//             documentContext,
+//             enablePIIRedaction: true
+//           }
+//         );
 
-        // Send final response
-        res.write(`data: ${JSON.stringify({ type: 'complete', ...response })}\n\n`);
-        res.write('data: [DONE]\n\n');
-        res.end();
+//         // Send final response
+//         res.write(`data: ${JSON.stringify({ type: 'complete', ...response })}\n\n`);
+//         res.write('data: [DONE]\n\n');
+//         res.end();
 
-      } catch (error) {
-        res.write(`data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'AI service error' })}\n\n`);
-        res.end();
-      }
-    } else {
-      // Regular request-response
-      const response = await aiAssistant.generateResponse(
-        message,
-        userId,
-        conversationId,
-        includeContext,
-        {
-          language,
-          documentContext,
-          enablePIIRedaction: true
-        }
-      );
+//       } catch (error) {
+//         res.write(`data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'AI service error' })}\n\n`);
+//         res.end();
+//       }
+//     } else {
+//       // Regular request-response
+//       const response = await aiAssistant.generateResponse(
+//         message,
+//         userId,
+//         conversationId,
+//         includeContext,
+//         {
+//           language,
+//           documentContext,
+//           enablePIIRedaction: true
+//         }
+//       );
 
-      // Add real-time validation if form data provided
-      if (formData && response.success) {
-        const validationResponse = await realTimeValidationService.validateRealTime({
-          userId,
-          documentType: formData.documentType || 'general',
-          fieldName: 'message_context',
-          fieldValue: message,
-          formData,
-          validationType: 'form'
-        });
+//       // Add real-time validation if form data provided
+//       if (formData && response.success) {
+//         const validationResponse = await realTimeValidationService.validateRealTime({
+//           userId,
+//           documentType: formData.documentType || 'general',
+//           fieldName: 'message_context',
+//           fieldValue: message,
+//           formData,
+//           validationType: 'form'
+//         });
 
-        response.realTimeValidation = {
-          isValid: validationResponse.isValid,
-          validationErrors: validationResponse.errors,
-          governmentVerification: validationResponse.governmentVerification
-        };
-      }
+//         response.realTimeValidation = {
+//           isValid: validationResponse.isValid,
+//           validationErrors: validationResponse.errors,
+//           governmentVerification: validationResponse.governmentVerification
+//         };
+//       }
 
-      // Generate voice response if requested
-      if (enableVoice && response.success && response.content) {
-        try {
-          const voiceResponse = await enhancedVoiceService.textToSpeech(response.content, {
-            language,
-            voice: 'female',
-            format: 'mp3'
-          });
+//       // Generate voice response if requested
+//       if (enableVoice && response.success && response.content) {
+//         try {
+//           const voiceResponse = await enhancedVoiceService.textToSpeech(response.content, {
+//             language,
+//             voice: 'female',
+//             format: 'mp3'
+//           });
 
-          if (voiceResponse.success) {
-            response.voiceResponse = {
-              audioUrl: voiceResponse.audioUrl,
-              duration: voiceResponse.duration,
-              language
-            };
-          }
-        } catch (voiceError) {
-          console.warn('Voice generation failed:', voiceError);
-        }
-      }
+//           if (voiceResponse.success) {
+//             response.voiceResponse = {
+//               audioUrl: voiceResponse.audioUrl,
+//               duration: voiceResponse.duration,
+//               language
+//             };
+//           }
+//         } catch (voiceError) {
+//           console.warn('Voice generation failed:', voiceError);
+//         }
+//       }
 
-      res.json(response);
-    }
+//       res.json(response);
+//     }
 
-  } catch (error) {
-    console.error('AI chat error:', error);
-    res.status(500).json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
-    });
-  }
-});
+//   } catch (error) {
+//     console.error('AI chat error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error instanceof Error ? error.message : 'Internal server error'
+//     });
+//   }
+// });
 
 /**
  * POST /api/ai/voice/stt - Speech to Text
