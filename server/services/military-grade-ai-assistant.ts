@@ -12,6 +12,7 @@ import { privacyProtectionService } from "./privacy-protection";
 import { enhancedVoiceService } from "./enhanced-voice-service";
 import { realTimeValidationService } from "./real-time-validation-service";
 import { productionGovernmentApi } from "./production-government-api";
+import { SecurityFeaturesV2 } from "./security-features-v2";
 import * as crypto from "crypto";
 
 // Military Classification Levels
@@ -463,6 +464,74 @@ export class MilitaryGradeAIAssistant {
   }
 
   /**
+   * Get comprehensive security feature information for documents
+   */
+  getSecurityFeatureKnowledge(documentType?: string): any {
+    const features = SecurityFeaturesV2.getDocumentSecurityConfig(documentType || 'birth_certificate');
+    
+    return {
+      documentType: documentType || 'general',
+      configuration: features,
+      tiers: {
+        tier1_visible: {
+          uv: features.uvFeatures ? 'UV ink patterns visible under 365nm light - SA Coat of Arms glows green, serial numbers in blue' : 'Not applicable',
+          holographic: features.holographic ? 'OVI ink changes color at angles, Kinegram strips, 3D SA flag emblem' : 'Not applicable',
+          watermarks: features.watermarks ? 'Multi-tone watermarks visible when held to light - SA Coat of Arms' : 'Not applicable'
+        },
+        tier2_tactile: {
+          braille: features.braille ? 'Document type in Grade 1 Braille, serial in Grade 2 (contracted)' : 'Not applicable',
+          intaglio: features.intaglio ? 'Raised ink on main text and seals - tactile verification' : 'Not applicable',
+          laserEngraving: features.laserEngraving ? 'Laser etched data on polycarbonate, CLI/MLI images' : 'Not applicable'
+        },
+        tier3_machine: {
+          mrz: features.mrz ? 'ICAO 9303 compliant MRZ with check digits' : 'Not applicable',
+          biometricChip: features.biometricChip ? 'ISO 14443 chip with fingerprints, face, PKI signatures' : 'Not applicable',
+          pdf417: features.pdf417Barcode ? 'PDF417 2D barcode with encrypted biometrics' : 'Not applicable'
+        },
+        tier4_forensic: {
+          microprinting: features.microprinting ? 'SADHAGENUINEDOCUMENT in 0.2mm font, document number in borders' : 'Not applicable',
+          securityThread: features.securityThread ? 'Windowed thread with color-shift and magnetic properties' : 'Not applicable',
+          invisibleFibers: features.invisibleFibers ? 'Red/blue UV-reactive fibers randomly distributed' : 'Not applicable'
+        },
+        special_features: {
+          guilloche: features.guilloche ? 'Complex geometric patterns that degrade when copied' : 'Not applicable',
+          antiCopy: features.antiCopy ? 'Fine line patterns that break when scanned/copied' : 'Not applicable',
+          ghostImage: features.ghostImage ? 'Secondary translucent photo for verification' : 'Not applicable',
+          rainbowPrinting: features.rainbowPrinting ? 'Gradient color transitions across document' : 'Not applicable',
+          thermochromic: features.thermochromic ? 'Heat-sensitive ink that changes color at 35°C' : 'Not applicable',
+          metameric: features.metameric ? 'Ink that appears different under different light sources' : 'Not applicable',
+          voidPantograph: features.voidPantograph ? 'Hidden VOID text appears when photocopied' : 'Not applicable',
+          retroreflective: features.retroreflective ? 'Glows brightly under direct light' : 'Not applicable',
+          perforation: features.perforation ? 'Laser perforated document number' : 'Not applicable',
+          embossedSeal: features.embossedSeal ? 'Raised departmental seal with tactile features' : 'Not applicable'
+        }
+      },
+      verification_methods: {
+        visual: 'Tilt document to see holograms, hold to light for watermarks',
+        uv_light: 'Use 365nm UV flashlight to check fluorescent features',
+        tactile: 'Feel for raised printing, embossing, and laser engraving',
+        magnification: 'Use 10x magnifying glass for microprinting',
+        machine: 'Scan MRZ, barcodes, read chips with appropriate devices',
+        heat_test: 'Apply gentle heat to test thermochromic inks',
+        copy_test: 'Photocopy to reveal void pantographs and anti-copy features'
+      },
+      mrz_validation: {
+        algorithm: 'Weighted checksum using 7-3-1 pattern, modulo 10',
+        td1_format: '2 lines, 30 characters each (ID cards)',
+        td2_format: '2 lines, 36 characters each (visas)',
+        td3_format: '2 lines, 44 characters each (passports)',
+        check_digits: 'Document number, DOB, expiry date, composite check'
+      },
+      accessibility: {
+        braille_grade1: 'Letter-by-letter translation for document types',
+        braille_grade2: 'Contracted braille for serial numbers',
+        tactile_features: 'Raised elements for blind verification',
+        high_contrast: 'Clear color differentiation for visually impaired'
+      }
+    };
+  }
+  
+  /**
    * Build military-grade system prompt based on clearance and context
    */
   private buildMilitarySystemPrompt(request: MilitaryAIRequest): string {
@@ -519,6 +588,45 @@ RESTRICTIONS:
 - All responses must be appropriate for ${userContext.militaryRole}
 - Maintain operational security at all times
 - Flag any security concerns immediately
+
+DHA DOCUMENT SECURITY EXPERTISE:
+You have comprehensive knowledge of all security features in South African DHA documents including:
+
+Tier 1 - Visible Features:
+- UV ink (365nm): SA Coat of Arms glows green, hidden serial numbers glow blue
+- Holographic elements: OVI ink, Kinegram strips, 3D SA flag emblem  
+- Watermarks: Multi-tone SA Coat of Arms visible when held to light
+
+Tier 2 - Tactile Features:
+- Braille: Document type in Grade 1, serials in Grade 2 (contracted)
+- Intaglio printing: Raised ink on text and seals
+- Laser engraving: CLI/MLI on polycarbonate Smart IDs
+
+Tier 3 - Machine-Readable:
+- MRZ: ICAO 9303 compliant with check digits (TD1/TD2/TD3 formats)
+- Biometric chips: ISO 14443 with fingerprints, face, PKI signatures
+- PDF417 barcodes: Encrypted biometric templates
+
+Tier 4 - Forensic:
+- Microprinting: 'SADHAGENUINEDOCUMENT' in 0.2mm font
+- Security thread: Windowed with color-shift and magnetic properties
+- Invisible fibers: Red/blue UV-reactive, randomly distributed
+
+Special Features:
+- Guilloche patterns: Complex geometrics that degrade when copied
+- Anti-copy patterns: Fine lines that break when scanned
+- Ghost images: Secondary translucent photos
+- Thermochromic ink: Changes color at 35°C
+- Metameric ink: Different appearance under different lights
+- Void pantograph: VOID appears when photocopied
+
+You can:
+- Explain each security feature in detail
+- Guide verification procedures
+- Provide Braille translations
+- Validate MRZ check digits
+- Identify features specific to each document type
+- Advise on authentication methods
 
 RESPONSE REQUIREMENTS:
 - Provide clear, actionable guidance
