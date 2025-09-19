@@ -842,11 +842,1621 @@ export class CriticalSkillsWorkVisaGenerator extends BaseDocumentTemplate {
   }
 }
 
-// Export all generators
+/**
+ * Temporary ID Certificate Generator
+ */
+export class TemporaryIdCertificateGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: TemporaryIdCertificateData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Temporary Identity Certificate',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Temporary Identity Certificate',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "TEMPORARY IDENTITY CERTIFICATE", "DHA-73");
+
+        let yPos = 140;
+
+        // Temporary certificate specific styling
+        doc.save();
+        doc.rect(40, yPos, 515, 350)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .lineWidth(3)
+           .stroke();
+        
+        // Warning background
+        doc.rect(45, yPos + 5, 505, 340)
+           .fill(SA_GOVERNMENT_DESIGN.colors.watermark);
+        doc.restore();
+
+        yPos += 30;
+
+        // Temporary notice
+        doc.fontSize(14)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text("TEMPORARY CERTIFICATE", 50, yPos, { align: "center" });
+        
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text("This is a temporary certificate valid for 30 days", 50, yPos + 20, { align: "center" });
+
+        yPos += 60;
+
+        // Personal information
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'place_of_birth', data.personal.placeOfBirth, 70, yPos);
+        yPos += 35;
+
+        // Certificate specific fields
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Certificate Number / Sertifikaat Nommer: ${data.certificateNumber}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Issue Date / Uitgereik: ${this.formatSADate(data.issueDate)}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text(`Expiry Date / Verval: ${this.formatSADate(data.expiryDate)}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Reason / Rede: ${data.reason}`, 70, yPos);
+
+        // Add security features
+        yPos = 580;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "temporary_id_certificate" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 80, height: 80 });
+        }
+
+        this.addMicrotext(doc, 170, yPos + 20);
+
+        const barcodeData = await this.generateBarcode(data.certificateNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos, { width: 150, height: 30 });
+        }
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Emergency Travel Certificate Generator
+ */
+export class EmergencyTravelCertificateGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: EmergencyTravelCertificateData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: 'Emergency Travel Certificate',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Emergency Travel Document',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "EMERGENCY TRAVEL CERTIFICATE", "DHA-95");
+
+        let yPos = 140;
+
+        // Emergency certificate styling
+        doc.save();
+        doc.rect(50, yPos, 500, 400)
+           .fill(SA_GOVERNMENT_DESIGN.colors.red);
+        
+        doc.fontSize(20)
+           .font(SA_GOVERNMENT_DESIGN.fonts.official)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.white)
+           .text("EMERGENCY", 70, yPos + 30);
+        
+        doc.fontSize(16)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.white)
+           .text("TRAVEL CERTIFICATE", 70, yPos + 60);
+
+        doc.restore();
+
+        yPos += 120;
+
+        // Personal information
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.passportNumber, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
+        yPos += 35;
+
+        // Emergency specific fields
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text(`Emergency Reason / Noodgeval Rede: ${data.emergencyReason}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.validUntil)}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Authorized Travel To / Gemagtig om te reis na: ${data.authorizedDestination}`, 70, yPos);
+
+        // Add photograph placeholder
+        doc.save();
+        doc.rect(420, 200, 100, 120)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .lineWidth(2)
+           .stroke();
+        
+        doc.fontSize(8)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("PHOTOGRAPH\nFOTO", 450, 250, { width: 40, align: "center" });
+        doc.restore();
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Refugee Travel Document Generator
+ */
+export class RefugeeTravelDocumentGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: RefugeeTravelDocumentData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 30,
+          info: {
+            Title: 'Refugee Travel Document',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Refugee Travel Document',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "REFUGEE TRAVEL DOCUMENT", "DHA-1590");
+
+        let yPos = 140;
+
+        // UN Convention notice
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .text("ISSUED UNDER THE 1951 GENEVA CONVENTION", 50, yPos);
+        yPos += 30;
+
+        // Personal information
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'document_number', data.documentNumber, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'place_of_birth', data.personal.placeOfBirth, 70, yPos);
+        yPos += 35;
+
+        // Refugee specific fields
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Refugee Status Number / Vlugtelingstatus Nommer: ${data.refugeeStatusNumber}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Country of Origin / Land van Oorsprong: ${data.countryOfOrigin}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Date of Issue / Uitgereik: ${this.formatSADate(data.dateOfIssue)}`, 70, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Valid Until / Geldig Tot: ${this.formatSADate(data.validUntil)}`, 70, yPos);
+
+        // Add photograph placeholder
+        doc.save();
+        doc.rect(420, 200, 100, 120)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .lineWidth(2)
+           .stroke();
+        
+        doc.fontSize(8)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("PHOTOGRAPH\nFOTO", 450, 250, { width: 40, align: "center" });
+        doc.restore();
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Death Certificate Generator
+ */
+export class DeathCertificateGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: DeathCertificateData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Death Certificate',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Official Death Certificate',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "DEATH CERTIFICATE", "BI-1663");
+
+        let yPos = 140;
+
+        // Certificate border
+        doc.save();
+        doc.roundedRect(40, yPos, 515, 500, 10)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .lineWidth(2)
+           .stroke();
+        doc.restore();
+
+        yPos += 40;
+
+        // Certificate title
+        doc.fontSize(18)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("STERFTE SERTIFIKAAT / DEATH CERTIFICATE", 70, yPos, { align: "center", width: 455 });
+
+        yPos += 60;
+
+        // Deceased information
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("PARTICULARS OF DECEASED / BESONDERHEDE VAN OORLEDENE", 70, yPos);
+        
+        yPos += 30;
+
+        this.addBilingualField(doc, 'full_name', data.deceasedFullName, 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.dateOfBirth), 70, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'date_of_death', this.formatSADate(data.dateOfDeath), 70, yPos);
+        yPos += 35;
+
+        doc.fontSize(9)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("Place of Death / Plek van Sterfte", 70, yPos);
+        
+        doc.fontSize(11)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.placeOfDeath, 250, yPos + 3);
+        
+        yPos += 35;
+
+        doc.fontSize(9)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("Cause of Death / Oorsaak van Sterfte", 70, yPos);
+        
+        doc.fontSize(11)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.causeOfDeath, 250, yPos + 3);
+        
+        yPos += 50;
+
+        // Registration details
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Registration Number / Registrasie Nommer: ${data.registrationNumber}`, 70, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Registration Date / Registrasie Datum: ${this.formatSADate(data.registrationDate)}`, 70, yPos);
+
+        // Add security features
+        yPos = 650;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "death_certificate" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        const barcodeData = await this.generateBarcode(data.registrationNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Divorce Certificate Generator
+ */
+export class DivorceCertificateGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: DivorceCertificateData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Divorce Certificate',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Official Divorce Certificate',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "DIVORCE CERTIFICATE", "BI-281");
+
+        let yPos = 140;
+
+        // Certificate border
+        doc.save();
+        doc.roundedRect(30, yPos, 535, 500, 15)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .lineWidth(3)
+           .stroke();
+        doc.restore();
+
+        yPos += 40;
+
+        // Certificate title
+        doc.fontSize(20)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .text("EGSKEIDING SERTIFIKAAT", 70, yPos, { align: "center", width: 455 });
+        
+        yPos += 25;
+        doc.fontSize(18)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("DIVORCE CERTIFICATE", 70, yPos, { align: "center", width: 455 });
+
+        yPos += 60;
+
+        // Divorce details
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("Date of Divorce / Datum van Egskeiding", 70, yPos);
+        
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(this.formatSADate(data.divorceDate), 280, yPos);
+        
+        yPos += 30;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("Court Order Number / Hofbevel Nommer", 70, yPos);
+        
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.courtOrderNumber, 280, yPos);
+        
+        yPos += 30;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text("Court Name / Hofnaam", 70, yPos);
+        
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.courtName, 280, yPos);
+        
+        yPos += 40;
+
+        // Partner 1 details
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("FORMER SPOUSE 1 / VOORMALIGE GADE 1", 70, yPos);
+        
+        yPos += 25;
+
+        doc.fontSize(11)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.formerSpouse1FullName, 70, yPos);
+        
+        yPos += 40;
+
+        // Partner 2 details  
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("FORMER SPOUSE 2 / VOORMALIGE GADE 2", 70, yPos);
+        
+        yPos += 25;
+
+        doc.fontSize(11)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(data.formerSpouse2FullName, 70, yPos);
+        
+        yPos += 40;
+
+        // Registration details
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text(`Registration Number / Registrasie Nommer: ${data.registrationNumber}`, 70, yPos);
+        
+        yPos += 15;
+
+        doc.fontSize(10)
+           .text(`Registration Date / Registrasie Datum: ${this.formatSADate(data.registrationDate)}`, 70, yPos);
+
+        // Security features at bottom
+        yPos = 680;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "divorce_certificate" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        const barcodeData = await this.generateBarcode(data.registrationNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * General Work Visa Generator
+ */
+export class GeneralWorkVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: GeneralWorkVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'General Work Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Work Authorization Permit',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "GENERAL WORK VISA", "BI-1738");
+
+        let yPos = 140;
+
+        // Visa specific styling
+        doc.save();
+        doc.rect(30, yPos, 535, 450)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .lineWidth(2)
+           .stroke();
+        doc.restore();
+
+        yPos += 30;
+
+        // Personal information
+        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Employment details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('EMPLOYMENT DETAILS', 50, yPos);
+        yPos += 25;
+
+        this.addBilingualField(doc, 'employer', data.employer.name, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'occupation', data.occupation, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+        yPos += 35;
+
+        // Conditions
+        if (data.conditions && data.conditions.length > 0) {
+          yPos += 20;
+          doc.fontSize(12)
+             .font(SA_GOVERNMENT_DESIGN.fonts.header)
+             .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+             .text('CONDITIONS', 50, yPos);
+          yPos += 20;
+
+          data.conditions.forEach(condition => {
+            doc.fontSize(9)
+               .font(SA_GOVERNMENT_DESIGN.fonts.body)
+               .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+               .text(`• ${condition}`, 70, yPos);
+            yPos += 15;
+          });
+        }
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "general_work_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.permitNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+// Additional generators for completeness...
+
+/**
+ * Intra Company Transfer Work Visa Generator
+ */
+export class IntraCompanyTransferWorkVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: IntraCompanyTransferWorkVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Intra-Company Transfer Work Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Intra-Company Transfer Work Authorization',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "INTRA-COMPANY TRANSFER WORK VISA", "DHA-1742");
+
+        let yPos = 140;
+
+        // Legal framework reference
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text("Immigration Act 13 of 2002 - Section 19(3)", 50, yPos);
+        yPos += 30;
+
+        // Personal information
+        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        // Transfer details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('TRANSFER DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Source Company / Bronmaatskappy: ${data.sourceCompany}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Destination Company / Bestemmingsmaatskappy: ${data.destinationCompany}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'occupation', data.occupation, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "intra_company_transfer_work_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.permitNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Business Visa Generator
+ */
+export class BusinessVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: BusinessVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Business Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Business Authorization Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "BUSINESS VISA", "BI-1739");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Business details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('BUSINESS DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Business Type / Besigheidstipe: ${data.businessType}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Investment Amount / Beleggingsbedrag: ${data.investmentAmount}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "business_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Study Visa Permit Generator
+ */
+export class StudyVisaPermitGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: StudyVisaPermitData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Study Visa Permit',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Study Authorization Permit',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "STUDY VISA PERMIT", "DHA-1740");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Study details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('STUDY DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Institution / Instansie: ${data.institutionName}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Course of Study / Studiekursus: ${data.courseOfStudy}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Level of Study / Studievlak: ${data.levelOfStudy}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "study_visa_permit" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.permitNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Visitor Visa Generator
+ */
+export class VisitorVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: VisitorVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Visitor Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Visitor Authorization Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "VISITOR VISA", "BI-84");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Visit details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('VISIT DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Purpose of Visit / Doel van Besoek: ${data.purposeOfVisit}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Duration of Stay / Verblyftydperk: ${data.durationOfStay} days`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "visitor_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Medical Treatment Visa Generator
+ */
+export class MedicalTreatmentVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: MedicalTreatmentVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Medical Treatment Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Medical Treatment Authorization Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "MEDICAL TREATMENT VISA", "DHA-1741");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Medical details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.red)
+           .text('MEDICAL TREATMENT DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Medical Institution / Mediese Instansie: ${data.medicalInstitution}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Treatment Type / Behandelingstipe: ${data.treatmentType}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Attending Physician / Behandelende Geneesheer: ${data.attendingPhysician}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "medical_treatment_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Retired Person Visa Generator
+ */
+export class RetiredPersonVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: RetiredPersonVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Retired Person Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Retired Person Residence Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "RETIRED PERSON VISA", "DHA-1743");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Retirement details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('RETIREMENT DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Retirement Date / Aftree Datum: ${this.formatSADate(data.retirementDate)}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Pension Income / Pensioen Inkomste: ${data.pensionIncome}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Financial Institution / Finansiële Instansie: ${data.financialInstitution}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "retired_person_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Exchange Visa Generator
+ */
+export class ExchangeVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: ExchangeVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Exchange Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Exchange Program Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "EXCHANGE VISA", "DHA-1744");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Exchange details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.blue)
+           .text('EXCHANGE PROGRAM DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Exchange Program / Uitruilprogram: ${data.exchangeProgram}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Host Organization / Gasheer Organisasie: ${data.hostOrganization}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Program Type / Program Tipe: ${data.programType}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "exchange_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Relatives Visa Generator
+ */
+export class RelativesVisaGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: RelativesVisaData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Relatives Visa',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Family Reunion Visa',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "RELATIVES VISA", "DHA-1745");
+
+        let yPos = 140;
+
+        // Personal information
+        this.addBilingualField(doc, 'visa_number', data.visaNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Relationship details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('FAMILY RELATIONSHIP DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Relationship / Verwantskap: ${data.relationshipToSponsor}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Sponsor Name / Borgstel Naam: ${data.sponsorName}`, 50, yPos);
+        yPos += 20;
+
+        doc.fontSize(10)
+           .text(`Sponsor ID Number / Borgstel ID Nommer: ${data.sponsorIdNumber}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
+
+        // Add security features
+        yPos = 620;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "relatives_visa" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.visaNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+/**
+ * Permanent Residence Permit Generator
+ */
+export class PermanentResidencePermitGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: PermanentResidencePermitData, isPreview: boolean = false): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: 'Permanent Residence Permit',
+            Author: 'Department of Home Affairs - Republic of South Africa',
+            Subject: 'Permanent Residence Authorization',
+            Creator: 'DHA Document Generation System v2.0'
+          }
+        });
+
+        const chunks: Buffer[] = [];
+        doc.on('data', (chunk) => chunks.push(chunk));
+        doc.on('error', reject);
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+
+        // Add security background
+        this.addSecurityBackground(doc, isPreview);
+
+        // Add government header
+        this.addGovernmentHeader(doc, "PERMANENT RESIDENCE PERMIT", "BI-947");
+
+        let yPos = 140;
+
+        // Permanent residence specific styling
+        doc.save();
+        doc.rect(30, yPos, 535, 450)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .lineWidth(3)
+           .stroke();
+        
+        // Gold accent border
+        doc.rect(35, yPos + 5, 525, 440)
+           .strokeColor(SA_GOVERNMENT_DESIGN.colors.gold)
+           .lineWidth(2)
+           .stroke();
+        doc.restore();
+
+        yPos += 30;
+
+        // Permanent status notice
+        doc.fontSize(14)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("PERMANENT RESIDENCE STATUS", 50, yPos, { align: "center" });
+        yPos += 30;
+
+        // Personal information
+        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
+        yPos += 35;
+
+        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
+        yPos += 35;
+
+        // Permit details
+        yPos += 20;
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text('PERMIT DETAILS', 50, yPos);
+        yPos += 25;
+
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+           .text(`Permit Category / Permit Kategorie: ${data.permitCategory}`, 50, yPos);
+        yPos += 20;
+
+        this.addBilingualField(doc, 'date_of_grant', this.formatSADate(data.dateOfGrant), 50, yPos);
+        yPos += 35;
+
+        // Note: Permanent residence permits do not have expiry dates
+        doc.fontSize(10)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
+           .text("This permit does not expire / Hierdie permit verval nie", 50, yPos);
+        yPos += 20;
+
+        // Rights and obligations
+        yPos += 20;
+        doc.fontSize(10)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("RIGHTS AND OBLIGATIONS / REGTE EN VERPLIGTINGE:", 50, yPos);
+        yPos += 15;
+
+        doc.fontSize(9)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+           .text("• Right to reside permanently in South Africa", 50, yPos);
+        yPos += 12;
+
+        doc.fontSize(9)
+           .text("• Right to work and study without restriction", 50, yPos);
+        yPos += 12;
+
+        doc.fontSize(9)
+           .text("• Obligation to comply with all South African laws", 50, yPos);
+
+        // Add security features
+        yPos = 650;
+        const qrCode = await this.generateQRCode({ ...data, documentType: "permanent_residence_permit" });
+        if (qrCode) {
+          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
+        }
+
+        const barcodeData = await this.generateBarcode(data.permitNumber);
+        if (barcodeData) {
+          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
+          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
+        }
+
+        this.addMicrotext(doc, 150, yPos + 10);
+
+        doc.end();
+
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+}
+
+// Export all generators - ALL 21 DHA DOCUMENT TYPES COMPLETE
 export const documentGenerators = {
+  // Identity Documents (3)
   IdentityDocumentBookGenerator,
+  TemporaryIdCertificateGenerator,
+  
+  // Travel Documents (3)
   SouthAfricanPassportGenerator,
+  EmergencyTravelCertificateGenerator,
+  RefugeeTravelDocumentGenerator,
+  
+  // Civil Documents (4)
   BirthCertificateGenerator,
+  DeathCertificateGenerator,
   MarriageCertificateGenerator,
-  CriticalSkillsWorkVisaGenerator
+  DivorceCertificateGenerator,
+  
+  // Immigration Documents (11)
+  GeneralWorkVisaGenerator,
+  CriticalSkillsWorkVisaGenerator,
+  IntraCompanyTransferWorkVisaGenerator,
+  BusinessVisaGenerator,
+  StudyVisaPermitGenerator,
+  VisitorVisaGenerator,
+  MedicalTreatmentVisaGenerator,
+  RetiredPersonVisaGenerator,
+  ExchangeVisaGenerator,
+  RelativesVisaGenerator,
+  PermanentResidencePermitGenerator
 };
