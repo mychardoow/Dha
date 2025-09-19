@@ -208,20 +208,58 @@ app.use((req, res, next) => {
     }
   } catch (error) {
     console.warn('[Server] Failed to setup Vite, serving static files directly:', error);
-    // Fallback to basic static serving
-    app.use(express.static('dist'));
+    const path = await import('path');
+    const fs = await import('fs');
+    
+    // Primary fallback: serve built files from dist/public
+    app.use(express.static('dist/public'));
+    
+    // Check if built index.html exists
+    const builtIndexPath = path.join(process.cwd(), 'dist/public/index.html');
+    const devIndexPath = path.join(process.cwd(), 'client/index.html');
+    
+    if (fs.existsSync(builtIndexPath)) {
+      // Production-like fallback: serve built index.html for all non-API routes
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(builtIndexPath);
+        }
+      });
+      console.log('[Server] Using built files from dist/public');
+    } else if (fs.existsSync(devIndexPath)) {
+      // Development fallback: serve client files directly
+      app.use(express.static('client'));
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(devIndexPath);
+        }
+      });
+      console.log('[Server] Using development files from client/');
+    } else {
+      // Last resort: serve a basic response
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.send('<h1>DHA Digital Services Platform</h1><p>Frontend not found. Please run: npm run build</p>');
+        }
+      });
+      console.warn('[Server] No frontend files found, serving basic response');
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '5000', 10);
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  const port = Number(process.env.PORT || 5000);
+  app.listen(port, '0.0.0.0', () => {
+    const logFn = typeof log === 'function' ? log : console.log;
+    logFn(`
+═══════════════════════════════════════════════════════════════
+  DHA Digital Services Platform - SERVER READY
+  🌐 URL: http://localhost:${port}
+  📊 Health Check: http://localhost:${port}/api/health
+  🔗 Preview: Available in Replit preview
+═══════════════════════════════════════════════════════════════
+    `);
   });
 })();
