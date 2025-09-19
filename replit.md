@@ -1,87 +1,39 @@
-# DHA Digital Services Pro - Military-Grade Security Platform
+# DHA Digital Services Platform
 
 ## Overview
-
-This is a production-ready digital services platform designed with military-grade security features. The application provides comprehensive security solutions including biometric authentication, quantum encryption, real-time fraud detection, document processing with OCR capabilities, and advanced monitoring systems. Built as a full-stack TypeScript application, it combines modern web technologies with enterprise-level security measures to create a robust platform suitable for high-security environments.
+This is a production-ready, military-grade digital services platform for the South African Department of Home Affairs (DHA). The system provides comprehensive document generation, verification, and security services with 24/7 continuous monitoring and AI-powered assistance. It supports all 23 official DHA document types, incorporates military-grade security features, and is designed for zero-downtime operations.
 
 ## User Preferences
-
-Preferred communication style: Simple, everyday language.
+- **Authentication Credentials**:
+  - Admin Login: Username: `admin` | Password: `admin123`
+  - Default User: Username: `user` | Password: `password123`
+  - API Key: Available after admin login
+- **System Configuration**:
+  - Port: 5000 (frontend and backend on same port)
+  - Database: PostgreSQL (Neon serverless)
+  - Environment: Development/Production modes supported
+  - Preview Mode: Available for document generation without permanent storage
+- **Workflow Preferences**:
+  - Document Generation: Preview → Edit → Generate → Verify → Store
+  - Security Validation: Multi-tier verification at each stage
+  - Monitoring Alerts: Critical alerts via WebSocket in real-time
+  - Communication Style: Simple, everyday language preferred
 
 ## System Architecture
+The platform is built on a microservices architecture comprising a Document Service, Verification Service, AI Service, Monitoring Service, and Security Service. It emphasizes high availability through load balancing, database replication, caching, circuit breaker patterns, and zero-downtime deployments. Security is a core focus, employing a defense-in-depth strategy, zero-trust network model, end-to-end encryption, multi-factor authentication, and role-based access control.
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript in strict mode
-- **Routing**: Wouter for lightweight client-side routing
-- **UI Components**: Shadcn/ui component library with Radix UI primitives
-- **Styling**: Tailwind CSS with dark theme and custom security-themed color palette
-- **State Management**: TanStack Query for server state management and caching
-- **Real-time Communication**: Socket.IO client for WebSocket connections
-- **Charts**: Chart.js and React-Chartjs-2 for data visualization
-- **Build Tool**: Vite with TypeScript support and custom path aliases
+The system supports all 23 DHA document types, including Identity, Travel, Civil, Immigration, and Additional documents. Security features are multi-tiered, encompassing visible (UV ink, holograms, watermarks), tactile (Braille, intaglio printing, laser engraving), machine-readable (MRZ, biometric chip, PDF417 barcode), and forensic elements (microprinting, security thread, invisible fibers, specialized patterns).
 
-### Backend Architecture
-- **Runtime**: Node.js with Express.js framework
-- **Language**: TypeScript with ES modules
-- **Authentication**: JWT-based authentication with bcrypt password hashing
-- **Security Middleware**: Helmet for security headers, express-rate-limit for API protection
-- **Real-time**: Socket.IO server for WebSocket communication
-- **File Processing**: Multer for file uploads, Tesseract.js for OCR processing
-- **Encryption**: CryptoJS for client-side encryption, native crypto for server-side operations
+An AI Assistant, powered by OpenAI GPT-4o, provides document processing, security analysis, multi-language support, OCR integration, and real-time verification, with features like security clearance levels and a comprehensive knowledge base. A 24/7 continuous monitoring system ensures 99.99% uptime with nano-second precision heartbeat checks, self-healing capabilities, and automatic recovery mechanisms. An OCR Auto-Fill system supports all 23 DHA document types for multi-language text extraction, field mapping, and form auto-population. The Document Verification System offers real-time authenticity checks, security feature validation, and blockchain anchoring.
 
-### Data Storage Solutions
-- **Database**: PostgreSQL with Drizzle ORM
-- **Database Provider**: Neon Database (serverless PostgreSQL)
-- **Schema Management**: Drizzle Kit for migrations and schema management
-- **Connection Pooling**: Neon serverless connection pooling with WebSocket support
-
-### Authentication and Authorization
-- **Primary Authentication**: JWT tokens with 24-hour expiration
-- **Password Security**: Bcrypt with salt rounds of 12
-- **Biometric Authentication**: Multi-modal biometric support (face, fingerprint, voice, iris)
-- **Role-based Access Control**: User roles with granular permissions
-- **Session Management**: Secure session handling with encrypted storage
-- **API Key Authentication**: Secondary authentication method for service-to-service communication
-
-### Security Features
-- **Quantum Encryption**: Advanced encryption with high-entropy key generation
-- **Fraud Detection**: Real-time behavioral analysis and risk scoring
-- **Rate Limiting**: Multiple tiers of rate limiting for different endpoints
-- **Security Headers**: Comprehensive security headers via Helmet
-- **IP Filtering**: Configurable IP allowlist/blocklist
-- **Security Logging**: Detailed security event logging and monitoring
-- **Document Verification**: Authenticity verification for uploaded documents
+**Technology Stack**:
+- **Frontend**: React 18 (TypeScript), Vite, Shadcn/UI, TailwindCSS, TanStack Query, Socket.IO, Chart.js.
+- **Backend**: Node.js (Express, TypeScript), PostgreSQL (Neon serverless), Drizzle ORM, JWT, Socket.IO, OpenAI GPT-4o.
+- **Security**: Helmet, bcrypt, express-rate-limit, CryptoJS, Digital signatures (RSA, ECDSA), mTLS.
+- **Document Processing**: PDFKit, pdf-lib, Tesseract.js, Sharp, QRCode, JsBarcode.
 
 ## External Dependencies
-
-### Database Services
-- **Neon Database**: Serverless PostgreSQL database with connection pooling
-- **Drizzle ORM**: Type-safe database operations with PostgreSQL dialect
-
-### Security Services
-- **JWT Authentication**: JSON Web Token implementation for secure authentication
-- **Bcrypt**: Password hashing and verification
-- **CryptoJS**: Client-side encryption utilities
-- **Helmet**: Security middleware for Express applications
-
-### File Processing
-- **Multer**: File upload middleware for Express
-- **Tesseract.js**: OCR (Optical Character Recognition) for document text extraction
-
-### Real-time Communication
-- **Socket.IO**: WebSocket library for real-time bidirectional communication
-- **WebSocket (ws)**: Native WebSocket support for database connections
-
-### Frontend Libraries
-- **TanStack Query**: Server state management and caching
-- **Wouter**: Lightweight routing library
-- **Radix UI**: Unstyled, accessible UI primitives
-- **Chart.js**: Data visualization and charting library
-- **React Hook Form**: Form state management with validation
-
-### Development Tools
-- **Vite**: Build tool and development server
-- **TypeScript**: Static type checking
-- **Tailwind CSS**: Utility-first CSS framework
-- **ESBuild**: JavaScript bundler for production builds
-- **Replit Integration**: Development environment integration with cartographer and error overlay plugins
+- **Database**: PostgreSQL (Neon serverless)
+- **AI Integration**: OpenAI GPT-4o
+- **Real-time Communication**: Socket.IO
+- **OCR Engine**: Tesseract.js
