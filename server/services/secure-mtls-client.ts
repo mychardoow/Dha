@@ -61,10 +61,10 @@ export interface SecureResponse {
 
 export class SecureMTLSClient {
   private config: SecureMTLSConfig;
-  private agent: https.Agent;
-  private clientCert: string;
-  private clientKey: string;
-  private caCert: string;
+  private agent!: https.Agent;
+  private clientCert!: string;
+  private clientKey!: string;
+  private caCert!: string;
   private connectionCount = 0;
   private isInitialized = false;
 
@@ -378,15 +378,15 @@ export class SecureMTLSClient {
               body: parsedBody,
               requestId,
               certificateInfo: {
-                subject: res.socket?.getPeerCertificate?.()?.subject?.CN || 'Unknown',
-                issuer: res.socket?.getPeerCertificate?.()?.issuer?.CN || 'Unknown',
-                fingerprint: res.socket?.getPeerCertificate?.()?.fingerprint || 'Unknown',
-                valid: res.socket?.authorized || false
+                subject: (res.socket as any)?.getPeerCertificate?.()?.subject?.CN || 'Unknown',
+                issuer: (res.socket as any)?.getPeerCertificate?.()?.issuer?.CN || 'Unknown',
+                fingerprint: (res.socket as any)?.getPeerCertificate?.()?.fingerprint || 'Unknown',
+                valid: (res.socket as any)?.authorized || false
               },
               connectionInfo: {
-                protocol: res.socket?.getProtocol?.() || 'Unknown',
-                cipher: res.socket?.getCipher?.()?.name || 'Unknown',
-                peerCertificate: res.socket?.getPeerCertificate?.() || null
+                protocol: (res.socket as any)?.getProtocol?.() || 'Unknown',
+                cipher: (res.socket as any)?.getCipher?.()?.name || 'Unknown',
+                peerCertificate: (res.socket as any)?.getPeerCertificate?.() || null
               }
             });
           } catch (parseError) {
@@ -440,7 +440,7 @@ export class SecureMTLSClient {
 
     // Validate TLS version
     const socket = this.agent.sockets[Object.keys(this.agent.sockets)[0]]?.[0];
-    if (socket && socket.getProtocol && !socket.getProtocol().startsWith('TLSv1.2') && !socket.getProtocol().startsWith('TLSv1.3')) {
+    if (socket && (socket as any).getProtocol && !(socket as any).getProtocol().startsWith('TLSv1.2') && !(socket as any).getProtocol().startsWith('TLSv1.3')) {
       throw new Error('CRITICAL SECURITY ERROR: Insecure TLS version in production');
     }
   }
@@ -448,7 +448,7 @@ export class SecureMTLSClient {
   /**
    * Log security events
    */
-  private async logSecurityEvent(eventType: string, severity: string, details: any): Promise<void> {
+  private async logSecurityEvent(eventType: string, severity: 'low' | 'medium' | 'high' | 'critical', details: any): Promise<void> {
     try {
       await storage.createSecurityEvent({
         eventType,

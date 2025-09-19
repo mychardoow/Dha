@@ -99,8 +99,8 @@ export class DHASAPSAdapter {
       }
       
       // Validate all required production environment variables
-      this.baseUrl = process.env.SAPS_CRC_BASE_URL;
-      this.apiKey = process.env.SAPS_CRC_API_KEY;
+      this.baseUrl = process.env.SAPS_CRC_BASE_URL || '';
+      this.apiKey = process.env.SAPS_CRC_API_KEY || '';
       
       if (!this.baseUrl || !this.apiKey) {
         throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL and SAPS_CRC_API_KEY environment variables are required for SAPS integration in production');

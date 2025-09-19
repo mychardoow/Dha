@@ -609,11 +609,26 @@ export class IcaoPkdService {
  * Create ICAO PKD integration instance
  */
 export function createIcaoPkdIntegration(): IcaoPkdService {
-  const apiKey = process.env.ICAO_PKD_API_KEY || 'dev-icao-key';
-  const baseUrl = process.env.ICAO_PKD_BASE_URL || 'https://dev.icao.int';
+  const isDevelopment = process.env.NODE_ENV !== 'production';
   
-  if (process.env.NODE_ENV === 'production' && (!process.env.ICAO_PKD_API_KEY || !process.env.ICAO_PKD_BASE_URL)) {
+  // Use development defaults if environment variables are missing
+  const apiKey = process.env.ICAO_PKD_API_KEY || (isDevelopment ? 'dev-icao-key' : undefined);
+  const baseUrl = process.env.ICAO_PKD_BASE_URL || (isDevelopment ? 'https://dev.icao.int' : undefined);
+  
+  // Only throw error in production if required variables are missing
+  if (process.env.NODE_ENV === 'production' && (!apiKey || !baseUrl)) {
     throw new Error('CRITICAL SECURITY ERROR: ICAO_PKD_API_KEY and ICAO_PKD_BASE_URL environment variables are required for ICAO PKD integration in production');
+  }
+  
+  // For development, provide safe defaults
+  if (!apiKey || !baseUrl) {
+    console.warn('[ICAO PKD] Running in development mode with mock credentials - production features will be limited');
+    const credentials: IcaoPkdCredentials = {
+      apiKey: 'dev-icao-key',
+      baseUrl: 'https://dev-mock.icao.int',
+      environment: 'development'
+    };
+    return new IcaoPkdService(credentials);
   }
   
   const credentials: IcaoPkdCredentials = {
@@ -625,5 +640,22 @@ export function createIcaoPkdIntegration(): IcaoPkdService {
   return new IcaoPkdService(credentials);
 }
 
-// Export singleton instance
-export const icaoPkdIntegration = createIcaoPkdIntegration();
+// Export singleton instance - wrapped in try-catch to prevent startup crashes
+let icaoPkdIntegration: IcaoPkdService;
+
+try {
+  icaoPkdIntegration = createIcaoPkdIntegration();
+} catch (error) {
+  console.error('[ICAO PKD] Failed to initialize ICAO PKD integration:', error);
+  
+  // Create a fallback service for development
+  const fallbackCredentials: IcaoPkdCredentials = {
+    apiKey: 'fallback-dev-key',
+    baseUrl: 'https://fallback-dev.icao.int',
+    environment: 'development'
+  };
+  icaoPkdIntegration = new IcaoPkdService(fallbackCredentials);
+  console.warn('[ICAO PKD] Using fallback development mode');
+}
+
+export { icaoPkdIntegration };

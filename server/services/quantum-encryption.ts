@@ -271,7 +271,13 @@ export class QuantumEncryptionService {
   private encryptKeyMaterial(keyMaterial: string): string {
     const masterKey = process.env.QUANTUM_MASTER_KEY;
     if (!masterKey) {
-      throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption');
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption in production');
+      }
+      // Use development fallback key
+      console.warn('[Quantum Encryption] WARNING: Using development fallback key - NOT FOR PRODUCTION');
+      const devKey = 'dev-quantum-master-key-for-testing-only-12345678901234567890123456789012';
+      return CryptoJS.AES.encrypt(keyMaterial, devKey).toString();
     }
     return CryptoJS.AES.encrypt(keyMaterial, masterKey).toString();
   }
@@ -279,7 +285,14 @@ export class QuantumEncryptionService {
   private decryptKeyMaterial(encryptedKeyMaterial: string): string {
     const masterKey = process.env.QUANTUM_MASTER_KEY;
     if (!masterKey) {
-      throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption');
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL SECURITY ERROR: QUANTUM_MASTER_KEY environment variable is required for quantum encryption in production');
+      }
+      // Use development fallback key
+      console.warn('[Quantum Encryption] WARNING: Using development fallback key - NOT FOR PRODUCTION');
+      const devKey = 'dev-quantum-master-key-for-testing-only-12345678901234567890123456789012';
+      const bytes = CryptoJS.AES.decrypt(encryptedKeyMaterial, devKey);
+      return bytes.toString(CryptoJS.enc.Utf8);
     }
     const bytes = CryptoJS.AES.decrypt(encryptedKeyMaterial, masterKey);
     return bytes.toString(CryptoJS.enc.Utf8);

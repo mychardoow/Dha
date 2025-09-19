@@ -153,8 +153,21 @@ export class DatanamixClient {
     const privateKeyPath = process.env.DATANAMIX_KEY_PATH;
     const baseUrl = process.env.DATANAMIX_BASE_URL;
 
+    // Only throw error in production - provide development fallbacks
     if (!clientId || !clientSecret || !certificatePath || !privateKeyPath || !baseUrl) {
-      throw new Error('CRITICAL CONFIG ERROR: Datanamix credentials are required for DHA integration');
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('CRITICAL CONFIG ERROR: Datanamix credentials are required for DHA integration in production');
+      }
+      
+      console.warn('[Datanamix Client] WARNING: Using development fallback credentials - NOT FOR PRODUCTION');
+      return {
+        clientId: 'dev-datanamix-client-id',
+        clientSecret: 'dev-datanamix-client-secret',
+        certificatePath: '/dev/null', // Won't be used in development
+        privateKeyPath: '/dev/null', // Won't be used in development
+        baseUrl: 'https://dev-datanamix.gov.za',
+        environment: 'development'
+      };
     }
 
     return {

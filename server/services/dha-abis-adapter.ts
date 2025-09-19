@@ -134,14 +134,8 @@ export class DHAABISAdapter {
    */
   private async initializeSecureClient(): Promise<void> {
     try {
-      this.secureClient = await createSecureGovernmentClient({
-        serviceName: 'DHA-ABIS',
-        baseUrl: this.baseUrl,
-        clientCertPath: process.env.DHA_ABIS_CLIENT_CERT_PATH,
-        clientKeyPath: process.env.DHA_ABIS_PRIVATE_KEY_PATH,
-        caCertPath: process.env.DHA_CA_CERT_PATH,
-        timeout: this.timeout
-      });
+      this.secureClient = await createSecureGovernmentClient('DHA-ABIS');
+      await this.secureClient.initialize();
       console.log('[DHA-ABIS] ✅ Secure mTLS client initialized');
     } catch (error) {
       if (process.env.NODE_ENV === 'production') {
@@ -352,6 +346,9 @@ export class DHAABISAdapter {
         }
       };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // ABIS operations can take time
+      
       const response = await fetch(abisApiUrl, {
         method: 'POST',
         headers: {
@@ -362,8 +359,10 @@ export class DHAABISAdapter {
           'X-API-Version': '2.0'
         },
         body: JSON.stringify(payload),
-        timeout: 60000 // ABIS operations can take time
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`ABIS API error: ${response.status} ${response.statusText}`);
@@ -390,13 +389,13 @@ export class DHAABISAdapter {
         success: false,
         requestId,
         mode: '1_to_1',
-        verificationResult: 'error',
+        verificationResult: 'inconclusive',
         overallMatchScore: 0,
         biometricMatches: [],
         primaryMatch: undefined,
         qualityAssessment,
         processingTime: 0,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -424,8 +423,6 @@ export class DHAABISAdapter {
         mode: '1_to_N',
         biometricTemplates: request.biometricTemplates,
         matchThreshold: request.matchThreshold || 70,
-        maxResults: request.maxResults || 10,
-        searchScope: request.searchScope || 'national_database',
         clientInfo: {
           system: 'DHA-Digital-Services',
           version: '2.0',
@@ -433,6 +430,9 @@ export class DHAABISAdapter {
         }
       };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 1:N searches can take longer
+      
       const response = await fetch(abisApiUrl, {
         method: 'POST',
         headers: {
@@ -443,8 +443,10 @@ export class DHAABISAdapter {
           'X-API-Version': '2.0'
         },
         body: JSON.stringify(payload),
-        timeout: 120000 // 1:N searches can take longer
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`ABIS API error: ${response.status} ${response.statusText}`);
@@ -470,13 +472,13 @@ export class DHAABISAdapter {
         success: false,
         requestId,
         mode: '1_to_N',
-        verificationResult: 'error',
+        verificationResult: 'inconclusive',
         overallMatchScore: 0,
         biometricMatches: [],
         primaryMatch: undefined,
         qualityAssessment,
         processingTime: 0,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }

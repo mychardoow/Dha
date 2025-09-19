@@ -239,25 +239,28 @@ export class WebSocketService {
           // Sanitize sensitive system data before sending
           const sanitizedContext = {
             health: {
-              status: systemHealth.status,
-              uptime: systemHealth.uptime,
+              cpu: systemHealth.cpu,
+              memory: systemHealth.memory,
+              network: systemHealth.network,
+              storage: systemHealth.storage,
+              timestamp: systemHealth.timestamp
               // Remove sensitive internal metrics
-              services: systemHealth.services?.map(service => ({
-                name: service.name,
-                status: service.status
-                // Remove internal configurations, keys, endpoints
-              }))
             },
             security: {
-              threatLevel: securityMetrics.threatLevel,
-              activeAlerts: securityMetrics.activeAlerts || 0,
-              lastUpdated: securityMetrics.lastUpdated
+              threatsBlocked: securityMetrics.threatsBlocked,
+              suspiciousActivities: securityMetrics.suspiciousActivities,
+              falsePositives: securityMetrics.falsePositives,
+              detectionRate: securityMetrics.detectionRate,
+              timestamp: securityMetrics.timestamp
               // Remove detailed security patterns, thresholds, internal data
             },
             quantum: {
-              status: quantumStatus.status,
-              keysActive: quantumStatus.keysActive || 0
-              // Remove key data, algorithms, entropy details
+              activeKeys: quantumStatus.activeKeys,
+              algorithms: quantumStatus.algorithms,
+              averageEntropy: quantumStatus.averageEntropy,
+              nextRotation: quantumStatus.nextRotation,
+              quantumReadiness: quantumStatus.quantumReadiness
+              // Remove sensitive key data, entropy details
             },
             alerts: recentAlerts.slice(0, 5).map(alert => ({
               id: alert.id,
@@ -503,10 +506,13 @@ export class WebSocketService {
         }) => {
           try {
             const notifications = await notificationService.sendSystemNotification({
-              ...data,
               eventType: "admin.system_notification",
-              createdBy: authSocket.userId
-            }, data.targetRole);
+              createdBy: authSocket.userId,
+              category: data.category as "SYSTEM" | "SECURITY" | "DOCUMENT" | "USER" | "ADMIN" | "FRAUD" | "BIOMETRIC",
+              priority: data.priority as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+              title: data.title,
+              message: data.message
+            }, data.targetRole as "user" | "admin" | undefined);
             
             socket.emit("admin:systemNotificationSent", { count: notifications.length });
           } catch (error) {
@@ -651,9 +657,9 @@ export class WebSocketService {
           if (targetUserId) {
             await notificationService.createNotification({
               userId: targetUserId,
-              category: "user",
+              category: "USER",
               eventType: "chat.new_message",
-              priority: "medium",
+              priority: "MEDIUM",
               title: "New Chat Message",
               message: `${authSocket.username}: ${data.content.substring(0, 100)}...`,
               actionUrl: `/chat/${data.sessionId}`,
@@ -697,7 +703,7 @@ export class WebSocketService {
               documentId: data.documentId,
               status: document.processingStatus,
               verificationStatus: document.isVerified,
-              updatedAt: document.updatedAt
+              createdAt: document.createdAt
             });
           } else {
             socket.emit("document:error", { error: "Document not found or access denied" });
