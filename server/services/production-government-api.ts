@@ -156,7 +156,7 @@ export class ProductionGovernmentApi {
    * Initialize HTTPS agents with client certificates for mutual TLS authentication
    */
   private async initializeHttpsAgents(): Promise<void> {
-    for (const [service, creds] of this.credentials.entries()) {
+    for (const [service, creds] of Array.from(this.credentials.entries())) {
       if (creds.certificatePath && creds.privateKeyPath) {
         try {
           const cert = await fs.readFile(creds.certificatePath);
