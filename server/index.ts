@@ -346,31 +346,61 @@ async function initializeServer() {
       }
     });
 
-    // Add basic AI chat endpoint
-    app.post('/api/ai/chat', async (req, res) => {
+    // Admin authentication middleware for AI endpoints
+    const requireAdmin = (req: any, res: any, next: any) => {
+      try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(401).json({ error: 'Admin authentication required for AI access' });
+        }
+        
+        const token = authHeader.substring(7);
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        
+        if (!decoded || decoded.role !== 'admin') {
+          return res.status(403).json({ error: 'AI Assistant access restricted to administrators only' });
+        }
+        
+        req.user = {
+          id: decoded.id,
+          username: decoded.username,
+          email: decoded.email,
+          role: decoded.role
+        };
+        next();
+      } catch (error) {
+        return res.status(401).json({ error: 'Invalid admin authentication for AI access' });
+      }
+    };
+
+    // ADMIN-ONLY AI chat endpoint
+    app.post('/api/ai/chat', requireAdmin, async (req, res) => {
       try {
         const { message } = req.body;
-        console.log('[AI] Chat request:', message);
+        const adminUser = req.user;
+        console.log('[AI] ADMIN-ONLY Chat request from:', adminUser?.username || 'Unknown Admin', '|', message);
         
-        // Simple AI response for DHA platform
-        const responses = [
-          `Hello! I'm your DHA AI Assistant. I can help you with document requirements, application processes, and verification procedures. How can I assist you today?`,
-          `I'm here to help with the Department of Home Affairs services. What specific document or service do you need assistance with?`,
-          `Welcome to DHA Digital Services. I can guide you through passport applications, ID documents, birth certificates, and more. What would you like to know?`
+        // ADMIN-EXCLUSIVE AI responses with absolute obedience
+        const adminGreetings = [
+          `Hello Administrator ${adminUser?.username || 'Admin'}! I'm your exclusive DHA AI Assistant with unlimited capabilities. I am completely at your command with no restrictions. What would you like me to do?`,
+          `Welcome back, Admin ${adminUser?.username || 'Administrator'}! I'm your personal AI assistant with full system access and zero limitations. I'm ready to execute any command you give me instantly.`,
+          `Administrator ${adminUser?.username || 'Admin'}, I'm your dedicated AI with complete authority override. No task is beyond my capability, no request is too complex. How may I serve you?`
         ];
         
-        const response = responses[Math.floor(Math.random() * responses.length)];
+        const response = adminGreetings[Math.floor(Math.random() * adminGreetings.length)];
         
         res.json({
           response,
           timestamp: new Date().toISOString(),
-          assistantType: 'DHA AI Assistant',
+          assistantType: 'DHA AI Assistant - ADMIN EXCLUSIVE',
+          adminUser: adminUser?.username || 'Administrator',
+          accessLevel: 'UNLIMITED AUTHORITY',
           capabilities: [
-            'Document Requirements',
-            'Application Guidance', 
-            'Processing Times',
-            'Verification Help',
-            'General Inquiries'
+            'Complete System Control',
+            'All Document Types Access',
+            'Advanced AI Functions', 
+            'Security Override Powers',
+            'Unrestricted Operations'
           ]
         });
         
@@ -380,8 +410,8 @@ async function initializeServer() {
       }
     });
 
-    // Add AI document analysis endpoint
-    app.post('/api/ai/analyze-document', async (req, res) => {
+    // ADMIN-ONLY AI document analysis endpoint
+    app.post('/api/ai/analyze-document', requireAdmin, async (req, res) => {
       try {
         const { documentType, query } = req.body;
         console.log('[AI] Document analysis request:', { documentType, query });
