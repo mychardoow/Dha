@@ -30,9 +30,8 @@ import { geoIPValidationMiddleware, strictGeoIPValidation } from "./middleware/g
 import { auditMiddleware, tamperEvidentAuditService } from "./middleware/tamper-evident-audit";
 import { privacyProtectionService } from "./services/privacy-protection";
 import monitoringRoutes from "./routes/monitoring";
-// Monitoring services temporarily commented for quick startup
-// import { monitoringOrchestrator } from "./services/monitoring-orchestrator";
-// import { webSocketMonitoringService } from "./services/websocket-monitoring";
+import { monitoringOrchestrator } from "./services/monitoring-orchestrator";
+import { webSocketMonitoringService } from "./services/websocket-monitoring";
 import { 
   insertUserSchema, 
   insertSecurityEventSchema, 
@@ -6780,12 +6779,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   initializeWebSocket(httpServer);
 
   // Initialize Autonomous Monitoring System
-  console.log('[Server] Skipping autonomous monitoring system for quick startup...');
-  // monitoringOrchestrator.initialize(httpServer).then(() => {
-  //   console.log('[Server] Autonomous monitoring system initialized successfully');
-  // }).catch((error: any) => {
-  //   console.error('[Server] Failed to initialize autonomous monitoring system:', error);
-  // });
+  console.log('[Server] Initializing autonomous monitoring system...');
+  monitoringOrchestrator.initialize(httpServer).then(() => {
+    console.log('[Server] Autonomous monitoring system initialized successfully');
+  }).catch((error: any) => {
+    console.error('[Server] Failed to initialize autonomous monitoring system:', error);
+  });
 
   return httpServer;
 }
