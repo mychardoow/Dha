@@ -1614,14 +1614,14 @@ export class IntraCompanyTransferWorkVisaGenerator extends BaseDocumentTemplate 
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Role / Rol: ${data.role}`, 50, yPos);
+           .text(`Role / Rol: ${data.transferPosition}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
            .text(`Transfer Duration / Oordrag Duur: ${data.transferDuration}`, 50, yPos);
         yPos += 20;
 
-        this.addBilingualField(doc, 'salary_level', data.salaryLevel, 50, yPos);
+        this.addBilingualField(doc, 'salary_level', data.transferPosition || 'N/A', 50, yPos);
         yPos += 35;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -1728,7 +1728,7 @@ export class BusinessVisaGenerator extends BaseDocumentTemplate {
           doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
         }
 
-        const barcodeData = await this.generateBarcode(data.visaNumber);
+        const barcodeData = await this.generateBarcode(data.permitNumber);
         if (barcodeData) {
           const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
           doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
@@ -1799,15 +1799,15 @@ export class StudyVisaPermitGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Institution / Instansie: ${data.institutionName}`, 50, yPos);
+           .text(`Institution / Instansie: ${data.institution.name}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Course of Study / Studiekursus: ${data.courseOfStudy}`, 50, yPos);
+           .text(`Course of Study / Studiekursus: ${data.course}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Level of Study / Studievlak: ${data.levelOfStudy}`, 50, yPos);
+           .text(`Level of Study / Studievlak: ${data.studyLevel}`, 50, yPos);
         yPos += 20;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -1985,15 +1985,15 @@ export class MedicalTreatmentVisaGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Medical Institution / Mediese Instansie: ${data.medicalInstitution}`, 50, yPos);
+           .text(`Medical Institution / Mediese Instansie: ${data.treatingHospital}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Treatment Type / Behandelingstipe: ${data.treatmentType}`, 50, yPos);
+           .text(`Treatment Type / Behandelingstipe: ${data.medicalCondition}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Attending Physician / Behandelende Geneesheer: ${data.attendingPhysician}`, 50, yPos);
+           .text(`Attending Physician / Behandelende Geneesheer: ${'N/A'}`, 50, yPos);
         yPos += 20;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -2084,11 +2084,11 @@ export class RetiredPersonVisaGenerator extends BaseDocumentTemplate {
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Pension Income / Pensioen Inkomste: ${data.pensionIncome}`, 50, yPos);
+           .text(`Pension Income / Pensioen Inkomste: ${data.monthlyIncome}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Financial Institution / Finansiële Instansie: ${data.financialInstitution}`, 50, yPos);
+           .text(`Financial Institution / Finansiële Instansie: ${data.pensionFundDetails}`, 50, yPos);
         yPos += 20;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -2179,11 +2179,11 @@ export class ExchangeVisaGenerator extends BaseDocumentTemplate {
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Host Organization / Gasheer Organisasie: ${data.hostOrganization}`, 50, yPos);
+           .text(`Host Organization / Gasheer Organisasie: ${data.hostInstitution}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Program Type / Program Tipe: ${data.programType}`, 50, yPos);
+           .text(`Program Type / Program Tipe: ${data.exchangeProgram}`, 50, yPos);
         yPos += 20;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -2270,15 +2270,15 @@ export class RelativesVisaGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Relationship / Verwantskap: ${data.relationshipToSponsor}`, 50, yPos);
+           .text(`Relationship / Verwantskap: ${data.relationship}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Sponsor Name / Borgstel Naam: ${data.sponsorName}`, 50, yPos);
+           .text(`Sponsor Name / Borgstel Naam: ${data.sponsor.fullName}`, 50, yPos);
         yPos += 20;
 
         doc.fontSize(10)
-           .text(`Sponsor ID Number / Borgstel ID Nommer: ${data.sponsorIdNumber}`, 50, yPos);
+           .text(`Sponsor ID Number / Borgstel ID Nommer: ${data.sponsor.idNumber}`, 50, yPos);
         yPos += 20;
 
         this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
@@ -2388,10 +2388,10 @@ export class PermanentResidencePermitGenerator extends BaseDocumentTemplate {
 
         doc.fontSize(10)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Permit Category / Permit Kategorie: ${data.permitCategory}`, 50, yPos);
+           .text(`Permit Category / Permit Kategorie: ${data.categoryOfAdmission}`, 50, yPos);
         yPos += 20;
 
-        this.addBilingualField(doc, 'date_of_grant', this.formatSADate(data.dateOfGrant), 50, yPos);
+        this.addBilingualField(doc, 'date_of_grant', this.formatSADate(data.dateOfAdmission), 50, yPos);
         yPos += 35;
 
         // Note: Permanent residence permits do not have expiry dates
