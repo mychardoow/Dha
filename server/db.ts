@@ -16,10 +16,25 @@ function isValidDatabaseUrl(url: string | undefined): boolean {
   return url.startsWith('postgres://') || url.startsWith('postgresql://');
 }
 
-// Force BYPASS MODE for now until DATABASE_URL is properly configured
-const FORCE_BYPASS = true;
-
-if (FORCE_BYPASS || !isValidDatabaseUrl(connectionString)) {
+// If DATABASE_URL is invalid but we have individual components, construct it
+if (!isValidDatabaseUrl(connectionString) && process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD && process.env.PGDATABASE) {
+  // Construct DATABASE_URL from individual components
+  const host = process.env.PGHOST;
+  const user = process.env.PGUSER;
+  const password = process.env.PGPASSWORD;
+  const database = process.env.PGDATABASE;
+  const port = process.env.PGPORT || '5432';
+  
+  connectionString = `postgresql://${user}:${password}@${host}:${port}/${database}?sslmode=require`;
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('  DHA SYSTEM - DATABASE CONNECTION');
+  console.log('═══════════════════════════════════════════════════════════════');
+  console.log('  ✓ Constructed DATABASE_URL from environment variables');
+  console.log('  ✓ Host:', host);
+  console.log('  ✓ Database:', database);
+  console.log('═══════════════════════════════════════════════════════════════');
+} else if (!isValidDatabaseUrl(connectionString)) {
+  // No valid connection available - use bypass mode
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  DHA SYSTEM - DATABASE BYPASS MODE ACTIVE');
   console.log('═══════════════════════════════════════════════════════════════');
