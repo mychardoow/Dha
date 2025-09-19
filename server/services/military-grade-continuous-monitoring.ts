@@ -14,16 +14,16 @@ import * as os from "os";
 import * as fs from "fs";
 import * as path from "path";
 
-// Nano-second precision monitoring intervals
+// HIGH-FREQUENCY PRECISION MONITORING - SYSTEM-STABLE INTERVALS
 const NANO_SECOND_PRECISION = {
-  HEARTBEAT_INTERVAL: 100, // 100ms for heartbeat checks
-  HEALTH_CHECK_INTERVAL: 250, // 250ms for health monitoring  
-  CRITICAL_SYSTEM_INTERVAL: 50, // 50ms for critical system monitoring
-  AUTO_RESTART_TIMEOUT: 5000, // 5 seconds max restart time
-  SELF_HEALING_INTERVAL: 1000, // 1 second for self-healing checks
-  SLA_MONITORING_INTERVAL: 30000, // 30 seconds for SLA compliance
-  FAILOVER_TIMEOUT: 2000, // 2 seconds max failover time
-  ZERO_DOWNTIME_BUFFER: 1000 // 1 second zero downtime buffer
+  HEARTBEAT_INTERVAL: 500, // 500ms for rapid heartbeat (2 checks/second)
+  HEALTH_CHECK_INTERVAL: 250, // 250ms for high-frequency health monitoring (4 checks/second)
+  CRITICAL_SYSTEM_INTERVAL: 100, // 100ms for critical system monitoring (10 checks/second)
+  AUTO_RESTART_TIMEOUT: 2000, // 2 seconds max restart time (balanced)
+  SELF_HEALING_INTERVAL: 15000, // 15 seconds for self-healing checks (delegates to SelfHealingService)
+  SLA_MONITORING_INTERVAL: 5000, // 5 seconds for SLA compliance checks
+  FAILOVER_TIMEOUT: 1000, // 1 second max failover time (fast but stable)
+  ZERO_DOWNTIME_BUFFER: 500 // 500ms zero downtime buffer (optimized)
 };
 
 // SLA Requirements for Government Operations

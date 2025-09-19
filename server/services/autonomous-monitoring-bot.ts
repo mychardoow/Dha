@@ -124,9 +124,9 @@ export class AutonomousMonitoringBot extends EventEmitter {
   private getDefaultConfig(): MonitoringConfig {
     return {
       // CORRECTED: Millisecond-level monitoring with adaptive scheduling (not microsecond-level)
-      healthCheckInterval: 5000, // 5 seconds default (government-appropriate frequency)
-      minHealthCheckInterval: 1000, // 1 second minimum for high-load situations
-      maxHealthCheckInterval: 30000, // 30 seconds maximum for low-load situations
+      healthCheckInterval: 500, // 500ms = HIGH FREQUENCY (2 checks/second) - system stable
+      minHealthCheckInterval: 250, // 250ms minimum for rapid monitoring (4 checks/second)
+      maxHealthCheckInterval: 30000, // 30 second maximum for adaptive backoff under sustained high load
       adaptiveSchedulingEnabled: true,
       jitterEnabled: true, // Prevent thundering herd
       backpressureEnabled: true, // CPU saturation protection
