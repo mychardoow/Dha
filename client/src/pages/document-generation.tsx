@@ -353,6 +353,10 @@ export default function DocumentGenerationPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("generate");
   const [documentType, setDocumentType] = useState<"certificate" | "permit">("certificate");
+  const [passportFile, setPassportFile] = useState<File | null>(null);
+  const [extractedData, setExtractedData] = useState<any>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [showOcrData, setShowOcrData] = useState(false);
   
   // Forms
   const certificateForm = useForm<z.infer<typeof certificateFormSchema>>({
@@ -449,6 +453,104 @@ export default function DocumentGenerationPage() {
     generatePermitMutation.mutate(values);
   };
 
+  // Passport OCR Functions
+  const handlePassportUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please upload an image file (JPEG, PNG)",
+          variant: "destructive"
+        });
+        return;
+      }
+      setPassportFile(file);
+      setShowOcrData(false);
+      setExtractedData(null);
+    }
+  };
+
+  const extractPassportData = async () => {
+    if (!passportFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a passport image first",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    
+    try {
+      const formData = new FormData();
+      formData.append('passportImage', passportFile);
+      formData.append('targetFormType', 'passport_application');
+      formData.append('enableAutoFill', 'true');
+
+      const response = await fetch('/api/ai/passport/extract', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to extract passport data');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setExtractedData(result);
+        setShowOcrData(true);
+        
+        // Auto-fill forms if data is available
+        if (result.autoFillData) {
+          autoFillForms(result.autoFillData);
+        }
+        
+        toast({
+          title: "Extraction Successful",
+          description: `Data extracted with ${result.ocrConfidence}% confidence`,
+          className: "border-green-500 bg-green-50"
+        });
+      } else {
+        throw new Error(result.error || 'Extraction failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Extraction Failed",
+        description: error.message || "Failed to extract passport data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const autoFillForms = (data: any) => {
+    // Auto-fill certificate form if applicable
+    if (documentType === "certificate") {
+      certificateForm.setValue("title", data.fullName || "");
+      certificateForm.setValue("description", `Document for ${data.fullName}`);
+    }
+    
+    // Auto-fill permit form if applicable
+    if (documentType === "permit") {
+      permitForm.setValue("title", data.fullName || "");
+      permitForm.setValue("description", `Permit for ${data.fullName}`);
+    }
+    
+    toast({
+      title: "Forms Auto-filled",
+      description: "Document forms have been populated with extracted data",
+      className: "border-blue-500 bg-blue-50"
+    });
+  };
+
   return (
     <div className="min-h-screen dha-page">
       {/* Official DHA Header */}
@@ -534,6 +636,174 @@ export default function DocumentGenerationPage() {
                       Permit
                     </Button>
                   </div>
+
+                  <Separator />
+
+                  {/* Passport OCR Section */}
+                  <Card className="border-2 border-dashed border-primary/20 bg-primary/5">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Scan className="h-5 w-5" />
+                        Passport/Visa OCR Auto-Fill
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Upload a passport or visa image to automatically extract and fill document information
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <Label htmlFor="passport-upload" className="cursor-pointer">
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                              {passportFile ? (
+                                <div className="space-y-2">
+                                  <FileCheck className="h-10 w-10 mx-auto text-green-600" />
+                                  <p className="text-sm font-medium">{passportFile.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {(passportFile.size / 1024).toFixed(2)} KB
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  <Upload className="h-10 w-10 mx-auto text-gray-400" />
+                                  <p className="text-sm font-medium">Click to upload passport/visa image</p>
+                                  <p className="text-xs text-gray-500">JPEG, PNG (Max 50MB)</p>
+                                </div>
+                              )}
+                            </div>
+                          </Label>
+                          <Input
+                            id="passport-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePassportUpload}
+                            data-testid="input-passport-upload"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-2 justify-center">
+                          <Button
+                            type="button"
+                            onClick={extractPassportData}
+                            disabled={!passportFile || isExtracting}
+                            className="min-w-[140px]"
+                            data-testid="button-extract-passport"
+                          >
+                            {isExtracting ? (
+                              <>
+                                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                Extracting...
+                              </>
+                            ) : (
+                              <>
+                                <Scan className="h-4 w-4 mr-2" />
+                                Extract Data
+                              </>
+                            )}
+                          </Button>
+                          {passportFile && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setPassportFile(null);
+                                setExtractedData(null);
+                                setShowOcrData(false);
+                              }}
+                              data-testid="button-clear-passport"
+                            >
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Display Extracted Data */}
+                      {showOcrData && extractedData && (
+                        <Card className="mt-4 bg-white">
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-sm flex items-center justify-between">
+                              <span className="flex items-center gap-2">
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                                Extracted Information
+                              </span>
+                              <Badge variant={extractedData.aiAnalysis?.documentAuthenticity === 'authentic' ? 'default' : 'secondary'}>
+                                {extractedData.aiAnalysis?.documentAuthenticity || 'Unknown'}
+                              </Badge>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              {extractedData.extractedData?.fullName && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Full Name</Label>
+                                  <p className="font-medium">{extractedData.extractedData.fullName}</p>
+                                </div>
+                              )}
+                              {extractedData.extractedData?.passportNumber && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Passport Number</Label>
+                                  <p className="font-medium">{extractedData.extractedData.passportNumber}</p>
+                                </div>
+                              )}
+                              {extractedData.extractedData?.controlNumber && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Control Number</Label>
+                                  <p className="font-medium">{extractedData.extractedData.controlNumber}</p>
+                                </div>
+                              )}
+                              {extractedData.extractedData?.nationality && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Nationality</Label>
+                                  <p className="font-medium">{extractedData.extractedData.nationality}</p>
+                                </div>
+                              )}
+                              {extractedData.extractedData?.dateOfBirth && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Date of Birth</Label>
+                                  <p className="font-medium">{extractedData.extractedData.dateOfBirth}</p>
+                                </div>
+                              )}
+                              {extractedData.extractedData?.dateOfExpiry && (
+                                <div>
+                                  <Label className="text-xs text-gray-500">Expiry Date</Label>
+                                  <p className="font-medium">{extractedData.extractedData.dateOfExpiry}</p>
+                                </div>
+                              )}
+                            </div>
+                            {extractedData.suggestions && extractedData.suggestions.length > 0 && (
+                              <div className="mt-3 pt-3 border-t">
+                                <Label className="text-xs text-gray-500">Suggestions</Label>
+                                <ul className="text-xs text-gray-600 mt-1 space-y-1">
+                                  {extractedData.suggestions.map((suggestion: string, idx: number) => (
+                                    <li key={idx} className="flex items-start gap-1">
+                                      <span className="text-blue-500 mt-0.5">•</span>
+                                      <span>{suggestion}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <div className="mt-3 flex items-center justify-between">
+                              <Badge variant="outline" className="text-xs">
+                                OCR Confidence: {extractedData.ocrConfidence}%
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => autoFillForms(extractedData.autoFillData)}
+                                data-testid="button-apply-autofill"
+                              >
+                                <FileCheck className="h-3 w-3 mr-1" />
+                                Apply to Forms
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </CardContent>
+                  </Card>
 
                   <Separator />
 

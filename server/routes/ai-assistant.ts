@@ -16,6 +16,7 @@ import { AIAssistantService } from '../services/ai-assistant';
 import { enhancedVoiceService } from '../services/enhanced-voice-service';
 import { realTimeValidationService } from '../services/real-time-validation-service';
 import { enhancedSAOCR } from '../services/enhanced-sa-ocr';
+import { AIOCRIntegrationService } from '../services/ai-ocr-integration';
 import { documentProcessorService } from '../services/document-processor';
 import { storage } from '../storage';
 import { requireAuth } from '../middleware/auth';
@@ -41,7 +42,7 @@ const upload = multer({
       }
     }
     // Allow documents for OCR processing
-    else if (file.fieldname === 'document') {
+    else if (file.fieldname === 'document' || file.fieldname === 'passportImage') {
       const allowedDocTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
       if (allowedDocTypes.includes(file.mimetype)) {
         cb(null, true);
@@ -425,6 +426,162 @@ router.post('/document/process', requireAuth, upload.single('document'), async (
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Document processing failed'
+    });
+  }
+});
+
+/**
+ * POST /api/ai/passport/extract - Extract data from passport/visa images for auto-fill
+ */
+router.post('/passport/extract', requireAuth, upload.single('passportImage'), async (req, res) => {
+  try {
+    const { targetFormType = 'passport_application', enableAutoFill = true } = req.body;
+    const userId = (req as any).user.id;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'Passport image is required'
+      });
+    }
+
+    // Save file temporarily for OCR processing
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const tempPath = path.join('/tmp', `passport-${Date.now()}-${req.file.originalname}`);
+    await fs.writeFile(tempPath, req.file.buffer);
+
+    // Initialize services
+    const aiocrService = new AIOCRIntegrationService();
+    
+    // Process passport with comprehensive OCR and AI analysis
+    const result = await aiocrService.processDocumentForAI({
+      file: {
+        ...req.file,
+        path: tempPath,
+        filename: req.file.originalname,
+      } as Express.Multer.File,
+      documentType: 'passport',
+      userId,
+      targetFormType,
+      enableAutoFill
+    });
+
+    // Clean up temp file
+    await fs.unlink(tempPath).catch(() => {});
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Passport processing failed'
+      });
+    }
+
+    // Extract key passport fields for PDF generation
+    const passportData: any = {
+      // Personal Information
+      fullName: result.extractedFields.full_name?.value || '',
+      surname: result.extractedFields.surname?.value || '',
+      givenNames: result.extractedFields.given_names?.value || '',
+      dateOfBirth: result.extractedFields.date_of_birth?.value || '',
+      placeOfBirth: result.extractedFields.place_of_birth?.value || '',
+      nationality: result.extractedFields.nationality?.value || '',
+      sex: result.extractedFields.sex?.value || 'M',
+      
+      // Document Information
+      passportNumber: result.extractedFields.passport_number?.value || '',
+      controlNumber: result.extractedFields.control_number?.value || '',
+      referenceNumber: result.extractedFields.reference_number?.value || '',
+      documentNumber: result.extractedFields.document_number?.value || '',
+      
+      // Validity Dates
+      dateOfIssue: result.extractedFields.date_of_issue?.value || '',
+      dateOfExpiry: result.extractedFields.date_of_expiry?.value || '',
+      validFrom: result.extractedFields.valid_from?.value || '',
+      validUntil: result.extractedFields.valid_until?.value || '',
+      
+      // Additional Information
+      issuingAuthority: result.extractedFields.issuing_authority?.value || 'DHA',
+      portOfEntry: result.extractedFields.port_of_entry?.value || '',
+      
+      // MRZ Data if available
+      mrzLine1: result.mrzData?.mrzLines?.[0] || '',
+      mrzLine2: result.mrzData?.mrzLines?.[1] || '',
+      
+      // AI Analysis
+      documentAuthenticity: result.aiAnalysis.documentAuthenticity,
+      confidenceScore: result.confidence,
+      qualityScore: result.ocrResults.confidence
+    };
+
+    // For work visas/permits, extract additional fields
+    if (result.ocrResults.documentType === 'work_permit') {
+      passportData.employerName = result.extractedFields.employer_name?.value || '';
+      passportData.jobTitle = result.extractedFields.job_title?.value || '';
+      passportData.workLocation = result.extractedFields.work_location?.value || '';
+      passportData.permitType = result.extractedFields.permit_type?.value || '';
+    }
+
+    // Generate form auto-fill data if requested
+    let autoFillData = {};
+    if (enableAutoFill) {
+      autoFillData = {
+        // Form field mapping for document generation page
+        childFullName: passportData.fullName,
+        fullName: passportData.fullName,
+        surname: passportData.surname,
+        givenNames: passportData.givenNames,
+        dateOfBirth: passportData.dateOfBirth,
+        placeOfBirth: passportData.placeOfBirth,
+        nationality: passportData.nationality,
+        sex: passportData.sex,
+        passportNumber: passportData.passportNumber,
+        documentNumber: passportData.documentNumber,
+        expiryDate: passportData.dateOfExpiry,
+        height: result.extractedFields.height?.value || '',
+        eyeColor: result.extractedFields.eye_color?.value || '',
+        
+        // Work permit specific fields
+        employeeFullName: passportData.fullName,
+        employeeNationality: passportData.nationality,
+        employeePassportNumber: passportData.passportNumber,
+        employerName: passportData.employerName,
+        jobTitle: passportData.jobTitle,
+        workLocation: passportData.workLocation,
+        validFrom: passportData.validFrom,
+        validUntil: passportData.validUntil,
+        
+        // Visa specific fields
+        holderFullName: passportData.fullName,
+        holderNationality: passportData.nationality,
+        holderPassportNumber: passportData.passportNumber,
+        countryOfIssue: 'South Africa',
+        portOfEntry: passportData.portOfEntry,
+        
+        // ID card fields
+        address: result.extractedFields.address?.value || '',
+        idNumber: result.extractedFields.id_number?.value || ''
+      };
+    }
+
+    res.json({
+      success: true,
+      sessionId: result.sessionId,
+      documentId: result.documentId,
+      extractedData: passportData,
+      autoFillData,
+      ocrConfidence: result.confidence,
+      aiAnalysis: result.aiAnalysis,
+      suggestions: result.aiAnalysis.suggestions,
+      validationIssues: result.aiAnalysis.issues,
+      processingTime: result.processingTime
+    });
+
+  } catch (error) {
+    console.error('Passport OCR extraction error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Passport extraction failed'
     });
   }
 });
