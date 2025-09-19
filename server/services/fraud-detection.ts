@@ -83,12 +83,12 @@ export class FraudDetectionService extends EventEmitter {
           ipAddress: data.ipAddress,
           userAgent: data.userAgent,
           location: data.location,
-          riskScore: analysis.riskScore,
+          riskScore: result.riskScore,
           actionDetails: {
-            riskLevel: analysis.riskLevel,
-            indicators: analysis.indicators,
-            shouldBlock: analysis.shouldBlock,
-            recommendation: analysis.recommendedAction
+            riskLevel: result.riskLevel,
+            indicators: result.indicators,
+            shouldBlock: result.shouldBlock,
+            recommendation: result.recommendedAction
           }
         }
       )
@@ -114,7 +114,7 @@ export class FraudDetectionService extends EventEmitter {
     // Emit real-time fraud event
     this.emit('fraudAnalysis', {
       userId: data.userId,
-      analysis,
+      analysis: result,
       timestamp: new Date()
     });
     
@@ -582,7 +582,7 @@ export class FraudDetectionService extends EventEmitter {
 
     // Update typical locations
     if (auditLog.location) {
-      const locations = profile.typicalLocations || [];
+      const locations = (profile as any).typicalLocations || [];
       if (!locations.includes(auditLog.location)) {
         updates.typicalLocations = [...locations, auditLog.location].slice(-10); // Keep last 10
       }
@@ -590,8 +590,8 @@ export class FraudDetectionService extends EventEmitter {
 
     // Update typical times
     const hour = new Date(auditLog.createdAt).getHours();
-    const times = profile.typicalTimes || {};
-    const hours = times.hours || [];
+    const times = (profile as any).typicalTimes || {};
+    const hours = (times as any).hours || [];
     if (!hours.includes(hour)) {
       updates.typicalTimes = {
         ...times,
@@ -601,8 +601,8 @@ export class FraudDetectionService extends EventEmitter {
 
     // Update risk factors
     if (anomalies.length > 0) {
-      const existingFactors = profile.riskFactors || [];
-      updates.riskFactors = [...new Set([...existingFactors, ...anomalies])].slice(-20);
+      const existingFactors = (profile as any).riskFactors || [];
+      updates.riskFactors = Array.from(new Set([...existingFactors, ...anomalies])).slice(-20);
     }
 
     await storage.updateUserBehaviorProfile(userId, updates);
@@ -775,10 +775,10 @@ export class FraudDetectionService extends EventEmitter {
       });
 
       const devices = recentLogs
-        .map(log => log.actionDetails?.deviceFingerprint)
+        .map(log => (log.actionDetails as any)?.deviceFingerprint)
         .filter(Boolean);
 
-      const uniqueDevices = [...new Set(devices)];
+      const uniqueDevices = Array.from(new Set(devices));
       const suspiciousPatterns: string[] = [];
 
       // Too many devices for one user
