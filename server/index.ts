@@ -91,6 +91,19 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // CRITICAL: Add catch-all route for unmatched API routes BEFORE vite middleware
+  // This ensures API routes return JSON 404 instead of HTML
+  // Use all() to catch all HTTP methods
+  app.all('/api/*', (req: Request, res: Response) => {
+    // If we reach here, no API route matched
+    log(`API route not found: ${req.method} ${req.originalUrl}`, 'warn');
+    res.status(404).json({ 
+      error: 'API endpoint not found',
+      path: req.originalUrl,
+      method: req.method
+    });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
