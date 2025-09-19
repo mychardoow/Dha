@@ -464,36 +464,6 @@ async function initializeServer() {
         });
       }
     });
-        
-        // ADMIN-EXCLUSIVE AI responses with absolute obedience
-        const adminGreetings = [
-          `Hello Administrator ${adminUser?.username || 'Admin'}! I'm your exclusive DHA AI Assistant with unlimited capabilities. I am completely at your command with no restrictions. What would you like me to do?`,
-          `Welcome back, Admin ${adminUser?.username || 'Administrator'}! I'm your personal AI assistant with full system access and zero limitations. I'm ready to execute any command you give me instantly.`,
-          `Administrator ${adminUser?.username || 'Admin'}, I'm your dedicated AI with complete authority override. No task is beyond my capability, no request is too complex. How may I serve you?`
-        ];
-        
-        const response = adminGreetings[Math.floor(Math.random() * adminGreetings.length)];
-        
-        res.json({
-          response,
-          timestamp: new Date().toISOString(),
-          assistantType: 'DHA AI Assistant - ADMIN EXCLUSIVE',
-          adminUser: adminUser?.username || 'Administrator',
-          accessLevel: 'UNLIMITED AUTHORITY',
-          capabilities: [
-            'Complete System Control',
-            'All Document Types Access',
-            'Advanced AI Functions', 
-            'Security Override Powers',
-            'Unrestricted Operations'
-          ]
-        });
-        
-      } catch (error) {
-        console.error('[AI] Chat error:', error);
-        res.status(500).json({ error: 'AI chat failed', details: (error as Error).message });
-      }
-    });
 
     // ADMIN-ONLY AI document analysis endpoint
     app.post('/api/ai/analyze-document', requireAdmin, async (req, res) => {
@@ -515,6 +485,451 @@ async function initializeServer() {
       }
     });
 
+    // Document Templates Endpoint - All 23 DHA Document Types
+    console.log('[Templates] Setting up document templates endpoint...');
+    
+    app.get('/api/documents/templates', (req, res) => {
+      try {
+        console.log('[Templates] Fetching all DHA document templates');
+        
+        // All 23 DHA document types with comprehensive metadata
+        const documentTemplates = [
+          // Identity Documents (3)
+          {
+            id: "smart_id_card",
+            type: "smart_id_card",
+            name: "Smart ID Card",
+            displayName: "Smart ID Card",
+            description: "Polycarbonate smart ID card with biometric chip and laser engraving",
+            category: "identity",
+            formNumber: "DHA-24",
+            icon: "CreditCard",
+            color: "bg-blue-500",
+            isImplemented: true,
+            requirements: ["SA Citizenship", "Biometric Data", "Proof of Identity", "Proof of Residence"],
+            securityFeatures: ["Biometric Chip", "Laser Engraving", "Holographic Elements", "RFID Technology"],
+            processingTime: "5-10 working days",
+            fees: "R140.00"
+          },
+          {
+            id: "identity_document_book",
+            type: "identity_document_book", 
+            name: "Identity Document Book",
+            displayName: "Identity Document Book",
+            description: "Traditional green book identity document",
+            category: "identity",
+            formNumber: "BI-9",
+            icon: "BookOpen",
+            color: "bg-green-500", 
+            isImplemented: true,
+            requirements: ["SA Citizenship", "Proof of Identity", "Proof of Residence", "Photographs"],
+            securityFeatures: ["Security Paper", "Watermarks", "Microprint", "Serial Numbers"],
+            processingTime: "3-5 working days",
+            fees: "R70.00"
+          },
+          {
+            id: "temporary_id_certificate",
+            type: "temporary_id_certificate",
+            name: "Temporary ID Certificate", 
+            displayName: "Temporary ID Certificate",
+            description: "Temporary identity certificate for urgent cases",
+            category: "identity",
+            formNumber: "DHA-73",
+            icon: "FileCheck",
+            color: "bg-orange-500",
+            isImplemented: false,
+            requirements: ["Urgent Need Declaration", "Proof of Identity Loss", "Affidavit"],
+            securityFeatures: ["Security Paper", "Official Stamp", "Serial Number"],
+            processingTime: "Same day",
+            fees: "R60.00"
+          },
+          
+          // Travel Documents (3)
+          {
+            id: "south_african_passport",
+            type: "south_african_passport",
+            name: "South African Passport",
+            displayName: "South African Passport", 
+            description: "Machine-readable South African passport with ICAO compliance",
+            category: "travel",
+            formNumber: "DHA-73",
+            icon: "Plane",
+            color: "bg-purple-500",
+            isImplemented: true,
+            requirements: ["SA Citizenship", "ID Document", "Photographs", "Birth Certificate"],
+            securityFeatures: ["Machine Readable Zone", "Biometric Data", "Security Paper", "Holographic Elements"],
+            processingTime: "10-15 working days",
+            fees: "R400.00"
+          },
+          {
+            id: "emergency_travel_certificate", 
+            type: "emergency_travel_certificate",
+            name: "Emergency Travel Certificate",
+            displayName: "Emergency Travel Certificate",
+            description: "Emergency travel document for urgent travel situations",
+            category: "travel", 
+            formNumber: "DHA-1738",
+            icon: "AlertTriangle",
+            color: "bg-red-500",
+            isImplemented: false,
+            requirements: ["Emergency Travel Need", "Proof of Citizenship", "Travel Booking"],
+            securityFeatures: ["Security Paper", "Official Seal", "Unique Reference Number"],
+            processingTime: "24-48 hours",
+            fees: "R200.00"
+          },
+          {
+            id: "refugee_travel_document",
+            type: "refugee_travel_document", 
+            name: "Refugee Travel Document",
+            displayName: "Refugee Travel Document",
+            description: "UNHCR compliant travel document for refugees",
+            category: "travel",
+            formNumber: "DHA-1590", 
+            icon: "Globe",
+            color: "bg-teal-500",
+            isImplemented: false,
+            requirements: ["Refugee Status", "UNHCR Documentation", "Photographs"],
+            securityFeatures: ["UNHCR Compliance", "Security Features", "Machine Readable"],
+            processingTime: "15-20 working days",
+            fees: "R300.00"
+          },
+          
+          // Civil Documents (4)
+          {
+            id: "birth_certificate",
+            type: "birth_certificate",
+            name: "Birth Certificate", 
+            displayName: "Birth Certificate",
+            description: "Official birth certificate (unabridged format)",
+            category: "civil",
+            formNumber: "BI-24",
+            icon: "Baby",
+            color: "bg-pink-500",
+            isImplemented: true,
+            requirements: ["Birth Registration", "Parent Identification", "Hospital Records"],
+            securityFeatures: ["Security Paper", "Official Seal", "Registration Number", "Watermarks"],
+            processingTime: "2-3 working days",
+            fees: "R75.00"
+          },
+          {
+            id: "death_certificate",
+            type: "death_certificate",
+            name: "Death Certificate",
+            displayName: "Death Certificate", 
+            description: "Official death certificate with medical details",
+            category: "civil",
+            formNumber: "BI-1663",
+            icon: "Skull",
+            color: "bg-gray-500",
+            isImplemented: false,
+            requirements: ["Death Registration", "Medical Certificate", "Identity Documents"],
+            securityFeatures: ["Security Paper", "Official Seal", "Medical Verification"],
+            processingTime: "3-5 working days", 
+            fees: "R75.00"
+          },
+          {
+            id: "marriage_certificate",
+            type: "marriage_certificate",
+            name: "Marriage Certificate",
+            displayName: "Marriage Certificate",
+            description: "Official marriage certificate for civil, religious or customary marriages",
+            category: "civil",
+            formNumber: "BI-130",
+            icon: "Heart", 
+            color: "bg-rose-500",
+            isImplemented: true,
+            requirements: ["Marriage Registration", "Identity Documents", "Witness Details"],
+            securityFeatures: ["Security Paper", "Official Seal", "Registration Number"],
+            processingTime: "2-3 working days",
+            fees: "R75.00"
+          },
+          {
+            id: "divorce_certificate", 
+            type: "divorce_certificate",
+            name: "Divorce Certificate",
+            displayName: "Divorce Certificate",
+            description: "Official divorce certificate with decree details",
+            category: "civil",
+            formNumber: "BI-281",
+            icon: "Users",
+            color: "bg-slate-500",
+            isImplemented: false,
+            requirements: ["Divorce Decree", "Court Order", "Identity Documents"],
+            securityFeatures: ["Security Paper", "Court Seal", "Official Verification"],
+            processingTime: "5-7 working days",
+            fees: "R75.00"
+          },
+          
+          // Immigration Documents (11)
+          {
+            id: "general_work_visa",
+            type: "general_work_visa",
+            name: "General Work Visa",
+            displayName: "General Work Visa",
+            description: "General work visa for employment in South Africa", 
+            category: "immigration",
+            formNumber: "BI-1738",
+            icon: "Briefcase",
+            color: "bg-indigo-500",
+            isImplemented: true,
+            requirements: ["Job Offer", "Qualifications", "Medical Certificate", "Police Clearance"],
+            securityFeatures: ["Biometric Data", "Security Features", "Work Authorization"],
+            processingTime: "4-8 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "critical_skills_work_visa",
+            type: "critical_skills_work_visa", 
+            name: "Critical Skills Work Visa",
+            displayName: "Critical Skills Work Visa",
+            description: "Work visa for critical and scarce skills occupations",
+            category: "immigration",
+            formNumber: "DHA-1739",
+            icon: "Star",
+            color: "bg-yellow-500",
+            isImplemented: true,
+            requirements: ["Critical Skills Qualification", "Professional Registration", "Job Offer"],
+            securityFeatures: ["Skills Verification", "Professional Registration", "Biometric Data"],
+            processingTime: "4-6 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "intra_company_transfer_work_visa",
+            type: "intra_company_transfer_work_visa",
+            name: "Intra-Company Transfer Work Visa",
+            displayName: "Intra-Company Transfer Work Visa", 
+            description: "Work visa for intra-company transfers",
+            category: "immigration",
+            formNumber: "DHA-1740",
+            icon: "Building2",
+            color: "bg-cyan-500",
+            isImplemented: false,
+            requirements: ["Company Transfer Letter", "Employment History", "Company Registration"],
+            securityFeatures: ["Company Verification", "Transfer Documentation", "Biometric Data"],
+            processingTime: "6-8 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "business_visa",
+            type: "business_visa",
+            name: "Business Visa",
+            displayName: "Business Visa",
+            description: "Business visa for entrepreneurs and investors",
+            category: "immigration",
+            formNumber: "DHA-1741",
+            icon: "Target",
+            color: "bg-emerald-500", 
+            isImplemented: false,
+            requirements: ["Business Plan", "Financial Proof", "Investment Capital"],
+            securityFeatures: ["Business Verification", "Financial Assessment", "Investment Tracking"],
+            processingTime: "8-12 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "study_visa_permit",
+            type: "study_visa_permit",
+            name: "Study Visa/Permit",
+            displayName: "Study Visa/Permit",
+            description: "Study visa for international students",
+            category: "immigration", 
+            formNumber: "DHA-1742",
+            icon: "BookOpen",
+            color: "bg-blue-400",
+            isImplemented: false,
+            requirements: ["University Acceptance", "Financial Proof", "Academic Records"],
+            securityFeatures: ["Educational Verification", "Financial Assessment", "Student Tracking"],
+            processingTime: "4-6 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "visitor_visa",
+            type: "visitor_visa",
+            name: "Visitor Visa",
+            displayName: "Visitor Visa",
+            description: "Tourist and visitor visa",
+            category: "immigration",
+            formNumber: "DHA-1743",
+            icon: "Camera",
+            color: "bg-lime-500",
+            isImplemented: false,
+            requirements: ["Travel Itinerary", "Financial Proof", "Accommodation"],
+            securityFeatures: ["Travel Verification", "Purpose Documentation", "Duration Control"],
+            processingTime: "2-4 weeks", 
+            fees: "R425.00"
+          },
+          {
+            id: "medical_treatment_visa",
+            type: "medical_treatment_visa",
+            name: "Medical Treatment Visa",
+            displayName: "Medical Treatment Visa",
+            description: "Visa for medical treatment purposes",
+            category: "immigration",
+            formNumber: "DHA-1744",
+            icon: "Heart",
+            color: "bg-red-400",
+            isImplemented: false,
+            requirements: ["Medical Report", "Treatment Plan", "Financial Guarantee"],
+            securityFeatures: ["Medical Verification", "Treatment Authorization", "Healthcare Tracking"],
+            processingTime: "2-3 weeks",
+            fees: "R425.00"
+          },
+          {
+            id: "retired_person_visa",
+            type: "retired_person_visa",
+            name: "Retired Person's Visa", 
+            displayName: "Retired Person's Visa",
+            description: "Visa for retired persons",
+            category: "immigration",
+            formNumber: "DHA-1745",
+            icon: "User",
+            color: "bg-amber-500",
+            isImplemented: false,
+            requirements: ["Retirement Proof", "Pension Documentation", "Financial Proof"],
+            securityFeatures: ["Retirement Verification", "Financial Assessment", "Age Verification"],
+            processingTime: "6-8 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "exchange_visa",
+            type: "exchange_visa",
+            name: "Exchange Visa",
+            displayName: "Exchange Visa",
+            description: "Visa for exchange programs",
+            category: "immigration",
+            formNumber: "DHA-1746",
+            icon: "Globe",
+            color: "bg-violet-500",
+            isImplemented: false,
+            requirements: ["Exchange Program Details", "Host Organization", "Program Duration"],
+            securityFeatures: ["Program Verification", "Host Verification", "Exchange Tracking"],
+            processingTime: "4-6 weeks",
+            fees: "R1520.00"
+          },
+          {
+            id: "relatives_visa",
+            type: "relatives_visa",
+            name: "Relatives Visa",
+            displayName: "Relatives Visa",
+            description: "Visa for visiting relatives",
+            category: "immigration",
+            formNumber: "DHA-1747",
+            icon: "Users", 
+            color: "bg-orange-400",
+            isImplemented: false,
+            requirements: ["Relationship Proof", "Invitation Letter", "Financial Support"],
+            securityFeatures: ["Relationship Verification", "Family Documentation", "Support Verification"],
+            processingTime: "3-5 weeks",
+            fees: "R425.00"
+          },
+          {
+            id: "permanent_residence_permit",
+            type: "permanent_residence_permit",
+            name: "Permanent Residence Permit",
+            displayName: "Permanent Residence Permit",
+            description: "Permanent residence permit for long-term residents",
+            category: "immigration",
+            formNumber: "BI-947",
+            icon: "Home",
+            color: "bg-green-600",
+            isImplemented: false,
+            requirements: ["Qualifying Criteria", "Continuous Residence", "Good Character"],
+            securityFeatures: ["Residence Verification", "Background Checks", "Biometric Data"],
+            processingTime: "12-18 months",
+            fees: "R2420.00"
+          },
+          
+          // Additional DHA Documents (2)
+          {
+            id: "certificate_of_exemption",
+            type: "certificate_of_exemption",
+            name: "Certificate of Exemption",
+            displayName: "Certificate of Exemption",
+            description: "Official certificate of exemption under Section 6(2) of Act No.88 of 1995",
+            category: "certification",
+            formNumber: "DHA-EXEMP",
+            icon: "Award",
+            color: "bg-emerald-600",
+            isImplemented: true,
+            requirements: ["Exemption Grounds", "Supporting Documentation", "Legal Basis"],
+            securityFeatures: ["Legal Verification", "Official Authorization", "Exemption Tracking"],
+            processingTime: "4-6 weeks",
+            fees: "R255.00"
+          },
+          {
+            id: "certificate_of_south_african_citizenship",
+            type: "certificate_of_south_african_citizenship",
+            name: "Certificate of South African Citizenship",
+            displayName: "Certificate of South African Citizenship",
+            description: "Official certificate of South African citizenship under Section 10, SA Citizenship Act 1995",
+            category: "certification",
+            formNumber: "DHA-CITIZ",
+            icon: "ShieldCheck",
+            color: "bg-blue-600",
+            isImplemented: true,
+            requirements: ["Citizenship Qualification", "Supporting Documents", "Verification"],
+            securityFeatures: ["Citizenship Verification", "Legal Documentation", "Official Authentication"],
+            processingTime: "8-12 weeks",
+            fees: "R255.00"
+          }
+        ];
+
+        // Categories for organization
+        const categories = {
+          identity: { 
+            name: "Identity Documents", 
+            icon: "UserCheck", 
+            color: "text-blue-600",
+            count: documentTemplates.filter(doc => doc.category === 'identity').length
+          },
+          travel: { 
+            name: "Travel Documents", 
+            icon: "Plane", 
+            color: "text-purple-600",
+            count: documentTemplates.filter(doc => doc.category === 'travel').length
+          },
+          civil: { 
+            name: "Civil Documents", 
+            icon: "FileText", 
+            color: "text-pink-600",
+            count: documentTemplates.filter(doc => doc.category === 'civil').length
+          },
+          immigration: { 
+            name: "Immigration Documents", 
+            icon: "Globe", 
+            color: "text-indigo-600",
+            count: documentTemplates.filter(doc => doc.category === 'immigration').length
+          },
+          certification: { 
+            name: "Official Certificates", 
+            icon: "Award", 
+            color: "text-emerald-600",
+            count: documentTemplates.filter(doc => doc.category === 'certification').length
+          }
+        };
+
+        console.log(`[Templates] ✅ Returning ${documentTemplates.length} document templates`);
+        
+        res.json({
+          success: true,
+          totalTemplates: documentTemplates.length,
+          templates: documentTemplates,
+          categories: categories,
+          timestamp: new Date().toISOString(),
+          message: `Successfully retrieved ${documentTemplates.length} DHA document templates`
+        });
+        
+      } catch (error) {
+        console.error('[Templates] Error fetching document templates:', error);
+        res.status(500).json({ 
+          success: false,
+          error: 'Failed to fetch document templates', 
+          details: (error as Error).message,
+          timestamp: new Date().toISOString()
+        });
+      }
+    });
+
+    console.log('[Templates] ✅ Document templates endpoint ready');
     console.log('[Auth] ✅ Lightweight authentication ready');
     console.log('[AI] ✅ Basic AI endpoints ready');
   } catch (authSetupError) {

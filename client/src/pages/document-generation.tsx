@@ -74,256 +74,36 @@ interface DocumentTypeInfo {
   isImplemented: boolean;
 }
 
-// All 21 DHA document types with metadata
-const DOCUMENT_TYPE_INFO: Record<string, DocumentTypeInfo> = {
-  // Identity Documents (3)
-  smart_id_card: {
-    type: "smart_id_card",
-    displayName: "Smart ID Card",
-    description: "Polycarbonate smart ID card with biometric chip and laser engraving",
-    category: "identity",
-    formNumber: "DHA-24",
-    icon: CreditCard,
-    color: "bg-blue-500",
-    isImplemented: true
-  },
-  identity_document_book: {
-    type: "identity_document_book",
-    displayName: "Identity Document Book",
-    description: "Traditional green book identity document",
-    category: "identity",
-    formNumber: "BI-9",
-    icon: BookOpen,
-    color: "bg-green-500",
-    isImplemented: true
-  },
-  temporary_id_certificate: {
-    type: "temporary_id_certificate",
-    displayName: "Temporary ID Certificate",
-    description: "Temporary identity certificate for urgent cases",
-    category: "identity",
-    formNumber: "DHA-73",
-    icon: FileCheck,
-    color: "bg-orange-500",
-    isImplemented: false
-  },
-  
-  // Travel Documents (3)
-  south_african_passport: {
-    type: "south_african_passport",
-    displayName: "South African Passport",
-    description: "Machine-readable South African passport with ICAO compliance",
-    category: "travel",
-    formNumber: "DHA-73",
-    icon: Plane,
-    color: "bg-purple-500",
-    isImplemented: true
-  },
-  emergency_travel_certificate: {
-    type: "emergency_travel_certificate",
-    displayName: "Emergency Travel Certificate",
-    description: "Emergency travel document for urgent travel situations",
-    category: "travel",
-    formNumber: "DHA-1738",
-    icon: AlertTriangle,
-    color: "bg-red-500",
-    isImplemented: false
-  },
-  refugee_travel_document: {
-    type: "refugee_travel_document",
-    displayName: "Refugee Travel Document",
-    description: "UNHCR compliant travel document for refugees",
-    category: "travel",
-    formNumber: "DHA-1590",
-    icon: Globe,
-    color: "bg-teal-500",
-    isImplemented: false
-  },
-  
-  // Civil Documents (4)
-  birth_certificate: {
-    type: "birth_certificate",
-    displayName: "Birth Certificate",
-    description: "Official birth certificate (unabridged format)",
-    category: "civil",
-    formNumber: "BI-24",
-    icon: Baby,
-    color: "bg-pink-500",
-    isImplemented: true
-  },
-  death_certificate: {
-    type: "death_certificate",
-    displayName: "Death Certificate",
-    description: "Official death certificate with medical details",
-    category: "civil",
-    formNumber: "BI-1663",
-    icon: Skull,
-    color: "bg-gray-500",
-    isImplemented: false
-  },
-  marriage_certificate: {
-    type: "marriage_certificate",
-    displayName: "Marriage Certificate",
-    description: "Official marriage certificate for civil, religious or customary marriages",
-    category: "civil",
-    formNumber: "BI-130",
-    icon: Heart,
-    color: "bg-rose-500",
-    isImplemented: true
-  },
-  divorce_certificate: {
-    type: "divorce_certificate",
-    displayName: "Divorce Certificate",
-    description: "Official divorce certificate with decree details",
-    category: "civil",
-    formNumber: "BI-281",
-    icon: Users,
-    color: "bg-slate-500",
-    isImplemented: false
-  },
-  
-  // Immigration Documents (11)
-  general_work_visa: {
-    type: "general_work_visa",
-    displayName: "General Work Visa",
-    description: "General work visa for employment in South Africa",
-    category: "immigration",
-    formNumber: "BI-1738",
-    icon: Briefcase,
-    color: "bg-indigo-500",
-    isImplemented: true
-  },
-  critical_skills_work_visa: {
-    type: "critical_skills_work_visa",
-    displayName: "Critical Skills Work Visa",
-    description: "Work visa for critical and scarce skills occupations",
-    category: "immigration",
-    formNumber: "DHA-1739",
-    icon: Star,
-    color: "bg-yellow-500",
-    isImplemented: true
-  },
-  intra_company_transfer_work_visa: {
-    type: "intra_company_transfer_work_visa",
-    displayName: "Intra-Company Transfer Work Visa",
-    description: "Work visa for intra-company transfers",
-    category: "immigration",
-    formNumber: "DHA-1740",
-    icon: Building2,
-    color: "bg-cyan-500",
-    isImplemented: false
-  },
-  business_visa: {
-    type: "business_visa",
-    displayName: "Business Visa",
-    description: "Business visa for entrepreneurs and investors",
-    category: "immigration",
-    formNumber: "DHA-1741",
-    icon: Target,
-    color: "bg-emerald-500",
-    isImplemented: false
-  },
-  study_visa_permit: {
-    type: "study_visa_permit",
-    displayName: "Study Visa/Permit",
-    description: "Study visa for international students",
-    category: "immigration",
-    formNumber: "DHA-1742",
-    icon: BookOpen,
-    color: "bg-blue-400",
-    isImplemented: false
-  },
-  visitor_visa: {
-    type: "visitor_visa",
-    displayName: "Visitor Visa",
-    description: "Tourist and visitor visa",
-    category: "immigration",
-    formNumber: "DHA-1743",
-    icon: Camera,
-    color: "bg-lime-500",
-    isImplemented: false
-  },
-  medical_treatment_visa: {
-    type: "medical_treatment_visa",
-    displayName: "Medical Treatment Visa",
-    description: "Visa for medical treatment purposes",
-    category: "immigration",
-    formNumber: "DHA-1744",
-    icon: Heart,
-    color: "bg-red-400",
-    isImplemented: false
-  },
-  retired_person_visa: {
-    type: "retired_person_visa",
-    displayName: "Retired Person's Visa",
-    description: "Visa for retired persons",
-    category: "immigration",
-    formNumber: "DHA-1745",
-    icon: User,
-    color: "bg-amber-500",
-    isImplemented: false
-  },
-  exchange_visa: {
-    type: "exchange_visa",
-    displayName: "Exchange Visa",
-    description: "Visa for exchange programs",
-    category: "immigration",
-    formNumber: "DHA-1746",
-    icon: Globe,
-    color: "bg-violet-500",
-    isImplemented: false
-  },
-  relatives_visa: {
-    type: "relatives_visa",
-    displayName: "Relatives Visa",
-    description: "Visa for visiting relatives",
-    category: "immigration",
-    formNumber: "DHA-1747",
-    icon: Users,
-    color: "bg-orange-400",
-    isImplemented: false
-  },
-  permanent_residence_permit: {
-    type: "permanent_residence_permit",
-    displayName: "Permanent Residence Permit",
-    description: "Permanent residence permit for long-term residents",
-    category: "immigration",
-    formNumber: "BI-947",
-    icon: Home,
-    color: "bg-green-600",
-    isImplemented: false
-  },
-  
-  // Additional DHA Documents (2)
-  certificate_of_exemption: {
-    type: "certificate_of_exemption",
-    displayName: "Certificate of Exemption",
-    description: "Official certificate of exemption under Section 6(2) of Act No.88 of 1995",
-    category: "certification",
-    formNumber: "DHA-EXEMP",
-    icon: Award,
-    color: "bg-emerald-600",
-    isImplemented: true
-  },
-  certificate_of_south_african_citizenship: {
-    type: "certificate_of_south_african_citizenship",
-    displayName: "Certificate of South African Citizenship",
-    description: "Official certificate of South African citizenship under Section 10, SA Citizenship Act 1995",
-    category: "certification",
-    formNumber: "DHA-CITIZ",
-    icon: ShieldCheck,
-    color: "bg-blue-600",
-    isImplemented: true
-  }
+// Icon mapping for document types from API
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  CreditCard,
+  BookOpen,
+  FileCheck,
+  Plane,
+  AlertTriangle,
+  Globe,
+  Baby,
+  Skull,
+  Heart,
+  Users,
+  Briefcase,
+  Star,
+  Building2,
+  Target,
+  Camera,
+  User,
+  Home,
+  Award,
+  ShieldCheck
 };
 
-// Category definitions
-const CATEGORIES = {
-  identity: { name: "Identity Documents", icon: UserCheck, color: "text-blue-600" },
-  travel: { name: "Travel Documents", icon: Plane, color: "text-purple-600" },
-  civil: { name: "Civil Documents", icon: FileText, color: "text-pink-600" },
-  immigration: { name: "Immigration Documents", icon: Globe, color: "text-indigo-600" },
-  certification: { name: "Official Certificates", icon: Award, color: "text-emerald-600" }
+// Category icon mapping from API
+const CATEGORY_ICON_MAP: Record<string, React.ComponentType<any>> = {
+  UserCheck,
+  Plane,
+  FileText,
+  Globe,
+  Award
 };
 
 interface GenerationResult {
@@ -337,9 +117,51 @@ interface GenerationResult {
   securityFeatures?: any;
 }
 
+interface DocumentTemplate {
+  id: string;
+  type: string;
+  name: string;
+  displayName: string;
+  description: string;
+  category: string;
+  formNumber: string;
+  icon: string;
+  color: string;
+  isImplemented: boolean;
+  requirements: string[];
+  securityFeatures: string[];
+  processingTime: string;
+  fees: string;
+}
+
+interface TemplatesResponse {
+  success: boolean;
+  totalTemplates: number;
+  templates: DocumentTemplate[];
+  categories: Record<string, {
+    name: string;
+    icon: string;
+    color: string;
+    count: number;
+  }>;
+  timestamp: string;
+  message: string;
+}
+
 export default function UnifiedDocumentGenerationPage() {
   const { toast } = useToast();
   
+  // Fetch document templates from API
+  const { 
+    data: templatesData, 
+    isLoading: isLoadingTemplates, 
+    error: templatesError 
+  } = useQuery<TemplatesResponse>({
+    queryKey: ['/api/documents/templates'],
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
   // State management
   const [selectedDocumentType, setSelectedDocumentType] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -353,11 +175,17 @@ export default function UnifiedDocumentGenerationPage() {
   // Dynamic form state
   const [formData, setFormData] = useState<any>({});
   
-  // Fetch supported document types from API
-  const { data: supportedTypes, isLoading: isLoadingTypes } = useQuery({
-    queryKey: ["/api/documents/types"],
-    enabled: true
-  });
+  // Helper functions to work with fetched data
+  const getDocumentTemplates = () => templatesData?.templates || [];
+  const getCategories = () => templatesData?.categories || {};
+  const getDocumentsByCategory = (category: string) => {
+    return getDocumentTemplates().filter(doc => doc.category === category);
+  };
+  const getSelectedDocInfo = () => {
+    return getDocumentTemplates().find(doc => doc.type === selectedDocumentType) || null;
+  };
+  const getIconComponent = (iconName: string) => ICON_MAP[iconName] || FileText;
+  const getCategoryIconComponent = (iconName: string) => CATEGORY_ICON_MAP[iconName] || FileText;
 
   // Document generation mutation
   const generateDocumentMutation = useMutation({
@@ -556,13 +384,57 @@ export default function UnifiedDocumentGenerationPage() {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  // Get filtered document types by category
-  const getDocumentsByCategory = (category: string) => {
-    return Object.values(DOCUMENT_TYPE_INFO).filter(doc => doc.category === category);
-  };
+  // Get currently selected document info using helper function
+  const selectedDocInfo = getSelectedDocInfo();
 
-  // Get currently selected document info
-  const selectedDocInfo = selectedDocumentType ? DOCUMENT_TYPE_INFO[selectedDocumentType] : null;
+  // Handle loading state for templates
+  if (isLoadingTemplates) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Loading Document Templates
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Fetching all 23 DHA document types...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle error state for templates
+  if (templatesError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-center min-h-96">
+            <div className="text-center">
+              <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Failed to Load Document Templates
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Unable to fetch document types from the server.
+              </p>
+              <Button 
+                onClick={() => window.location.reload()} 
+                className="bg-green-600 hover:bg-green-700"
+                data-testid="button-reload-templates"
+              >
+                Retry Loading
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
@@ -578,20 +450,21 @@ export default function UnifiedDocumentGenerationPage() {
                 DHA Document Generation System
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Generate all 21 official South African DHA documents with security features
+                Generate all {templatesData?.totalTemplates || 23} official South African DHA documents with security features
               </p>
             </div>
           </div>
           
           {/* Statistics Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {Object.entries(CATEGORIES).map(([key, category]) => {
+            {Object.entries(getCategories()).map(([key, category]) => {
               const count = getDocumentsByCategory(key).length;
               const implemented = getDocumentsByCategory(key).filter(d => d.isImplemented).length;
+              const IconComponent = getCategoryIconComponent(category.icon);
               return (
                 <Card key={key} className="p-4">
                   <div className="flex items-center gap-3">
-                    <category.icon className={`h-5 w-5 ${category.color}`} />
+                    <IconComponent className={`h-5 w-5 ${category.color}`} />
                     <div>
                       <p className="text-sm font-medium">{category.name}</p>
                       <p className="text-xs text-gray-500">{implemented}/{count} implemented</p>
@@ -637,7 +510,7 @@ export default function UnifiedDocumentGenerationPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="">All categories</SelectItem>
-                        {Object.entries(CATEGORIES).map(([key, category]) => (
+                        {Object.entries(getCategories()).map(([key, category]) => (
                           <SelectItem key={key} value={key}>
                             {category.name}
                           </SelectItem>
@@ -648,10 +521,10 @@ export default function UnifiedDocumentGenerationPage() {
 
                   {/* Document Type Grid */}
                   <div className="space-y-2">
-                    {Object.values(DOCUMENT_TYPE_INFO)
+                    {getDocumentTemplates()
                       .filter(doc => !selectedCategory || doc.category === selectedCategory)
                       .map((docInfo) => {
-                        const Icon = docInfo.icon;
+                        const IconComponent = getIconComponent(docInfo.icon);
                         const isSelected = selectedDocumentType === docInfo.type;
                         
                         return (
@@ -671,7 +544,7 @@ export default function UnifiedDocumentGenerationPage() {
                           >
                             <div className="flex items-start gap-3">
                               <div className={`p-2 rounded-lg ${docInfo.color} bg-opacity-20`}>
-                                <Icon className="h-4 w-4" />
+                                <IconComponent className="h-4 w-4" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
@@ -688,6 +561,14 @@ export default function UnifiedDocumentGenerationPage() {
                                 <p className="text-xs text-gray-400 line-clamp-2">
                                   {docInfo.description}
                                 </p>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {docInfo.fees}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {docInfo.processingTime}
+                                  </Badge>
+                                </div>
                               </div>
                             </div>
                           </Card>

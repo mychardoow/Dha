@@ -13,6 +13,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { FileText, CreditCard, Plane, Baby, Briefcase, Award, ArrowRight } from "lucide-react";
 
 
 export default function Dashboard() {
@@ -55,13 +58,22 @@ export default function Dashboard() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-              <button 
-                className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
-                data-testid="button-access-services"
+              <a 
+                href="/document-generation"
+                className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2 hover:scale-105 transition-transform"
+                data-testid="button-generate-documents"
               >
-                <span>🏛️</span>
-                <span>Access Government Services</span>
-              </button>
+                <span>📄</span>
+                <span>Generate Documents</span>
+              </a>
+              <a 
+                href="/document-services"
+                className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2 hover:scale-105 transition-transform"
+                data-testid="button-document-services"
+              >
+                <span>📑</span>
+                <span>Document Services</span>
+              </a>
               <button 
                 className="government-button px-8 py-4 rounded-lg font-semibold flex items-center space-x-2"
                 data-testid="button-citizen-portal"
@@ -90,6 +102,121 @@ export default function Dashboard() {
                 <div className="text-sm text-muted-foreground">Encryption</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Document Generation System */}
+      <section id="document-generation" className="py-20 bg-gradient-to-r from-blue-50 to-green-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Official Document Generation</h2>
+            <p className="text-muted-foreground mb-8">Generate all 23 official DHA document types with security features and compliance</p>
+            
+            <div className="flex justify-center mb-8">
+              <a 
+                href="/document-generation"
+                className="bg-green-600 hover:bg-green-700 text-white px-8 py-4 rounded-lg font-semibold flex items-center space-x-2 hover:scale-105 transition-transform shadow-lg"
+                data-testid="button-start-document-generation"
+              >
+                <FileText className="h-5 w-5" />
+                <span>Start Document Generation</span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* Document Type Categories */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <CreditCard className="h-5 w-5 text-blue-600" />
+                  Identity Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Smart ID cards, identity books, and temporary certificates</p>
+                <Badge variant="secondary">3 document types</Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Plane className="h-5 w-5 text-purple-600" />
+                  Travel Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Passports, emergency travel certificates, and refugee documents</p>
+                <Badge variant="secondary">3 document types</Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Baby className="h-5 w-5 text-pink-600" />
+                  Civil Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Birth, death, marriage, and divorce certificates</p>
+                <Badge variant="secondary">4 document types</Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Briefcase className="h-5 w-5 text-indigo-600" />
+                  Immigration Documents
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Work visas, study permits, visitor visas, and more</p>
+                <Badge variant="secondary">11 document types</Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Award className="h-5 w-5 text-emerald-600" />
+                  Official Certificates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Citizenship certificates and exemption documents</p>
+                <Badge variant="secondary">2 document types</Badge>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow border-2 border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg text-green-700">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  All Document Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-3">Access the complete document generation system</p>
+                <a 
+                  href="/document-generation"
+                  className="inline-flex items-center gap-1 text-green-600 hover:text-green-700 font-medium text-sm"
+                  data-testid="link-view-all-documents"
+                >
+                  View All 23 Types <ArrowRight className="h-3 w-3" />
+                </a>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              All documents generated with security features, compliance verification, and official authentication
+            </p>
           </div>
         </div>
       </section>
