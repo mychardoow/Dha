@@ -242,11 +242,24 @@ async function initializeServer() {
   try {
     console.log('[Server] Loading routes...');
     const routesModule = await import("./routes");
+    console.log('[Server] Routes module imported successfully');
+    
     registerRoutes = routesModule.registerRoutes;
+    console.log('[Server] registerRoutes function extracted');
+    
+    if (typeof registerRoutes !== 'function') {
+      throw new Error(`registerRoutes is not a function, got: ${typeof registerRoutes}`);
+    }
+    
     server = await registerRoutes(app);
-    console.log('[Server] ✅ Routes loaded successfully');
+    console.log('[Server] ✅ Routes loaded and registered successfully');
   } catch (error) {
-    console.error('[Server] ⚠️ Failed to load some routes, continuing with basic server:', error);
+    console.error('[Server] ⚠️ CRITICAL: Route registration failed!');
+    console.error('[Server] Error name:', (error as Error).name || 'Unknown');
+    console.error('[Server] Error message:', (error as Error).message || String(error));
+    console.error('[Server] Error stack:');
+    console.error((error as Error).stack || 'No stack trace available');
+    console.error('[Server] ⚠️ Continuing with basic server - API routes will NOT be available');
     // Continue with basic server even if routes fail
   }
 
