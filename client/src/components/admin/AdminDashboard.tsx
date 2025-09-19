@@ -95,7 +95,7 @@ export function AdminDashboard() {
   // WebSocket connection
   const { socket, isConnected, emit } = useWebSocket({
     enableToasts: false,
-    enableEventHandlers: false,
+    enableEventHandlers: true, // FIXED: Enable event handlers for real-time status updates
     onConnect: () => {
       console.log("Admin dashboard WebSocket connected");
       setConnectionStatus('connected');

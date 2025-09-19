@@ -26,9 +26,9 @@ interface UseWebSocketReturn {
 export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketReturn {
   const { 
     token: providedToken, 
-    autoConnect = false, // FIXED: Disable auto-connect by default
-    enableToasts = false, // FIXED: Disable toasts by default to prevent persistent connection issues
-    enableEventHandlers = false, // FIXED: Disable event handlers by default
+    autoConnect = true, // FIXED: Enable auto-connect by default for status indicators
+    enableToasts = false, // Keep toasts disabled to prevent noise
+    enableEventHandlers = true, // FIXED: Enable event handlers for status updates
     onConnect, 
     onDisconnect, 
     onReconnect 

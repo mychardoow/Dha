@@ -30,11 +30,10 @@ export function useAdminWebSocket(): AdminWebSocketHook {
   const maxReconnectAttempts = 5;
 
   const connect = () => {
-    // FIXED: Disable connection to prevent errors
-    return; // WebSocket disabled - system works without real-time updates
-    /* if (!auth.isAuthenticated()) {
+    // FIXED: Re-enable WebSocket connection for real-time updates
+    if (!auth.isAuthenticated()) {
       return;
-    } */
+    }
 
     const user = auth.getCurrentUser();
     if (user?.role !== 'admin') {

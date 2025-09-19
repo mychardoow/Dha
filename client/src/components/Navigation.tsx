@@ -7,12 +7,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Menu, Shield, User, FileText, Users, Globe, Phone, Clock, HelpCircle, LogOut, Settings, UserCircle } from "lucide-react";
 import { SouthAfricanCoatOfArms, DHALogo, SecurityClassificationBanner } from "@/components/GovernmentAssets";
 import { useAuth } from "@/contexts/AuthContext";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const { user, logout } = useAuth();
+  
+  // WebSocket connection for real-time status
+  const { isConnected, error } = useWebSocket({
+    enableToasts: false,
+    enableEventHandlers: false
+  });
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -198,8 +205,10 @@ export default function Navigation() {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <span className="status-indicator status-online"></span>
-                    <span className="text-sm text-muted-foreground">Government Services Online</span>
+                    <span className={`status-indicator ${isConnected ? 'status-online' : 'status-warning'}`}></span>
+                    <span className="text-sm text-muted-foreground">
+                      Government Services {isConnected ? 'Online' : (error ? 'Connection Error' : 'Connecting...')}
+                    </span>
                   </div>
                   
                   <div className="mt-4 text-xs text-muted-foreground">
