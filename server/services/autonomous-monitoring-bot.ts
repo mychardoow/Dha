@@ -286,7 +286,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
     }
 
     // Stop maintenance tasks
-    for (const [taskId, timeout] of this.maintenanceTasks) {
+    for (const [taskId, timeout] of Array.from(this.maintenanceTasks)) {
       clearTimeout(timeout);
       this.maintenanceTasks.delete(taskId);
     }
@@ -426,7 +426,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
         category: 'security',
         metricName: 'threat_level',
         operator: 'equals',
-        threshold: 3, // high threat level
+        threshold: '3', // high threat level
         duration: 60,
         severity: 'critical' as const,
         isEnabled: true,
@@ -698,7 +698,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
         // Application metrics
         activeConnections: dbStatus.poolSize,
         responseTime: Date.now() - startTime,
-        errorRate: await this.calculateErrorRate(),
+        errorRate: (await this.calculateErrorRate()).toString(),
         throughput: await this.calculateThroughput(),
         
         // Service health
@@ -1179,7 +1179,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
   
   private async evaluateAlertRules(snapshot: any): Promise<void> {
     // Evaluate all active alert rules against current metrics
-    for (const rule of this.alertRules.values()) {
+    for (const rule of Array.from(this.alertRules.values())) {
       try {
         await this.evaluateSingleRule(rule, snapshot);
       } catch (error) {
