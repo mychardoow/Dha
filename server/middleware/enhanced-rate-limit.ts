@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { RateLimiterMemory, RateLimiterRedis, RateLimiterAbstract } from 'rate-limiter-flexible';
 import { createHash } from 'crypto';
-import { storage } from '../enhanced-storage';
+import { storage } from '../storage';
 
 /**
  * Enhanced Rate Limiting with Automatic Backoff
