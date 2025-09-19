@@ -584,7 +584,8 @@ export class SecurityFeaturesV2 {
     
     // Color-shifting ink
     if (effects.colorShifting) {
-      const { x, y } = effects.colorShifting.position;
+      const position = (effects.colorShifting as any).position || { x: 50, y: 150 };
+      const { x, y } = position;
       
       // Create angular gradient for color shift
       const gradient = doc.linearGradient(x, y, x + 150, y + 20);
@@ -604,7 +605,8 @@ export class SecurityFeaturesV2 {
     
     // Thermochromic ink
     if (effects.thermochromic) {
-      const { x, y } = effects.thermochromic.position;
+      const position = (effects.thermochromic as any).position || { x: 50, y: 200 };
+      const { x, y } = position;
       
       // Show both states
       doc.fontSize(10)
@@ -628,7 +630,8 @@ export class SecurityFeaturesV2 {
     
     // OVI (Optically Variable Ink)
     if (effects.ovi) {
-      const { x, y } = effects.ovi.position;
+      const position = (effects.ovi as any).position || { x: 50, y: 250 };
+      const { x, y } = position;
       
       // Triple color gradient
       const gradient = doc.linearGradient(x, y, x + 120, y);

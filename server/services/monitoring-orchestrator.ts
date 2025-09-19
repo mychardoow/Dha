@@ -64,18 +64,22 @@ export class MonitoringOrchestrator extends EventEmitter {
       return;
     }
 
-    console.log('[MonitoringOrchestrator] Initializing monitoring system (simplified for development)...');
+    console.log('[MonitoringOrchestrator] Initializing monitoring system with full capability...');
 
     try {
-      // Simple initialization to get server running quickly
-      console.log('[MonitoringOrchestrator] Quick initialization for development...');
+      // Initialize monitoring system with full services for 200% functionality verification
+      await this.initializeServicesInOrder();
+      await this.setupInterServiceCommunication();
+      
+      // Start all monitoring services including high-frequency monitoring (100-500ms)
+      await this.startAllServices();
       
       this.isInitialized = true;
-      console.log('[MonitoringOrchestrator] Monitoring system initialized (simplified mode)');
+      console.log('[MonitoringOrchestrator] Monitoring system fully initialized with high-frequency monitoring');
       
       this.emit('initialized', {
         timestamp: new Date(),
-        services: [],
+        services: Object.keys(this.services),
         config: this.config,
         selfChecks: { passed: true, failures: [], checks: [] }
       });

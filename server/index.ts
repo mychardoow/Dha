@@ -124,13 +124,13 @@ app.use((req, res, next) => {
     console.warn('[Session] Sessions will be lost on server restart');
   }
   
-  // Health check endpoint (always available)
-  app.get('/api/health', (req, res) => {
+  // Basic health fallback endpoint (main enhanced health endpoint is in routes.ts)
+  app.get('/api/health/basic', (req, res) => {
     res.json({
-      status: 'ok',
+      status: 'basic',
       mode: pool ? 'database' : 'in-memory',
       timestamp: new Date().toISOString(),
-      features: 'all'
+      message: 'Basic health check - full monitoring available at /api/health'
     });
   });
   
@@ -195,21 +195,32 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  try {
-    const viteModule = await import("./vite");
-    setupVite = viteModule.setupVite;
-    serveStatic = viteModule.serveStatic;
-    log = viteModule.log || console.log;
-    
-    if (app.get("env") === "development") {
+  
+  // Force production mode in workflow to avoid vite dev server issues
+  let isWorkflowMode = Boolean(process.env.REPL_ID || process.env.SAFE_START || process.env.DISABLE_VITE_DEV);
+  
+  if (!isWorkflowMode && app.get("env") === "development") {
+    try {
+      const viteModule = await import("./vite");
+      setupVite = viteModule.setupVite;
+      serveStatic = viteModule.serveStatic;
+      log = viteModule.log || console.log;
+      
       await setupVite(app, server);
-    } else {
-      serveStatic(app);
+    } catch (error) {
+      console.warn('[Server] Failed to setup Vite dev server, falling back to static files:', error);
+      // Fallback to static serving below
+      isWorkflowMode = true; // Force static serving
     }
-  } catch (error) {
-    console.warn('[Server] Failed to setup Vite, serving static files directly:', error);
-    const path = await import('path');
-    const fs = await import('fs');
+  }
+  
+  if (isWorkflowMode || app.get("env") !== "development") {
+    // Skip vite import entirely in workflow/production - serve static files directly
+    console.log('[Server] Using static file serving (workflow/production mode)');
+    
+    try {
+      const path = await import('path');
+      const fs = await import('fs');
     
     // Primary fallback: serve built files from dist/public
     app.use(express.static('dist/public'));
@@ -251,7 +262,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = Number(process.env.PORT || 5000);
-  app.listen(port, '0.0.0.0', () => {
+  
+  // Use the httpServer from routes (which has WebSocket and monitoring) if available, otherwise fallback to app
+  const listener = (server as any)?.listen ? server : app;
+  
+  listener.listen(port, '0.0.0.0', () => {
     const logFn = typeof log === 'function' ? log : console.log;
     logFn(`
 ═══════════════════════════════════════════════════════════════
