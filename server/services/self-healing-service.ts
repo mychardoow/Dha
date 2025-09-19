@@ -601,7 +601,7 @@ export class SelfHealingService extends EventEmitter {
       
       const apiRequests = recentAudits.filter(audit => audit.action.includes('api_'));
       const errorRequests = apiRequests.filter(audit => 
-        audit.metadata?.statusCode && audit.metadata.statusCode >= 400
+        (audit.actionDetails as any)?.statusCode && (audit.actionDetails as any).statusCode >= 400
       );
       
       const errorRate = apiRequests.length > 0 ? 
