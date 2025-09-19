@@ -11,8 +11,9 @@ import * as path from "path";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { Canvas } from "canvas";
-import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./document-template-registry";
+import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template";
 import { cryptographicSignatureService } from "./cryptographic-signature-service";
+import { SecurityFeaturesV2, MRZData } from "./security-features-v2";
 
 // Import schema types
 import type {
@@ -150,9 +151,10 @@ export class IdentityDocumentBookGenerator extends BaseDocumentTemplate {
         this.addMicrotext(doc, 170, yPos + 20);
 
         // Serial number
+        const serialNumber = data.serialNumber || this.generateSerialNumber("ID");
         doc.fontSize(8)
            .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Serial: ${data.serialNumber || this.generateSerialNumber("ID")}`, 300, yPos + 60);
+           .text(`Serial: ${serialNumber}`, 300, yPos + 60);
 
         // Add barcode
         const barcodeData = await this.generateBarcode(data.idNumber);
@@ -160,6 +162,17 @@ export class IdentityDocumentBookGenerator extends BaseDocumentTemplate {
           const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
           doc.image(barcodeBuffer, 350, yPos, { width: 150, height: 30 });
         }
+
+        // Apply comprehensive security features for Identity Document Book
+        const enhancedData = {
+          ...data,
+          serialNumber,
+          documentType: 'identity_document_book',
+          documentNumber: data.bookNumber,
+          mrzData: this.generateMRZData('identity_document_book', data)
+        };
+        
+        await this.applyComprehensiveSecurityFeatures(doc, 'identity_document_book', enhancedData, isPreview);
 
         doc.end();
 
