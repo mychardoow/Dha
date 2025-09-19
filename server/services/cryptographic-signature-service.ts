@@ -6,7 +6,7 @@ import { Certificate, CertificateSet, PrivateKeyInfo } from 'pkijs';
 import { X509Certificate } from '@peculiar/x509';
 import { verificationService } from './verification-service';
 
-// DHA Government PKI Configuration
+// DHA Government PKI Configuration - PRODUCTION COMPLIANT
 const DHA_PKI_CONFIG = {
   issuer: 'Department of Home Affairs - Republic of South Africa',
   rootCA: 'DHA Root Certificate Authority',
@@ -14,10 +14,37 @@ const DHA_PKI_CONFIG = {
   keySize: 4096,
   hashAlgorithm: 'SHA-512',
   signatureAlgorithm: 'RSA-PSS',
-  timestampAuthority: 'DHA Timestamp Authority',
+  timestampAuthority: process.env.DHA_TSA_URL || 'https://tsa.dha.gov.za/tsa',
   policyOid: '1.3.6.1.4.1.27893.1.1.1', // DHA document signing policy
-  ocspResponder: 'http://ocsp.dha.gov.za',
-  crlDistributionPoint: 'http://crl.dha.gov.za/dha-ca.crl'
+  ocspResponder: process.env.DHA_OCSP_URL || 'https://ocsp.dha.gov.za',
+  crlDistributionPoint: process.env.DHA_CRL_URL || 'https://crl.dha.gov.za/dha-ca.crl',
+  
+  // GOVERNMENT COMPLIANCE REQUIREMENTS
+  requireOCSP: true,
+  requireCRL: true,
+  embedRevocationInfo: true, // PAdES-LTV requirement
+  requireTimestamp: true,
+  signatureLevel: 'PAdES-B-LTV', // Long Term Validation
+  
+  // Certificate validation requirements
+  validateCertificateChain: true,
+  checkCertificateRevocation: true,
+  requireGovernmentCA: true,
+  
+  // Security requirements
+  minimumKeySize: 4096,
+  allowedHashAlgorithms: ['SHA-512', 'SHA-384'],
+  mandatoryExtensions: [
+    'keyUsage',
+    'extendedKeyUsage',
+    'certificatePolicies',
+    'authorityInfoAccess',
+    'crlDistributionPoints'
+  ],
+  
+  // Production security validation
+  productionModeEnabled: process.env.NODE_ENV === 'production',
+  enforceProductionSecurity: process.env.NODE_ENV === 'production'
 };
 
 // PAdES signature levels
@@ -72,6 +99,25 @@ export interface DocumentSigningMetadata {
   customAttributes?: Record<string, any>;
 }
 
+// CRITICAL: PAdES-LTV Revocation Data for Government Compliance
+export interface RevocationData {
+  ocspResponses: Buffer[];
+  crlData: Buffer[];
+  timestampTokens: Buffer[];
+  validationTime: Date;
+  embedded: boolean;
+}
+
+// OCSP Request/Response interfaces for certificate validation
+export interface OCSPResponse {
+  status: 'good' | 'revoked' | 'unknown';
+  thisUpdate: Date;
+  nextUpdate?: Date;
+  revocationTime?: Date;
+  revocationReason?: number;
+  response: Buffer;
+}
+
 /**
  * PRODUCTION-READY Cryptographic Signature Service
  * Implements PAdES (PDF Advanced Electronic Signatures) for DHA documents
@@ -87,10 +133,16 @@ export class CryptographicSignatureService {
 
   /**
    * Initialize DHA signing infrastructure with production certificates
+   * PRODUCTION COMPLIANCE: Enforces government PKI requirements
    */
   private async initializeSigningInfrastructure(): Promise<void> {
     try {
-      // In production, these would be loaded from secure HSM or certificate store
+      // CRITICAL SECURITY: Production must use government PKI certificates
+      if (DHA_PKI_CONFIG.productionModeEnabled) {
+        await this.validateProductionPKIRequirements();
+      }
+      
+      // Load certificates from secure sources (HSM/environment)
       const certPem = process.env.DHA_SIGNING_CERT || this.generateDevelopmentCertificate();
       const privateKeyPem = process.env.DHA_SIGNING_KEY || this.generateDevelopmentPrivateKey();
       
@@ -98,8 +150,14 @@ export class CryptographicSignatureService {
       const certificate = forge.pki.certificateFromPem(certPem);
       const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
       
+      // GOVERNMENT COMPLIANCE: Validate certificate requirements
+      await this.validateGovernmentCertificate(certificate);
+      
       // Load certificate chain (root + intermediate CAs)
-      const certificateChain = await this.loadCertificateChain();
+      const certificateChain = await this.loadGovernmentCertificateChain();
+      
+      // SECURITY: Validate certificate chain integrity
+      await this.validateCertificateChainIntegrity(certificate, certificateChain);
       
       this.signingCertificate = {
         certificate,
@@ -114,10 +172,201 @@ export class CryptographicSignatureService {
         extendedKeyUsage: this.extractExtendedKeyUsage(certificate)
       };
 
-      console.log(`[Cryptographic Service] Initialized with certificate: ${this.signingCertificate.subjectDN}`);
+      // COMPLIANCE: Verify OCSP and CRL services are accessible
+      await this.validateRevocationServices();
+
+      console.log(`[Cryptographic Service] GOVERNMENT-COMPLIANT signing infrastructure initialized: ${this.signingCertificate.subjectDN}`);
+      console.log(`[Cryptographic Service] PKI Compliance: OCSP=${DHA_PKI_CONFIG.requireOCSP}, CRL=${DHA_PKI_CONFIG.requireCRL}, LTV=${DHA_PKI_CONFIG.embedRevocationInfo}`);
     } catch (error) {
-      console.error('[Cryptographic Service] Failed to initialize signing infrastructure:', error);
-      throw new Error('CRITICAL: Cannot initialize document signing capability');
+      console.error('[Cryptographic Service] CRITICAL: Failed to initialize government-compliant signing infrastructure:', error);
+      throw new Error(`CRITICAL SECURITY ERROR: Cannot initialize government PKI signing capability: ${error}`);
+    }
+  }
+
+  /**
+   * Validate production PKI requirements
+   */
+  private async validateProductionPKIRequirements(): Promise<void> {
+    const requiredEnvVars = [
+      'DHA_SIGNING_CERT',
+      'DHA_SIGNING_KEY', 
+      'DHA_ROOT_CA_CERT',
+      'DHA_INTERMEDIATE_CA_CERT',
+      'DHA_TSA_URL',
+      'DHA_OCSP_URL',
+      'DHA_CRL_URL'
+    ];
+
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      throw new Error(`CRITICAL SECURITY ERROR: Missing required PKI environment variables for production: ${missingVars.join(', ')}`);
+    }
+
+    console.log('[Cryptographic Service] Production PKI requirements validated');
+  }
+
+  /**
+   * Validate government certificate compliance
+   */
+  private async validateGovernmentCertificate(certificate: forge.pki.Certificate): Promise<void> {
+    // Check key size
+    const publicKey = certificate.publicKey as forge.pki.rsa.PublicKey;
+    if (publicKey.n.bitLength() < DHA_PKI_CONFIG.minimumKeySize) {
+      throw new Error(`CRITICAL: Certificate key size ${publicKey.n.bitLength()} is below minimum ${DHA_PKI_CONFIG.minimumKeySize}`);
+    }
+
+    // Check validity period
+    const now = new Date();
+    if (certificate.validity.notBefore > now || certificate.validity.notAfter <= now) {
+      throw new Error('CRITICAL: Certificate is expired or not yet valid');
+    }
+
+    // Check certificate expiration warning (30 days)
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    if (certificate.validity.notAfter <= thirtyDaysFromNow) {
+      console.warn('[Cryptographic Service] WARNING: Certificate expires within 30 days');
+    }
+
+    // Validate mandatory extensions
+    for (const extName of DHA_PKI_CONFIG.mandatoryExtensions) {
+      const extension = certificate.getExtension(extName);
+      if (!extension) {
+        throw new Error(`CRITICAL: Missing mandatory certificate extension: ${extName}`);
+      }
+    }
+
+    // Validate key usage for document signing
+    const keyUsage = this.extractKeyUsage(certificate);
+    if (!keyUsage.includes('digitalSignature')) {
+      throw new Error('CRITICAL: Certificate does not allow digital signatures');
+    }
+
+    const extKeyUsage = this.extractExtendedKeyUsage(certificate);
+    if (!extKeyUsage.includes('codeSigning') && !extKeyUsage.includes('documentSigning')) {
+      throw new Error('CRITICAL: Certificate does not allow document signing');
+    }
+
+    console.log('[Cryptographic Service] Government certificate validation passed');
+  }
+
+  /**
+   * Load government certificate chain with validation
+   */
+  private async loadGovernmentCertificateChain(): Promise<forge.pki.Certificate[]> {
+    const certificateChain: forge.pki.Certificate[] = [];
+    
+    try {
+      // Load root CA certificate
+      const rootCACert = process.env.DHA_ROOT_CA_CERT;
+      if (!rootCACert) {
+        throw new Error('Missing DHA Root CA certificate');
+      }
+      
+      const rootCertificate = forge.pki.certificateFromPem(rootCACert);
+      certificateChain.push(rootCertificate);
+      
+      // Load intermediate CA certificates
+      const intermediateCACert = process.env.DHA_INTERMEDIATE_CA_CERT;
+      if (intermediateCACert) {
+        const intermediateCertificate = forge.pki.certificateFromPem(intermediateCACert);
+        certificateChain.push(intermediateCertificate);
+      }
+      
+      return certificateChain;
+    } catch (error) {
+      throw new Error(`Failed to load government certificate chain: ${error}`);
+    }
+  }
+
+  /**
+   * Validate certificate chain integrity
+   */
+  private async validateCertificateChainIntegrity(
+    signingCert: forge.pki.Certificate, 
+    certificateChain: forge.pki.Certificate[]
+  ): Promise<void> {
+    if (certificateChain.length === 0) {
+      throw new Error('CRITICAL: Empty certificate chain');
+    }
+
+    // Verify each certificate in the chain
+    for (let i = 0; i < certificateChain.length - 1; i++) {
+      const cert = certificateChain[i];
+      const issuerCert = certificateChain[i + 1];
+      
+      try {
+        // Verify signature
+        const verified = cert.verify(issuerCert);
+        if (!verified) {
+          throw new Error(`Certificate chain validation failed at position ${i}`);
+        }
+      } catch (error) {
+        throw new Error(`Certificate chain integrity check failed: ${error}`);
+      }
+    }
+
+    // Verify signing certificate against its issuer
+    const issuerCert = certificateChain.find(cert => 
+      cert.subject.getField('CN')?.value === signingCert.issuer.getField('CN')?.value
+    );
+    
+    if (!issuerCert) {
+      throw new Error('CRITICAL: Signing certificate issuer not found in certificate chain');
+    }
+
+    const verified = signingCert.verify(issuerCert);
+    if (!verified) {
+      throw new Error('CRITICAL: Signing certificate verification failed against issuer');
+    }
+
+    console.log('[Cryptographic Service] Certificate chain integrity validated');
+  }
+
+  /**
+   * Validate revocation services (OCSP and CRL) accessibility
+   */
+  private async validateRevocationServices(): Promise<void> {
+    const errors: string[] = [];
+
+    // Test OCSP service
+    if (DHA_PKI_CONFIG.requireOCSP) {
+      try {
+        const ocspResponse = await fetch(DHA_PKI_CONFIG.ocspResponder, {
+          method: 'GET',
+          timeout: 10000
+        });
+        
+        if (!ocspResponse.ok && ocspResponse.status !== 405) { // 405 Method Not Allowed is acceptable for OCSP
+          errors.push(`OCSP service not accessible: ${ocspResponse.status}`);
+        }
+      } catch (error) {
+        errors.push(`OCSP service validation failed: ${error}`);
+      }
+    }
+
+    // Test CRL service
+    if (DHA_PKI_CONFIG.requireCRL) {
+      try {
+        const crlResponse = await fetch(DHA_PKI_CONFIG.crlDistributionPoint, {
+          method: 'HEAD',
+          timeout: 10000
+        });
+        
+        if (!crlResponse.ok) {
+          errors.push(`CRL service not accessible: ${crlResponse.status}`);
+        }
+      } catch (error) {
+        errors.push(`CRL service validation failed: ${error}`);
+      }
+    }
+
+    if (errors.length > 0 && DHA_PKI_CONFIG.enforceProductionSecurity) {
+      throw new Error(`CRITICAL: Revocation services validation failed: ${errors.join(', ')}`);
+    } else if (errors.length > 0) {
+      console.warn('[Cryptographic Service] WARNING: Revocation services not fully accessible:', errors);
+    } else {
+      console.log('[Cryptographic Service] Revocation services validated successfully');
     }
   }
 

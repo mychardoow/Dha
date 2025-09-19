@@ -64,11 +64,50 @@ export class DHANPRAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    this.baseUrl = process.env.DHA_NPR_BASE_URL || 'https://dev-npr.dha.gov.za/api/v1';
-    this.apiKey = process.env.DHA_NPR_API_KEY || 'dev-dha-npr-key';
+    // Production-grade environment configuration
+    const environment = process.env.NODE_ENV || 'development';
     
-    if (process.env.NODE_ENV === 'production' && (!process.env.DHA_NPR_BASE_URL || !process.env.DHA_NPR_API_KEY)) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_BASE_URL and DHA_NPR_API_KEY environment variables are required for DHA NPR integration in production');
+    // CRITICAL SECURITY: NO MOCK MODES IN PRODUCTION
+    if (environment === 'production') {
+      // Production MUST use live mode only - fail closed
+      const nprEnabled = process.env.DHA_NPR_ENABLED === 'true';
+      
+      if (!nprEnabled) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA NPR must be enabled in production environment');
+      }
+      
+      // Validate all required production environment variables
+      if (!process.env.DHA_NPR_BASE_URL || !process.env.DHA_NPR_API_KEY) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_BASE_URL and DHA_NPR_API_KEY environment variables are required for DHA NPR integration in production');
+      }
+      
+      if (!process.env.DHA_NPR_CLIENT_CERT || !process.env.DHA_NPR_PRIVATE_KEY) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA_NPR_CLIENT_CERT and DHA_NPR_PRIVATE_KEY are required for production NPR integration');
+      }
+      
+      // Validate API key format for government compliance
+      if (!/^NPR-PROD-[A-Z0-9]{32}-[A-Z0-9]{16}$/.test(process.env.DHA_NPR_API_KEY)) {
+        throw new Error('CRITICAL SECURITY ERROR: Invalid DHA NPR API key format for production');
+      }
+      
+      this.baseUrl = process.env.DHA_NPR_BASE_URL;
+      this.apiKey = process.env.DHA_NPR_API_KEY;
+      
+      console.log(`[DHA-NPR] PRODUCTION MODE: Live integration enforced - NO MOCK FALLBACKS`);
+    } else {
+      // Development/staging can use configurable modes
+      const nprMode = process.env.DHA_NPR_MODE || 'mock'; // mock | shadow | live
+      const nprEnabled = process.env.DHA_NPR_ENABLED === 'true';
+      
+      const productionUrls = {
+        staging: 'https://npr-staging.dha.gov.za/v2',
+        development: 'https://npr-dev.dha.gov.za/v2'
+      };
+      
+      this.baseUrl = process.env.DHA_NPR_BASE_URL || productionUrls[environment as keyof typeof productionUrls] || productionUrls.development;
+      this.apiKey = process.env.DHA_NPR_API_KEY || '';
+      
+      console.log(`[DHA-NPR] ${environment.toUpperCase()} MODE: ${nprMode} - Enabled: ${nprEnabled}`);
     }
   }
 
@@ -240,10 +279,16 @@ export class DHANPRAdapter {
   }
 
   /**
-   * Mock NPR API call for development/testing
-   * In production, this would be replaced with actual NPR API integration
+   * PRODUCTION SECURITY: NO MOCK CALLS IN PRODUCTION
+   * Mock NPR API call for development/testing ONLY
+   * CRITICAL: This method is blocked in production environment
    */
   private async mockNPRApiCall(requestId: string, payload: any): Promise<NPRVerificationResponse> {
+    // SECURITY CHECK: Block mock calls in production
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: Mock NPR API calls are not allowed in production environment. Use live government integrations only.');
+    }
+    
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
 

@@ -440,13 +440,32 @@ export class NprIntegrationService {
    */
   private async authenticate(): Promise<{ success: boolean; error?: string }> {
     try {
-      if (this.credentials.environment === 'development') {
-        this.authToken = 'dev-npr-token-' + Date.now();
-        this.tokenExpiry = new Date(Date.now() + 3600000); // 1 hour
-        return { success: true };
+      // Real NPR authentication with OAuth2 client credentials flow
+      const authPayload = {
+        grant_type: 'client_credentials',
+        client_id: this.credentials.clientId,
+        client_secret: this.credentials.clientSecret,
+        scope: 'npr:read npr:verify npr:citizen_records'
+      };
+
+      const response = await fetch(`${this.baseUrls[this.credentials.environment]}/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'DHA-Digital-Services/2025.1',
+          'X-API-Key': this.credentials.apiKey
+        },
+        body: new URLSearchParams(authPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`NPR authentication failed: ${response.status} ${response.statusText}`);
       }
 
-      // Production authentication would go here
+      const tokenData = await response.json();
+      this.authToken = tokenData.access_token;
+      this.tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000));
+
       return { success: true };
 
     } catch (error) {
@@ -468,11 +487,26 @@ export class NprIntegrationService {
 
   private async verifyApiAccess(): Promise<void> {
     // Verify API access permissions with NPR
-    if (this.credentials.environment === 'development') {
-      return; // Skip in development
+    try {
+      await this.ensureAuthenticated();
+      
+      const response = await this.makeAuthenticatedRequest('GET', '/api/permissions');
+      
+      if (response.statusCode !== 200) {
+        throw new Error('NPR API access verification failed');
+      }
+      
+      const permissions = response.data.permissions || [];
+      const requiredPermissions = ['citizen_lookup', 'id_validation', 'biographic_verification'];
+      
+      for (const required of requiredPermissions) {
+        if (!permissions.includes(required)) {
+          throw new Error(`Missing required NPR permission: ${required}`);
+        }
+      }
+    } catch (error) {
+      throw new Error(`NPR API access verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    // Production permission verification would go here
   }
 
   private async makeAuthenticatedRequest(
@@ -480,18 +514,35 @@ export class NprIntegrationService {
     endpoint: string,
     data?: any
   ): Promise<{ statusCode: number; data: any }> {
-    // Simulate API calls in development
-    if (this.credentials.environment === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1200));
-      
-      return {
-        statusCode: 200,
-        data: this.getSimulatedResponse(endpoint, method, data)
+    try {
+      const url = `${this.baseUrls[this.credentials.environment]}${endpoint}`;
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.authToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'DHA-Digital-Services/2025.1',
+          'X-API-Key': this.credentials.apiKey,
+          'Accept': 'application/json'
+        }
       };
-    }
 
-    // Production API calls would use actual HTTP client
-    throw new Error('Production HTTP client not implemented');
+      if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
+      }
+
+      const response = await fetch(url, options);
+      const responseData = await response.json();
+
+      return {
+        statusCode: response.status,
+        data: responseData
+      };
+
+    } catch (error) {
+      console.error(`NPR API request failed:`, error);
+      throw error;
+    }
   }
 
   private validateIdFormat(idNumber: string): { isValid: boolean; error?: string } {

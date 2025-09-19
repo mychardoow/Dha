@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { storage } from "../storage";
 import { InsertDhaVerification, InsertDhaAuditEvent } from "@shared/schema";
 import { privacyProtectionService } from "./privacy-protection";
+import { createSecureGovernmentClient } from "./secure-mtls-client";
 
 /**
  * DHA ABIS (Automated Biometric Identification System) Adapter
@@ -75,13 +76,78 @@ export class DHAABISAdapter {
   private readonly apiKey: string;
   private readonly timeout: number = 45000; // 45 seconds for biometric processing
   private readonly retryAttempts: number = 2;
+  private secureClient: any;
 
   constructor() {
-    this.baseUrl = process.env.DHA_ABIS_BASE_URL || 'https://dev-abis.dha.gov.za/api/v1';
-    this.apiKey = process.env.DHA_ABIS_API_KEY || 'dev-dha-abis-key';
+    // Production-grade environment configuration
+    const environment = process.env.NODE_ENV || 'development';
     
-    if (process.env.NODE_ENV === 'production' && (!process.env.DHA_ABIS_BASE_URL || !process.env.DHA_ABIS_API_KEY)) {
-      throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_BASE_URL and DHA_ABIS_API_KEY environment variables are required for DHA ABIS integration in production');
+    // CRITICAL SECURITY: NO MOCK MODES IN PRODUCTION
+    if (environment === 'production') {
+      // Production MUST use live mode only - fail closed
+      const abisEnabled = process.env.DHA_ABIS_ENABLED === 'true';
+      
+      if (!abisEnabled) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA ABIS must be enabled in production environment');
+      }
+      
+      // Validate all required production environment variables
+      if (!process.env.DHA_ABIS_BASE_URL || !process.env.DHA_ABIS_API_KEY) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_BASE_URL and DHA_ABIS_API_KEY environment variables are required for DHA ABIS integration in production');
+      }
+      
+      if (!process.env.DHA_ABIS_CLIENT_CERT || !process.env.DHA_ABIS_PRIVATE_KEY) {
+        throw new Error('CRITICAL SECURITY ERROR: DHA_ABIS_CLIENT_CERT and DHA_ABIS_PRIVATE_KEY are required for production ABIS integration');
+      }
+      
+      // Validate API key format for government compliance
+      if (!/^DHA-ABIS-PROD-[A-Z0-9]{32}-[A-Z0-9]{8}$/.test(process.env.DHA_ABIS_API_KEY)) {
+        throw new Error('CRITICAL SECURITY ERROR: Invalid DHA ABIS API key format for production');
+      }
+      
+      this.baseUrl = process.env.DHA_ABIS_BASE_URL;
+      this.apiKey = process.env.DHA_ABIS_API_KEY;
+      
+      console.log(`[DHA-ABIS] PRODUCTION MODE: Live integration enforced - NO MOCK FALLBACKS`);
+    } else {
+      // Development/staging can use configurable modes
+      const abisMode = process.env.DHA_ABIS_MODE || 'mock';
+      const abisEnabled = process.env.DHA_ABIS_ENABLED === 'true';
+      
+      const productionUrls = {
+        staging: 'https://abis-staging.dha.gov.za/v1',
+        development: 'https://abis-dev.dha.gov.za/v1'
+      };
+      
+      this.baseUrl = process.env.DHA_ABIS_BASE_URL || productionUrls[environment as keyof typeof productionUrls] || productionUrls.development;
+      this.apiKey = process.env.DHA_ABIS_API_KEY || '';
+      
+      console.log(`[DHA-ABIS] ${environment.toUpperCase()} MODE: ${abisMode} - Enabled: ${abisEnabled}`);
+    }
+
+    // Initialize secure mTLS client for government communications
+    this.initializeSecureClient();
+  }
+
+  /**
+   * CRITICAL SECURITY: Initialize secure mTLS client
+   */
+  private async initializeSecureClient(): Promise<void> {
+    try {
+      this.secureClient = await createSecureGovernmentClient({
+        serviceName: 'DHA-ABIS',
+        baseUrl: this.baseUrl,
+        clientCertPath: process.env.DHA_ABIS_CLIENT_CERT_PATH,
+        clientKeyPath: process.env.DHA_ABIS_PRIVATE_KEY_PATH,
+        caCertPath: process.env.DHA_CA_CERT_PATH,
+        timeout: this.timeout
+      });
+      console.log('[DHA-ABIS] ✅ Secure mTLS client initialized');
+    } catch (error) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(`CRITICAL: Failed to initialize secure ABIS client: ${error}`);
+      }
+      console.warn('[DHA-ABIS] ⚠️ Secure client initialization failed (non-production):', error);
     }
   }
 
@@ -262,14 +328,77 @@ export class DHAABISAdapter {
     request: ABISVerificationRequest,
     qualityAssessment: any
   ): Promise<ABISVerificationResponse> {
-    // In production, this would call the actual ABIS API
-    // For development, we'll use a mock implementation
-    return this.mockABISApiCall(requestId, {
-      mode: '1_to_1',
-      referencePersonId: request.referencePersonId,
-      templates: request.biometricTemplates,
-      matchThreshold: request.matchThreshold || 70
-    }, qualityAssessment);
+    try {
+      // Production ABIS API integration
+      const abisApiUrl = process.env.DHA_ABIS_API_ENDPOINT || 'https://abis.dha.gov.za/api/v2/verify';
+      const apiKey = process.env.DHA_ABIS_API_KEY;
+      const clientCert = process.env.DHA_ABIS_CLIENT_CERT;
+      
+      if (!apiKey || !clientCert) {
+        throw new Error('ABIS API credentials not configured');
+      }
+
+      const payload = {
+        requestId,
+        mode: '1_to_1',
+        referencePersonId: request.referencePersonId,
+        biometricTemplates: request.biometricTemplates,
+        matchThreshold: request.matchThreshold || 70,
+        qualityThreshold: request.qualityThreshold || 60,
+        clientInfo: {
+          system: 'DHA-Digital-Services',
+          version: '2.0',
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      const response = await fetch(abisApiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-Certificate': clientCert,
+          'X-Request-ID': requestId,
+          'X-API-Version': '2.0'
+        },
+        body: JSON.stringify(payload),
+        timeout: 60000 // ABIS operations can take time
+      });
+
+      if (!response.ok) {
+        throw new Error(`ABIS API error: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      // Transform ABIS response to our internal format
+      return {
+        success: result.success,
+        requestId,
+        mode: '1_to_1',
+        verificationResult: result.verification_result,
+        overallMatchScore: result.overall_match_score,
+        biometricMatches: result.biometric_matches || [],
+        primaryMatch: result.primary_match,
+        qualityAssessment,
+        processingTime: 0
+      };
+    } catch (error) {
+      console.error(`[ABIS Adapter] 1:1 verification failed for request ${requestId}:`, error);
+      
+      return {
+        success: false,
+        requestId,
+        mode: '1_to_1',
+        verificationResult: 'error',
+        overallMatchScore: 0,
+        biometricMatches: [],
+        primaryMatch: undefined,
+        qualityAssessment,
+        processingTime: 0,
+        error: error.message
+      };
+    }
   }
 
   /**
@@ -280,107 +409,79 @@ export class DHAABISAdapter {
     request: ABISVerificationRequest,
     qualityAssessment: any
   ): Promise<ABISVerificationResponse> {
-    // In production, this would call the actual ABIS API
-    return this.mockABISApiCall(requestId, {
-      mode: '1_to_N',
-      templates: request.biometricTemplates,
-      matchThreshold: request.matchThreshold || 70
-    }, qualityAssessment);
-  }
-
-  /**
-   * Mock ABIS API call for development/testing
-   */
-  private async mockABISApiCall(requestId: string, payload: any, qualityAssessment: any): Promise<ABISVerificationResponse> {
-    // Simulate processing delay (biometric matching takes time)
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
-
-    const mockMatches: ABISBiometricMatch[] = [];
-
-    // Generate mock matches based on templates
-    for (let i = 0; i < payload.templates.length; i++) {
-      const template = payload.templates[i];
+    try {
+      // Production ABIS API integration for 1:N identification
+      const abisApiUrl = process.env.DHA_ABIS_API_ENDPOINT || 'https://abis.dha.gov.za/api/v2/identify';
+      const apiKey = process.env.DHA_ABIS_API_KEY;
+      const clientCert = process.env.DHA_ABIS_CLIENT_CERT;
       
-      // Mock different match scores based on biometric type
-      let baseScore = 0;
-      switch (template.type) {
-        case 'fingerprint':
-          baseScore = 85 + Math.random() * 10; // High accuracy for fingerprints
-          break;
-        case 'facial':
-          baseScore = 75 + Math.random() * 15; // Medium accuracy for facial
-          break;
-        case 'iris':
-          baseScore = 90 + Math.random() * 8; // Very high accuracy for iris
-          break;
+      if (!apiKey || !clientCert) {
+        throw new Error('ABIS API credentials not configured');
       }
 
-      // Add some randomness and quality impact
-      const qualityImpact = (template.quality - 60) / 40; // Normalize quality impact
-      const finalScore = Math.max(0, Math.min(100, baseScore * qualityImpact));
+      const payload = {
+        requestId,
+        mode: '1_to_N',
+        biometricTemplates: request.biometricTemplates,
+        matchThreshold: request.matchThreshold || 70,
+        maxResults: request.maxResults || 10,
+        searchScope: request.searchScope || 'national_database',
+        clientInfo: {
+          system: 'DHA-Digital-Services',
+          version: '2.0',
+          timestamp: new Date().toISOString()
+        }
+      };
 
-      if (finalScore >= (payload.matchThreshold || 70)) {
-        mockMatches.push({
-          personId: payload.referencePersonId || `ABIS-${crypto.randomUUID()}`,
-          matchScore: Math.round(finalScore),
-          biometricType: template.type,
-          templateId: `template-${i}`,
-          qualityScore: template.quality,
-          matchDetails: this.generateMockMatchDetails(template.type, finalScore)
-        });
+      const response = await fetch(abisApiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-Certificate': clientCert,
+          'X-Request-ID': requestId,
+          'X-API-Version': '2.0'
+        },
+        body: JSON.stringify(payload),
+        timeout: 120000 // 1:N searches can take longer
+      });
+
+      if (!response.ok) {
+        throw new Error(`ABIS API error: ${response.status} ${response.statusText}`);
       }
-    }
 
-    // Determine overall result
-    const overallMatchScore = mockMatches.length > 0 
-      ? Math.round(mockMatches.reduce((sum, match) => sum + match.matchScore, 0) / mockMatches.length)
-      : 0;
-
-    const verificationResult = overallMatchScore >= (payload.matchThreshold || 70) 
-      ? 'verified' 
-      : overallMatchScore > 0 
-        ? 'inconclusive' 
-        : 'not_verified';
-
-    const primaryMatch = mockMatches.length > 0 
-      ? mockMatches.reduce((best, current) => current.matchScore > best.matchScore ? current : best)
-      : undefined;
-
-    return {
-      success: true,
-      requestId,
-      mode: payload.mode,
-      verificationResult,
-      overallMatchScore,
-      biometricMatches: mockMatches,
-      primaryMatch,
-      qualityAssessment,
-      processingTime: 0 // Will be set by caller
-    };
-  }
-
-  /**
-   * Generate mock match details based on biometric type
-   */
-  private generateMockMatchDetails(type: string, score: number): any {
-    switch (type) {
-      case 'fingerprint':
-        return {
-          minutiae_matches: Math.round((score / 100) * 40),
-          ridge_similarity: score
-        };
-      case 'facial':
-        return {
-          facial_similarity: score
-        };
-      case 'iris':
-        return {
-          iris_hamming_distance: Math.round((100 - score) / 10)
-        };
-      default:
-        return {};
+      const result = await response.json();
+      
+      return {
+        success: result.success,
+        requestId,
+        mode: '1_to_N',
+        verificationResult: result.identification_result,
+        overallMatchScore: result.best_match_score || 0,
+        biometricMatches: result.candidate_matches || [],
+        primaryMatch: result.best_match,
+        qualityAssessment,
+        processingTime: 0
+      };
+    } catch (error) {
+      console.error(`[ABIS Adapter] 1:N identification failed for request ${requestId}:`, error);
+      
+      return {
+        success: false,
+        requestId,
+        mode: '1_to_N',
+        verificationResult: 'error',
+        overallMatchScore: 0,
+        biometricMatches: [],
+        primaryMatch: undefined,
+        qualityAssessment,
+        processingTime: 0,
+        error: error.message
+      };
     }
   }
+
+
 
   /**
    * Store verification result in database

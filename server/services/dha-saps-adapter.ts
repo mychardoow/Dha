@@ -86,20 +86,50 @@ export class DHASAPSAdapter {
   private readonly retryAttempts: number = 3;
 
   constructor() {
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Production-grade environment configuration
+    const environment = process.env.NODE_ENV || 'development';
     
-    this.baseUrl = process.env.SAPS_CRC_BASE_URL || (isDevelopment ? 'http://localhost:8080/saps-crc-api' : '');
-    this.apiKey = process.env.SAPS_CRC_API_KEY || (isDevelopment ? 'dev-saps-api-key' : '');
-    
-    if (!this.baseUrl && !isDevelopment) {
-      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL environment variable is required for SAPS integration in production');
-    }
-    if (!this.apiKey && !isDevelopment) {
-      throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_API_KEY environment variable is required for SAPS integration in production');
-    }
-    
-    if (isDevelopment && (!process.env.SAPS_CRC_BASE_URL || !process.env.SAPS_CRC_API_KEY)) {
-      console.log('⚠️  SAPS Integration: Using development fallback values. Set SAPS_CRC_BASE_URL and SAPS_CRC_API_KEY environment variables for production use.');
+    // CRITICAL SECURITY: NO MOCK MODES IN PRODUCTION
+    if (environment === 'production') {
+      // Production MUST use live mode only - fail closed
+      const sapsEnabled = process.env.SAPS_CRC_ENABLED === 'true';
+      
+      if (!sapsEnabled) {
+        throw new Error('CRITICAL SECURITY ERROR: SAPS CRC must be enabled in production environment');
+      }
+      
+      // Validate all required production environment variables
+      this.baseUrl = process.env.SAPS_CRC_BASE_URL;
+      this.apiKey = process.env.SAPS_CRC_API_KEY;
+      
+      if (!this.baseUrl || !this.apiKey) {
+        throw new Error('CRITICAL SECURITY ERROR: SAPS_CRC_BASE_URL and SAPS_CRC_API_KEY environment variables are required for SAPS integration in production');
+      }
+      
+      if (!process.env.SAPS_CLIENT_CERT || !process.env.SAPS_PRIVATE_KEY) {
+        throw new Error('CRITICAL SECURITY ERROR: SAPS_CLIENT_CERT and SAPS_PRIVATE_KEY are required for production SAPS integration');
+      }
+      
+      // Validate API key format for government compliance
+      if (!/^SAPS-CRC-PROD-[A-Z0-9]{24}-[0-9]{8}$/.test(this.apiKey)) {
+        throw new Error('CRITICAL SECURITY ERROR: Invalid SAPS CRC API key format for production');
+      }
+      
+      console.log(`[SAPS-CRC] PRODUCTION MODE: Live integration enforced - NO MOCK FALLBACKS`);
+    } else {
+      // Development/staging can use configurable modes
+      const sapsMode = process.env.SAPS_CRC_MODE || 'mock';
+      const sapsEnabled = process.env.SAPS_CRC_ENABLED === 'true';
+      
+      const productionUrls = {
+        staging: 'https://crc-staging.saps.gov.za/v1', 
+        development: 'https://crc-dev.saps.gov.za/v1'
+      };
+      
+      this.baseUrl = process.env.SAPS_CRC_BASE_URL || productionUrls[environment as keyof typeof productionUrls] || productionUrls.development;
+      this.apiKey = process.env.SAPS_CRC_API_KEY || '';
+      
+      console.log(`[SAPS-CRC] ${environment.toUpperCase()} MODE: ${sapsMode} - Enabled: ${sapsEnabled}`);
     }
   }
 
@@ -240,9 +270,16 @@ export class DHASAPSAdapter {
   }
 
   /**
-   * Perform SAPS API call (mock implementation)
+   * PRODUCTION SECURITY: NO MOCK CALLS IN PRODUCTION
+   * Perform SAPS API call - LIVE ONLY in production
+   * CRITICAL: Mock implementation blocked in production environment
    */
   private async performSAPSApiCall(requestId: string, request: SAPSClearanceRequest): Promise<SAPSClearanceResponse> {
+    // SECURITY CHECK: Block mock calls in production
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('CRITICAL SECURITY ERROR: Mock SAPS API calls are not allowed in production environment. Use live government integrations only.');
+    }
+    
     // Simulate processing delay (criminal record checks take time)
     await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 4000));
 

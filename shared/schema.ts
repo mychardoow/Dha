@@ -5150,3 +5150,161 @@ export const insertIncidentSchema = createInsertSchema(incidents);
 export const insertGovernmentComplianceAuditSchema = createInsertSchema(governmentComplianceAudit);
 export const insertPerformanceBaselineSchema = createInsertSchema(performanceBaselines);
 
+// Security Rules - Define security policies and rules
+export const securityRules = pgTable("security_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ruleName: text("rule_name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // 'access_control', 'encryption', 'audit', 'compliance'
+  ruleType: text("rule_type").notNull(), // 'allow', 'deny', 'monitor', 'enforce'
+  
+  // Rule definition
+  conditions: jsonb("conditions").notNull(), // Rule conditions
+  actions: jsonb("actions").notNull(), // Actions to take
+  priority: integer("priority").notNull().default(0),
+  
+  // Status and controls
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  isEnforced: boolean("is_enforced").notNull().default(true),
+  
+  // Compliance
+  complianceFramework: text("compliance_framework"), // 'POPI', 'ISO27001', 'DHA_SECURITY'
+  riskLevel: riskLevelEnum("risk_level").notNull().default("medium"),
+  
+  // Statistics
+  violationCount: integer("violation_count").notNull().default(0),
+  lastViolation: timestamp("last_violation"),
+  enforcementCount: integer("enforcement_count").notNull().default(0),
+  
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Compliance Events - Track compliance-related events
+export const complianceEvents = pgTable("compliance_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventType: text("event_type").notNull(), // 'audit_started', 'violation_detected', 'remediation_completed'
+  eventCategory: text("event_category").notNull(), // 'security', 'privacy', 'operational', 'regulatory'
+  
+  // Event details
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  severity: severityEnum("severity").notNull(),
+  
+  // Compliance context
+  complianceFramework: text("compliance_framework").notNull(), // 'POPI', 'ISO27001', 'DHA_SECURITY'
+  controlReference: text("control_reference"), // Specific control/section reference
+  requirementId: text("requirement_id"), // Specific requirement ID
+  
+  // Event metadata
+  affectedSystems: jsonb("affected_systems"), // Systems affected
+  affectedData: jsonb("affected_data"), // Data types affected
+  impactAssessment: jsonb("impact_assessment"), // Impact analysis
+  
+  // Resolution tracking
+  status: text("status").notNull().default("open"), // 'open', 'investigating', 'resolved', 'accepted_risk'
+  assignedTo: varchar("assigned_to").references(() => users.id),
+  resolution: text("resolution"),
+  resolvedAt: timestamp("resolved_at"),
+  
+  // Audit trail
+  userId: varchar("user_id").references(() => users.id),
+  sourceSystem: text("source_system"),
+  correlationId: text("correlation_id"), // For linking related events
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+// Security Metrics - Store security-related measurements
+export const securityMetrics = pgTable("security_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  metricName: text("metric_name").notNull(),
+  metricCategory: text("metric_category").notNull(), // 'threat_detection', 'access_control', 'encryption', 'compliance'
+  
+  // Metric value and context
+  value: decimal("value", { precision: 10, scale: 4 }).notNull(),
+  unit: text("unit").notNull(), // 'count', 'percentage', 'score', 'time_ms'
+  
+  // Additional metric data
+  metadata: jsonb("metadata"), // Additional metric context
+  tags: jsonb("tags"), // Categorization tags
+  
+  // Source and timing
+  sourceSystem: text("source_system").notNull(),
+  measurementPeriod: text("measurement_period"), // 'real_time', 'hourly', 'daily', 'weekly'
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  
+  // Quality indicators
+  confidence: decimal("confidence", { precision: 3, scale: 2 }), // 0-100 confidence score
+  accuracy: decimal("accuracy", { precision: 3, scale: 2 }), // 0-100 accuracy score
+  
+  // Alerting thresholds
+  warningThreshold: decimal("warning_threshold", { precision: 10, scale: 4 }),
+  criticalThreshold: decimal("critical_threshold", { precision: 10, scale: 4 }),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Document Verification History - Track document verification events
+export const documentVerificationHistory = pgTable("document_verification_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => documents.id),
+  documentType: documentTypeEnum("document_type").notNull(),
+  
+  // Verification details
+  verificationType: verificationTypeEnum("verification_type").notNull(),
+  verificationResult: verificationResultEnum("verification_result").notNull(),
+  verificationStage: verificationStageEnum("verification_stage").notNull(),
+  
+  // Verification context
+  verifierUserId: varchar("verifier_user_id").references(() => users.id),
+  verifierSystem: text("verifier_system"), // 'automated', 'manual', 'hybrid'
+  verificationMethod: text("verification_method"), // Specific method used
+  
+  // Results and scores
+  confidenceScore: integer("confidence_score"), // 0-100
+  riskScore: integer("risk_score"), // 0-100
+  qualityScore: integer("quality_score"), // 0-100
+  
+  // Detailed results
+  verificationDetails: jsonb("verification_details"), // Detailed verification results
+  flaggedIssues: jsonb("flagged_issues"), // Issues detected
+  recommendations: jsonb("recommendations"), // Recommended actions
+  
+  // External verification references
+  externalVerificationId: text("external_verification_id"), // NPR, SAPS, etc reference
+  externalSystemResponse: jsonb("external_system_response"), // Full external response
+  
+  // Processing metrics
+  processingStartTime: timestamp("processing_start_time").notNull().default(sql`now()`),
+  processingEndTime: timestamp("processing_end_time"),
+  processingDuration: integer("processing_duration"), // milliseconds
+  
+  // Status tracking
+  status: text("status").notNull().default("completed"), // 'pending', 'processing', 'completed', 'failed'
+  errorMessage: text("error_message"),
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+// Type exports for missing types
+export type SecurityRule = typeof securityRules.$inferSelect;
+export type InsertSecurityRule = typeof securityRules.$inferInsert;
+
+export type ComplianceEvent = typeof complianceEvents.$inferSelect;
+export type InsertComplianceEvent = typeof complianceEvents.$inferInsert;
+
+export type SecurityMetric = typeof securityMetrics.$inferSelect;
+export type InsertSecurityMetric = typeof securityMetrics.$inferInsert;
+
+export type DocumentVerificationHistory = typeof documentVerificationHistory.$inferSelect;
+export type InsertDocumentVerificationHistory = typeof documentVerificationHistory.$inferInsert;
+
+// Zod schemas for the new types
+export const insertSecurityRuleSchema = createInsertSchema(securityRules);
+export const insertComplianceEventSchema = createInsertSchema(complianceEvents);
+export const insertSecurityMetricSchema = createInsertSchema(securityMetrics);
+export const insertDocumentVerificationHistorySchema = createInsertSchema(documentVerificationHistory);
+

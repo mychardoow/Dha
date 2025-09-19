@@ -193,10 +193,7 @@ export class SitaIntegrationService {
         throw new Error('Not authenticated with SITA');
       }
 
-      // In development, return simulated service discovery
-      if (this.credentials.environment === 'development') {
-        return this.getSimulatedServices();
-      }
+      // Always use real service discovery for production readiness
 
       const response = await this.makeAuthenticatedRequest({
         service: 'discovery',
@@ -537,27 +534,40 @@ export class SitaIntegrationService {
     headers?: Record<string, string>,
     timeout = 30000
   ): Promise<{ statusCode: number; data: any; headers?: Record<string, string> }> {
-    // In a real implementation, this would use axios or fetch
-    // For development, simulate the response
-    
-    if (this.credentials.environment === 'development') {
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
-      
-      // Simulate successful response
-      return {
-        statusCode: 200,
-        data: this.getSimulatedResponse(url, method, data),
+    try {
+      const options: RequestInit = {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          'X-Rate-Limit-Remaining': '59',
-          'X-Request-ID': crypto.randomUUID()
+          'User-Agent': 'DHA-Digital-Services/2025.1',
+          'Accept': 'application/json',
+          ...headers
         }
       };
-    }
 
-    // Production implementation would use actual HTTP client
-    throw new Error('Production HTTP client not implemented - use fetch or axios');
+      if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      options.signal = controller.signal;
+
+      const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+
+      const responseData = await response.json();
+
+      return {
+        statusCode: response.status,
+        data: responseData,
+        headers: Object.fromEntries([...response.headers.entries()])
+      };
+
+    } catch (error) {
+      console.error(`SITA HTTP request failed:`, error);
+      throw error;
+    }
   }
 
   /**

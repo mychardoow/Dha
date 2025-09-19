@@ -25,6 +25,7 @@ import {
   type AuditLog, type InsertAuditLog, type SecurityIncident, type InsertSecurityIncident,
   type UserBehaviorProfile, type InsertUserBehaviorProfile, type SecurityRule, type InsertSecurityRule,
   type ComplianceEvent, type InsertComplianceEvent, type SecurityMetric, type InsertSecurityMetric,
+  type DocumentVerificationHistory, type InsertDocumentVerificationHistory,
   type RefugeeDocument, type InsertRefugeeDocument, type DiplomaticPassport, type InsertDiplomaticPassport,
   type DocumentDelivery, type InsertDocumentDelivery,
   type DhaOffice, type InsertDhaOffice,
@@ -522,7 +523,7 @@ export interface IStorage {
   updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<void>;
   assignIncidentTo(incidentId: string, assignedTo: string): Promise<void>;
   resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void>;
-  closeIncident(incidentId: string, closedBy: string): Promise<void>;
+  closeSecurityIncident(incidentId: string, closedBy: string): Promise<void>;
   
   // User Behavior Profile methods
   getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined>;
@@ -2747,7 +2748,7 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async closeIncident(incidentId: string, closedBy: string): Promise<void> {
+  async closeSecurityIncident(incidentId: string, closedBy: string): Promise<void> {
     await this.updateSecurityIncident(incidentId, {
       status: 'closed',
       closedAt: new Date()
