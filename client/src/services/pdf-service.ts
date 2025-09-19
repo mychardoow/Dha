@@ -39,17 +39,12 @@ export class PDFService {
   // Generate work permit PDF
   async generateWorkPermit(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/work-permit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/work-permit", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `work_permit_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `work_permit_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -64,17 +59,12 @@ export class PDFService {
   // Generate asylum visa PDF
   async generateAsylumVisa(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/asylum-visa", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/asylum-visa", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `asylum_visa_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `asylum_visa_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -89,17 +79,12 @@ export class PDFService {
   // Generate birth certificate PDF
   async generateBirthCertificate(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/birth-certificate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/birth-certificate", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `birth_certificate_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `birth_certificate_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -114,17 +99,12 @@ export class PDFService {
   // Generate passport PDF
   async generatePassport(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/passport", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/passport", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `passport_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `passport_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -139,17 +119,12 @@ export class PDFService {
   // Generate refugee permit PDF
   async generateRefugeePermit(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/refugee-permit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/refugee-permit", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `refugee_permit_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `refugee_permit_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -164,17 +139,12 @@ export class PDFService {
   // Generate study permit PDF
   async generateStudyPermit(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/study-permit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/study-permit", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `study_permit_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `study_permit_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -189,17 +159,12 @@ export class PDFService {
   // Generate diplomatic passport PDF
   async generateDiplomaticPassport(data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest("/api/pdf/generate/diplomatic-passport", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/pdf/generate/diplomatic-passport", data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `diplomatic_passport_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `diplomatic_passport_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -214,17 +179,12 @@ export class PDFService {
   // Generate any document by type
   async generateDocument(documentType: string, data: any): Promise<{ success: boolean; filename?: string; error?: string }> {
     try {
-      const response = await apiRequest(`/api/pdf/generate/${documentType}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", `/api/pdf/generate/${documentType}`, data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const filename = response.filename || `${documentType}_${Date.now()}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const filename = responseData.filename || `${documentType}_${Date.now()}.pdf`;
         this.downloadFile(blob, filename);
         return { success: true, filename };
       }
@@ -239,16 +199,11 @@ export class PDFService {
   // Preview PDF (returns base64 data for preview)
   async previewDocument(documentType: string, data: any): Promise<{ success: boolean; pdfData?: string; error?: string }> {
     try {
-      const response = await apiRequest(`/api/pdf/preview/${documentType}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", `/api/pdf/preview/${documentType}`, data);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        return { success: true, pdfData: response.pdf };
+      if (responseData.pdf) {
+        return { success: true, pdfData: responseData.pdf };
       }
 
       return { success: false, error: "No PDF data received" };
@@ -261,13 +216,12 @@ export class PDFService {
   // Download existing PDF by reference
   async downloadExistingPDF(documentId: string, filename?: string): Promise<{ success: boolean; error?: string }> {
     try {
-      const response = await apiRequest(`/api/pdf/download/${documentId}`, {
-        method: "GET",
-      });
+      const response = await apiRequest("GET", `/api/pdf/download/${documentId}`);
+      const responseData = await response.json();
 
-      if (response.pdf) {
-        const blob = this.base64ToBlob(response.pdf);
-        const downloadName = filename || response.filename || `document_${documentId}.pdf`;
+      if (responseData.pdf) {
+        const blob = this.base64ToBlob(responseData.pdf);
+        const downloadName = filename || responseData.filename || `document_${documentId}.pdf`;
         this.downloadFile(blob, downloadName);
         return { success: true };
       }
