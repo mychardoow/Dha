@@ -141,9 +141,9 @@ export class AIAssistantService {
       const conversationHistory = await this.getConversationHistory(conversationId);
       
       // CRITICAL SECURITY: Sanitize conversation history
-      let sanitizedHistory = conversationHistory;
+      let sanitizedHistory: Array<{role: "user" | "assistant", content: string}> = conversationHistory;
       if (enablePIIRedaction) {
-        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory);
+        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory) as Array<{role: "user" | "assistant", content: string}>;
       }
 
       const messages = [
@@ -267,9 +267,9 @@ export class AIAssistantService {
       const conversationHistory = await this.getConversationHistory(conversationId);
       
       // CRITICAL SECURITY: Sanitize conversation history
-      let sanitizedHistory = conversationHistory;
+      let sanitizedHistory: Array<{role: "user" | "assistant", content: string}> = conversationHistory;
       if (enablePIIRedaction) {
-        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory);
+        sanitizedHistory = privacyProtectionService.sanitizeConversationHistoryForAI(conversationHistory) as Array<{role: "user" | "assistant", content: string}>;
       }
 
       const messages = [

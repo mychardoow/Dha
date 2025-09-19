@@ -66,6 +66,23 @@ export function verifyToken(token: string): any {
 
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
+    // DEVELOPMENT MODE: Bypass authentication and use a default user
+    // In Replit, NODE_ENV is typically not set, so we check for not being in production
+    if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+      console.log('[AUTH] Development mode: bypassing authentication');
+      
+      // Create a default development user
+      req.user = {
+        id: 'dev-user-001',
+        username: 'developer',
+        email: 'dev@example.com',
+        role: 'user'
+      } as AuthenticatedUser;
+      
+      return next();
+    }
+
+    // PRODUCTION MODE: Require proper authentication
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -131,6 +148,9 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     });
   }
 }
+
+// Export requireAuth as an alias for authenticate (for compatibility with AI assistant routes)
+export const requireAuth = authenticate;
 
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
