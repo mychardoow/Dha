@@ -6784,6 +6784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('[Server] Autonomous monitoring system initialized successfully');
   }).catch((error: any) => {
     console.error('[Server] Failed to initialize autonomous monitoring system:', error);
+    // Don't rethrow error to prevent process termination - continue with basic functionality
   });
 
   return httpServer;

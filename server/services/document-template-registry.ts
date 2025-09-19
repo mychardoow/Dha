@@ -7,6 +7,8 @@
 import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
+import * as QRCode from "qrcode";
+const bwipjs = require("bwip-js");
 
 // Import existing generators
 import { enhancedPdfGenerationService, EnhancedPDFGenerationService, DocumentType } from "./enhanced-pdf-generation-service";
@@ -335,7 +337,7 @@ export class DocumentTemplateRegistry {
    */
   private async generateSecurityFeatures(request: any): Promise<SecurityFeatureSet> {
     const qrCode = await this.generateQRCode(request);
-    const barcode = await this.generateBarcode(request.serialNumber);
+    const barcode = await this.generateBarcode(request.serialNumber || crypto.randomBytes(6).toString('hex'));
     const cryptographicHash = crypto
       .createHash('sha256')
       .update(JSON.stringify(request))
@@ -499,6 +501,31 @@ export class DocumentTemplateRegistry {
     } catch (error) {
       console.error("QR Code generation failed:", error);
       return "";
+    }
+  }
+
+  private async generateBarcode(serialNumber: string): Promise<string> {
+    try {
+      // Generate Code 128 barcode data URL for DHA documents
+      // This creates a machine-readable barcode that can be scanned
+      const barcodeData = `DHA-${serialNumber}`;
+      
+      // Generate real PNG barcode using bwip-js
+      const pngBuffer = await bwipjs.toBuffer({
+        bcid: 'code128',       // Barcode type
+        text: barcodeData,     // Text to encode
+        scale: 3,              // 3x scaling factor
+        height: 10,            // Bar height, in millimeters
+        includetext: true,     // Show human-readable text
+        textxalign: 'center',  // Horizontally center text
+      });
+      
+      // Convert buffer to base64 data URL
+      const base64 = pngBuffer.toString('base64');
+      return `data:image/png;base64,${base64}`;
+    } catch (error) {
+      console.error("Barcode generation failed:", error);
+      return `BARCODE_${serialNumber}`;
     }
   }
   
