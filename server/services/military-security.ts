@@ -71,7 +71,7 @@ export class MilitarySecurityService {
 
   // Hardware Security Module (HSM) Simulation
   private hsmKeys: Map<string, Buffer> = new Map();
-  private keyWrappingKey: Buffer;
+  private keyWrappingKey: Buffer = Buffer.alloc(32); // Initialize with empty buffer
   private secureEnclave: Map<string, any> = new Map();
   private cacSessions: Map<string, any> = new Map();
   private classifiedData: Map<string, any> = new Map();
@@ -163,7 +163,7 @@ export class MilitarySecurityService {
       timestamp: Date.now(),
       algorithm: 'AES-256-GCM'
     }));
-    cipher.setAAD(aad);
+    (cipher as any).setAAD(aad);
     
     let encrypted = cipher.update(data, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -547,27 +547,6 @@ export class MilitarySecurityService {
   /**
    * Helper Methods
    */
-  private getDisseminationControls(level: keyof typeof this.CLASSIFICATION): string[] {
-    switch(level) {
-      case 'TOP_SECRET_SCI':
-        return ['NOFORN', 'EYES ONLY', 'SCI'];
-      case 'TOP_SECRET':
-        return ['NOFORN', 'RESTRICTED'];
-      case 'SECRET':
-        return ['NOFORN'];
-      case 'CONFIDENTIAL':
-        return ['FOUO'];
-      default:
-        return [];
-    }
-  }
-
-  private getDeclassificationDate(level: keyof typeof this.CLASSIFICATION): string {
-    const years = level === 'TOP_SECRET_SCI' ? 25 : level === 'TOP_SECRET' ? 20 : 10;
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + years);
-    return date.toISOString();
-  }
 
   private generatePQCKeyPair(algorithm: string): any {
     // Simulated PQC key generation
@@ -635,7 +614,7 @@ export class MilitarySecurityService {
     };
   }
 
-  private getDisseminationControls(level: string): string[] {
+  private getDisseminationControls(level: keyof typeof this.CLASSIFICATION | string): string[] {
     const controls: string[] = [];
     
     switch (level) {
@@ -658,7 +637,7 @@ export class MilitarySecurityService {
     return controls;
   }
 
-  private getDeclassificationDate(level: string): string {
+  private getDeclassificationDate(level: keyof typeof this.CLASSIFICATION | string): string {
     const now = new Date();
     let years = 10; // Default declassification period
     
@@ -697,7 +676,7 @@ export class MilitarySecurityService {
 
   private async validateClassificationLevels(): Promise<void> {
     // Validate all classified data items
-    for (const [id, item] of this.classifiedData.entries()) {
+    for (const [id, item] of Array.from(this.classifiedData.entries())) {
       if (item.declassifyOn && new Date(item.declassifyOn) <= new Date()) {
         // Automatic declassification
         item.classification = 'UNCLASSIFIED';
@@ -740,8 +719,9 @@ export class MilitarySecurityService {
       throw new Error(`HSM key ${keyId} not found`);
     }
     
-    // Create signature using HSM key
-    const signature = createHmac('sha512', key.privateKey)
+    // Create signature using HSM key (unwrap first)
+    const unwrappedKey = this.unwrapKey(key);
+    const signature = createHmac('sha512', unwrappedKey)
       .update(data)
       .digest('hex');
     
