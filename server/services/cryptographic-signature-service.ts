@@ -728,10 +728,8 @@ export class CryptographicSignatureService {
    * Generate development self-signed certificate and matching private key
    */
   private generateDevelopmentCertificateAndKey(): { certPem: string; privateKeyPem: string } {
-    // Safely handle forge.pki.rsa which may be undefined
-    const keys = forge.pki?.rsa?.generateKeyPair ? 
-      forge.pki.rsa.generateKeyPair(2048) : 
-      forge.rsa.generateKeyPair(2048);
+    // Generate RSA key pair using node-forge
+    const keys = forge.pki.rsa.generateKeyPair(2048);
     
     const cert = forge.pki.createCertificate();
     cert.publicKey = keys.publicKey;

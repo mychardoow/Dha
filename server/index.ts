@@ -301,6 +301,51 @@ async function initializeServer() {
       }
     });
 
+    // Add mock login endpoint for frontend compatibility
+    app.post('/api/auth/mock-login', async (req, res) => {
+      try {
+        const { username, password } = req.body;
+        console.log('[Auth] Mock login attempt for:', username);
+        
+        // Check mock credentials
+        if ((username === 'admin' && password === 'admin123') ||
+            (username === 'user' && password === 'password123')) {
+          
+          const user = username === 'admin' ? 
+            { id: 'admin-1', username: 'admin', email: 'admin@dha.gov.za', role: 'admin' } :
+            { id: 'user-1', username: 'user', email: 'user@dha.gov.za', role: 'user' };
+          
+          // Generate token
+          const token = jwt.sign({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role
+          }, JWT_SECRET, { expiresIn: '24h' });
+          
+          console.log('[Auth] ✅ Mock login successful for:', user.username);
+          
+          res.json({
+            message: 'Mock login successful',
+            token,
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              role: user.role
+            }
+          });
+        } else {
+          console.log('[Auth] Invalid mock credentials for:', username);
+          res.status(401).json({ error: 'Invalid mock credentials' });
+        }
+        
+      } catch (error) {
+        console.error('[Auth] Mock login error:', error);
+        res.status(500).json({ error: 'Mock login failed', details: (error as Error).message });
+      }
+    });
+
     // Add basic AI chat endpoint
     app.post('/api/ai/chat', async (req, res) => {
       try {
