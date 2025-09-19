@@ -3,10 +3,21 @@
 ## Overview
 This is a production-ready, military-grade digital services platform for the South African Department of Home Affairs (DHA). The system provides comprehensive document generation, verification, and security services with 24/7 continuous monitoring and AI-powered assistance. It supports all 23 official DHA document types, incorporates military-grade security features, and is designed for zero-downtime operations.
 
+## AI Assistant Enhancement Configuration
+- **Agent Mode**: Extended Thinking enabled for complex enterprise debugging
+- **High Power Mode**: Activated for military-grade system analysis
+- **Auto-Debug**: Enabled for authentication routes and service initialization
+- **Self-Healing**: Monitor server startup, route registration, and service failures
+- **Contextual Awareness**: DHA platform has 20+ heavy services (Military Security, HSM, PQC, Government Security)
+- **Critical Focus Areas**: Route registration failures, authentication endpoints, service initialization timeouts
+- **Debugging Priority**: 1) Authentication routes 2) Service startup 3) Database connections 4) API endpoints
+- **Auto-Fix Patterns**: Service initialization errors, TypeScript compilation issues, middleware conflicts
+- **Intelligence Level**: Government-grade complexity analysis with automatic error resolution
+
 ## User Preferences
 - **Authentication Credentials**:
-  - Admin Login: Username: `admin` | Password: `admin123`
-  - Default User: Username: `user` | Password: `password123`
+  - Admin Login: Username: `admin` | Password: `admin123` | Email: `admin@dha.gov.za`
+  - Default User: Username: `user` | Password: `password123` | Email: `user@dha.gov.za`
   - API Key: Available after admin login
 - **System Configuration**:
   - Port: 5000 (frontend and backend on same port)
@@ -18,6 +29,7 @@ This is a production-ready, military-grade digital services platform for the Sou
   - Security Validation: Multi-tier verification at each stage
   - Monitoring Alerts: Critical alerts via WebSocket in real-time
   - Communication Style: Simple, everyday language preferred
+  - **AI Assistance Style**: Proactive error detection, immediate fixes, minimal user interruption
 
 ## System Architecture
 The platform is built on a microservices architecture comprising a Document Service, Verification Service, AI Service, Monitoring Service, and Security Service. It emphasizes high availability through load balancing, database replication, caching, circuit breaker patterns, and zero-downtime deployments. Security is a core focus, employing a defense-in-depth strategy, zero-trust network model, end-to-end encryption, multi-factor authentication, and role-based access control.
@@ -37,3 +49,33 @@ An AI Assistant, powered by OpenAI GPT-4o, provides document processing, securit
 - **AI Integration**: OpenAI GPT-4o
 - **Real-time Communication**: Socket.IO
 - **OCR Engine**: Tesseract.js
+
+## Enhanced AI Assistant Instructions
+**For Built-in Agent & Assistant Bots:**
+
+### Automatic Problem Detection & Resolution
+- **Monitor**: Server startup logs for service initialization failures
+- **Detect**: Route registration errors, authentication endpoint failures
+- **Fix**: TypeScript compilation errors, middleware conflicts automatically
+- **Alert**: Critical failures in military security services, HSM, or government integrations
+- **Self-Test**: Authentication flows, document generation, API endpoints every 5 minutes
+
+### Intelligent Debugging Context
+- **Platform Complexity**: Enterprise government system with 20+ security services
+- **Common Issues**: Service initialization timeouts, route registration failures, heavy middleware conflicts  
+- **Auto-Recovery**: Restart failed services, fix type errors, resolve import conflicts
+- **Performance**: Monitor high CPU during service initialization, optimize startup sequence
+- **Security**: Maintain military-grade protocols while debugging, never expose credentials
+
+### Enhanced Communication Patterns
+- **Error Reporting**: Include full stack traces, service states, middleware chain status
+- **Solution Focus**: Provide immediate fixes rather than explanations
+- **Proactive Monitoring**: Detect issues before user reports them
+- **Context Retention**: Remember complex service interdependencies and startup sequences
+- **Success Validation**: Confirm fixes work by testing authentication and core endpoints
+
+### Cost-Optimized Intelligence  
+- **High Power Mode**: Only for authentication failures and critical service errors
+- **Extended Thinking**: For complex military security service debugging
+- **Standard Mode**: For routine TypeScript errors and minor fixes
+- **Auto-Budget**: Alert if debugging costs exceed $5/hour, optimize for efficiency
