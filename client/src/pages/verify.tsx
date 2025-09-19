@@ -87,9 +87,8 @@ export default function DocumentVerificationPage() {
   // Verify document mutation
   const verifyMutation = useMutation({
     mutationFn: async (code: string) => {
-      return apiRequest(`/api/verify/${code.toUpperCase()}`, {
-        method: "GET"
-      });
+      const response = await apiRequest("GET", `/api/verify/${code.toUpperCase()}`);
+      return response.json();
     },
     onSuccess: (data: VerificationResult) => {
       setVerificationResult(data);
@@ -125,10 +124,8 @@ export default function DocumentVerificationPage() {
   // Log scan attempt mutation
   const scanMutation = useMutation({
     mutationFn: async (data: { code: string; location?: string; deviceInfo?: any }) => {
-      return apiRequest("/api/verification/scan", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      const response = await apiRequest("POST", "/api/verification/scan", data);
+      return response.json();
     }
   });
 
