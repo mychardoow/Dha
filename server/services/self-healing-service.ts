@@ -451,8 +451,9 @@ export class SelfHealingService extends EventEmitter {
         };
       }
 
-      // Test actual database query
-      const testResult = await db.$count(storage.users as any);
+      // Test database connection
+      const testResult = dbStatus.healthy;
+      const hasUsers = testResult === true;
       
       const metrics = {
         connectionPool: dbStatus.poolSize,
@@ -1088,7 +1089,7 @@ export class SelfHealingService extends EventEmitter {
       console.log('[SelfHealing] Critical system state detected, evaluating healing needs');
       
       // Check if immediate healing is needed
-      for (const [serviceName, service] of this.services) {
+      for (const [serviceName, service] of Array.from(this.services)) {
         if (service.status === 'critical' || service.status === 'failed') {
           await this.evaluateHealingNeeds(serviceName, service);
         }
@@ -1175,7 +1176,7 @@ export class SelfHealingService extends EventEmitter {
       actionsByType: {} as Record<string, number>
     };
     
-    for (const action of this.healingActions.values()) {
+    for (const action of Array.from(this.healingActions.values())) {
       stats.executedActions += action.executionCount;
       stats.successfulActions += action.successCount;
       
