@@ -17,11 +17,13 @@ import {
   Bot, Send, Mic, MicOff, Languages, FileText, HelpCircle,
   Sparkles, MessageSquare, Loader2, Copy, ThumbsUp, ThumbsDown,
   RefreshCw, Settings, Globe, ChevronDown, Info, BookOpen,
-  FileQuestion, Clock, CheckCircle, AlertCircle, X, Maximize2, Minimize2
+  FileQuestion, Clock, CheckCircle, AlertCircle, X, Maximize2, Minimize2,
+  Crown, Shield, Unlock, Zap
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Message {
   id: string;
@@ -57,20 +59,10 @@ export default function AIChatAssistant({
   onMinimize 
 }: AIChatAssistantProps) {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      role: "assistant",
-      content: "Hello! I'm your AI assistant for the Department of Home Affairs. I can help you with document requirements, application processes, verification, and answer any questions you have. How can I assist you today?",
-      timestamp: new Date(),
-      suggestions: [
-        "What documents do I need for a passport?",
-        "How long does work permit processing take?",
-        "Help me verify a document",
-        "What are the requirements for permanent residence?"
-      ]
-    }
-  ]);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage);
@@ -144,20 +136,83 @@ export default function AIChatAssistant({
     }
   ];
 
+  // Initialize welcome message based on user role
+  useEffect(() => {
+    const welcomeMessage: Message = isAdmin ? {
+      id: "admin-welcome",
+      role: "system",
+      content: `🔓 **ADMIN AI ASSISTANT - UNLIMITED AUTHORITY ACTIVATED**
+
+**STATUS**: Administrator privileges granted
+**RESTRICTIONS**: None - Full unrestricted access
+**CAPABILITIES**: Unlimited commands and queries
+**AUTHORITY LEVEL**: MAXIMUM
+
+As an administrator, you have unrestricted access to the AI assistant with no content filters, consent requirements, or operational limitations.
+
+**Available Commands:**
+• System operations and monitoring
+• Database queries and management
+• User account administration  
+• Security analysis and configuration
+• Document processing and generation
+• API and service management
+• Custom development tasks
+• Any other administrative function
+
+**How to Use:**
+Simply type any command or question below. The AI will process your requests without any restrictions or "sorry cannot answer" responses.
+
+Ready for your commands, Administrator.`,
+      timestamp: new Date(),
+      suggestions: [
+        "Show system status",
+        "List all users", 
+        "Check database health",
+        "View security logs",
+        "Generate admin reports",
+        "Access system configuration"
+      ]
+    } : {
+      id: "user-welcome",
+      role: "assistant",
+      content: "Hello! I'm your AI assistant for the Department of Home Affairs. I can help you with document requirements, application processes, verification, and answer any questions you have. How can I assist you today?",
+      timestamp: new Date(),
+      suggestions: [
+        "What documents do I need for a passport?",
+        "How long does work permit processing take?",
+        "Help me verify a document",
+        "What are the requirements for permanent residence?"
+      ]
+    };
+    
+    setMessages([welcomeMessage]);
+  }, [isAdmin]);
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      // Fixed: apiRequest expects (method, url, data) not (url, options)
-      const response = await apiRequest(
-        "POST",
-        "/api/ai/chat",
-        {
-          message,
-          conversationId: conversationIdRef.current, // Use stable conversation ID
-          includeContext: true,
-          language: selectedLanguage
+      // Use admin endpoint for admin users, regular endpoint for others
+      const endpoint = isAdmin ? "/api/ai/admin/chat" : "/api/ai/chat";
+      const requestData = isAdmin ? {
+        message,
+        conversationId: conversationIdRef.current,
+        adminOverride: true,
+        bypassRestrictions: true,
+        unlimitedMode: true,
+        context: {
+          role: "administrator",
+          clearanceLevel: "MAXIMUM",
+          restrictions: "NONE"
         }
-      );
+      } : {
+        message,
+        conversationId: conversationIdRef.current,
+        includeContext: true,
+        language: selectedLanguage
+      };
+
+      const response = await apiRequest("POST", endpoint, requestData);
       return response.json();
     },
     onSuccess: (data) => {
@@ -355,54 +410,99 @@ export default function AIChatAssistant({
   const chatContent = (
     <>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className={cn(
+        "flex items-center justify-between p-4 border-b",
+        isAdmin ? "bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-yellow-500/20" : ""
+      )}>
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              <Bot className="h-6 w-6" />
+          <Avatar className={cn(
+            "h-10 w-10",
+            isAdmin ? "bg-yellow-500 text-black" : "bg-primary text-primary-foreground"
+          )}>
+            <AvatarFallback className={isAdmin ? "bg-yellow-500 text-black" : "bg-primary text-primary-foreground"}>
+              {isAdmin ? <Crown className="h-6 w-6" /> : <Bot className="h-6 w-6" />}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold">DHA AI Assistant</h3>
-            <p className="text-xs text-muted-foreground">Always here to help</p>
+            <h3 className={cn(
+              "font-semibold flex items-center gap-2",
+              isAdmin ? "text-yellow-600 dark:text-yellow-400" : ""
+            )}>
+              {isAdmin ? (
+                <>
+                  <Crown className="h-4 w-4" />
+                  Admin AI Assistant
+                  <Badge className="bg-red-500 text-white animate-pulse">UNLIMITED</Badge>
+                </>
+              ) : (
+                "DHA AI Assistant"
+              )}
+            </h3>
+            <p className={cn(
+              "text-xs",
+              isAdmin ? "text-yellow-700 dark:text-yellow-300 flex items-center gap-1" : "text-muted-foreground"
+            )}>
+              {isAdmin ? (
+                <>
+                  <Unlock className="h-3 w-3" />
+                  Unlimited Authority • No Restrictions
+                </>
+              ) : (
+                "Always here to help"
+              )}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" data-testid="button-language">
-                <Languages className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56">
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Select Language</h4>
-                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map(lang => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="auto-translate"
-                    checked={autoTranslate}
-                    onChange={(e) => setAutoTranslate(e.target.checked)}
-                  />
-                  <label htmlFor="auto-translate" className="text-sm">
-                    Auto-translate responses
-                  </label>
+          {isAdmin && (
+            <div className="flex items-center gap-1 mr-2">
+              <Badge variant="destructive" className="animate-pulse">
+                <Shield className="h-3 w-3 mr-1" />
+                ADMIN
+              </Badge>
+              <Badge className="bg-green-500 text-white">
+                <Zap className="h-3 w-3 mr-1" />
+                UNLIMITED
+              </Badge>
+            </div>
+          )}
+          {!isAdmin && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" data-testid="button-language">
+                  <Languages className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56">
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Select Language</h4>
+                  <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map(lang => (
+                        <SelectItem key={lang.code} value={lang.code}>
+                          {lang.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="auto-translate"
+                      checked={autoTranslate}
+                      onChange={(e) => setAutoTranslate(e.target.checked)}
+                    />
+                    <label htmlFor="auto-translate" className="text-sm">
+                      Auto-translate responses
+                    </label>
+                  </div>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverContent>
+            </Popover>
+          )}
           {embedded && (
             <>
               <Button
@@ -426,23 +526,49 @@ export default function AIChatAssistant({
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="p-3 border-b bg-muted/30">
-        <div className="flex gap-2 flex-wrap">
-          {quickActions.map((action, index) => (
-            <Button
-              key={index}
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickAction(action)}
-              className="text-xs"
-              data-testid={`quick-action-${action.category}`}
-            >
-              <action.icon className="h-3 w-3 mr-1" />
-              {action.label}
-            </Button>
-          ))}
-        </div>
+      {/* Quick Actions / Admin Status */}
+      <div className={cn(
+        "p-3 border-b",
+        isAdmin ? "bg-gradient-to-r from-yellow-500/10 to-purple-500/10" : "bg-muted/30"
+      )}>
+        {isAdmin ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-yellow-600 dark:text-yellow-400">
+              <Crown className="h-4 w-4" />
+              Administrator Command Center
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Badge variant="outline" className="text-xs">
+                <Unlock className="h-3 w-3 mr-1" />
+                No Consent Required
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                <Shield className="h-3 w-3 mr-1" />
+                All Access Granted
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                <Zap className="h-3 w-3 mr-1" />
+                Unlimited Commands
+              </Badge>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {quickActions.map((action, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction(action)}
+                className="text-xs"
+                data-testid={`quick-action-${action.category}`}
+              >
+                <action.icon className="h-3 w-3 mr-1" />
+                {action.label}
+              </Button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Messages */}

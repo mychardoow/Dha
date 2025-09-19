@@ -15,7 +15,9 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  User
+  User,
+  Bot,
+  Crown
 } from "lucide-react";
 import { auth } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +34,13 @@ const adminNavigationItems = [
     href: "/admin/dashboard",
     icon: BarChart3,
     description: "System overview and metrics"
+  },
+  {
+    title: "AI Assistant",
+    href: "/admin/ai-chat",
+    icon: Crown,
+    description: "Unlimited AI chat with admin authority",
+    badge: "UNLIMITED"
   },
   {
     title: "User Management",
@@ -188,13 +197,20 @@ function AdminSidebar({ mobile = false, onNavigate }: AdminSidebarProps) {
                     isActive 
                       ? "bg-primary/10 text-primary border-l-2 border-l-primary" 
                       : "hover:bg-muted/50"
-                  }`}
+                  } ${item.href === "/admin/ai-chat" ? "relative" : ""}`}
                   onClick={handleNavigate}
                   data-testid={`nav-${item.href.split("/").pop()}`}
                 >
-                  <Icon className="h-5 w-5 mr-3" />
-                  <div className="text-left">
-                    <div className="font-medium">{item.title}</div>
+                  <Icon className={`h-5 w-5 mr-3 ${item.href === "/admin/ai-chat" ? "text-yellow-500" : ""}`} />
+                  <div className="text-left flex-1">
+                    <div className={`font-medium flex items-center gap-2 ${item.href === "/admin/ai-chat" ? "text-yellow-600 dark:text-yellow-400" : ""}`}>
+                      {item.title}
+                      {item.badge && (
+                        <Badge className="bg-red-500 text-white text-xs animate-pulse">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </div>
                     {!mobile && (
                       <div className="text-xs text-muted-foreground">{item.description}</div>
                     )}
