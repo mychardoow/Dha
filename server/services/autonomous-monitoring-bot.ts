@@ -16,6 +16,11 @@ import os from "os";
 
 interface MonitoringConfig {
   healthCheckInterval: number; // milliseconds
+  minHealthCheckInterval: number; // minimum interval for adaptive scheduling
+  maxHealthCheckInterval: number; // maximum interval for adaptive scheduling
+  adaptiveSchedulingEnabled: boolean;
+  jitterEnabled: boolean;
+  backpressureEnabled: boolean;
   anomalyDetectionEnabled: boolean;
   autoRecoveryEnabled: boolean;
   maintenanceEnabled: boolean;
@@ -94,6 +99,13 @@ export class AutonomousMonitoringBot extends EventEmitter {
   private alertRules: Map<string, any> = new Map();
   private incidentCounter = 0;
   private complianceScheduler: NodeJS.Timeout | null = null;
+  
+  // Adaptive scheduling state
+  private currentInterval = 5000; // Current adaptive interval
+  private systemLoadHistory: number[] = [];
+  private lastHealthCheckDuration = 0;
+  private consecutiveHighLoadCycles = 0;
+  private adaptiveIntervalAdjustments = 0;
 
   private constructor() {
     super();
@@ -111,28 +123,34 @@ export class AutonomousMonitoringBot extends EventEmitter {
 
   private getDefaultConfig(): MonitoringConfig {
     return {
-      healthCheckInterval: 30000, // 30 seconds
+      // CORRECTED: Millisecond-level monitoring with adaptive scheduling (not microsecond-level)
+      healthCheckInterval: 5000, // 5 seconds default (government-appropriate frequency)
+      minHealthCheckInterval: 1000, // 1 second minimum for high-load situations
+      maxHealthCheckInterval: 30000, // 30 seconds maximum for low-load situations
+      adaptiveSchedulingEnabled: true,
+      jitterEnabled: true, // Prevent thundering herd
+      backpressureEnabled: true, // CPU saturation protection
       anomalyDetectionEnabled: true,
       autoRecoveryEnabled: true,
       maintenanceEnabled: true,
       complianceAuditEnabled: true,
-      maxRetryAttempts: 3,
+      maxRetryAttempts: 5,
       alertThresholds: {
-        cpu: 85,
-        memory: 90,
-        diskSpace: 85,
-        errorRate: 5,
-        responseTime: 5000
+        cpu: 80, // More sensitive thresholds
+        memory: 85,
+        diskSpace: 80,
+        errorRate: 2, // Lower error tolerance
+        responseTime: 500 // Much faster response requirement (500ms)
       },
       circuitBreakerSettings: {
-        failureThreshold: 5,
-        recoveryTimeout: 60000, // 1 minute
-        halfOpenRetries: 3
+        failureThreshold: 3, // More sensitive
+        recoveryTimeout: 30000, // 30 seconds recovery
+        halfOpenRetries: 2
       },
       governmentCompliance: {
-        uptimeRequirement: 99.5,
+        uptimeRequirement: 99.99, // Government-grade uptime requirement
         incidentReportingEnabled: true,
-        auditFrequency: '0 0 */12 * *' // Every 12 hours
+        auditFrequency: '0 0 */6 * *' // Every 6 hours
       }
     };
   }
@@ -159,6 +177,10 @@ export class AutonomousMonitoringBot extends EventEmitter {
       }
 
       console.log(`[AutonomousBot] Configuration loaded: ${rules.length} alert rules, ${circuitStates.length} circuit breakers, ${baselines.length} baselines`);
+      console.log(`[AutonomousBot] MONITORING CAPABILITY: Millisecond-level monitoring with adaptive scheduling (${this.config.minHealthCheckInterval}-${this.config.maxHealthCheckInterval}ms range)`);
+      if (this.config.adaptiveSchedulingEnabled) {
+        console.log(`[AutonomousBot] ADAPTIVE FEATURES: Scheduling=ON, Jitter=${this.config.jitterEnabled}, Backpressure=${this.config.backpressureEnabled}`);
+      }
     } catch (error) {
       console.error('[AutonomousBot] Error loading configuration:', error);
     }
@@ -293,6 +315,39 @@ export class AutonomousMonitoringBot extends EventEmitter {
 
     this.emit('stopped', { timestamp: new Date() });
     console.log('[AutonomousBot] Stopped successfully');
+  }
+
+  /**
+   * Get adaptive monitoring statistics for verification
+   */
+  public getMonitoringStatistics(): {
+    monitoringCapability: string;
+    currentInterval: number;
+    intervalRange: string;
+    adaptiveAdjustments: number;
+    systemLoadHistory: number[];
+    consecutiveHighLoadCycles: number;
+    lastHealthCheckDuration: number;
+    adaptiveFeatures: {
+      adaptiveScheduling: boolean;
+      jitterEnabled: boolean;
+      backpressureEnabled: boolean;
+    };
+  } {
+    return {
+      monitoringCapability: "Millisecond-level monitoring with adaptive scheduling",
+      currentInterval: this.currentInterval,
+      intervalRange: `${this.config.minHealthCheckInterval}-${this.config.maxHealthCheckInterval}ms`,
+      adaptiveAdjustments: this.adaptiveIntervalAdjustments,
+      systemLoadHistory: [...this.systemLoadHistory],
+      consecutiveHighLoadCycles: this.consecutiveHighLoadCycles,
+      lastHealthCheckDuration: this.lastHealthCheckDuration,
+      adaptiveFeatures: {
+        adaptiveScheduling: this.config.adaptiveSchedulingEnabled,
+        jitterEnabled: this.config.jitterEnabled,
+        backpressureEnabled: this.config.backpressureEnabled
+      }
+    };
   }
 
   /**
@@ -488,16 +543,52 @@ export class AutonomousMonitoringBot extends EventEmitter {
   }
 
   /**
-   * Start continuous health monitoring
+   * Start continuous health monitoring with adaptive scheduling
    */
   private async startHealthMonitoring(): Promise<void> {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
 
-    this.healthCheckInterval = setInterval(async () => {
+    // Initialize adaptive scheduling
+    this.currentInterval = this.config.healthCheckInterval;
+    
+    // Start adaptive monitoring loop
+    await this.scheduleNextHealthCheck();
+
+    // Perform initial health check
+    await this.performHealthCheck();
+    console.log(`[AutonomousBot] CORRECTED: Millisecond-level adaptive health monitoring started`);
+    console.log(`[AutonomousBot] Initial interval: ${this.currentInterval}ms (adaptive: ${this.config.adaptiveSchedulingEnabled})`);
+  }
+
+  /**
+   * Schedule next health check with adaptive interval and jitter
+   */
+  private async scheduleNextHealthCheck(): Promise<void> {
+    if (!this.isRunning) return;
+
+    // Calculate adaptive interval based on system load
+    if (this.config.adaptiveSchedulingEnabled) {
+      this.currentInterval = await this.calculateAdaptiveInterval();
+    }
+
+    // Apply jitter to prevent thundering herd
+    let actualInterval = this.currentInterval;
+    if (this.config.jitterEnabled) {
+      const jitterRange = this.currentInterval * 0.1; // ±10% jitter
+      const jitter = (Math.random() - 0.5) * 2 * jitterRange;
+      actualInterval = Math.max(this.config.minHealthCheckInterval, this.currentInterval + jitter);
+    }
+
+    this.healthCheckInterval = setTimeout(async () => {
       try {
+        const startTime = Date.now();
         await this.performHealthCheck();
+        this.lastHealthCheckDuration = Date.now() - startTime;
+        
+        // Schedule next check
+        await this.scheduleNextHealthCheck();
       } catch (error) {
         console.error('[AutonomousBot] Health check error:', error);
         await this.handleCriticalError({
@@ -505,12 +596,83 @@ export class AutonomousMonitoringBot extends EventEmitter {
           context: { component: 'health_check' },
           severity: 'high'
         });
+        
+        // Still schedule next check even on error
+        await this.scheduleNextHealthCheck();
       }
-    }, this.config.healthCheckInterval);
+    }, actualInterval);
+  }
 
-    // Perform initial health check
-    await this.performHealthCheck();
-    console.log(`[AutonomousBot] Health monitoring started (interval: ${this.config.healthCheckInterval}ms)`);
+  /**
+   * Calculate adaptive interval based on system load and backpressure
+   */
+  private async calculateAdaptiveInterval(): Promise<number> {
+    try {
+      // Get current system metrics
+      const systemHealth = await monitoringService.getSystemHealth();
+      const currentLoad = Math.max(systemHealth.cpu, systemHealth.memory);
+      
+      // Track load history for trend analysis
+      this.systemLoadHistory.push(currentLoad);
+      if (this.systemLoadHistory.length > 10) {
+        this.systemLoadHistory.shift(); // Keep last 10 measurements
+      }
+      
+      // Calculate average load
+      const avgLoad = this.systemLoadHistory.reduce((a, b) => a + b, 0) / this.systemLoadHistory.length;
+      
+      // BACKPRESSURE: Increase interval under high load
+      if (this.config.backpressureEnabled) {
+        if (avgLoad > 80) {
+          this.consecutiveHighLoadCycles++;
+          // Exponential backoff under sustained high load
+          const backoffMultiplier = Math.min(2 ** Math.floor(this.consecutiveHighLoadCycles / 3), 8);
+          const newInterval = Math.min(
+            this.config.healthCheckInterval * backoffMultiplier,
+            this.config.maxHealthCheckInterval
+          );
+          
+          console.log(`[AutonomousBot] BACKPRESSURE: High load detected (${avgLoad.toFixed(1)}%), increasing interval to ${newInterval}ms`);
+          this.adaptiveIntervalAdjustments++;
+          return newInterval;
+        } else if (avgLoad < 60) {
+          // Reset high load counter when load decreases
+          this.consecutiveHighLoadCycles = 0;
+        }
+      }
+      
+      // ADAPTIVE SCHEDULING: Adjust based on system health and processing time
+      let baseInterval = this.config.healthCheckInterval;
+      
+      // Adjust based on last health check duration
+      if (this.lastHealthCheckDuration > 1000) { // If health check took >1s
+        baseInterval = Math.min(baseInterval * 1.5, this.config.maxHealthCheckInterval);
+      } else if (this.lastHealthCheckDuration < 100 && avgLoad < 40) { // Fast and low load
+        baseInterval = Math.max(baseInterval * 0.8, this.config.minHealthCheckInterval);
+      }
+      
+      // Factor in current system load
+      const loadFactor = 1 + (avgLoad - 50) / 100; // Scale based on load deviation from 50%
+      const adaptiveInterval = Math.round(baseInterval * Math.max(0.5, Math.min(3.0, loadFactor)));
+      
+      // Constrain to configured bounds
+      const finalInterval = Math.max(
+        this.config.minHealthCheckInterval,
+        Math.min(this.config.maxHealthCheckInterval, adaptiveInterval)
+      );
+      
+      // Log adaptive adjustments for transparency
+      if (Math.abs(finalInterval - this.currentInterval) > 1000) {
+        console.log(`[AutonomousBot] ADAPTIVE: Interval adjusted from ${this.currentInterval}ms to ${finalInterval}ms (load: ${avgLoad.toFixed(1)}%, duration: ${this.lastHealthCheckDuration}ms)`);
+        this.adaptiveIntervalAdjustments++;
+      }
+      
+      return finalInterval;
+      
+    } catch (error) {
+      console.error('[AutonomousBot] Error calculating adaptive interval:', error);
+      return this.config.healthCheckInterval; // Fallback to default
+    }
   }
 
   /**

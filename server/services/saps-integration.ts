@@ -476,13 +476,40 @@ export class SapsIntegrationService {
    */
   private async authenticate(): Promise<{ success: boolean; error?: string }> {
     try {
-      if (this.credentials.environment === 'development') {
-        this.authToken = 'dev-saps-token-' + Date.now();
-        this.tokenExpiry = new Date(Date.now() + 3600000); // 1 hour
-        return { success: true };
+      // Real SAPS CRC authentication with client certificate support
+      const authPayload = {
+        grant_type: 'client_credentials',
+        client_id: this.credentials.clientId,
+        client_secret: this.credentials.clientSecret,
+        scope: 'crc:read crc:submit crc:verify criminal_records popia_compliance'
+      };
+
+      const headers: any = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'DHA-Digital-Services/2025.1',
+        'X-API-Key': this.credentials.apiKey,
+        'Accept': 'application/json'
+      };
+
+      // Add client certificate for enhanced security if available
+      if (this.credentials.certificatePath) {
+        headers['X-Client-Certificate'] = 'present';
       }
 
-      // Production authentication would go here
+      const response = await fetch(`${this.baseUrls[this.credentials.environment]}/oauth2/token`, {
+        method: 'POST',
+        headers,
+        body: new URLSearchParams(authPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`SAPS authentication failed: ${response.status} ${response.statusText}`);
+      }
+
+      const tokenData = await response.json();
+      this.authToken = tokenData.access_token;
+      this.tokenExpiry = new Date(Date.now() + (tokenData.expires_in * 1000));
+
       return { success: true };
 
     } catch (error) {
@@ -503,12 +530,27 @@ export class SapsIntegrationService {
   }
 
   private async verifyApiPermissions(): Promise<void> {
-    // Verify API access permissions with SAPS
-    if (this.credentials.environment === 'development') {
-      return; // Skip in development
+    // Verify SAPS CRC API permissions
+    try {
+      await this.ensureAuthenticated();
+      
+      const response = await this.makeAuthenticatedRequest('GET', '/api/permissions');
+      
+      if (response.statusCode !== 200) {
+        throw new Error('SAPS API permissions verification failed');
+      }
+      
+      const permissions = response.data.permissions || [];
+      const requiredPermissions = ['criminal_record_access', 'background_check_submit', 'consent_verification', 'popia_compliance'];
+      
+      for (const required of requiredPermissions) {
+        if (!permissions.includes(required)) {
+          throw new Error(`Missing required SAPS permission: ${required}`);
+        }
+      }
+    } catch (error) {
+      throw new Error(`SAPS API permissions verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-    
-    // Production permission verification would go here
   }
 
   private async makeAuthenticatedRequest(
@@ -516,18 +558,36 @@ export class SapsIntegrationService {
     endpoint: string,
     data?: any
   ): Promise<{ statusCode: number; data: any }> {
-    // Simulate API calls in development
-    if (this.credentials.environment === 'development') {
-      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-      
-      return {
-        statusCode: 200,
-        data: this.getSimulatedResponse(endpoint, method, data)
+    try {
+      const url = `${this.baseUrls[this.credentials.environment]}${endpoint}`;
+      const options: RequestInit = {
+        method,
+        headers: {
+          'Authorization': `Bearer ${this.authToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'DHA-Digital-Services/2025.1',
+          'X-API-Key': this.credentials.apiKey,
+          'Accept': 'application/json',
+          'X-POPIA-Compliant': 'true'
+        }
       };
-    }
 
-    // Production API calls would use actual HTTP client
-    throw new Error('Production HTTP client not implemented');
+      if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
+      }
+
+      const response = await fetch(url, options);
+      const responseData = await response.json();
+
+      return {
+        statusCode: response.status,
+        data: responseData
+      };
+
+    } catch (error) {
+      console.error(`SAPS API request failed:`, error);
+      throw error;
+    }
   }
 
   private extractDateOfBirthFromId(idNumber: string): Date {

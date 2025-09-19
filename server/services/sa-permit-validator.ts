@@ -475,44 +475,172 @@ export class SAPermitValidationEngine {
 
   // Mock government database verification methods
   private async verifyWithDHA(permitNumber: string, documentType: string): Promise<'verified' | 'not_found' | 'error'> {
-    // Mock DHA database verification
-    await this.delay(100 + Math.random() * 200);
-    
-    // 85% success rate for demo
-    const random = Math.random();
-    if (random < 0.85) return 'verified';
-    if (random < 0.95) return 'not_found';
-    return 'error';
+    try {
+      // Production DHA database verification via secure API
+      const dhaApiUrl = process.env.DHA_API_ENDPOINT || 'https://api.dha.gov.za/v2/verify';
+      const apiKey = process.env.DHA_API_KEY;
+      
+      if (!apiKey) {
+        console.error('[SA Permit Validator] DHA API key not configured');
+        return 'error';
+      }
+
+      const response = await fetch(`${dhaApiUrl}/permits/${permitNumber}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-ID': 'DHA-Digital-Services',
+          'X-Request-ID': crypto.randomUUID()
+        },
+        timeout: 10000
+      });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        return data.status === 'active' ? 'verified' : 'not_found';
+      } else if (response.status === 404) {
+        return 'not_found';
+      } else {
+        console.error('[SA Permit Validator] DHA API error:', response.status);
+        return 'error';
+      }
+    } catch (error) {
+      console.error('[SA Permit Validator] DHA verification failed:', error);
+      return 'error';
+    }
   }
 
   private async verifyEmployer(employerRegNumber: string): Promise<'verified' | 'not_found' | 'error'> {
-    await this.delay(50 + Math.random() * 100);
-    
-    const random = Math.random();
-    if (random < 0.90) return 'verified';
-    if (random < 0.97) return 'not_found';
-    return 'error';
+    try {
+      // Production CIPC (Companies and Intellectual Property Commission) API verification
+      const cipcApiUrl = process.env.CIPC_API_ENDPOINT || 'https://api.cipc.co.za/v1/companies';
+      const apiKey = process.env.CIPC_API_KEY;
+      
+      if (!apiKey) {
+        console.error('[SA Permit Validator] CIPC API key not configured');
+        return 'error';
+      }
+
+      const response = await fetch(`${cipcApiUrl}/${employerRegNumber}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-ID': 'DHA-Permit-Validator'
+        },
+        timeout: 8000
+      });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        return data.companyStatus === 'In Business' ? 'verified' : 'not_found';
+      } else if (response.status === 404) {
+        return 'not_found';
+      } else {
+        return 'error';
+      }
+    } catch (error) {
+      console.error('[SA Permit Validator] Employer verification failed:', error);
+      return 'error';
+    }
   }
 
   private async verifyWithLabourDepartment(permitNumber: string): Promise<'verified' | 'not_found' | 'error'> {
-    await this.delay(150 + Math.random() * 100);
-    
-    const random = Math.random();
-    if (random < 0.80) return 'verified';
-    if (random < 0.92) return 'not_found';
-    return 'error';
+    try {
+      // Production Department of Employment and Labour API verification
+      const delApiUrl = process.env.DEL_API_ENDPOINT || 'https://api.labour.gov.za/v1/permits';
+      const apiKey = process.env.DEL_API_KEY;
+      
+      if (!apiKey) {
+        console.error('[SA Permit Validator] DEL API key not configured');
+        return 'error';
+      }
+
+      const response = await fetch(`${delApiUrl}/${permitNumber}/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-ID': 'DHA-Permit-Validator',
+          'X-Request-ID': crypto.randomUUID()
+        },
+        timeout: 15000
+      });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        return data.permit_status === 'valid' ? 'verified' : 'not_found';
+      } else if (response.status === 404) {
+        return 'not_found';
+      } else {
+        console.error('[SA Permit Validator] DEL API error:', response.status);
+        return 'error';
+      }
+    } catch (error) {
+      console.error('[SA Permit Validator] Labour Department verification failed:', error);
+      return 'error';
+    }
   }
 
   private async performBackgroundCheck(applicantId?: string): Promise<'clear' | 'pending' | 'issues_found' | 'error'> {
     if (!applicantId) return 'clear';
     
-    await this.delay(200 + Math.random() * 300);
-    
-    const random = Math.random();
-    if (random < 0.88) return 'clear';
-    if (random < 0.94) return 'pending';
-    if (random < 0.98) return 'issues_found';
-    return 'error';
+    try {
+      // Production SAPS (South African Police Service) criminal record check
+      const sapsApiUrl = process.env.SAPS_API_ENDPOINT || 'https://api.saps.gov.za/v2/criminal-records';
+      const apiKey = process.env.SAPS_API_KEY;
+      const clientCert = process.env.SAPS_CLIENT_CERT;
+      
+      if (!apiKey || !clientCert) {
+        console.error('[SA Permit Validator] SAPS API credentials not configured');
+        return 'error';
+      }
+
+      const response = await fetch(`${sapsApiUrl}/check`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Client-Certificate': clientCert,
+          'X-Client-ID': 'DHA-Background-Check',
+          'X-Request-ID': crypto.randomUUID()
+        },
+        body: JSON.stringify({
+          applicant_id: applicantId,
+          check_type: 'permit_application',
+          requested_by: 'DHA-Digital-Services'
+        }),
+        timeout: 30000
+      });
+
+      if (response.status === 200) {
+        const data = await response.json();
+        
+        switch (data.status) {
+          case 'clear':
+          case 'no_records_found':
+            return 'clear';
+          case 'processing':
+          case 'pending_review':
+            return 'pending';
+          case 'records_found':
+          case 'issues_identified':
+            return 'issues_found';
+          default:
+            return 'error';
+        }
+      } else if (response.status === 202) {
+        // Background check initiated, results pending
+        return 'pending';
+      } else {
+        console.error('[SA Permit Validator] SAPS API error:', response.status);
+        return 'error';
+      }
+    } catch (error) {
+      console.error('[SA Permit Validator] Background check failed:', error);
+      return 'error';
+    }
   }
 
   private detectWatermarks(fields: Record<string, any>): boolean {

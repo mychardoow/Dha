@@ -5,6 +5,9 @@ import { fraudDetectionService } from "./fraud-detection";
 import { quantumEncryptionService } from "./quantum-encryption";
 import { documentProcessorService } from "./document-processor";
 import { privacyProtectionService } from "./privacy-protection";
+import { enhancedVoiceService } from "./enhanced-voice-service";
+import { realTimeValidationService } from "./real-time-validation-service";
+import { productionGovernmentApi } from "./production-government-api";
 
 // Using GPT-4 Turbo for advanced AI capabilities
 const apiKey = (() => {
@@ -40,10 +43,44 @@ export interface ChatResponse {
   translatedContent?: string;
   documentAnalysis?: any;
   actionItems?: string[];
+  voiceResponse?: {
+    audioUrl?: string;
+    duration?: number;
+    language?: string;
+  };
+  realTimeValidation?: {
+    isValid: boolean;
+    validationErrors: string[];
+    governmentVerification?: any;
+  };
+  formAutofill?: {
+    extractedFields: Record<string, any>;
+    confidence: number;
+    suggestions: string[];
+  };
+  contextualHelp?: {
+    relevantDocuments: string[];
+    processingSteps: string[];
+    estimatedTime: string;
+    requiredDocuments: string[];
+  };
+  streamingEnabled?: boolean;
 }
 
 export class AIAssistantService {
-  private supportedLanguages = ['en', 'zu', 'xh', 'af', 'st', 'tn', 'ts', 'ss', 've', 'nr', 'nso'];
+  private supportedLanguages = {
+    'en': { name: 'English', nativeName: 'English', tts: true, stt: true, active: true },
+    'af': { name: 'Afrikaans', nativeName: 'Afrikaans', tts: true, stt: true, active: true },
+    'zu': { name: 'isiZulu', nativeName: 'isiZulu', tts: true, stt: true, active: true },
+    'xh': { name: 'isiXhosa', nativeName: 'isiXhosa', tts: true, stt: true, active: true },
+    'st': { name: 'Sesotho', nativeName: 'Sesotho', tts: true, stt: true, active: true },
+    'tn': { name: 'Setswana', nativeName: 'Setswana', tts: true, stt: true, active: true },
+    've': { name: 'Tshivenda', nativeName: 'Tshivenda', tts: false, stt: true, active: true },
+    'ts': { name: 'Xitsonga', nativeName: 'Xitsonga', tts: false, stt: true, active: true },
+    'ss': { name: 'siSwati', nativeName: 'siSwati', tts: false, stt: true, active: true },
+    'nr': { name: 'isiNdebele', nativeName: 'isiNdebele', tts: false, stt: false, active: false },
+    'nso': { name: 'Sepedi', nativeName: 'Sepedi (Northern Sotho)', tts: false, stt: true, active: true }
+  };
   private documentRequirements = {
     passport: ['Birth certificate', 'ID document', 'Proof of address', 'Biometric data'],
     work_permit: ['Passport', 'Job offer letter', 'Medical certificate', 'Police clearance'],

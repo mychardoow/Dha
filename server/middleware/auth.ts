@@ -6,13 +6,16 @@ import type { User } from "@shared/schema";
 import { privacyProtectionService } from "../services/privacy-protection";
 
 const JWT_SECRET = (() => {
-  if (process.env.JWT_SECRET) {
-    return process.env.JWT_SECRET;
+  if (!process.env.JWT_SECRET) {
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication');
   }
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
+  
+  // Validate JWT secret strength for government security standards
+  if (process.env.JWT_SECRET.length < 64) {
+    throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security');
   }
-  return 'dev-jwt-secret-key-for-testing-only-12345678901234567890123456789012';
+  
+  return process.env.JWT_SECRET;
 })();
 
 // Type for authenticated user in request object (excludes sensitive fields)

@@ -7,7 +7,15 @@ import type {
   User, InsertUser, Conversation, InsertConversation, Message, InsertMessage,
   Document, InsertDocument, SecurityEvent, InsertSecurityEvent,
   FraudAlert, InsertFraudAlert, SystemMetric, InsertSystemMetric,
-  QuantumKey, InsertQuantumKey, ErrorLog, InsertErrorLog
+  QuantumKey, InsertQuantumKey, ErrorLog, InsertErrorLog,
+  SecurityRule, InsertSecurityRule, ComplianceEvent, InsertComplianceEvent,
+  SecurityMetric, InsertSecurityMetric, DocumentVerificationHistory, InsertDocumentVerificationHistory,
+  WorkflowStageExecution, InsertWorkflowStageExecution,
+  NotificationEvent, InsertNotificationEvent, UserNotificationPreferences, InsertUserNotificationPreferences,
+  StatusUpdate, InsertStatusUpdate, WebSocketSession, InsertWebSocketSession,
+  ChatSession, InsertChatSession, ChatMessage, InsertChatMessage,
+  AuditLog, InsertAuditLog, SecurityIncident, InsertSecurityIncident,
+  UserBehaviorProfile, InsertUserBehaviorProfile
 } from '@shared/schema';
 
 /**

@@ -19,6 +19,7 @@ import crypto from "crypto";
 import { storage } from "../storage";
 import { sitaIntegration } from "./sita-integration";
 import { privacyProtectionService } from "./privacy-protection";
+import { createPaymentGateway, PaymentGatewayService, PaymentRequest, PaymentMethod } from "./payment-gateway";
 
 export interface DhaCitizenProfile {
   citizenId: string;
