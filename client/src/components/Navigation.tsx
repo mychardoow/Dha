@@ -3,13 +3,16 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Shield, User, FileText, Users, Globe, Phone, Clock, HelpCircle } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Menu, Shield, User, FileText, Users, Globe, Phone, Clock, HelpCircle, LogOut, Settings, UserCircle } from "lucide-react";
 import { SouthAfricanCoatOfArms, DHALogo, SecurityClassificationBanner } from "@/components/GovernmentAssets";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -109,14 +112,40 @@ export default function Navigation() {
                   <span className="ml-1">Government Portal</span>
                 </Badge>
                 
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-white hover:text-white/80 transition-colors"
-                  data-testid="user-menu-button"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-white hover:text-white/80 transition-colors"
+                      data-testid="user-menu-button"
+                    >
+                      <User className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="flex items-center space-x-2">
+                      <UserCircle className="h-4 w-4" />
+                      <div>
+                        <div className="font-semibold">{user?.username || "Admin"}</div>
+                        <div className="text-xs text-muted-foreground">{user?.email || "admin@dha.gov.za"}</div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="flex items-center space-x-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center space-x-2 text-destructive"
+                      onClick={logout}
+                      data-testid="button-logout"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Logout</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
@@ -179,6 +208,27 @@ export default function Navigation() {
                       <span>Helpline: 0800 60 11 90</span>
                     </div>
                   </div>
+                  
+                  {user && (
+                    <div className="mt-4 p-3 bg-muted/30 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-medium">{user.username}</div>
+                          <div className="text-xs text-muted-foreground">{user.role === 'admin' ? 'Administrator' : 'User'}</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={logout}
+                          className="flex items-center space-x-1"
+                          data-testid="mobile-button-logout"
+                        >
+                          <LogOut className="h-3 w-3" />
+                          <span>Logout</span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </SheetContent>
