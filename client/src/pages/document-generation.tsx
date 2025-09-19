@@ -59,8 +59,7 @@ import {
   type RelativesVisaData,
   type PermanentResidencePermitData,
   type CertificateOfExemptionData,
-  type CertificateOfSouthAfricanCitizenshipData,
-  DOCUMENT_TYPES
+  type CertificateOfSouthAfricanCitizenshipData
 } from "@shared/schema";
 
 // Document type definitions
@@ -363,13 +362,14 @@ export default function UnifiedDocumentGenerationPage() {
   // Document generation mutation
   const generateDocumentMutation = useMutation({
     mutationFn: async ({ documentData, preview }: { documentData: any; preview: boolean }) => {
-      const response = await apiRequest(`/api/documents/generate${preview ? '?preview=true' : ''}`, {
-        method: 'POST',
-        body: JSON.stringify(documentData),
-      });
-      return response;
+      const response = await apiRequest(
+        'POST',
+        `/api/documents/generate${preview ? '?preview=true' : ''}`,
+        documentData
+      );
+      return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: (result: any) => {
       setGenerationResult(result);
       if (result.success) {
         toast({
@@ -553,7 +553,7 @@ export default function UnifiedDocumentGenerationPage() {
 
   // Update form data
   const updateFormField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   // Get filtered document types by category
