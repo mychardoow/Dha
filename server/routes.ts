@@ -6292,16 +6292,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.method as any,
           200,
           {
-            requestId,
-            documentType,
-            officerName: user.username,
-            applicantId: (documentRequest as any).personal?.idNumber || 
-                        (documentRequest as any).idNumber || 
-                        (documentRequest as any).passportNumber || 'N/A',
-            timestamp: new Date(),
+            actionDetails: {
+              documentType,
+              officerName: user.username,
+              applicantId: (documentRequest as any).personal?.idNumber || 
+                          (documentRequest as any).idNumber || 
+                          (documentRequest as any).passportNumber || 'N/A',
+              timestamp: new Date(),
+              isPreview
+            },
             ipAddress: req.ip,
-            userAgent: req.get('User-Agent'),
-            isPreview
+            userAgent: req.get('User-Agent')
           }
         );
 
@@ -6319,10 +6320,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             req.method as any,
             500,
             {
-              requestId,
-              documentType,
-              error: result.error || "Unknown error",
-              processingTime: Date.now() - startTime
+              actionDetails: {
+                documentType,
+                error: result.error || "Unknown error",
+                processingTime: Date.now() - startTime
+              }
             }
           );
           
@@ -6344,14 +6346,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           req.method as any,
           200,
           {
-            requestId,
-            documentType,
-            documentId: result.documentId,
-            verificationCode: result.verificationCode,
-            processingTime,
-            securityFeatures: Object.keys(result.securityFeatures).filter(key => 
-              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
-            ).length
+            actionDetails: {
+              documentType,
+              documentId: result.documentId,
+              verificationCode: result.verificationCode,
+              processingTime,
+              securityFeatures: Object.keys(result.securityFeatures).filter(key => 
+                result.securityFeatures[key as keyof typeof result.securityFeatures] === true
+              ).length
+            }
           }
         );
 
@@ -6442,10 +6445,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             req.method as any,
             500,
             {
-              requestId,
-              documentType: req.body?.documentType || 'unknown',
-              error: error instanceof Error ? error.message : 'Unexpected error',
-              processingTime
+              actionDetails: {
+                documentType: req.body?.documentType || 'unknown',
+                error: error instanceof Error ? error.message : 'Unexpected error',
+                processingTime
+              }
             }
           );
         } catch (auditError) {
