@@ -2,8 +2,26 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    // Handle 401 Unauthorized responses
+    if (res.status === 401) {
+      // Clear authentication data and redirect to login
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+      throw new Error("Authentication required");
+    }
+
+    let errorMessage = `${res.status}: ${res.statusText}`;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch {
+      // If parsing JSON fails, use the default error message
+      const text = await res.text();
+      errorMessage = text || errorMessage;
+    }
+    
+    throw new Error(errorMessage);
   }
 }
 
@@ -53,6 +71,9 @@ export const getQueryFn: <T>(options: {
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      // Still clear tokens even when returning null
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
       return null;
     }
 

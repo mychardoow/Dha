@@ -36,13 +36,6 @@ const MOCK_TOKEN = "preview-mode-token-12345";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
-    // Auto-authenticate in development mode
-    if (isDevelopment) {
-      localStorage.setItem("user", JSON.stringify(MOCK_ADMIN_USER));
-      localStorage.setItem("authToken", MOCK_TOKEN);
-      return MOCK_ADMIN_USER;
-    }
-    
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -57,11 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const [token, setToken] = useState<string | null>(() => {
-    // Auto-authenticate in development mode
-    if (isDevelopment) {
-      return MOCK_TOKEN;
-    }
-    
     const storedToken = localStorage.getItem("authToken");
     if (storedToken) {
       return storedToken;
@@ -75,14 +63,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [, setLocation] = useLocation();
 
-  // Log preview mode authentication
+  // Auto-authenticate in development mode by calling the real login endpoint
   useEffect(() => {
-    if (isDevelopment && user) {
-      console.log("🚀 Preview Mode Active - Auto-authenticated as admin");
+    if (isDevelopment && !user && !token) {
+      console.log("🚀 Development Mode - Auto-authenticating via mock-login endpoint");
+      
+      // Call the real mock-login endpoint to get a proper JWT token
+      fetch("/api/auth/mock-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: "admin",
+          password: "admin123"
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.token && data.user) {
+          console.log("✅ Auto-authentication successful");
+          console.log("👤 User:", data.user);
+          console.log("🔑 JWT Token received");
+          
+          // Store the real JWT token and user data
+          localStorage.setItem("authToken", data.token);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          setToken(data.token);
+          setUser(data.user);
+        } else {
+          console.error("❌ Auto-authentication failed:", data);
+        }
+      })
+      .catch(error => {
+        console.error("❌ Auto-authentication error:", error);
+      });
+    } else if (isDevelopment && user) {
+      console.log("🚀 Development Mode - User already authenticated");
       console.log("👤 User:", user);
       console.log("✅ All features unlocked for testing");
     }
-  }, []);
+  }, [isDevelopment, user, token]);
 
   const login = (newToken: string, newUser: User) => {
     localStorage.setItem("authToken", newToken);
