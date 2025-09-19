@@ -584,6 +584,10 @@ Answer the user's question based on the current system state and your security e
 
   async generateTitle(firstMessage: string): Promise<string> {
     try {
+      if (!openai) {
+        return "New Conversation";
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -613,6 +617,13 @@ Answer the user's question based on the current system state and your security e
     sourceLanguage = 'auto'
   ): Promise<{ success: boolean; translatedText?: string; detectedLanguage?: string; error?: string }> {
     try {
+      if (!openai) {
+        return {
+          success: false,
+          error: "Translation service not available"
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -657,6 +668,13 @@ Answer the user's question based on the current system state and your security e
     error?: string 
   }> {
     try {
+      if (!openai) {
+        return {
+          success: false,
+          error: "Document analysis service not available"
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -706,6 +724,17 @@ Answer the user's question based on the current system state and your security e
     try {
       const baseRequirements = this.documentRequirements[documentType as keyof typeof this.documentRequirements] || [];
       
+      if (!openai) {
+        return {
+          success: true,
+          requirements: baseRequirements,
+          optionalDocuments: [],
+          processingTime: "15-20 working days",
+          fees: "Contact DHA for current fees",
+          tips: ["Ensure all documents are certified copies", "Apply during business hours for faster processing"]
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -748,6 +777,13 @@ Answer the user's question based on the current system state and your security e
     formData?: any
   ): Promise<{ success: boolean; response?: string; filledFields?: Record<string, any>; error?: string }> {
     try {
+      if (!openai) {
+        return {
+          success: false,
+          error: "Form assistance service not available"
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -782,6 +818,14 @@ Answer the user's question based on the current system state and your security e
 
   private async extractSuggestions(content: string, userQuery: string): Promise<string[]> {
     try {
+      if (!openai) {
+        return [
+          "View document requirements",
+          "Generate official documents",
+          "Check application status"
+        ];
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -809,6 +853,10 @@ Answer the user's question based on the current system state and your security e
 
   private async extractActionItems(content: string): Promise<string[]> {
     try {
+      if (!openai) {
+        return [];
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -858,6 +906,14 @@ Answer the user's question based on the current system state and your security e
     historicalData?: any
   ): Promise<{ estimatedDays: number; confidence: number; factors: string[] }> {
     try {
+      if (!openai) {
+        return {
+          estimatedDays: 15,
+          confidence: 50,
+          factors: ['Service not available - using standard estimates']
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -891,6 +947,14 @@ Answer the user's question based on the current system state and your security e
     dataType: string
   ): Promise<{ anomalies: any[]; severity: string[]; recommendations: string[] }> {
     try {
+      if (!openai) {
+        return {
+          anomalies: [],
+          severity: [],
+          recommendations: ['Anomaly detection service not available']
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
@@ -925,6 +989,14 @@ Answer the user's question based on the current system state and your security e
     riskLevel: string;
   }> {
     try {
+      if (!openai) {
+        return {
+          insights: ['Security analysis service not available'],
+          recommendations: ['Review data manually', 'Enable AI services for enhanced analysis'],
+          riskLevel: 'low'
+        };
+      }
+      
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
         messages: [
