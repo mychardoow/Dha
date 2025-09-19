@@ -1,5 +1,9 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import crypto from "crypto";
+import fs from "fs/promises";
+import path from "path";
+import QRCode from "qrcode";
 import { storage } from "./enhanced-storage";
 import { authenticate, hashPassword, verifyPassword, generateToken, requireRole, requireApiKey } from "./middleware/auth";
 import { authLimiter, apiLimiter, uploadLimiter, securityHeaders, fraudDetection, ipFilter, securityLogger } from "./middleware/security";
@@ -119,6 +123,12 @@ import { secureCommunicationsService } from "./services/secure-comms";
 import { z } from "zod";
 import { consentMiddleware } from "./middleware/consent-middleware";
 import { dataGovernanceService } from "./services/data-governance";
+
+// Constants
+const DOCUMENTS_DIR = process.env.DOCUMENTS_DIR || "./documents";
+
+// Ensure documents directory exists
+fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize DHA workflow engine
@@ -2344,25 +2354,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = (req as any).user;
       const documentData = req.body;
 
-      // Validate required fields
-      if (!documentData.childFullName || !documentData.dateOfBirth || !documentData.placeOfBirth) {
-        return res.status(400).json({ error: "Missing required fields for birth certificate" });
-      }
-
-      const birthCertificate = await documentGenerator.generateBirthCertificate(
-        user.id,
-        documentData
-      );
-
-      res.json({
-        message: "Birth certificate generated successfully",
-        document: birthCertificate,
-        downloadUrl: `/documents/${birthCertificate.documentId}.pdf`
+      console.log("Birth certificate request received:", {
+        childName: documentData.childName,
+        motherName: documentData.motherName,
+        fatherName: documentData.fatherName,
+        hasAllFields: !!(documentData.childName && documentData.motherName && documentData.fatherName)
       });
 
+      // Validate required fields (support both naming conventions)
+      const childName = documentData.childName || documentData.childFullName || documentData.fullName;
+      const motherName = documentData.motherName || documentData.motherFullName;
+      const fatherName = documentData.fatherName || documentData.fatherFullName;
+      
+      if (!childName || !documentData.dateOfBirth || !documentData.placeOfBirth) {
+        console.error("Birth certificate validation failed - missing fields:", {
+          hasChildName: !!childName,
+          hasDateOfBirth: !!documentData.dateOfBirth,
+          hasPlaceOfBirth: !!documentData.placeOfBirth
+        });
+        return res.status(400).json({ 
+          error: "Missing required fields for birth certificate",
+          required: ["childName/childFullName", "dateOfBirth", "placeOfBirth", "motherName", "fatherName"],
+          received: Object.keys(documentData)
+        });
+      }
+
+      // Transform flat structure to nested structure for PDF generation
+      const transformedData = {
+        registrationNumber: documentData.registrationNumber || `BC${Date.now()}`,
+        fullName: childName,
+        dateOfBirth: documentData.dateOfBirth,
+        placeOfBirth: documentData.placeOfBirth,
+        gender: documentData.gender || "Not Specified",
+        idNumber: documentData.childIdNumber || "",
+        mother: {
+          fullName: motherName || "Not Specified",
+          idNumber: documentData.motherIdNumber || "",
+          nationality: documentData.motherNationality || "South African"
+        },
+        father: {
+          fullName: fatherName || "Not Specified",
+          idNumber: documentData.fatherIdNumber || "",
+          nationality: documentData.fatherNationality || "South African"
+        },
+        dateOfRegistration: documentData.dateOfRegistration || new Date().toISOString(),
+        registrationOffice: documentData.registrationOffice || "Department of Home Affairs"
+      };
+
+      console.log("Transformed data for PDF generation:", transformedData);
+
+      // Generate the PDF directly using the PDF generation service
+      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(transformedData);
+      
+      if (!pdfBuffer) {
+        console.error("PDF generation returned empty buffer");
+        throw new Error("PDF generation failed - empty buffer");
+      }
+
+      console.log("PDF generated successfully, buffer size:", pdfBuffer.length);
+
+      // Save the PDF to file system for verification URL
+      const documentId = crypto.randomBytes(16).toString('hex').toUpperCase();
+      const filename = `birth_certificate_${documentId}.pdf`;
+      const filepath = path.join(DOCUMENTS_DIR, filename);
+      
+      await fs.writeFile(filepath, pdfBuffer);
+      console.log("PDF saved to:", filepath);
+
+      // Generate QR code for verification
+      const verificationCode = crypto.randomBytes(8).toString('hex').toUpperCase();
+      const qrData = `https://dha.gov.za/verify/${verificationCode}`;
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+
+      // Store document verification info
+      const birthCertData = {
+        fullName: childName,
+        dateOfBirth: documentData.dateOfBirth,
+        placeOfBirth: documentData.placeOfBirth,
+        motherFullName: motherName,
+        motherMaidenName: documentData.motherMaidenName,
+        fatherFullName: fatherName,
+        registrationNumber: transformedData.registrationNumber,
+        registrationDate: new Date(),
+        issuingAuthority: "Department of Home Affairs",
+        officialSeal: null,
+        watermarkData: null
+      };
+
+      const certificate = await storage.createBirthCertificate({
+        ...birthCertData,
+        userId: user.id,
+        verificationCode,
+        documentUrl: `/documents/${filename}`,
+        qrCodeUrl: qrCodeDataUrl,
+        digitalSignature: crypto.createHash('sha256').update(JSON.stringify(birthCertData)).digest('hex'),
+        securityFeatures: {
+          watermark: true,
+          hologram: true,
+          microprint: true,
+          uvInk: true
+        },
+        status: "active",
+        isRevoked: false
+      });
+
+      console.log("Birth certificate record created:", certificate.id);
+
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length.toString());
+      
+      // Send the PDF buffer directly
+      res.send(pdfBuffer);
+
     } catch (error) {
-      console.error("Birth certificate generation error:", error);
-      res.status(500).json({ error: "Birth certificate generation failed" });
+      console.error("Birth certificate generation error - full details:", {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        requestBody: req.body
+      });
+      res.status(500).json({ 
+        error: "Birth certificate generation failed",
+        details: error instanceof Error ? error.message : "Unknown error occurred",
+        timestamp: new Date().toISOString()
+      });
     }
   });
 

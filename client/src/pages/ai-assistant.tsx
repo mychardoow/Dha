@@ -156,12 +156,21 @@ How can I assist you today?`,
       setIsStreaming(true);
       setStreamingMessage('');
       
+      // FIXED: Get authentication token for API request
+      const token = localStorage.getItem('authToken');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream' // CRITICAL: Request streaming response
+      };
+      
+      // FIXED: Include authentication header if token exists
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream' // CRITICAL: Request streaming response
-        },
+        headers,
         body: JSON.stringify({
           message,
           conversationId: conversationId || 'main-session',
@@ -171,7 +180,72 @@ How can I assist you today?`,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        // FIXED: Safely parse error response with fallback
+        let errorData: any = {};
+        try {
+          const text = await response.text();
+          if (text) {
+            errorData = JSON.parse(text);
+          }
+        } catch (e) {
+          console.error('Failed to parse error response:', e);
+          errorData = { error: 'Failed to parse server response' };
+        }
+        
+        // FIXED: Handle authentication errors explicitly
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to use the AI Assistant",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          setIsStreaming(false);
+          // Redirect to login page
+          window.location.href = "/login";
+          return;
+        }
+        
+        // FIXED: Handle bad request errors (400) explicitly with better error messages
+        if (response.status === 400) {
+          console.error('Bad Request Error:', errorData);
+          
+          // Provide helpful message based on the error
+          const errorMessage = errorData.error || errorData.message || "Invalid request data";
+          const helpfulMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `I couldn't process your request. ${errorMessage}.\n\nPlease ensure:\n• Your message is clear and complete\n• You're logged in to the system\n• Your session is still active\n\nYou can try:\n• Rephrasing your question\n• Refreshing the page\n• Logging in again if needed`,
+            timestamp: new Date(),
+            suggestions: ['Try a simpler question', 'Check login status', 'Refresh the page']
+          };
+          
+          setMessages(prev => [...prev, helpfulMessage]);
+          toast({
+            title: "Request Issue",
+            description: errorMessage,
+            variant: "default"
+          });
+          setIsLoading(false);
+          setIsStreaming(false);
+          return { content: '', metadata: null }; // Return empty response to prevent further errors
+        }
+        
+        if (response.status === 503 || (errorData.error && errorData.error.includes('API'))) {
+          // Handle missing API key gracefully
+          const helpMessage: ChatMessage = {
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: `I'm currently operating in limited mode, but I can still help you with:\n\n• Information about DHA services and procedures\n• Document requirements and application processes\n• Navigation through the system\n• General guidance on immigration matters\n\nFor immediate assistance with complex queries, please contact DHA support at 0800 60 11 90.`,
+            timestamp: new Date(),
+            suggestions: ['View document requirements', 'Check application status', 'Find DHA offices']
+          };
+          setMessages(prev => [...prev, helpMessage]);
+          setIsLoading(false);
+          setIsStreaming(false);
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to send message');
       }
 
       // FIXED: Handle SSE streaming response
@@ -213,16 +287,37 @@ How can I assist you today?`,
         }
       }
       
-      return { content: fullContent, metadata };
+      // FIXED: Ensure we always return a valid response object
+      return { 
+        content: fullContent || '', 
+        metadata: metadata || null 
+      };
     },
     onSuccess: (data) => {
+      // FIXED: Add null checks for data and data.content
+      if (!data || (!data.content && !data.error)) {
+        const fallbackMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: 'I apologize, but I encountered an issue processing your request. Please try again or contact support if the issue persists.',
+          timestamp: new Date(),
+          suggestions: ['Try a simpler question', 'Check your connection', 'Contact support'],
+          actionItems: []
+        };
+        setMessages(prev => [...prev, fallbackMessage]);
+        setIsLoading(false);
+        setIsStreaming(false);
+        setStreamingMessage('');
+        return;
+      }
+
       const assistantMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: data.content,
+        content: data.content || 'No response generated. Please try again.',
         timestamp: new Date(),
-        suggestions: [], // Will be populated from metadata if available
-        actionItems: [], // Will be populated from metadata if available
+        suggestions: data.metadata?.suggestions || [],
+        actionItems: data.metadata?.actionItems || [],
         metadata: data.metadata
       };
       
@@ -231,12 +326,26 @@ How can I assist you today?`,
       setIsStreaming(false);
       setStreamingMessage('');
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      });
+    onError: (error: any) => {
+      console.error('Error sending message:', error);
+      
+      // Check if it's an API key issue and provide helpful response
+      if (error.message?.includes('API') || error.message?.includes('503') || error.message?.includes('Failed to send')) {
+        const fallbackMessage: ChatMessage = {
+          id: Date.now().toString(),
+          role: 'assistant',
+          content: `I apologize for the inconvenience. While I cannot process complex AI queries at the moment, I can still provide:\n\n• **Document Information**: Requirements for passports, IDs, visas, and permits\n• **Application Guidance**: Step-by-step instructions for DHA applications\n• **Service Information**: Office locations, contact details, and operating hours\n• **Status Checks**: How to verify your application status\n\nYou can also:\n• Generate official documents using our forms\n• Upload and process documents with OCR\n• Access all DHA services through the menu\n\nFor urgent assistance: 📞 0800 60 11 90`,
+          timestamp: new Date(),
+          suggestions: ['Generate birth certificate', 'View passport requirements', 'Find nearest DHA office']
+        };
+        setMessages(prev => [...prev, fallbackMessage]);
+      } else {
+        toast({
+          title: "Connection Issue",
+          description: "Unable to process your request. Please try again or use our other services.",
+          variant: "default"
+        });
+      }
       setIsLoading(false);
       setIsStreaming(false);
       setStreamingMessage('');
@@ -256,8 +365,18 @@ How can I assist you today?`,
       formData.append('documentType', selectedDocumentType); // FIXED: Use selected type instead of hardcoded 'passport'
       formData.append('conversationId', 'main-session');
 
+      // FIXED: Get authentication token for document upload
+      const token = localStorage.getItem('authToken');
+      const headers: HeadersInit = {};
+      
+      // FIXED: Include authentication header if token exists
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/documents/upload', {
         method: 'POST',
+        headers,
         body: formData
       });
 

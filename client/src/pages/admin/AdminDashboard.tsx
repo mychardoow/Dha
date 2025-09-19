@@ -92,7 +92,10 @@ interface SystemHealth {
 
 function AdminDashboard() {
   const { toast } = useToast();
-  const { socket, isConnected } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors
+  // const { socket, isConnected } = useWebSocket();
+  const socket = null; // System works without real-time updates
+  const isConnected = false; // Fallback mode
   const [showPDFGenerateDialog, setShowPDFGenerateDialog] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);

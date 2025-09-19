@@ -353,6 +353,18 @@ export default function PDFTestPage() {
   const generatePDF = async () => {
     setLoading(true);
     
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to generate documents.",
+        variant: "destructive"
+      });
+      setLoading(false);
+      return;
+    }
+    
     try {
       let endpoint = "";
       let requestData: any = {};
@@ -502,8 +514,25 @@ export default function PDFTestPage() {
           break;
         
         case "birth-certificate":
-          endpoint = "/api/pdf/birth-certificate";
-          requestData = birthCertData;
+          endpoint = "/api/documents/birth-certificate";
+          requestData = {
+            // Primary fields that the task specifies the server expects
+            childName: birthCertData.fullName,
+            dateOfBirth: birthCertData.dateOfBirth,
+            placeOfBirth: birthCertData.placeOfBirth,
+            gender: birthCertData.gender,
+            motherName: birthCertData.mother.fullName,
+            motherIdNumber: birthCertData.mother.idNumber,
+            fatherName: birthCertData.father.fullName,
+            fatherIdNumber: birthCertData.father.idNumber,
+            
+            // Additional fields that may be required by the server implementation
+            childFullName: birthCertData.fullName,
+            fullName: birthCertData.fullName,
+            motherFullName: birthCertData.mother.fullName,
+            fatherFullName: birthCertData.father.fullName,
+            issuingAuthority: birthCertData.registrationOffice || "Department of Home Affairs"
+          };
           break;
         
         case "passport":
@@ -537,13 +566,30 @@ export default function PDFTestPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}` // Use the validated token from above
         },
         body: JSON.stringify(requestData)
       });
       
       if (!response.ok) {
-        throw new Error('Failed to generate PDF');
+        // Log detailed error information for debugging
+        console.error(`API Error: ${response.status} ${response.statusText}`);
+        console.error(`Endpoint: ${endpoint}`);
+        console.error(`Token present: ${!!token}`);
+        
+        // Handle specific error cases
+        if (response.status === 401) {
+          // Token might be expired or invalid
+          console.error('Authentication failed - token may be expired or invalid');
+          localStorage.removeItem('token'); // Clear invalid token
+          throw new Error('Authentication failed. Please log in again.');
+        } else if (response.status === 403) {
+          throw new Error('You do not have permission to generate this document.');
+        } else if (response.status === 500) {
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(`Failed to generate PDF (Error ${response.status})`);
+        }
       }
       
       const blob = await response.blob();
@@ -563,9 +609,24 @@ export default function PDFTestPage() {
       
     } catch (error) {
       console.error('PDF generation error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = "Failed to generate PDF. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // If it's an authentication error, suggest logging in
+        if (error.message.includes('Authentication failed')) {
+          // Redirect to login page after a short delay
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 2000);
+        }
+      }
+      
       toast({
         title: "Generation Failed",
-        description: "Failed to generate PDF. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

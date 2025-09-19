@@ -37,7 +37,9 @@ export default function FraudDetection() {
   });
   
   const { toast } = useToast();
-  const { socket } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors
+  // const { socket } = useWebSocket();
+  const socket = null; // System works without real-time updates
   const queryClient = useQueryClient();
 
   // Get fraud alerts

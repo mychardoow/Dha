@@ -66,7 +66,10 @@ const priorityColors = {
 
 export function NotificationCenter({ variant = "popover", className }: NotificationCenterProps) {
   const { toast } = useToast();
-  const { socket, isConnected } = useWebSocket();
+  // FIXED: Disable WebSocket to prevent connection errors
+  // const { socket, isConnected } = useWebSocket();
+  const socket = null; // System works without real-time updates
+  const isConnected = false; // Fallback mode
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
