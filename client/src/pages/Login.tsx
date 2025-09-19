@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Shield, Lock, User } from "lucide-react";
 import { SouthAfricanCoatOfArms, DHALogo } from "@/components/GovernmentAssets";
 
@@ -23,6 +24,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<LoginFormData>({
@@ -41,18 +43,21 @@ export default function Login() {
       return result;
     },
     onSuccess: (data) => {
-      // Store token in localStorage
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Use AuthContext login function to properly set auth state
+      login(data.token, data.user);
       
       toast({
         title: "Login successful",
         description: `Welcome back, ${data.user.username}!`,
       });
       
-      // Redirect to home page after brief delay
+      // Redirect to admin dashboard for admin users
       setTimeout(() => {
-        setLocation("/");
+        if (data.user.role === 'admin') {
+          setLocation("/admin/dashboard");
+        } else {
+          setLocation("/");
+        }
       }, 500);
     },
     onError: (error: Error) => {

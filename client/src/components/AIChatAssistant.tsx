@@ -79,6 +79,17 @@ export default function AIChatAssistant({
   const [autoTranslate, setAutoTranslate] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Generate or retrieve stable conversation ID for the session
+  const conversationIdRef = useRef<string>(
+    sessionStorage.getItem("ai-chat-conversation-id") || 
+    `chat-${Date.now()}-${Math.random().toString(36).substring(7)}`
+  );
+  
+  // Store conversation ID in sessionStorage on mount
+  useEffect(() => {
+    sessionStorage.setItem("ai-chat-conversation-id", conversationIdRef.current);
+  }, []);
 
   const languages = [
     { code: "en", name: "English" },
@@ -136,16 +147,18 @@ export default function AIChatAssistant({
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest("/api/ai/chat", {
-        method: "POST",
-        body: JSON.stringify({
+      // Fixed: apiRequest expects (method, url, data) not (url, options)
+      const response = await apiRequest(
+        "POST",
+        "/api/ai/chat",
+        {
           message,
-          conversationId: "chat-" + Date.now(),
+          conversationId: conversationIdRef.current, // Use stable conversation ID
           includeContext: true,
           language: selectedLanguage
-        })
-      });
-      return response;
+        }
+      );
+      return response.json();
     },
     onSuccess: (data) => {
       const newMessage: Message = {
@@ -175,14 +188,17 @@ export default function AIChatAssistant({
   // Translate message mutation
   const translateMessageMutation = useMutation({
     mutationFn: async ({ text, targetLanguage }: { text: string; targetLanguage: string }) => {
-      return apiRequest("/api/ai/translate", {
-        method: "POST",
-        body: JSON.stringify({
+      // Fixed: apiRequest expects (method, url, data)
+      const response = await apiRequest(
+        "POST",
+        "/api/ai/translate",
+        {
           text,
           targetLanguage,
           sourceLanguage: "auto"
-        })
-      });
+        }
+      );
+      return response.json();
     },
     onSuccess: (data, variables) => {
       const messageIndex = messages.findIndex(msg => msg.content === variables.text);
@@ -211,13 +227,16 @@ export default function AIChatAssistant({
   // Document requirements mutation
   const getRequirementsMutation = useMutation({
     mutationFn: async (documentType: string) => {
-      return apiRequest("/api/ai/document-requirements", {
-        method: "POST",
-        body: JSON.stringify({
+      // Fixed: apiRequest expects (method, url, data)
+      const response = await apiRequest(
+        "POST",
+        "/api/ai/document-requirements",
+        {
           documentType,
           userContext: context
-        })
-      });
+        }
+      );
+      return response.json();
     },
     onSuccess: (data) => {
       const requirements = data.requirements?.join("\n• ") || "No requirements found";

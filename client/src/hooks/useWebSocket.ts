@@ -47,6 +47,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
                   localStorage.getItem("authToken") || 
                   localStorage.getItem("auth_token");
     
+    // If no token, don't connect
     if (!token) {
       setError("Authentication token not found");
       return;
