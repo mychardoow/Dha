@@ -6212,7 +6212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authenticate, 
     requireRole(["dha_officer", "admin"]), 
     apiLimiter, 
-    auditTrailMiddleware,
+    auditTrailMiddleware.auditRequestMiddleware,
     async (req: Request, res: Response) => {
       const requestId = crypto.randomUUID();
       const startTime = Date.now();
@@ -6254,18 +6254,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Fraud detection screening
         const user = (req as any).user;
-        const fraudCheck = await fraudDetectionService.screenDocumentRequest({
+        const fraudCheck = await fraudDetectionService.analyzeUserBehavior({
           userId: user.id,
-          documentType,
-          personalDetails: (documentRequest as any).personal || {
-            fullName: (documentRequest as any).fullName || (documentRequest as any).childFullName || "N/A",
-            idNumber: (documentRequest as any).idNumber || (documentRequest as any).passportNumber || "N/A"
-          },
-          requestMetadata: {
-            ipAddress: req.ip,
-            userAgent: req.get('User-Agent'),
+          ipAddress: req.ip || '0.0.0.0',
+          userAgent: req.get('User-Agent') || 'unknown',
+          location: req.headers['cf-ipcountry'] as string || 'unknown',
+          sessionData: {
+            sessionId: req.sessionID || 'unknown',
             timestamp: new Date(),
-            isPreview
+            action: `generate_document_${documentType}`,
+            documentType,
+            isPreview,
+            personalDetails: (documentRequest as any).personal || {
+              fullName: (documentRequest as any).fullName || (documentRequest as any).childFullName || "N/A",
+              idNumber: (documentRequest as any).idNumber || (documentRequest as any).passportNumber || "N/A"
+            }
           }
         });
 
@@ -6275,26 +6278,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             success: false,
             error: "Request requires additional verification",
             riskLevel: fraudCheck.riskLevel,
-            flags: fraudCheck.flags,
+            indicators: fraudCheck.indicators,
             requestId,
             contactSupport: true
           });
         }
 
         // Log audit trail
-        await auditTrailService.logDocumentGenerationStart({
-          requestId,
-          documentType,
-          userId: user.id,
-          officerName: user.username,
-          applicantId: (documentRequest as any).personal?.idNumber || 
-                      (documentRequest as any).idNumber || 
-                      (documentRequest as any).passportNumber || 'N/A',
-          timestamp: new Date(),
-          ipAddress: req.ip,
-          userAgent: req.get('User-Agent'),
-          isPreview
-        });
+        await auditTrailService.logApiEvent(
+          'api_call',
+          user.id,
+          req.path,
+          req.method as any,
+          200,
+          {
+            requestId,
+            documentType,
+            officerName: user.username,
+            applicantId: (documentRequest as any).personal?.idNumber || 
+                        (documentRequest as any).idNumber || 
+                        (documentRequest as any).passportNumber || 'N/A',
+            timestamp: new Date(),
+            ipAddress: req.ip,
+            userAgent: req.get('User-Agent'),
+            isPreview
+          }
+        );
 
         // Generate document using unified registry
         const result = await documentTemplateRegistry.generateDocument(documentRequest, isPreview);
@@ -6303,13 +6312,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error(`[Unified Document API] Generation failed:`, result.error);
           
           // Log failure
-          await auditTrailService.logDocumentGenerationFailure({
-            requestId,
-            documentType,
-            error: result.error || "Unknown error",
-            processingTime: Date.now() - startTime,
-            userId: user.id
-          });
+          await auditTrailService.logApiEvent(
+            'api_call',
+            user.id,
+            req.path,
+            req.method as any,
+            500,
+            {
+              requestId,
+              documentType,
+              error: result.error || "Unknown error",
+              processingTime: Date.now() - startTime
+            }
+          );
           
           return res.status(500).json({
             success: false,
@@ -6322,17 +6337,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Log successful generation
         const processingTime = Date.now() - startTime;
-        await auditTrailService.logDocumentGenerationSuccess({
-          requestId,
-          documentType,
-          documentId: result.documentId,
-          verificationCode: result.verificationCode,
-          processingTime,
-          userId: user.id,
-          securityFeatures: Object.keys(result.securityFeatures).filter(key => 
-            result.securityFeatures[key as keyof typeof result.securityFeatures] === true
-          ).length
-        });
+        await auditTrailService.logApiEvent(
+          'api_call',
+          user.id,
+          req.path,
+          req.method as any,
+          200,
+          {
+            requestId,
+            documentType,
+            documentId: result.documentId,
+            verificationCode: result.verificationCode,
+            processingTime,
+            securityFeatures: Object.keys(result.securityFeatures).filter(key => 
+              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
+            ).length
+          }
+        );
 
         console.log(`[Unified Document API] Successfully generated ${documentType} (${processingTime}ms)`);
 
@@ -6414,13 +6435,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Log failure
         try {
-          await auditTrailService.logDocumentGenerationFailure({
-            requestId,
-            documentType: req.body?.documentType || 'unknown',
-            error: error instanceof Error ? error.message : 'Unexpected error',
-            processingTime,
-            userId: (req as any).user?.id
-          });
+          await auditTrailService.logApiEvent(
+            'api_call',
+            (req as any).user?.id || 'unknown',
+            req.path,
+            req.method as any,
+            500,
+            {
+              requestId,
+              documentType: req.body?.documentType || 'unknown',
+              error: error instanceof Error ? error.message : 'Unexpected error',
+              processingTime
+            }
+          );
         } catch (auditError) {
           console.error(`[Unified Document API] Failed to log audit trail:`, auditError);
         }
@@ -6449,6 +6476,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const supportedTypes = documentTemplateRegistry.getSupportedDocumentTypes();
         
+        // Helper functions for document type metadata
+        const getDocumentCategory = (type: string) => {
+          if (type.includes('card') || type.includes('identity') || type.includes('temporary_id')) return 'identity';
+          if (type.includes('passport') || type.includes('travel')) return 'travel';
+          if (type.includes('birth') || type.includes('death') || type.includes('marriage') || type.includes('divorce')) return 'civil';
+          if (type.includes('visa') || type.includes('permit') || type.includes('residence') || type.includes('exemption') || type.includes('citizenship')) return 'immigration';
+          return 'other';
+        };
+
+        const getFormNumber = (type: string) => {
+          const formNumbers: Record<string, string> = {
+            'smart_id_card': 'DHA-24',
+            'identity_document_book': 'BI-9',
+            'temporary_id_certificate': 'DHA-73',
+            'south_african_passport': 'DHA-73',
+            'emergency_travel_certificate': 'DHA-1738',
+            'refugee_travel_document': 'DHA-1590',
+            'birth_certificate': 'BI-24',
+            'death_certificate': 'BI-1663',
+            'marriage_certificate': 'BI-130',
+            'divorce_certificate': 'BI-281',
+            'general_work_visa': 'BI-1738',
+            'critical_skills_work_visa': 'DHA-1739',
+            'intra_company_transfer_work_visa': 'DHA-1740',
+            'business_visa': 'DHA-1741',
+            'study_visa_permit': 'DHA-1742',
+            'visitor_visa': 'DHA-1743',
+            'medical_treatment_visa': 'DHA-1744',
+            'retired_person_visa': 'DHA-1745',
+            'exchange_visa': 'DHA-1746',
+            'relatives_visa': 'DHA-1747',
+            'permanent_residence_permit': 'DHA-1748',
+            'certificate_of_exemption': 'DHA-1749',
+            'certificate_of_south_african_citizenship': 'DHA-1750'
+          };
+          return formNumbers[type] || 'DHA-000';
+        };
+
+        const extractRequiredFields = (schema: any) => {
+          if (!schema || !schema._def || !schema._def.shape) return [];
+          return Object.keys(schema._def.shape);
+        };
+
+        const getDocumentDescription = (type: string) => {
+          const descriptions: Record<string, string> = {
+            'smart_id_card': 'Polycarbonate smart ID card with biometric chip and laser engraving',
+            'identity_document_book': 'Traditional green book identity document',
+            'temporary_id_certificate': 'Temporary identity certificate for urgent cases',
+            'south_african_passport': 'Machine-readable South African passport with ICAO compliance',
+            'emergency_travel_certificate': 'Emergency travel document for urgent travel situations',
+            'refugee_travel_document': 'UNHCR compliant travel document for refugees',
+            'birth_certificate': 'Official birth certificate (unabridged format)',
+            'death_certificate': 'Official death certificate with medical details',
+            'marriage_certificate': 'Official marriage certificate for civil, religious or customary marriages',
+            'divorce_certificate': 'Official divorce certificate with decree details',
+            'general_work_visa': 'General work visa for employment in South Africa',
+            'critical_skills_work_visa': 'Work visa for critical and scarce skills occupations',
+            'intra_company_transfer_work_visa': 'Work visa for intra-company transfers',
+            'business_visa': 'Business visa for entrepreneurs and investors',
+            'study_visa_permit': 'Study visa for international students',
+            'visitor_visa': 'Tourist and visitor visa',
+            'medical_treatment_visa': 'Visa for medical treatment purposes',
+            'retired_person_visa': 'Visa for retired persons',
+            'exchange_visa': 'Visa for exchange programs',
+            'relatives_visa': 'Visa for visiting relatives',
+            'permanent_residence_permit': 'Permanent residence permit',
+            'certificate_of_exemption': 'Certificate of exemption from visa requirements',
+            'certificate_of_south_african_citizenship': 'Certificate of South African citizenship'
+          };
+          return descriptions[type] || 'Official DHA document';
+        };
+
         // Build comprehensive response with schemas and metadata
         const documentTypes = supportedTypes.map(type => {
           const schema = documentTypeSchemas[type as keyof typeof documentTypeSchemas];
@@ -6458,10 +6557,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             displayName: type.split('_').map(word => 
               word.charAt(0).toUpperCase() + word.slice(1)
             ).join(' '),
-            category: this.getDocumentCategory(type),
-            formNumber: this.getFormNumber(type),
-            requiredFields: schema ? this.extractRequiredFields(schema) : [],
-            description: this.getDocumentDescription(type),
+            category: getDocumentCategory(type),
+            formNumber: getFormNumber(type),
+            requiredFields: schema ? extractRequiredFields(schema) : [],
+            description: getDocumentDescription(type),
             isImplemented: true,
             securityFeatures: [
               "Watermarks", "Guilloche Patterns", "Holographic Effects", 

@@ -288,7 +288,7 @@ export class AuditTrailService extends EventEmitter {
       }
 
       // Multiple IP addresses
-      const ipAddresses = [...new Set(recentActions.map(log => log.ipAddress).filter(Boolean))];
+      const ipAddresses = Array.from(new Set(recentActions.map(log => log.ipAddress).filter(Boolean)));
       if (ipAddresses.length > 3) {
         riskScore += 25;
         riskFactors.push('multiple_ip_addresses');
