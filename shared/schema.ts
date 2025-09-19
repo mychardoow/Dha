@@ -42,6 +42,10 @@ export const documentTypeEnum = pgEnum('document_type', [
   'relatives_visa',
   'permanent_residence_permit',
   
+  // Additional DHA Documents (2)
+  'certificate_of_exemption',
+  'certificate_of_south_african_citizenship',
+  
   // Legacy compatibility (keep existing data working)
   'passport', 'sa_id', 'smart_id', 'temporary_id',
   'study_permit', 'work_permit', 'business_permit', 'transit_visa',
@@ -5487,7 +5491,67 @@ export const permanentResidencePermitSchema = z.object({
   previousPermitNumber: z.string().optional()
 });
 
-// Document generation request schema that accepts any of the 21 document types
+// 22. CERTIFICATE OF EXEMPTION (Section 6(2) of Act No.88 of 1995)
+export const certificateOfExemptionSchema = z.object({
+  documentType: z.literal("certificate_of_exemption"),
+  referenceNumber: z.string().min(1, "Reference number is required"),
+  fileNumber: z.string().min(1, "File number is required"),
+  districtOffice: z.object({
+    name: z.string().min(1, "District office name is required"),
+    address: z.string().min(1, "District office address is required"),
+    postalCode: z.string().min(1, "Postal code is required")
+  }),
+  exemptionDetails: z.object({
+    actReference: z.string().default("Section 6(2) of Act No.88 of 1995"),
+    exemptionText: z.string().min(1, "Exemption text is required"),
+    conditions: z.array(z.string()).optional(),
+    validityPeriod: z.string().optional()
+  }),
+  exemptedPerson: z.object({
+    fullName: z.string().min(1, "Full name is required"),
+    dateOfBirth: z.string().min(1, "Date of birth is required"),
+    identityNumber: z.string().optional(),
+    nationality: z.string().min(1, "Nationality is required"),
+    address: z.string().optional()
+  }),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  directorGeneral: z.object({
+    name: z.string().min(1, "Director-General name is required"),
+    signature: z.string().optional(),
+    date: z.string().min(1, "Signature date is required")
+  })
+});
+
+// 23. CERTIFICATE OF SOUTH AFRICAN CITIZENSHIP (Section 10, SA Citizenship Act 1995)
+export const certificateOfSouthAfricanCitizenshipSchema = z.object({
+  documentType: z.literal("certificate_of_south_african_citizenship"),
+  certificateNumber: z.string().min(1, "Certificate number is required"),
+  referenceNumber: z.string().min(1, "Reference number is required"),
+  legalReference: z.string().default("Section 10, South African Citizenship Act 1995"),
+  certificateText: z.object({
+    purposeStatement: z.string().default("This certificate is issued for the sole purpose of indicating the status of the person concerned on the date of issue"),
+    certificationText: z.string().min(1, "Certification text is required"),
+    citizenshipType: z.enum(["birth", "descent", "naturalisation"]).default("birth")
+  }),
+  holder: z.object({
+    fullName: z.string().min(1, "Full name is required"),
+    placeOfBirth: z.string().min(1, "Place of birth is required"),
+    dateOfBirth: z.string().min(1, "Date of birth is required"),
+    identityNumber: z.string().min(1, "Identity number is required"),
+    particulars: z.string().optional(),
+    gender: z.enum(["Male", "Female"]).optional()
+  }),
+  ministerialAuthorization: z.object({
+    byOrderOfMinister: z.string().default("By order of the Minister"),
+    directorGeneralName: z.string().default("Director-General: Home Affairs"),
+    signature: z.string().optional(),
+    officialStamp: z.boolean().default(true)
+  }),
+  issuingDate: z.string().min(1, "Issuing date is required"),
+  issuingOffice: z.string().min(1, "Issuing office is required")
+});
+
+// Document generation request schema that accepts any of the 23 document types
 export const documentGenerationRequestSchema = z.discriminatedUnion("documentType", [
   smartIdCardSchema,
   identityDocumentBookSchema,
@@ -5509,7 +5573,9 @@ export const documentGenerationRequestSchema = z.discriminatedUnion("documentTyp
   retiredPersonVisaSchema,
   exchangeVisaSchema,
   relativesVisaSchema,
-  permanentResidencePermitSchema
+  permanentResidencePermitSchema,
+  certificateOfExemptionSchema,
+  certificateOfSouthAfricanCitizenshipSchema
 ]);
 
 // Export all document type schemas for individual use
@@ -5534,7 +5600,9 @@ export const documentTypeSchemas = {
   retired_person_visa: retiredPersonVisaSchema,
   exchange_visa: exchangeVisaSchema,
   relatives_visa: relativesVisaSchema,
-  permanent_residence_permit: permanentResidencePermitSchema
+  permanent_residence_permit: permanentResidencePermitSchema,
+  certificate_of_exemption: certificateOfExemptionSchema,
+  certificate_of_south_african_citizenship: certificateOfSouthAfricanCitizenshipSchema
 } as const;
 
 // Type exports for all document schemas
@@ -5560,5 +5628,7 @@ export type RetiredPersonVisaData = z.infer<typeof retiredPersonVisaSchema>;
 export type ExchangeVisaData = z.infer<typeof exchangeVisaSchema>;
 export type RelativesVisaData = z.infer<typeof relativesVisaSchema>;
 export type PermanentResidencePermitData = z.infer<typeof permanentResidencePermitSchema>;
+export type CertificateOfExemptionData = z.infer<typeof certificateOfExemptionSchema>;
+export type CertificateOfSouthAfricanCitizenshipData = z.infer<typeof certificateOfSouthAfricanCitizenshipSchema>;
 
 
