@@ -255,6 +255,15 @@ app.use((req, res, next) => {
       });
       console.warn('[Server] No frontend files found, serving basic response');
     }
+    } catch (error) {
+      console.warn('[Server] Failed to setup static file serving:', error);
+      // Basic fallback - serve a simple response
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.send('<h1>DHA Digital Services Platform</h1><p>Server starting...</p>');
+        }
+      });
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
