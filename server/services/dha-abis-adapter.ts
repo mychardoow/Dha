@@ -134,7 +134,7 @@ export class DHAABISAdapter {
    */
   private async initializeSecureClient(): Promise<void> {
     try {
-      this.secureClient = await createSecureGovernmentClient('DHA-ABIS');
+      this.secureClient = await createSecureGovernmentClient('DHA_ABIS');
       await this.secureClient.initialize();
       console.log('[DHA-ABIS] ✅ Secure mTLS client initialized');
     } catch (error) {
