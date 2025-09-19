@@ -86,10 +86,95 @@ export interface MRZData {
   optionalData?: string;
 }
 
+// Biometric Features Configuration
+export interface BiometricFeatures {
+  photo: {
+    width: number;
+    height: number;
+    borderStyle: 'official' | 'security' | 'holographic';
+    position: { x: number; y: number };
+  };
+  fingerprints: {
+    count: number;
+    ridgePattern: 'loop' | 'whorl' | 'arch' | 'composite';
+    position: { x: number; y: number };
+  };
+  iris: {
+    scanPattern: string;
+    uniqueId: string;
+    position: { x: number; y: number };
+  };
+  chip: {
+    type: 'contact' | 'contactless' | 'dual';
+    encodedData: string;
+    position: { x: number; y: number };
+  };
+  faceRecognition: {
+    alignmentMarkers: boolean;
+    landmarks: number;
+    position: { x: number; y: number };
+  };
+}
+
+// Special Ink Effects
+export interface SpecialInkEffects {
+  metallic: {
+    type: 'gold' | 'silver' | 'copper' | 'bronze';
+    element: string; // seal, border, text
+    position: { x: number; y: number };
+  };
+  colorShifting: {
+    fromColor: string;
+    toColor: string;
+    angle: number;
+    element: string;
+  };
+  thermochromic: {
+    coldColor: string;
+    hotColor: string;
+    temperature: number; // celsius
+    element: string;
+  };
+  uvReactive: {
+    wavelength: number;
+    glowColor: string;
+    overlayOpacity: number;
+  };
+  ovi: {
+    primaryColor: string;
+    secondaryColor: string;
+    tertiaryColor: string;
+    viewingAngle: number;
+  };
+}
+
+// DataMatrix Configuration for work permits
+export interface DataMatrixConfig {
+  data: any;
+  errorCorrection: 'L' | 'M' | 'Q' | 'H';
+  size: number;
+  position: { x: number; y: number };
+}
+
 /**
  * Main SecurityFeaturesV2 class
  */
 export class SecurityFeaturesV2 {
+  // Fingerprint ridge patterns
+  private static readonly FINGERPRINT_PATTERNS = {
+    loop: 'M5,20 Q10,10 15,15 T25,20 Q30,25 35,20',
+    whorl: 'M20,20 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0',
+    arch: 'M5,25 Q20,10 35,25',
+    composite: 'M5,20 Q10,15 15,20 T25,15 Q30,20 35,15'
+  };
+  
+  // Iris pattern templates
+  private static readonly IRIS_PATTERNS = {
+    radial: 'radial-gradient(circle, #8B4513 20%, #D2691E 40%, #8B4513 60%, #000000 100%)',
+    crypts: 'conic-gradient(from 0deg, #8B4513, #D2691E, #8B4513, #D2691E)',
+    furrows: 'linear-gradient(45deg, #8B4513 25%, #D2691E 25% 50%, #8B4513 50% 75%, #D2691E 75%)'
+  };
+  
   // Braille character mapping (Grade 1)
   private static readonly BRAILLE_ALPHABET: Record<string, number[][]> = {
     'A': [[1, 0], [0, 0], [0, 0]],
@@ -130,6 +215,494 @@ export class SecurityFeaturesV2 {
     '8': [[1, 0], [1, 1], [0, 0]],
     '9': [[0, 1], [1, 0], [0, 0]]
   };
+
+  /**
+   * Add comprehensive biometric features to PDF
+   * Includes photo area, fingerprints, iris scan, chip symbol, and face recognition markers
+   */
+  static addBiometricFeatures(doc: PDFKit, features: BiometricFeatures): void {
+    doc.save();
+    
+    // 1. Photo capture area with official border
+    if (features.photo) {
+      const { x, y } = features.photo.position;
+      const { width, height, borderStyle } = features.photo;
+      
+      // Official photo border
+      doc.rect(x, y, width, height)
+         .lineWidth(3);
+      
+      switch (borderStyle) {
+        case 'official':
+          doc.strokeColor('#001489'); // SA blue
+          break;
+        case 'security':
+          doc.strokeColor('#CC0000'); // Security red
+          break;
+        case 'holographic':
+          // Holographic border effect
+          const gradient = doc.linearGradient(x, y, x + width, y);
+          gradient.stop(0, '#FF00FF').stop(0.5, '#00FFFF').stop(1, '#FFFF00');
+          doc.stroke(gradient);
+          break;
+        default:
+          doc.strokeColor('#000000');
+      }
+      
+      doc.stroke();
+      
+      // Photo placeholder with guidelines
+      doc.rect(x + 5, y + 5, width - 10, height - 10)
+         .fill('#F0F0F0');
+      
+      // Face alignment guides
+      doc.fontSize(8)
+         .fillColor('#999999')
+         .text('PHOTOGRAPH', x + width/2 - 30, y + height/2 - 10)
+         .text('FOTO', x + width/2 - 15, y + height/2 + 5);
+      
+      // Alignment markers for face recognition
+      const markerSize = 5;
+      // Top-left marker
+      doc.moveTo(x + 10, y + 10)
+         .lineTo(x + 10 + markerSize, y + 10)
+         .moveTo(x + 10, y + 10)
+         .lineTo(x + 10, y + 10 + markerSize)
+         .strokeColor('#FF0000')
+         .lineWidth(1)
+         .stroke();
+      
+      // Top-right marker
+      doc.moveTo(x + width - 10 - markerSize, y + 10)
+         .lineTo(x + width - 10, y + 10)
+         .moveTo(x + width - 10, y + 10)
+         .lineTo(x + width - 10, y + 10 + markerSize)
+         .stroke();
+      
+      // Bottom markers
+      doc.moveTo(x + 10, y + height - 10 - markerSize)
+         .lineTo(x + 10, y + height - 10)
+         .moveTo(x + 10, y + height - 10)
+         .lineTo(x + 10 + markerSize, y + height - 10)
+         .stroke();
+      
+      doc.moveTo(x + width - 10 - markerSize, y + height - 10)
+         .lineTo(x + width - 10, y + height - 10)
+         .moveTo(x + width - 10, y + height - 10 - markerSize)
+         .lineTo(x + width - 10, y + height - 10)
+         .stroke();
+    }
+    
+    // 2. Fingerprint boxes with ridge patterns
+    if (features.fingerprints) {
+      const { x, y } = features.fingerprints.position;
+      const { count, ridgePattern } = features.fingerprints;
+      const boxSize = 40;
+      const spacing = 10;
+      
+      for (let i = 0; i < count; i++) {
+        const boxX = x + (i * (boxSize + spacing));
+        const boxY = y;
+        
+        // Fingerprint box
+        doc.rect(boxX, boxY, boxSize, boxSize)
+           .strokeColor('#333333')
+           .lineWidth(1)
+           .stroke();
+        
+        // Ridge pattern
+        this.drawFingerprintPattern(doc, ridgePattern, boxX, boxY, boxSize);
+        
+        // Label
+        const finger = ['Thumb', 'Index', 'Middle', 'Ring', 'Little'][i] || `Finger ${i+1}`;
+        doc.fontSize(6)
+           .fillColor('#666666')
+           .text(finger, boxX + 5, boxY + boxSize + 2);
+      }
+    }
+    
+    // 3. Iris scan pattern with unique identifier
+    if (features.iris) {
+      const { x, y } = features.iris.position;
+      const radius = 30;
+      
+      // Iris outer circle
+      doc.circle(x, y, radius)
+         .strokeColor('#000000')
+         .lineWidth(2)
+         .stroke();
+      
+      // Pupil
+      doc.circle(x, y, radius / 3)
+         .fill('#000000');
+      
+      // Iris pattern (radial lines)
+      for (let angle = 0; angle < 360; angle += 15) {
+        const rad = (angle * Math.PI) / 180;
+        doc.moveTo(x + (radius/3) * Math.cos(rad), y + (radius/3) * Math.sin(rad))
+           .lineTo(x + radius * Math.cos(rad), y + radius * Math.sin(rad))
+           .strokeColor('#8B4513')
+           .lineWidth(0.5)
+           .stroke();
+      }
+      
+      // Crypts and furrows (random pattern)
+      for (let i = 0; i < 12; i++) {
+        const angle = Math.random() * 360;
+        const rad = (angle * Math.PI) / 180;
+        const r = radius/3 + Math.random() * (radius - radius/3);
+        doc.circle(x + r * Math.cos(rad), y + r * Math.sin(rad), 2)
+           .fill('#D2691E')
+           .fillOpacity(0.5);
+      }
+      
+      // Unique ID
+      doc.fontSize(6)
+         .fillColor('#0000FF')
+         .text(`IRIS-ID: ${features.iris.uniqueId}`, x - 40, y + radius + 5);
+    }
+    
+    // 4. Biometric chip symbol
+    if (features.chip) {
+      const { x, y } = features.chip.position;
+      const chipSize = 35;
+      
+      // Chip body
+      doc.rect(x, y, chipSize, chipSize)
+         .fill('#FFD700')
+         .strokeColor('#000000')
+         .lineWidth(1)
+         .stroke();
+      
+      // Contact pads (for contact chip)
+      if (features.chip.type === 'contact' || features.chip.type === 'dual') {
+        for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            doc.rect(x + 5 + col * 10, y + 5 + row * 10, 8, 8)
+               .fill('#C0C0C0')
+               .strokeColor('#808080')
+               .lineWidth(0.5)
+               .stroke();
+          }
+        }
+      }
+      
+      // Contactless symbol
+      if (features.chip.type === 'contactless' || features.chip.type === 'dual') {
+        // WiFi-like symbol
+        const centerX = x + chipSize / 2;
+        const centerY = y + chipSize / 2;
+        
+        for (let i = 1; i <= 3; i++) {
+          doc.circle(centerX, centerY, i * 5)
+             .strokeColor('#0066CC')
+             .lineWidth(0.5)
+             .stroke();
+        }
+      }
+      
+      // Chip label
+      doc.fontSize(6)
+         .fillColor('#000000')
+         .text('CHIP', x + chipSize/2 - 10, y + chipSize + 3);
+      
+      // Encoded data indicator
+      doc.fontSize(4)
+         .fillColor('#666666')
+         .text('[Encrypted]', x, y + chipSize + 10);
+    }
+    
+    // 5. Face recognition alignment markers
+    if (features.faceRecognition && features.faceRecognition.alignmentMarkers) {
+      const { x, y } = features.faceRecognition.position;
+      
+      // Facial landmark points
+      const landmarks = [
+        { x: x + 20, y: y + 15, label: 'L.Eye' },
+        { x: x + 40, y: y + 15, label: 'R.Eye' },
+        { x: x + 30, y: y + 25, label: 'Nose' },
+        { x: x + 30, y: y + 35, label: 'Mouth' }
+      ];
+      
+      landmarks.forEach(point => {
+        // Crosshair marker
+        doc.moveTo(point.x - 3, point.y)
+           .lineTo(point.x + 3, point.y)
+           .moveTo(point.x, point.y - 3)
+           .lineTo(point.x, point.y + 3)
+           .strokeColor('#00FF00')
+           .lineWidth(0.5)
+           .stroke();
+        
+        // Label
+        doc.fontSize(3)
+           .fillColor('#00FF00')
+           .text(point.label, point.x + 5, point.y - 2);
+      });
+      
+      // Face recognition grid
+      doc.rect(x, y, 60, 80)
+         .strokeColor('#00FF00')
+         .lineWidth(0.5)
+         .stroke();
+      
+      // Grid lines
+      for (let i = 1; i < 4; i++) {
+        // Horizontal
+        doc.moveTo(x, y + i * 20)
+           .lineTo(x + 60, y + i * 20)
+           .stroke();
+        // Vertical
+        doc.moveTo(x + i * 15, y)
+           .lineTo(x + i * 15, y + 80)
+           .stroke();
+      }
+      
+      // Recognition score
+      doc.fontSize(5)
+         .fillColor('#00FF00')
+         .text(`Match: ${features.faceRecognition.landmarks}%`, x, y + 85);
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Draw fingerprint ridge pattern
+   */
+  private static drawFingerprintPattern(doc: PDFKit, pattern: string, x: number, y: number, size: number): void {
+    doc.save();
+    
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    
+    // Create ridge lines based on pattern type
+    switch (pattern) {
+      case 'loop':
+        // Loop pattern
+        for (let i = 0; i < 8; i++) {
+          const offset = i * 3;
+          doc.moveTo(x + 5 + offset, y + size - 5)
+             .quadraticCurveTo(centerX, y + 5, x + size - 5 - offset, y + size - 5)
+             .strokeColor('#666666')
+             .lineWidth(0.5)
+             .stroke();
+        }
+        break;
+        
+      case 'whorl':
+        // Whorl pattern (concentric circles)
+        for (let r = 3; r < size/2; r += 3) {
+          doc.circle(centerX, centerY, r)
+             .strokeColor('#666666')
+             .lineWidth(0.5)
+             .stroke();
+        }
+        break;
+        
+      case 'arch':
+        // Arch pattern
+        for (let i = 0; i < 10; i++) {
+          const yOffset = i * 3;
+          doc.moveTo(x + 3, y + size - yOffset)
+             .quadraticCurveTo(centerX, y + yOffset, x + size - 3, y + size - yOffset)
+             .strokeColor('#666666')
+             .lineWidth(0.5)
+             .stroke();
+        }
+        break;
+        
+      case 'composite':
+        // Composite pattern (mix of loops and whorls)
+        for (let i = 0; i < 5; i++) {
+          const offset = i * 4;
+          doc.moveTo(x + offset, centerY)
+             .quadraticCurveTo(centerX, y + offset, x + size - offset, centerY)
+             .strokeColor('#666666')
+             .lineWidth(0.5)
+             .stroke();
+        }
+        doc.circle(centerX, centerY, 8)
+           .strokeColor('#666666')
+           .lineWidth(0.5)
+           .stroke();
+        break;
+    }
+    
+    // Add minutiae points
+    for (let i = 0; i < 5; i++) {
+      const mx = x + 5 + Math.random() * (size - 10);
+      const my = y + 5 + Math.random() * (size - 10);
+      doc.circle(mx, my, 0.5)
+         .fill('#FF0000');
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add comprehensive special ink effects
+   */
+  static addSpecialInkEffects(doc: PDFKit, effects: SpecialInkEffects): void {
+    doc.save();
+    
+    // Metallic ink effect
+    if (effects.metallic) {
+      const { x, y } = effects.metallic.position;
+      let metalColor = '#FFD700'; // gold default
+      
+      switch (effects.metallic.type) {
+        case 'gold':
+          metalColor = '#FFD700';
+          break;
+        case 'silver':
+          metalColor = '#C0C0C0';
+          break;
+        case 'copper':
+          metalColor = '#B87333';
+          break;
+        case 'bronze':
+          metalColor = '#CD7F32';
+          break;
+      }
+      
+      // Create metallic gradient
+      const gradient = doc.linearGradient(x, y, x + 100, y);
+      gradient.stop(0, metalColor)
+              .stop(0.5, '#FFFFFF')
+              .stop(1, metalColor);
+      
+      doc.fontSize(12)
+         .fill(gradient)
+         .text(effects.metallic.element, x, y);
+      
+      // Add shimmer effect
+      doc.rect(x, y - 2, 100, 16)
+         .fill('#FFFFFF')
+         .fillOpacity(0.3);
+    }
+    
+    // Color-shifting ink
+    if (effects.colorShifting) {
+      const { x, y } = effects.colorShifting.position;
+      
+      // Create angular gradient for color shift
+      const gradient = doc.linearGradient(x, y, x + 150, y + 20);
+      gradient.stop(0, effects.colorShifting.fromColor)
+              .stop(0.5, effects.colorShifting.toColor)
+              .stop(1, effects.colorShifting.fromColor);
+      
+      doc.fontSize(10)
+         .fill(gradient)
+         .text(effects.colorShifting.element, x, y);
+      
+      // Add viewing angle indicator
+      doc.fontSize(5)
+         .fillColor('#666666')
+         .text(`[Angle: ${effects.colorShifting.angle}°]`, x, y + 15);
+    }
+    
+    // Thermochromic ink
+    if (effects.thermochromic) {
+      const { x, y } = effects.thermochromic.position;
+      
+      // Show both states
+      doc.fontSize(10)
+         .fillColor(effects.thermochromic.coldColor)
+         .text(effects.thermochromic.element, x, y);
+      
+      // Temperature indicator
+      doc.fontSize(6)
+         .fillColor('#666666')
+         .text(`[${effects.thermochromic.coldColor} < ${effects.thermochromic.temperature}°C < ${effects.thermochromic.hotColor}]`, 
+               x, y + 12);
+    }
+    
+    // UV reactive overlay
+    if (effects.uvReactive) {
+      // This would be invisible in normal light
+      doc.fontSize(8)
+         .fillColor(effects.uvReactive.glowColor, effects.uvReactive.overlayOpacity)
+         .text(`[UV ${effects.uvReactive.wavelength}nm Reactive]`, 50, 50);
+    }
+    
+    // OVI (Optically Variable Ink)
+    if (effects.ovi) {
+      const { x, y } = effects.ovi.position;
+      
+      // Triple color gradient
+      const gradient = doc.linearGradient(x, y, x + 120, y);
+      gradient.stop(0, effects.ovi.primaryColor)
+              .stop(0.33, effects.ovi.secondaryColor)
+              .stop(0.66, effects.ovi.tertiaryColor)
+              .stop(1, effects.ovi.primaryColor);
+      
+      doc.fontSize(11)
+         .fill(gradient)
+         .text(`OVI: ${effects.ovi.viewingAngle}°`, x, y);
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add comprehensive DataMatrix code for work permits
+   */
+  static async addDataMatrixCode(doc: PDFKit, config: DataMatrixConfig): Promise<void> {
+    doc.save();
+    
+    const { x, y } = config.position;
+    const size = config.size;
+    
+    // DataMatrix background
+    doc.rect(x, y, size, size)
+       .fill('#FFFFFF')
+       .strokeColor('#000000')
+       .lineWidth(1)
+       .stroke();
+    
+    // Generate DataMatrix pattern
+    // L-shaped finder pattern
+    doc.moveTo(x, y)
+       .lineTo(x, y + size)
+       .lineTo(x + size, y + size)
+       .strokeColor('#000000')
+       .lineWidth(2)
+       .stroke();
+    
+    // Alternating timing pattern
+    for (let i = 0; i < size; i += 4) {
+      doc.rect(x + size - 2, y + i, 2, 2)
+         .fill('#000000');
+      doc.rect(x + i, y, 2, 2)
+         .fill('#000000');
+    }
+    
+    // Data modules (simulated)
+    const moduleSize = 2;
+    const modules = (size - 4) / moduleSize;
+    
+    for (let row = 0; row < modules; row++) {
+      for (let col = 0; col < modules; col++) {
+        if (Math.random() > 0.5) {
+          doc.rect(x + 2 + col * moduleSize, y + 2 + row * moduleSize, moduleSize, moduleSize)
+             .fill('#000000');
+        }
+      }
+    }
+    
+    // Error correction indicator
+    doc.fontSize(4)
+       .fillColor('#666666')
+       .text(`ECC: ${config.errorCorrection}`, x, y + size + 2);
+    
+    // DataMatrix label
+    doc.fontSize(5)
+       .fillColor('#000000')
+       .text('DataMatrix', x + size / 2 - 15, y + size + 8);
+    
+    doc.restore();
+  }
 
   /**
    * Add comprehensive UV ink features to PDF
@@ -595,7 +1168,7 @@ export class SecurityFeaturesV2 {
   }
 
   /**
-   * Add microprinting security feature
+   * Add comprehensive microprinting security feature
    */
   static addMicroprinting(doc: PDFKit, text: string, x: number, y: number, width: number): void {
     doc.save();
@@ -624,7 +1197,104 @@ export class SecurityFeaturesV2 {
   }
 
   /**
-   * Create guilloche pattern (intricate geometric security pattern)
+   * Add comprehensive microprinting patterns
+   */
+  static addComprehensiveMicroprinting(doc: PDFKit, documentType: string, pageWidth: number, pageHeight: number): void {
+    doc.save();
+    
+    // 1. Border microprinting with "REPUBLIC OF SOUTH AFRICA"
+    const borderText = 'REPUBLIC OF SOUTH AFRICA • REPUBLIEK VAN SUID-AFRIKA • ';
+    doc.fontSize(1)
+       .fillColor('#C0C0C0')
+       .fillOpacity(0.3);
+    
+    // Top border
+    const topRepeats = Math.ceil(pageWidth / (borderText.length * 0.8));
+    doc.text(borderText.repeat(topRepeats), 20, 10, {
+      width: pageWidth - 40,
+      height: 2,
+      lineBreak: false
+    });
+    
+    // Bottom border
+    doc.text(borderText.repeat(topRepeats), 20, pageHeight - 12, {
+      width: pageWidth - 40,
+      height: 2,
+      lineBreak: false
+    });
+    
+    // 2. Security thread with document type
+    const threadText = `${documentType.toUpperCase()} • SECURE • `;
+    doc.fontSize(1)
+       .fillColor('#4B0082')
+       .fillOpacity(0.4);
+    
+    // Vertical thread
+    for (let y = 50; y < pageHeight - 50; y += 10) {
+      doc.text(threadText, pageWidth / 2 - 50, y, {
+        width: 100,
+        height: 2,
+        lineBreak: false
+      });
+    }
+    
+    // 3. Background microtext patterns
+    const bgText = 'DHA';
+    doc.fontSize(0.8)
+       .fillColor('#E0E0E0')
+       .fillOpacity(0.2);
+    
+    // Create diagonal pattern
+    for (let y = 100; y < pageHeight - 100; y += 20) {
+      for (let x = 50; x < pageWidth - 50; x += 30) {
+        doc.save();
+        doc.rotate(45, { origin: [x, y] });
+        doc.text(bgText, x, y);
+        doc.restore();
+      }
+    }
+    
+    // 4. Spiral microtext around seals
+    // This is simulated as circular text
+    const sealText = 'DEPARTMENT OF HOME AFFAIRS • ';
+    const centerX = pageWidth - 100;
+    const centerY = 100;
+    const radius = 40;
+    
+    doc.fontSize(1.5)
+       .fillColor('#666666')
+       .fillOpacity(0.5);
+    
+    for (let i = 0; i < sealText.length; i++) {
+      const angle = (i * 360 / sealText.length) * Math.PI / 180;
+      const charX = centerX + radius * Math.cos(angle);
+      const charY = centerY + radius * Math.sin(angle);
+      
+      doc.save();
+      doc.rotate((i * 360 / sealText.length) + 90, { origin: [centerX, centerY] });
+      doc.text(sealText[i], charX, charY);
+      doc.restore();
+    }
+    
+    // 5. Document number microprinting
+    doc.fontSize(1)
+       .fillColor('#999999')
+       .fillOpacity(0.3);
+    
+    // Repeat document number as watermark
+    for (let y = 150; y < pageHeight - 150; y += 50) {
+      doc.text('DOC-ID-SECURE-PATTERN', 100, y, {
+        width: pageWidth - 200,
+        height: 2,
+        lineBreak: false
+      });
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Create enhanced guilloche pattern with complex spirals
    */
   static addGuillochePattern(doc: PDFKit, x: number, y: number, width: number, height: number): void {
     doc.save();
@@ -632,15 +1302,18 @@ export class SecurityFeaturesV2 {
        .lineWidth(0.25);
     
     // Create complex interwoven pattern
-    const steps = 50;
+    const steps = 100; // More steps for finer pattern
     const amplitude = height / 4;
     
-    for (let phase = 0; phase < 3; phase++) {
+    // Multiple sine waves with different frequencies
+    for (let phase = 0; phase < 5; phase++) {
       doc.moveTo(x, y + height / 2);
       
       for (let i = 0; i <= steps; i++) {
         const xPos = x + (i * width / steps);
-        const yPos = y + height / 2 + amplitude * Math.sin((i / steps) * Math.PI * 4 + phase);
+        const yPos = y + height / 2 + 
+                     amplitude * Math.sin((i / steps) * Math.PI * 4 + phase) * 
+                     Math.cos((i / steps) * Math.PI * 2 + phase/2);
         doc.lineTo(xPos, yPos);
       }
       
@@ -652,13 +1325,322 @@ export class SecurityFeaturesV2 {
     const centerY = y + height / 2;
     const radius = Math.min(width, height) / 4;
     
-    for (let angle = 0; angle < 360; angle += 30) {
-      const rad = (angle * Math.PI) / 180;
-      doc.circle(
-        centerX + radius * Math.cos(rad) / 2,
-        centerY + radius * Math.sin(rad) / 2,
-        radius / 3
-      ).stroke();
+    // Complex rosette with multiple layers
+    for (let layer = 0; layer < 3; layer++) {
+      const layerRadius = radius * (1 - layer * 0.3);
+      for (let angle = 0; angle < 360; angle += 15) {
+        const rad = (angle * Math.PI) / 180;
+        doc.circle(
+          centerX + layerRadius * Math.cos(rad) / 2,
+          centerY + layerRadius * Math.sin(rad) / 2,
+          layerRadius / 4
+        ).stroke();
+      }
+    }
+    
+    // Add spiral elements
+    for (let spiral = 0; spiral < 4; spiral++) {
+      const startAngle = spiral * 90;
+      doc.moveTo(centerX, centerY);
+      
+      for (let t = 0; t < 20; t++) {
+        const angle = (startAngle + t * 18) * Math.PI / 180;
+        const r = t * 2;
+        doc.lineTo(centerX + r * Math.cos(angle), centerY + r * Math.sin(angle));
+      }
+      doc.stroke();
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add enhanced holographic coat of arms
+   */
+  static addHolographicCoatOfArms(doc: PDFKit, x: number, y: number, size: number): void {
+    doc.save();
+    
+    // Create multi-layer holographic effect
+    const layers = [
+      { color: '#FF00FF', opacity: 0.3, offset: 0 },
+      { color: '#00FFFF', opacity: 0.3, offset: 2 },
+      { color: '#FFFF00', opacity: 0.3, offset: 4 }
+    ];
+    
+    layers.forEach(layer => {
+      const offsetX = x + layer.offset;
+      const offsetY = y + layer.offset;
+      
+      // Shield outline
+      doc.path(`M ${offsetX} ${offsetY + size * 0.2}
+                Q ${offsetX} ${offsetY} ${offsetX + size * 0.1} ${offsetY}
+                L ${offsetX + size * 0.9} ${offsetY}
+                Q ${offsetX + size} ${offsetY} ${offsetX + size} ${offsetY + size * 0.2}
+                L ${offsetX + size} ${offsetY + size * 0.6}
+                Q ${offsetX + size/2} ${offsetY + size} ${offsetX} ${offsetY + size * 0.6}
+                Z`)
+         .fillColor(layer.color)
+         .fillOpacity(layer.opacity)
+         .fill();
+    });
+    
+    // Add national elements with holographic shimmer
+    const centerX = x + size / 2;
+    const centerY = y + size / 2;
+    
+    // Protea flower (simplified)
+    for (let petal = 0; petal < 8; petal++) {
+      const angle = (petal * 45) * Math.PI / 180;
+      const petalX = centerX + 20 * Math.cos(angle);
+      const petalY = centerY + 20 * Math.sin(angle);
+      
+      doc.circle(petalX, petalY, 8)
+         .fill('#FCB514')
+         .fillOpacity(0.6);
+    }
+    
+    // Central circle
+    doc.circle(centerX, centerY, 10)
+       .fill('#007749')
+       .fillOpacity(0.8);
+    
+    // Add "RSA" text with holographic effect
+    doc.fontSize(12)
+       .fillColor('#FFFFFF')
+       .fillOpacity(0.9)
+       .text('RSA', centerX - 12, centerY - 6);
+    
+    // Holographic notation
+    doc.fontSize(5)
+       .fillColor('#999999')
+       .text('[Holographic Seal]', x, y + size + 5);
+    
+    doc.restore();
+  }
+
+  /**
+   * Add 3D depth effect on document numbers
+   */
+  static add3DDocumentNumber(doc: PDFKit, number: string, x: number, y: number): void {
+    doc.save();
+    
+    // Create 3D effect with multiple layers
+    const layers = [
+      { offset: 3, color: '#000000', opacity: 0.1 }, // Deep shadow
+      { offset: 2, color: '#333333', opacity: 0.2 }, // Mid shadow
+      { offset: 1, color: '#666666', opacity: 0.3 }, // Light shadow
+      { offset: 0, color: '#001489', opacity: 1.0 }  // Main text
+    ];
+    
+    doc.fontSize(16)
+       .font('Helvetica-Bold');
+    
+    layers.forEach(layer => {
+      doc.fillColor(layer.color)
+         .fillOpacity(layer.opacity)
+         .text(number, x + layer.offset, y + layer.offset);
+    });
+    
+    // Add highlight for 3D effect
+    doc.fontSize(16)
+       .fillColor('#FFFFFF')
+       .fillOpacity(0.3)
+       .text(number, x - 0.5, y - 0.5);
+    
+    doc.restore();
+  }
+
+  /**
+   * Add holographic foil security strip
+   */
+  static addHolographicFoilStrip(doc: PDFKit, x: number, y: number, width: number, height: number): void {
+    doc.save();
+    
+    // Create iridescent gradient
+    const gradient = doc.linearGradient(x, y, x + width, y);
+    gradient.stop(0, '#FF00FF')
+            .stop(0.2, '#0000FF')
+            .stop(0.4, '#00FFFF')
+            .stop(0.6, '#00FF00')
+            .stop(0.8, '#FFFF00')
+            .stop(1, '#FF0000');
+    
+    // Main foil strip
+    doc.rect(x, y, width, height)
+       .fill(gradient);
+    
+    // Add metallic texture
+    for (let i = 0; i < width; i += 3) {
+      doc.rect(x + i, y, 1, height)
+         .fill('#FFFFFF')
+         .fillOpacity(0.2);
+    }
+    
+    // Security text on foil
+    doc.fontSize(6)
+       .fillColor('#000000')
+       .fillOpacity(0.5);
+    
+    const text = 'SECURE • ';
+    const repeats = Math.ceil(width / (text.length * 4));
+    doc.text(text.repeat(repeats), x, y + height/2 - 3, {
+      width: width,
+      height: 8,
+      lineBreak: false
+    });
+    
+    doc.restore();
+  }
+
+  /**
+   * Add rainbow gradient official seal
+   */
+  static addRainbowSeal(doc: PDFKit, x: number, y: number, radius: number): void {
+    doc.save();
+    
+    // Create rainbow gradient circular seal
+    const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
+    
+    // Draw concentric circles with rainbow colors
+    colors.forEach((color, index) => {
+      const r = radius - (index * radius / colors.length);
+      doc.circle(x, y, r)
+         .fillColor(color)
+         .fillOpacity(0.3)
+         .fill();
+    });
+    
+    // Add seal border
+    doc.circle(x, y, radius)
+       .strokeColor('#000000')
+       .lineWidth(2)
+       .stroke();
+    
+    // Inner circle
+    doc.circle(x, y, radius - 5)
+       .strokeColor('#000000')
+       .lineWidth(1)
+       .stroke();
+    
+    // Center text
+    doc.fontSize(10)
+       .fillColor('#000000')
+       .fillOpacity(1)
+       .text('OFFICIAL', x - 25, y - 5);
+    
+    doc.restore();
+  }
+
+  /**
+   * Add latent image of SA flag
+   */
+  static addLatentSAFlag(doc: PDFKit, x: number, y: number, width: number, height: number): void {
+    doc.save();
+    
+    // Create very faint SA flag that becomes visible at certain angles
+    const opacity = 0.03; // Very faint
+    
+    // Green triangle
+    doc.path(`M ${x} ${y}
+              L ${x + width * 0.4} ${y + height / 2}
+              L ${x} ${y + height}
+              Z`)
+       .fill('#007749')
+       .fillOpacity(opacity);
+    
+    // Gold/yellow band
+    doc.path(`M ${x} ${y}
+              L ${x + width} ${y}
+              L ${x + width} ${y + height * 0.35}
+              L ${x + width * 0.4} ${y + height / 2}
+              Z`)
+       .fill('#FCB514')
+       .fillOpacity(opacity);
+    
+    // Red band
+    doc.rect(x + width * 0.45, y, width * 0.55, height * 0.4)
+       .fill('#DE3831')
+       .fillOpacity(opacity);
+    
+    // Blue band
+    doc.rect(x + width * 0.45, y + height * 0.6, width * 0.55, height * 0.4)
+       .fill('#001489')
+       .fillOpacity(opacity);
+    
+    // White separators (even fainter)
+    doc.rect(x + width * 0.4, y + height * 0.35, width * 0.6, height * 0.05)
+       .fill('#FFFFFF')
+       .fillOpacity(opacity * 0.5);
+    
+    doc.rect(x + width * 0.4, y + height * 0.55, width * 0.6, height * 0.05)
+       .fill('#FFFFFF')
+       .fillOpacity(opacity * 0.5);
+    
+    // Black band in triangle
+    doc.path(`M ${x} ${y + height * 0.4}
+              L ${x + width * 0.3} ${y + height / 2}
+              L ${x} ${y + height * 0.6}
+              Z`)
+       .fill('#000000')
+       .fillOpacity(opacity);
+    
+    // Latent image notation
+    doc.fontSize(4)
+       .fillColor('#E0E0E0')
+       .fillOpacity(0.5)
+       .text('[Latent Image]', x, y + height + 2);
+    
+    doc.restore();
+  }
+
+  /**
+   * Add relief/intaglio shadow effects
+   */
+  static addIntaglioEffect(doc: PDFKit, text: string, x: number, y: number, fontSize: number = 14): void {
+    doc.save();
+    
+    // Create embossed/debossed effect with multiple shadow layers
+    doc.font('Helvetica-Bold')
+       .fontSize(fontSize);
+    
+    // Deep shadow (debossed effect)
+    doc.fillColor('#000000')
+       .fillOpacity(0.3)
+       .text(text, x + 1.5, y + 1.5);
+    
+    // Mid shadow
+    doc.fillColor('#333333')
+       .fillOpacity(0.2)
+       .text(text, x + 1, y + 1);
+    
+    // Light shadow
+    doc.fillColor('#666666')
+       .fillOpacity(0.1)
+       .text(text, x + 0.5, y + 0.5);
+    
+    // Main text with gradient
+    const gradient = doc.linearGradient(x, y, x, y + fontSize);
+    gradient.stop(0, '#333333')
+            .stop(0.5, '#000000')
+            .stop(1, '#333333');
+    
+    doc.fill(gradient)
+       .text(text, x, y);
+    
+    // Highlight (raised effect)
+    doc.fillColor('#FFFFFF')
+       .fillOpacity(0.4)
+       .text(text, x - 0.5, y - 0.5);
+    
+    // Add texture lines for intaglio feel
+    doc.strokeColor('#000000')
+       .lineWidth(0.1)
+       .strokeOpacity(0.2);
+    
+    for (let i = 0; i < fontSize; i += 2) {
+      doc.moveTo(x, y + i)
+         .lineTo(x + text.length * fontSize * 0.6, y + i)
+         .stroke();
     }
     
     doc.restore();
@@ -1140,6 +2122,78 @@ export class SecurityFeaturesV2 {
         perforation: true,
         embossedSeal: true,
         voidPantograph: true,
+        retroreflective: true
+      },
+      'marriage_certificate': {
+        uvFeatures: true,
+        holographic: true,
+        watermarks: true,
+        braille: true,
+        intaglio: true,
+        laserEngraving: false,
+        mrz: false,
+        biometricChip: false,
+        pdf417Barcode: true,
+        microprinting: true,
+        securityThread: true,
+        invisibleFibers: true,
+        guilloche: true,
+        ghostImage: false,
+        rainbowPrinting: true,
+        thermochromic: true,
+        metameric: false,
+        antiCopy: true,
+        perforation: false,
+        embossedSeal: true,
+        voidPantograph: false,
+        retroreflective: false
+      },
+      'police_clearance': {
+        uvFeatures: true,
+        holographic: false,
+        watermarks: true,
+        braille: false,
+        intaglio: false,
+        laserEngraving: false,
+        mrz: false,
+        biometricChip: false,
+        pdf417Barcode: true,
+        microprinting: true,
+        securityThread: true,
+        invisibleFibers: true,
+        guilloche: true,
+        ghostImage: true,
+        rainbowPrinting: false,
+        thermochromic: false,
+        metameric: false,
+        antiCopy: true,
+        perforation: true,
+        embossedSeal: true,
+        voidPantograph: true,
+        retroreflective: false
+      },
+      'visa': {
+        uvFeatures: true,
+        holographic: true,
+        watermarks: true,
+        braille: false,
+        intaglio: true,
+        laserEngraving: true,
+        mrz: true,
+        biometricChip: true,
+        pdf417Barcode: false,
+        microprinting: true,
+        securityThread: true,
+        invisibleFibers: true,
+        guilloche: true,
+        ghostImage: false,
+        rainbowPrinting: true,
+        thermochromic: true,
+        metameric: true,
+        antiCopy: true,
+        perforation: false,
+        embossedSeal: false,
+        voidPantograph: false,
         retroreflective: true
       }
     };

@@ -8,7 +8,16 @@ import * as crypto from "crypto";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 import { Canvas } from "canvas";
-import { SecurityFeaturesV2, UVFeature, BrailleConfig, HolographicEffect, MRZData } from "./security-features-v2";
+import { 
+  SecurityFeaturesV2, 
+  UVFeature, 
+  BrailleConfig, 
+  HolographicEffect, 
+  MRZData,
+  BiometricFeatures,
+  SpecialInkEffects,
+  DataMatrixConfig
+} from "./security-features-v2";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 
@@ -301,6 +310,109 @@ export abstract class BaseDocumentTemplate {
   ): Promise<void> {
     const config = SecurityFeaturesV2.getDocumentSecurityConfig(documentType);
     const { dimensions } = SA_GOVERNMENT_DESIGN;
+    
+    // Add comprehensive microprinting patterns first (background layer)
+    SecurityFeaturesV2.addComprehensiveMicroprinting(
+      doc,
+      documentType,
+      dimensions.page_width,
+      dimensions.page_height
+    );
+    
+    // Add biometric features for ID documents and permits
+    if (documentType.includes('id') || documentType.includes('passport') || documentType.includes('permit')) {
+      const biometricFeatures: any = {
+        photo: {
+          width: 150,
+          height: 200,
+          borderStyle: 'official',
+          position: { x: dimensions.page_width - 200, y: 120 }
+        },
+        fingerprints: documentType.includes('permit') ? {
+          count: 2,
+          ridgePattern: 'whorl',
+          position: { x: 50, y: 350 }
+        } : null,
+        iris: documentType.includes('passport') ? {
+          scanPattern: 'radial',
+          uniqueId: crypto.randomBytes(8).toString('hex').toUpperCase(),
+          position: { x: 100, y: 280 }
+        } : null,
+        chip: documentType.includes('id') || documentType.includes('passport') ? {
+          type: 'dual',
+          encodedData: data.documentNumber || 'ENCRYPTED',
+          position: { x: dimensions.page_width - 100, y: 350 }
+        } : null,
+        faceRecognition: documentType.includes('passport') ? {
+          alignmentMarkers: true,
+          landmarks: 95,
+          position: { x: 50, y: 400 }
+        } : null
+      };
+      SecurityFeaturesV2.addBiometricFeatures(doc, biometricFeatures);
+    }
+    
+    // Add special ink effects
+    const specialInks: any = {
+      metallic: {
+        type: 'gold',
+        element: 'OFFICIAL SEAL',
+        position: { x: dimensions.page_width - 200, y: 50 }
+      },
+      colorShifting: {
+        fromColor: '#9400D3',
+        toColor: '#00FF00',
+        angle: 45,
+        element: 'GOVERNMENT OF SA',
+        position: { x: 50, y: 80 }
+      },
+      thermochromic: config.thermochromic ? {
+        coldColor: '#0000FF',
+        hotColor: '#FF0000',
+        temperature: 35,
+        element: 'HEAT SENSITIVE',
+        position: { x: dimensions.page_width / 2 - 50, y: 100 }
+      } : null,
+      uvReactive: {
+        wavelength: 365,
+        glowColor: '#00FFFF',
+        overlayOpacity: 0.05
+      },
+      ovi: {
+        primaryColor: '#FF00FF',
+        secondaryColor: '#00FFFF',
+        tertiaryColor: '#FFFF00',
+        viewingAngle: 30,
+        position: { x: 300, y: 80 }
+      }
+    };
+    SecurityFeaturesV2.addSpecialInkEffects(doc, specialInks);
+    
+    // Add enhanced holographic features
+    SecurityFeaturesV2.addHolographicCoatOfArms(doc, dimensions.page_width - 150, 40, 80);
+    SecurityFeaturesV2.add3DDocumentNumber(doc, data.documentNumber || 'DOC-2024-001', 50, 50);
+    SecurityFeaturesV2.addHolographicFoilStrip(doc, 0, dimensions.page_height / 2 - 10, dimensions.page_width, 20);
+    SecurityFeaturesV2.addRainbowSeal(doc, dimensions.page_width - 80, 200, 35);
+    
+    // Add detailed artwork
+    SecurityFeaturesV2.addLatentSAFlag(doc, dimensions.page_width / 2 - 50, dimensions.page_height / 2 - 30, 100, 60);
+    SecurityFeaturesV2.addIntaglioEffect(doc, documentType.replace(/_/g, ' ').toUpperCase(), 50, 30, 18);
+    
+    // Add DataMatrix for work permits
+    if (documentType.includes('work_permit')) {
+      const dataMatrixConfig: any = {
+        data: {
+          type: documentType,
+          id: data.documentNumber || 'WP-2024-001',
+          issued: new Date().toISOString(),
+          validity: data.validUntil || '2025-12-31'
+        },
+        errorCorrection: 'H',
+        size: 50,
+        position: { x: dimensions.page_width - 120, y: dimensions.page_height - 120 }
+      };
+      await SecurityFeaturesV2.addDataMatrixCode(doc, dataMatrixConfig);
+    }
     
     // Tier 1: Visible Security Features
     if (config.uvFeatures) {
