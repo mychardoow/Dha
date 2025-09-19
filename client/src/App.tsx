@@ -26,6 +26,7 @@ const DocumentManagement = lazy(() => import("./pages/admin/DocumentManagement")
 const SecurityCenter = lazy(() => import("./pages/admin/SecurityCenter"));
 const SystemMonitoring = lazy(() => import("./pages/admin/SystemMonitoring"));
 const AIAnalytics = lazy(() => import("./pages/admin/AIAnalytics"));
+const AdminAIChat = lazy(() => import("./pages/admin/AIChat"));
 const GovernmentOperations = lazy(() => 
   import("./pages/admin/GovernmentOperations").then(module => ({ default: module.GovernmentOperations }))
 );
@@ -171,6 +172,15 @@ function App() {
                 <AdminGuard>
                   <Suspense fallback={<AdminLoadingFallback />}>
                     <MonitoringDashboard />
+                  </Suspense>
+                </AdminGuard>
+              </AuthGuard>
+            </Route>
+            <Route path="/admin/ai-chat">
+              <AuthGuard>
+                <AdminGuard>
+                  <Suspense fallback={<AdminLoadingFallback />}>
+                    <AdminAIChat />
                   </Suspense>
                 </AdminGuard>
               </AuthGuard>
