@@ -178,6 +178,18 @@ export default function UnifiedDocumentGenerationPage() {
   // Helper functions to work with fetched data
   const getDocumentTemplates = () => templatesData?.templates || [];
   const getCategories = () => templatesData?.categories || {};
+  
+  // Don't render the page until data is loaded to prevent SelectItem errors
+  if (isLoadingTemplates) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading document templates...</p>
+        </div>
+      </div>
+    );
+  }
   const getDocumentsByCategory = (category: string) => {
     return getDocumentTemplates().filter(doc => doc.category === category);
   };
@@ -457,7 +469,7 @@ export default function UnifiedDocumentGenerationPage() {
           
           {/* Statistics Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {Object.entries(getCategories()).map(([key, category]) => {
+            {Object.entries(getCategories()).filter(([key, category]) => key && key !== "" && key.trim() !== "" && category?.name).map(([key, category]) => {
               const count = getDocumentsByCategory(key).length;
               const implemented = getDocumentsByCategory(key).filter(d => d.isImplemented).length;
               const IconComponent = getCategoryIconComponent(category.icon);
@@ -509,8 +521,8 @@ export default function UnifiedDocumentGenerationPage() {
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">All categories</SelectItem>
-                        {Object.entries(getCategories()).map(([key, category]) => (
+                        <SelectItem value="all">All categories</SelectItem>
+                        {Object.entries(getCategories()).filter(([key, category]) => key && key !== "" && key.trim() !== "" && category?.name).map(([key, category]) => (
                           <SelectItem key={key} value={key}>
                             {category.name}
                           </SelectItem>
@@ -522,7 +534,7 @@ export default function UnifiedDocumentGenerationPage() {
                   {/* Document Type Grid */}
                   <div className="space-y-2">
                     {getDocumentTemplates()
-                      .filter(doc => !selectedCategory || doc.category === selectedCategory)
+                      .filter(doc => !selectedCategory || selectedCategory === "all" || doc.category === selectedCategory)
                       .map((docInfo) => {
                         const IconComponent = getIconComponent(docInfo.icon);
                         const isSelected = selectedDocumentType === docInfo.type;
@@ -903,7 +915,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
               <div>
                 <Label htmlFor="passportType">Passport Type</Label>
-                <Select value={formData.passportType || ''} onValueChange={(value) => onUpdateField('passportType', value)}>
+                <Select value={formData.passportType || undefined} onValueChange={(value) => onUpdateField('passportType', value)}>
                   <SelectTrigger data-testid="select-passportType">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -967,7 +979,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
               <div>
                 <Label htmlFor="sex">Sex *</Label>
-                <Select value={formData.sex || ''} onValueChange={(value) => onUpdateField('sex', value)}>
+                <Select value={formData.sex || undefined} onValueChange={(value) => onUpdateField('sex', value)}>
                   <SelectTrigger data-testid="select-sex">
                     <SelectValue placeholder="Select sex" />
                   </SelectTrigger>
@@ -1102,7 +1114,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
               <div>
                 <Label htmlFor="marriageType">Marriage Type</Label>
-                <Select value={formData.marriageType || ''} onValueChange={(value) => onUpdateField('marriageType', value)}>
+                <Select value={formData.marriageType || undefined} onValueChange={(value) => onUpdateField('marriageType', value)}>
                   <SelectTrigger data-testid="select-marriageType">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -1305,7 +1317,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               <h3 className="font-medium text-gray-900 border-b pb-2">Critical Skills Information</h3>
               <div>
                 <Label htmlFor="criticalSkillArea">Critical Skill Area *</Label>
-                <Select value={formData.criticalSkillArea || ''} onValueChange={(value) => onUpdateField('criticalSkillArea', value)}>
+                <Select value={formData.criticalSkillArea || undefined} onValueChange={(value) => onUpdateField('criticalSkillArea', value)}>
                   <SelectTrigger data-testid="select-criticalSkillArea">
                     <SelectValue placeholder="Select critical skill area" />
                   </SelectTrigger>
@@ -1569,7 +1581,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
             <div>
               <Label htmlFor="citizenshipType">Citizenship Type *</Label>
               <Select 
-                value={formData.citizenshipType || ''}
+                value={formData.citizenshipType || undefined}
                 onValueChange={(value) => onUpdateField('citizenshipType', value)}
                 data-testid="select-citizenshipType"
               >
@@ -1631,7 +1643,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               <div>
                 <Label htmlFor="holderGender">Gender</Label>
                 <Select 
-                  value={formData.holderGender || ''}
+                  value={formData.holderGender || undefined}
                   onValueChange={(value) => onUpdateField('holderGender', value)}
                   data-testid="select-holderGender"
                 >
