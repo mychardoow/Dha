@@ -1,5 +1,9 @@
 /**
  * PRODUCTION-READY Enhanced PDF Generation Service
+ * 
+ * @deprecated This service is deprecated in favor of DocumentPdfFacade.
+ * Use server/services/document-pdf-facade.ts for new implementations.
+ * 
  * Addresses all critical security issues identified in architect review
  * - Real PAdES cryptographic signatures 
  * - Complete 21 DHA document type coverage
@@ -7,6 +11,12 @@
  * - Bilingual rendering with proper font embedding
  * - Standardized on PDFKit (jsPDF removed)
  * - Offline-verifiable cryptographic signatures
+ * 
+ * MIGRATION TO DocumentPdfFacade:
+ * - Unified interface for all document types
+ * - Standardized security levels and features
+ * - Consistent error handling and response format
+ * - Improved type safety with TypeScript
  */
 
 import PDFDocument from "pdfkit";

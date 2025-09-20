@@ -135,12 +135,111 @@ import { configService, config } from "./middleware/provider-config";
 import { documentTemplateRegistry } from "./services/document-template-registry";
 import { documentGenerationRequestSchema, documentTypeSchemas } from "@shared/schema";
 import { dataGovernanceService } from "./services/data-governance";
+// Import AI Assistant routes
+import aiAssistantRoutes from "./routes/ai-assistant";
+// Import unified PDF generation facade
+import { 
+  DocumentPdfFacade, 
+  SupportedDocumentType, 
+  DocumentSecurityLevel, 
+  DocumentGenerationError,
+  type DocumentGenerationOptions,
+  type DocumentGenerationResponse,
+  type DocumentData 
+} from "./services/document-pdf-facade";
 
 // Constants
 const DOCUMENTS_DIR = "./documents"; // Using fixed path for document storage
 
 // Ensure documents directory exists
 fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
+
+// Initialize DocumentPdfFacade for unified document generation
+const documentPdfFacade = new DocumentPdfFacade();
+
+/**
+ * LEGACY ENDPOINT ADAPTERS
+ * 
+ * These functions map legacy endpoint types to the unified SupportedDocumentType enum
+ * and transform legacy request data to the standardized document data format.
+ */
+
+// Legacy endpoint type to SupportedDocumentType mapping
+const LEGACY_TYPE_MAPPING: Record<string, SupportedDocumentType> = {
+  'work-permit': SupportedDocumentType.WORK_PERMIT,
+  'birth-certificate': SupportedDocumentType.BIRTH_CERTIFICATE,
+  'passport': SupportedDocumentType.PASSPORT,
+  'sa-id': SupportedDocumentType.SA_ID,
+  'smart-id': SupportedDocumentType.SMART_ID,
+  'temporary-id': SupportedDocumentType.TEMPORARY_ID,
+  'death-certificate': SupportedDocumentType.DEATH_CERTIFICATE,
+  'marriage-certificate': SupportedDocumentType.MARRIAGE_CERTIFICATE,
+  'study-permit': SupportedDocumentType.STUDY_PERMIT,
+  'business-permit': SupportedDocumentType.BUSINESS_PERMIT,
+  'visitor-visa': SupportedDocumentType.VISITOR_VISA,
+  'transit-visa': SupportedDocumentType.TRANSIT_VISA,
+  'asylum-visa': SupportedDocumentType.REFUGEE_PERMIT,
+  'residence-permit': SupportedDocumentType.PERMANENT_RESIDENCE,
+  'temporary-residence': SupportedDocumentType.TEMPORARY_RESIDENCE,
+  'critical-skills': SupportedDocumentType.CRITICAL_SKILLS_WORK_VISA,
+  'business-visa': SupportedDocumentType.BUSINESS_VISA,
+  'medical-treatment-visa': SupportedDocumentType.MEDICAL_TREATMENT_VISA,
+  'retirement-visa': SupportedDocumentType.RETIRED_PERSON_VISA,
+  'relatives-visa': SupportedDocumentType.RELATIVES_VISA,
+  'corporate-visa': SupportedDocumentType.BUSINESS_VISA,
+  'exchange-permit': SupportedDocumentType.EXCHANGE_PERMIT
+};
+
+/**
+ * Generate PDF response with proper headers and error handling
+ */
+const generateUnifiedPDFResponse = async (
+  res: Response, 
+  documentType: SupportedDocumentType,
+  data: any,
+  options: DocumentGenerationOptions = {}
+): Promise<void> => {
+  try {
+    const response = await documentPdfFacade.generateDocument(documentType, data, {
+      securityLevel: DocumentSecurityLevel.STANDARD,
+      includeDigitalSignature: true,
+      persistToStorage: false, // Don't persist legacy API calls by default
+      isPreview: false,
+      ...options
+    });
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${response.metadata.fileName}"`,
+      'Content-Length': response.documentBuffer.length.toString(),
+      'X-Document-Type': documentType,
+      'X-Document-ID': response.metadata.documentId,
+      'X-Generated-At': response.metadata.createdAt.toISOString(),
+      'X-Security-Level': 'GOVERNMENT-GRADE',
+      'X-Compliance': 'ICAO,POPIA,DHA',
+      'X-Verification-URL': response.verification.verificationUrl,
+      'X-Security-Features': response.appliedSecurityFeatures.join(',')
+    });
+    
+    res.end(response.documentBuffer);
+    
+  } catch (error) {
+    console.error(`PDF generation error for ${documentType}:`, error);
+    
+    if (error instanceof DocumentGenerationError) {
+      res.status(400).json({ 
+        error: `Failed to generate ${documentType}`, 
+        details: error.message,
+        errorCode: error.errorCode
+      });
+    } else {
+      res.status(500).json({ 
+        error: `Failed to generate ${documentType}`,
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize DHA workflow engine
@@ -157,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(securityHeaders);
   app.use(ipFilter);
   app.use(securityLogger);
-  
+
   // Apply audit trail middleware for comprehensive action logging
   app.use(auditTrailMiddleware.auditRequestMiddleware);
 
@@ -166,14 +265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { autoRecoveryService } = await import('./services/auto-recovery');
     const { optimizedCacheService } = await import('./services/optimized-cache');
     const { getConnectionStatus } = await import('./db');
-    
+
     const dbStatus = getConnectionStatus();
     const recoveryHealth = autoRecoveryService.getHealthStatus();
     const cacheHealth = optimizedCacheService.getHealth();
     const antivirusHealth = antivirusService.getHealthStatus();
-    
+
     const isHealthy = dbStatus.healthy && cacheHealth.healthy && antivirusHealth.isHealthy;
-    
+
     res.status(isHealthy ? 200 : 503).json({
       status: isHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
@@ -202,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PRODUCTION-CRITICAL: Dedicated antivirus health check endpoint
   app.get("/api/health/antivirus", asyncHandler(async (req: Request, res: Response) => {
     const health = antivirusService.getHealthStatus();
-    
+
     res.status(health.isHealthy ? 200 : 503).json({
       service: 'antivirus',
       status: health.isHealthy ? 'healthy' : 'CRITICAL_FAILURE',
@@ -220,12 +319,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // ===================== CONSENT MANAGEMENT ROUTES (POPIA COMPLIANCE) =====================
-  
+
   // Get user consent status
   app.get("/api/consent/status", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const consentStatus = await consentMiddleware.getConsentStatus(userId);
-    
+
     res.json({
       success: true,
       userId: userId,
@@ -234,17 +333,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       compliance: 'POPIA_COMPLIANT'
     });
   }));
-  
+
   // Give consent for AI processing
   app.post("/api/consent/ai-processing", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    
+
     const success = await consentMiddleware.recordConsent(userId, 'aiProcessing', req, {
       legalBasis: 'consent',
       dataProcessingPurpose: 'AI analysis and processing of documents and personal information',
       retentionPeriod: '7 years as per DHA requirements'
     });
-    
+
     if (success) {
       res.json({
         success: true,
@@ -261,17 +360,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }));
-  
+
   // Give consent for data retention
   app.post("/api/consent/data-retention", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    
+
     const success = await consentMiddleware.recordConsent(userId, 'dataRetention', req, {
       legalBasis: 'consent',
       dataProcessingPurpose: 'Storage and retention of uploaded documents for DHA processing',
       retentionPeriod: '7 years as per DHA requirements'
     });
-    
+
     if (success) {
       res.json({
         success: true,
@@ -288,12 +387,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }));
-  
+
   // Withdraw consent
   app.post("/api/consent/withdraw", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { consentType } = req.body;
-    
+
     if (!consentType || !['aiProcessing', 'dataRetention', 'dataSharing', 'biometricProcessing', 'crossBorderTransfer'].includes(consentType)) {
       return res.status(400).json({
         success: false,
@@ -301,9 +400,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         validTypes: ['aiProcessing', 'dataRetention', 'dataSharing', 'biometricProcessing', 'crossBorderTransfer']
       });
     }
-    
+
     const success = await consentMiddleware.withdrawConsent(userId, consentType, req);
-    
+
     if (success) {
       res.json({
         success: true,
@@ -321,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }));
-  
+
   // Data governance compliance report
   app.get("/api/admin/data-governance/report", authenticate, requireRole(['admin']), asyncHandler(async (req: Request, res: Response) => {
     const report = await dataGovernanceService.generateComplianceReport();
@@ -332,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       compliance: 'POPIA_COMPLIANT'
     });
   }));
-  
+
   // Trigger data retention enforcement (admin only)
   app.post("/api/admin/data-governance/enforce-retention", authenticate, requireRole(['admin']), asyncHandler(async (req: Request, res: Response) => {
     const results = await dataGovernanceService.enforceDataRetention();
@@ -344,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       compliance: 'POPIA_COMPLIANT'
     });
   }));
-  
+
   // Government Operations API Endpoints
   app.get("/api/admin/government-operations/metrics", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
@@ -369,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch government operations metrics' });
     }
   });
-  
+
   app.get("/api/admin/government-operations/security/incidents", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       // Get recent security incidents from the service
@@ -380,7 +479,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch security incidents' });
     }
   });
-  
+
   app.get("/api/admin/government-operations/compliance/report", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const framework = req.query.framework as string || 'POPIA';
@@ -397,7 +496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to generate compliance report' });
     }
   });
-  
+
   app.post("/api/admin/government-operations/disaster-recovery/backup", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const backupId = await disasterRecoveryService.createBackup('manual', req.body.description || 'Manual backup');
@@ -407,7 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to create backup' });
     }
   });
-  
+
   app.post("/api/admin/government-operations/high-availability/failover/test", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const result = await highAvailabilityService.testFailover();
@@ -712,7 +811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/profile", authenticate, asyncHandler(async (req: Request, res: Response) => {
     try {
       const user = req.user!;
-      
+
       // Get fresh user data from database
       const currentUser = await storage.getUser(user.id);
       if (!currentUser || !currentUser.isActive) {
@@ -774,7 +873,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get updated user data
       const updatedUser = await storage.getUser(user.id);
-      
+
       res.json({
         message: "Profile updated successfully",
         user: {
@@ -820,7 +919,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ipAddress: req.ip,
           userAgent: req.get("User-Agent") || ""
         });
-        
+
         return res.status(401).json({ error: "Current password is incorrect" });
       }
 
@@ -876,7 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password-request", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
       const validatedData = passwordResetRequestSchema.parse(req.body);
-      
+
       // Check if user exists
       const user = await storage.getUserByEmail(validatedData.email);
       if (!user || !user.isActive) {
@@ -895,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!global.passwordResetTokens) {
         global.passwordResetTokens = new Map();
       }
-      
+
       global.passwordResetTokens.set(resetToken, {
         userId: user.id,
         email: user.email,
@@ -938,7 +1037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/reset-password", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
       const validatedData = passwordResetSchema.parse(req.body);
-      
+
       // Check if reset tokens exist
       if (!global.passwordResetTokens) {
         return res.status(400).json({ error: "Invalid or expired reset token" });
@@ -1333,7 +1432,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sita/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const result = await sitaIntegration.initialize();
-      
+
       if (result.success) {
         res.json({ message: "SITA integration initialized successfully" });
       } else {
@@ -1359,11 +1458,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { serviceId } = req.params;
       const serviceInfo = sitaIntegration.getServiceInfo(serviceId);
-      
+
       if (!serviceInfo) {
         return res.status(404).json({ error: "Service not found" });
       }
-      
+
       res.json(serviceInfo);
     } catch (error) {
       console.error("SITA service info error:", error);
@@ -1374,13 +1473,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sita/eservices/integration", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { serviceType } = req.body;
-      
+
       if (!serviceType) {
         return res.status(400).json({ error: "Service type is required" });
       }
-      
+
       const result = await sitaIntegration.getEServicesIntegration(serviceType);
-      
+
       if (result.success) {
         res.json({
           integrationUrl: result.integrationUrl,
@@ -1398,11 +1497,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sita/validate-certificate", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { certificateData } = req.body;
-      
+
       if (!certificateData) {
         return res.status(400).json({ error: "Certificate data is required" });
       }
-      
+
       const result = await sitaIntegration.validateGovernmentCertificate(certificateData);
       res.json(result);
     } catch (error) {
@@ -1415,13 +1514,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dha/citizen/initialize", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber, biometricData } = req.body;
-      
+
       if (!idNumber) {
         return res.status(400).json({ error: "ID number is required" });
       }
-      
+
       const result = await dhaPartnerships.initializeCitizenProfile(idNumber, biometricData);
-      
+
       if (result.success) {
         res.json({ profile: result.profile });
       } else {
@@ -1436,13 +1535,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dha/superapp/session", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { citizenId, applicationId, serviceType } = req.body;
-      
+
       if (!citizenId || !applicationId || !serviceType) {
         return res.status(400).json({ error: "Citizen ID, application ID, and service type are required" });
       }
-      
+
       const result = await dhaPartnerships.createSuperAppSession(citizenId, applicationId, serviceType);
-      
+
       if (result.success) {
         res.json({ session: result.session });
       } else {
@@ -1458,13 +1557,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { sessionId } = req.params;
       const { progress, nextSteps, notification } = req.body;
-      
+
       if (progress === undefined || !nextSteps) {
         return res.status(400).json({ error: "Progress and next steps are required" });
       }
-      
+
       const result = await dhaPartnerships.updateSessionProgress(sessionId, progress, nextSteps, notification);
-      
+
       if (result.success) {
         res.json({ message: "Session updated successfully" });
       } else {
@@ -1479,13 +1578,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dha/ai/verify-document", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentId, documentData, documentType } = req.body;
-      
+
       if (!documentId || !documentData || !documentType) {
         return res.status(400).json({ error: "Document ID, data, and type are required" });
       }
-      
+
       const result = await dhaPartnerships.performAiDocumentVerification(documentId, documentData, documentType);
-      
+
       if (result.success) {
         res.json({ verification: result.result });
       } else {
@@ -1500,13 +1599,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/dha/payment/process", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const paymentRequest = req.body;
-      
+
       if (!paymentRequest.citizenId || !paymentRequest.amount || !paymentRequest.serviceType) {
         return res.status(400).json({ error: "Citizen ID, amount, and service type are required" });
       }
-      
+
       const result = await dhaPartnerships.processDigitalPayment(paymentRequest);
-      
+
       if (result.success) {
         res.json({ payment: result.result });
       } else {
@@ -1522,7 +1621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { messageKey, language } = req.params;
       const variables = req.query as Record<string, string>;
-      
+
       const message = await dhaPartnerships.getLocalizedMessage(messageKey, language, variables);
       res.json({ message });
     } catch (error) {
@@ -1535,7 +1634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/icao/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const result = await icaoPkdIntegration.initialize();
-      
+
       if (result.success) {
         res.json({ message: "ICAO PKD integration initialized successfully" });
       } else {
@@ -1550,11 +1649,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/icao/passport/passive-auth", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { ePassportData, chipSignature } = req.body;
-      
+
       if (!ePassportData || !chipSignature) {
         return res.status(400).json({ error: "ePassport data and chip signature are required" });
       }
-      
+
       const result = await icaoPkdIntegration.performPassiveAuthentication(ePassportData, chipSignature);
       res.json(result);
     } catch (error) {
@@ -1566,11 +1665,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/icao/passport/active-auth", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { ePassportData, challenge } = req.body;
-      
+
       if (!ePassportData || !challenge) {
         return res.status(400).json({ error: "ePassport data and challenge are required" });
       }
-      
+
       const result = await icaoPkdIntegration.performActiveAuthentication(ePassportData, challenge);
       res.json(result);
     } catch (error) {
@@ -1593,11 +1692,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/icao/validate/csca", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { countryCode } = req.body;
-      
+
       if (!countryCode) {
         return res.status(400).json({ error: "Country code is required" });
       }
-      
+
       const result = await icaoPkdIntegration.validateCscaCertificate(countryCode);
       res.json(result);
     } catch (error) {
@@ -1609,11 +1708,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/icao/validate/dsc", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { countryCode, documentType } = req.body;
-      
+
       if (!countryCode || !documentType) {
         return res.status(400).json({ error: "Country code and document type are required" });
       }
-      
+
       const result = await icaoPkdIntegration.validateDscCertificate(countryCode, documentType);
       res.json(result);
     } catch (error) {
@@ -1626,7 +1725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/saps/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const result = await sapsIntegration.initialize();
-      
+
       if (result.success) {
         res.json({ message: "SAPS CRC integration initialized successfully" });
       } else {
@@ -1641,13 +1740,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/saps/criminal-record/submit", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const request = req.body;
-      
+
       if (!request.idNumber || !request.consentRecord) {
         return res.status(400).json({ error: "ID number and consent record are required" });
       }
-      
+
       const result = await sapsIntegration.submitCriminalRecordRequest(request);
-      
+
       if (result.success) {
         res.json({ requestId: result.requestId });
       } else {
@@ -1663,7 +1762,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { requestId } = req.params;
       const result = await sapsIntegration.checkRequestStatus(requestId);
-      
+
       if (result.success) {
         res.json({
           status: result.status,
@@ -1682,7 +1781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { requestId } = req.params;
       const result = await sapsIntegration.retrieveCriminalRecord(requestId);
-      
+
       if (result.success) {
         res.json({ criminalRecord: result.result });
       } else {
@@ -1697,13 +1796,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/saps/background-check/enhanced", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber, fingerprints, consentRecord } = req.body;
-      
+
       if (!idNumber || !fingerprints || !consentRecord) {
         return res.status(400).json({ error: "ID number, fingerprints, and consent record are required" });
       }
-      
+
       const result = await sapsIntegration.performEnhancedBackgroundCheck(idNumber, fingerprints, consentRecord);
-      
+
       if (result.success) {
         res.json({ backgroundCheck: result.result });
       } else {
@@ -1718,11 +1817,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/saps/consent/validate", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { consentRecord } = req.body;
-      
+
       if (!consentRecord) {
         return res.status(400).json({ error: "Consent record is required" });
       }
-      
+
       const result = await sapsIntegration.validateConsentCompliance(consentRecord);
       res.json(result);
     } catch (error) {
@@ -1735,7 +1834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/npr/initialize", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const result = await nprIntegration.initialize();
-      
+
       if (result.success) {
         res.json({ message: "NPR integration initialized successfully" });
       } else {
@@ -1750,13 +1849,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/npr/id/validate", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber } = req.body;
-      
+
       if (!idNumber) {
         return res.status(400).json({ error: "ID number is required" });
       }
-      
+
       const result = await nprIntegration.validateIdNumber(idNumber);
-      
+
       if (result.success) {
         res.json({ validation: result.result });
       } else {
@@ -1771,13 +1870,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/npr/citizen/lookup", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber, verificationLevel = 'standard' } = req.body;
-      
+
       if (!idNumber) {
         return res.status(400).json({ error: "ID number is required" });
       }
-      
+
       const result = await nprIntegration.getCitizenRecord(idNumber, verificationLevel);
-      
+
       if (result.success) {
         res.json({ citizenRecord: result.record });
       } else {
@@ -1792,11 +1891,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/npr/biographic/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber, providedData } = req.body;
-      
+
       if (!idNumber || !providedData) {
         return res.status(400).json({ error: "ID number and provided data are required" });
       }
-      
+
       const result = await nprIntegration.verifyBiographicData(idNumber, {
         firstName: providedData.firstName,
         surname: providedData.surname,
@@ -1804,7 +1903,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         placeOfBirth: providedData.placeOfBirth,
         sex: providedData.sex
       });
-      
+
       if (result.success) {
         res.json({ verification: result.result });
       } else {
@@ -1819,13 +1918,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/npr/citizenship/verify", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { idNumber } = req.body;
-      
+
       if (!idNumber) {
         return res.status(400).json({ error: "ID number is required" });
       }
-      
+
       const result = await nprIntegration.verifyCitizenshipStatus(idNumber);
-      
+
       if (result.success) {
         res.json({ citizenship: result.citizenship });
       } else {
@@ -1851,7 +1950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/production/certificates", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const result = await productionReadiness.loadGovernmentCertificates();
-      
+
       if (result.success) {
         res.json({ certificates: result.certificates });
       } else {
@@ -1868,7 +1967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = productionBackupSchema.parse(req.body);
       const { backupType } = validatedData;
       const result = await productionReadiness.createBackup(backupType);
-      
+
       if (result.success) {
         res.json({ backupId: result.backupId, message: "Backup created successfully" });
       } else {
@@ -1919,7 +2018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: req.query.type,
         hours: req.query.hours ? parseInt(req.query.hours as string) : undefined
       });
-      
+
       const metrics = await monitoringService.getMetricsHistory(
         validatedQuery.type || '',
         validatedQuery.hours || 24
@@ -1979,13 +2078,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const validatedUpdates = updateUserSchema.parse(req.body);
-      
+
       // Check if user exists
       const existingUser = await storage.getUser(id);
       if (!existingUser) {
         return res.status(404).json({ error: "User not found" });
       }
-      
+
       // Update user
       await storage.updateUser(id, validatedUpdates);
       res.json({ message: "User updated successfully" });
@@ -2014,20 +2113,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const validatedData = adminDocumentVerificationSchema.parse(req.body);
       const { isApproved, notes } = validatedData;
-      
+
       // Check if document exists
       const existingDocument = await storage.getDocument(id);
       if (!existingDocument) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       // Update document verification status
       await storage.updateDocument(id, {
         isVerified: isApproved,
         verificationScore: isApproved ? 95 : 0,
         // Add notes to metadata if available
       });
-      
+
       res.json({ message: "Document verification updated" });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2045,7 +2144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentType: req.query.documentType,
         documentId: req.query.documentId
       });
-      
+
       const verifications = await storage.getDocumentVerifications(
         validatedQuery.documentType || undefined,
         validatedQuery.documentId || undefined
@@ -2066,7 +2165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedQuery = documentTemplateQuerySchema.parse({
         type: req.query.type
       });
-      
+
       const templates = await storage.getDocumentTemplates(validatedQuery.type as any || undefined);
       res.json(templates);
     } catch (error) {
@@ -2079,7 +2178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===================== STATUS CHANGE API ENDPOINTS =====================
-  
+
   // AMS Certificate endpoints
   app.post("/api/ams/certificate/create", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
@@ -2097,16 +2196,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ams/certificate/verify", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { certificateId, action, reason } = req.body;
-      
+
       if (!certificateId || !action) {
         return res.status(400).json({ error: "Certificate ID and action required" });
       }
-      
+
       const certificate = await storage.getAmsCertificate(certificateId);
       if (!certificate) {
         return res.status(404).json({ error: "Certificate not found" });
       }
-      
+
       switch (action) {
         case 'verify':
           await storage.verifyAmsCertificate(certificateId, (req.user as any).id);
@@ -2130,7 +2229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         default:
           return res.status(400).json({ error: "Invalid action" });
       }
-      
+
       res.json({ message: `Certificate ${action} successful` });
     } catch (error) {
       console.error("AMS certificate action error:", error);
@@ -2153,14 +2252,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/permits/status/change", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { permitId, newStatus, reason, endorsements, conditions, gracePeriod } = req.body;
-      
+
       if (!permitId || !newStatus || !reason) {
         return res.status(400).json({ error: "Permit ID, new status, and reason required" });
       }
-      
+
       // Get current permit status
       const latestStatus = await storage.getLatestPermitStatus(permitId);
-      
+
       // Create status change record
       const statusChange = await storage.createPermitStatusChange({
         permitId,
@@ -2178,7 +2277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         renewalDeadline: req.body.renewalDeadline ? new Date(req.body.renewalDeadline) : undefined,
         effectiveDate: new Date()
       });
-      
+
       // Send notification
       const wsService = getWebSocketService();
       wsService?.broadcast("permit:status:changed", {
@@ -2187,7 +2286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newStatus: statusChange.newStatus,
         changedBy: (req.user as any).username || (req.user as any).email
       });
-      
+
       res.json({ message: "Permit status changed", statusChange });
     } catch (error) {
       console.error("Permit status change error:", error);
@@ -2210,14 +2309,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/documents/status/update", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentId, documentType, newStatus, reason, verificationStage, scores } = req.body;
-      
+
       if (!documentId || !documentType || !newStatus) {
         return res.status(400).json({ error: "Document ID, type, and new status required" });
       }
-      
+
       // Check if status exists or create new
       let status = await storage.getDocumentVerificationStatus(documentId);
-      
+
       if (!status) {
         status = await storage.createDocumentVerificationStatus({
           documentId,
@@ -2232,7 +2331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         await storage.updateDocumentStatus(documentId, newStatus, req.user!.id, reason);
-        
+
         if (scores) {
           await storage.updateDocumentVerificationStatus(status.id, {
             verificationScore: scores.overall,
@@ -2242,7 +2341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       // Send real-time notification
       const wsService = getWebSocketService();
       wsService?.broadcast("document:status:updated", {
@@ -2251,7 +2350,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newStatus,
         updatedBy: (req.user as any).username || (req.user as any).email
       });
-      
+
       res.json({ message: "Document status updated", status });
     } catch (error) {
       console.error("Document status update error:", error);
@@ -2263,11 +2362,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { documentId } = req.params;
       const status = await storage.getDocumentVerificationStatus(documentId);
-      
+
       if (!status) {
         return res.status(404).json({ error: "Status not found" });
       }
-      
+
       res.json(status);
     } catch (error) {
       console.error("Get document status error:", error);
@@ -2278,14 +2377,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/verification/history/:documentId", authenticate, verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'get_history'), async (req: Request, res: Response) => {
     try {
       const { documentId } = req.params;
-      
+
       // Validate documentId parameter
       if (!documentId || typeof documentId !== 'string') {
         return res.status(400).json({ error: "Valid document ID required" });
       }
-      
+
       const history = await storage.getDocumentVerificationHistory(documentId);
-      
+
       // Apply PII scrubbing to history before sending response
       const sanitizedHistory = history.map(entry => ({
         ...entry,
@@ -2293,7 +2392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verifierUserAgent: 'anonymized', 
         location: 'Unknown'
       }));
-      
+
       res.json(sanitizedHistory);
     } catch (error) {
       console.error("Get verification history error:", error);
@@ -2304,11 +2403,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/documents/verification/history", authenticate, requireRole(["admin", "officer"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentId, documentType, action, previousValue, newValue, reason, notes } = req.body;
-      
+
       if (!documentId || !documentType || !action) {
         return res.status(400).json({ error: "Document ID, type, and action required" });
       }
-      
+
       const history = await storage.createDocumentVerificationHistory({
         verificationRecordId: documentId,
         verificationMethod: 'manual',
@@ -2316,7 +2415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip || null,
         userAgent: req.get('User-Agent') || null
       });
-      
+
       res.json({ message: "History entry created", history });
     } catch (error) {
       console.error("Create verification history error:", error);
@@ -2335,7 +2434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: req.query.startDate,
         endDate: req.query.endDate
       });
-      
+
       const errorLogs = await storage.getErrorLogs({
         severity: validatedQuery.severity,
         errorType: validatedQuery.errorType, 
@@ -2366,7 +2465,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: req.query.startDate,
         endDate: req.query.endDate
       });
-      
+
       // Non-admin users can only see their own events
       const user = req.user as { id: string; role: string; username: string; email: string };
       const userId = user.role === "admin" ? validatedQuery.userId : user.id;
@@ -2422,7 +2521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Document generation routes
-  
+
   // Generate certificate
   app.post("/api/certificates", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
@@ -2494,7 +2593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       const certificate = await storage.getCertificate(req.params.id);
-      
+
       if (!certificate) {
         return res.status(404).json({ error: "Certificate not found" });
       }
@@ -2584,7 +2683,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       const permit = await storage.getPermit(req.params.id);
-      
+
       if (!permit) {
         return res.status(404).json({ error: "Permit not found" });
       }
@@ -2627,7 +2726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: verificationResult.error || "Document not found or invalid" });
       }
 
-      // Log verification attempt with POPIA compliance
+      // Log public verification with POPIA compliance
       await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
         eventType: "document_verified",
         severity: "low",
@@ -2663,11 +2762,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { code } = req.params;
       const { d: encodedData } = req.query; // QR data parameter
-      
+
       if (!code) {
         return res.status(400).json({ error: "Verification code is required" });
       }
-      
+
       // Validate the verification code format
       if (!enhancedVerificationUtilities.validateVerificationCode(code)) {
         // Try legacy format for backward compatibility
@@ -2678,7 +2777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       let qrData = null;
       if (encodedData && typeof encodedData === 'string') {
         try {
@@ -2689,7 +2788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("QR data parse error:", parseError);
         }
       }
-      
+
       // Use verification service for comprehensive verification
       const verificationRequest = {
         verificationCode: code,
@@ -2703,9 +2802,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           city: (req as any).geoLocation?.city
         }
       };
-      
+
       const result = await verificationService.verify(verificationRequest);
-      
+
       // Log verification attempt
       await storage.createSecurityEvent({
         eventType: "qr_verification",
@@ -2719,7 +2818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip,
         userAgent: req.get("User-Agent") || ""
       });
-      
+
       // Return comprehensive verification result
       res.json({
         isValid: result.isValid,
@@ -2789,7 +2888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/documents/:filename", (req: Request, res: Response) => {
     try {
       const filename = req.params.filename;
-      
+
       // Basic security check for filename
       if (filename.includes("..") || filename.includes("/")) {
         return res.status(400).json({ error: "Invalid filename" });
@@ -2828,7 +2927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const childName = documentData.childName || documentData.childFullName || documentData.fullName;
       const motherName = documentData.motherName || documentData.motherFullName;
       const fatherName = documentData.fatherName || documentData.fatherFullName;
-      
+
       if (!childName || !documentData.dateOfBirth || !documentData.placeOfBirth) {
         console.error("Birth certificate validation failed - missing fields:", {
           hasChildName: !!childName,
@@ -2868,7 +2967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate the PDF directly using the PDF generation service
       const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(transformedData);
-      
+
       if (!pdfBuffer) {
         console.error("PDF generation returned empty buffer");
         throw new Error("PDF generation failed - empty buffer");
@@ -2880,7 +2979,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const documentId = crypto.randomBytes(16).toString('hex').toUpperCase();
       const filename = `birth_certificate_${documentId}.pdf`;
       const filepath = path.join(DOCUMENTS_DIR, filename);
-      
+
       await fs.writeFile(filepath, pdfBuffer);
       console.log("PDF saved to:", filepath);
 
@@ -2927,7 +3026,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.setHeader('Content-Length', pdfBuffer.length.toString());
-      
+
       // Send the PDF buffer directly
       res.send(pdfBuffer);
 
@@ -3219,7 +3318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Support both new XXXX-XXXX-XXXX-XXXX format and legacy formats
         const isNewFormat = enhancedVerificationUtilities.validateVerificationCode(verificationCode);
         const isLegacyFormat = verificationCode.length === 32 || verificationCode.length === 12;
-        
+
         if (!isNewFormat && !isLegacyFormat) {
           return res.status(400).json({ 
             error: "Invalid verification code format",
@@ -3246,7 +3345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use comprehensive verification service
       const result = await verificationService.verify(verificationRequest);
-      
+
       // Enhanced verification with hash checking if provided
       let integrityCheck = null;
       if (documentHash && result.isValid) {
@@ -3260,7 +3359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           holderName: result.holderName,
           issueOffice: result.issueOffice
         };
-        
+
         // Generate expected hash
         const expectedHash = enhancedVerificationUtilities.generateDocumentHash(verificationData);
         integrityCheck = {
@@ -3287,7 +3386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verificationMethod: 'manual_entry',
         fraudAssessment: result.fraudAssessment
       };
-      
+
       await storage.createSecurityEvent({
         eventType: "document_verification_comprehensive",
         severity: result.isValid ? "low" : "medium",
@@ -3349,7 +3448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Add verification URL for manual checking
       response.verificationUrl = `${process.env.VERIFICATION_URL || 'https://verify.dha.gov.za'}/verify/${verificationCode}`;
-      
+
       res.json(response);
 
     } catch (error) {
@@ -3359,7 +3458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Verification History
-  app.get("/api/verify/history", authenticate, requireRole(["admin"]), async (req: Request, res: Response) => {
+  app.get("/api/verify/history", authenticate, requireRole(["admin", "officer"]), async (req: Request, res: Response) => {
     try {
       const { documentType, documentId } = req.query;
       const verifications = await storage.getDocumentVerifications(
@@ -3377,15 +3476,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/verify/public/:verificationCode", geoIPValidationMiddleware, verificationRateLimit, auditMiddleware('verification', 'public_verify'), async (req: Request, res: Response) => {
     try {
       const { verificationCode } = req.params;
-      
-      // Validate using Zod schema
-      const validationResult = publicVerificationSchema.safeParse({ verificationCode: verificationCode?.slice(0, 12) });
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          error: "Invalid verification code format",
-          details: validationResult.error.issues 
-        });
-      }
 
       if (!verificationCode) {
         return res.status(400).json({ error: "Verification code required" });
@@ -3393,10 +3483,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check all document types for the verification code
       const documentTypes = ['birth_certificate', 'marriage_certificate', 'passport', 'death_certificate', 'work_permit', 'permanent_visa', 'id_card'];
-      
+
       for (const docType of documentTypes) {
         let document = null;
-        
+
         switch (docType) {
           case 'birth_certificate':
             document = await storage.getBirthCertificateByVerificationCode(verificationCode);
@@ -3474,7 +3564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       const applicantData = insertDhaApplicantSchema.parse(req.body);
-      
+
       const applicant = await storage.createDhaApplicant({
         ...applicantData,
         userId: req.user.id
@@ -3550,7 +3640,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       const { id } = req.params;
-      
+
       const application = await storage.getDhaApplication(id);
       if (!application) {
         return res.status(404).json({ error: "Application not found" });
@@ -3707,13 +3797,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ error: "Authentication required" });
       }
       const { status, type } = req.query;
-      
+
       const filters: any = { userId: req.user.id };
       if (status) filters.currentState = status;
       if (type) filters.applicationType = type;
 
       const applications = await storage.getDhaApplications(undefined, req.user.id);
-      
+
       res.json(applications);
 
     } catch (error) {
@@ -3726,7 +3816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dha/verify/:verificationCode", verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'dha_verify'), async (req: Request, res: Response) => {
     try {
       const { verificationCode } = req.params;
-      
+
       if (!verificationCode) {
         return res.status(400).json({ error: "Verification code required" });
       }
@@ -3747,9 +3837,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             timestamp: new Date().toISOString()
           })
         });
-        
+
         const result = await verificationResponse.json();
-        
+
         if (result.isValid) {
           await storage.createSecurityEvent({
             eventType: "dha_document_verification_success",
@@ -4265,7 +4355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { status, type, office } = req.query;
       const filters: any = {};
-      
+
       if (status) filters.currentState = status;
       if (type) filters.applicationType = type;
       if (office) filters.assignedOffice = office;
@@ -4338,14 +4428,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req as any).user.id;
       const { category, priority, isRead, limit, offset } = req.query;
-      
+
       const filters: any = {};
       if (category) filters.category = String(category);
       if (priority) filters.priority = String(priority);
       if (isRead !== undefined) filters.isRead = isRead === 'true';
       if (limit) filters.limit = parseInt(String(limit), 10);
       if (offset) filters.offset = parseInt(String(offset), 10);
-      
+
       const notifications = await notificationService.getNotifications(userId, filters);
       res.json(notifications);
     } catch (error) {
@@ -4371,13 +4461,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const userId = (req as any).user.id;
-      
+
       // Verify notification belongs to user
       const notification = await storage.getNotification(id);
       if (!notification || notification.userId !== userId) {
         return res.status(404).json({ error: "Notification not found" });
       }
-      
+
       await notificationService.markAsRead(id);
       res.json({ message: "Notification marked as read" });
     } catch (error) {
@@ -4403,13 +4493,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const userId = (req as any).user.id;
-      
+
       // Verify notification belongs to user
       const notification = await storage.getNotification(id);
       if (!notification || notification.userId !== userId) {
         return res.status(404).json({ error: "Notification not found" });
       }
-      
+
       await storage.archiveNotification(id);
       res.json({ message: "Notification archived" });
     } catch (error) {
@@ -4435,7 +4525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req as any).user.id;
       const updates = updateNotificationPreferencesSchema.parse(req.body);
-      
+
       await notificationService.updateUserPreferences(userId, updates);
       res.json({ message: "Notification preferences updated" });
     } catch (error) {
@@ -4452,7 +4542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const adminId = (req as any).user.id;
       const notificationData = insertNotificationEventSchema.parse(req.body);
-      
+
       // Clean up null values for notification service
       const cleanedData = {
         ...notificationData,
@@ -4464,7 +4554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         priority: (notificationData.priority || 'LOW') as 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
       };
       const notification = await notificationService.createNotification(cleanedData as any);
-      
+
       res.status(201).json(notification);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4481,7 +4571,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminId = (req as any).user.id;
       const validatedData = systemNotificationSchema.parse(req.body);
       const { targetRole, ...notificationData } = validatedData;
-      
+
       // Clean up null values for notification service
       const cleanedData = {
         ...notificationData,
@@ -4495,7 +4585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cleanedData as any,
         targetRole
       );
-      
+
       res.status(201).json({ 
         message: `Sent ${notifications.length} notifications`,
         notifications: notifications.length 
@@ -4514,14 +4604,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const adminId = (req as any).user.id;
       const validatedData = criticalAlertSchema.parse(req.body);
-      
+
       // Set critical alert properties
       const notificationData = {
         ...validatedData,
         priority: "CRITICAL" as const,
         category: "SECURITY" as const
       };
-      
+
       // Clean up payload for notification service
       const cleanedData = {
         ...notificationData,
@@ -4530,7 +4620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         actionUrl: notificationData.actionUrl || undefined
       };
       const notification = await notificationService.sendCriticalAlert(cleanedData as any);
-      
+
       res.status(201).json(notification);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -4548,14 +4638,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { entityType, entityId } = req.params;
       const { limit } = req.query;
-      
+
       const statusUpdates = await storage.getStatusUpdates({
         entityType,
         entityId,
         isPublic: true,
         limit: limit ? parseInt(String(limit), 10) : 20
       });
-      
+
       res.json(statusUpdates);
     } catch (error) {
       console.error("Get status updates error:", error);
@@ -4567,7 +4657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/status/latest/:entityType/:entityId", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { entityType, entityId } = req.params;
-      
+
       const latestStatus = await storage.getLatestStatusUpdate(entityType, entityId);
       res.json(latestStatus);
     } catch (error) {
@@ -4577,16 +4667,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create status update (admin only)
-  app.post("/api/status", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
+  app.post("/api/      status", authenticate, requireRole(["admin"]), apiLimiter, async (req: Request, res: Response) => {
     try {
       const adminId = (req as any).user.id;
       const statusData = req.body;
-      
+
       const statusUpdate = await notificationService.createStatusUpdate({
         ...statusData,
         updatedBy: adminId
       });
-      
+
       res.status(201).json(statusUpdate);
     } catch (error) {
       console.error("Create status update error:", error);
@@ -4601,7 +4691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req as any).user.id;
       const userRole = (req as any).user.role;
-      
+
       let sessions;
       if (userRole === 'admin') {
         const { userId: filterUserId } = req.query;
@@ -4609,7 +4699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         sessions = await storage.getChatSessions(userId);
       }
-      
+
       res.json(sessions);
     } catch (error) {
       console.error("Get chat sessions error:", error);
@@ -4622,7 +4712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = (req as any).user.id;
       const { subject, priority } = req.body;
-      
+
       const session = await storage.createChatSession({
         userId,
         subject: subject || "Support Request",
@@ -4630,7 +4720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionType: "support",
         status: "active"
       });
-      
+
       res.status(201).json(session);
     } catch (error) {
       console.error("Create chat session error:", error);
@@ -4644,17 +4734,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { sessionId } = req.params;
       const userId = (req as any).user.id;
       const userRole = (req as any).user.role;
-      
+
       // Verify access to session
       const session = await storage.getChatSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: "Chat session not found" });
       }
-      
+
       if (userRole !== 'admin' && session.userId !== userId) {
         return res.status(403).json({ error: "Access denied to chat session" });
       }
-      
+
       const messages = await storage.getChatMessages(sessionId);
       res.json(messages);
     } catch (error) {
@@ -4670,24 +4760,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { content, messageType } = req.body;
       const userId = (req as any).user.id;
       const userRole = (req as any).user.role;
-      
+
       // Verify access to session
       const session = await storage.getChatSession(sessionId);
       if (!session) {
         return res.status(404).json({ error: "Chat session not found" });
       }
-      
+
       if (userRole !== 'admin' && session.userId !== userId) {
         return res.status(403).json({ error: "Access denied to chat session" });
       }
-      
+
       const message = await storage.createChatMessage({
         chatSessionId: sessionId,
         senderId: userId,
         content,
         messageType: messageType || "text"
       });
-      
+
       // Send real-time notification via WebSocket
       const wsService = getWebSocketService();
       if (wsService) {
@@ -4699,7 +4789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       }
-      
+
       res.status(201).json(message);
     } catch (error) {
       console.error("Send chat message error:", error);
@@ -4708,14 +4798,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =================== AI ASSISTANT AND INTELLIGENCE API ROUTES ===================
-  
+
 
   // Military AI Command - Multi-mode bot system with Agent, Assistant, and Security Bot
   app.post("/api/ai/military-command", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
       const userId = (req as any).user.id;
       const userRole = (req as any).user.role;
-      
+
       // Parse request with bot mode support
       const {
         message,
@@ -4728,14 +4818,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userContext,
         conversationId
       } = req.body;
-      
+
       // Validate required fields
       if (!message || !commandType || !classificationLevel || !userContext || !conversationId) {
         return res.status(400).json({ 
           error: "Missing required fields for military command" 
         });
       }
-      
+
       // Process command with military-grade AI assistant
       const response = await militaryGradeAIAssistant.processCommand({
         message,
@@ -4754,7 +4844,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         operationalContext: `User Role: ${userRole}`,
         securityProtocol: "MILITARY_GRADE_V2"
       });
-      
+
       // Log security event for audit
       if (response.auditEntry) {
         await storage.createSecurityEvent({
@@ -4770,7 +4860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
       }
-      
+
       // Return response with all bot mode data
       res.json({
         success: response.success,
@@ -4800,17 +4890,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   }));
-  
-  
+
+
   // AI Translation
   app.post("/api/ai/translate", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { text, targetLanguage, sourceLanguage } = req.body;
-      
+
       if (!text || !targetLanguage) {
         return res.status(400).json({ error: "Text and target language are required" });
       }
-      
+
       const result = await aiAssistantService.translateMessage(text, targetLanguage, sourceLanguage);
       res.json(result);
     } catch (error) {
@@ -4818,16 +4908,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Translation service unavailable" });
     }
   });
-  
+
   // AI Document Analysis
   app.post("/api/ai/analyze-document", authenticate, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentContent, documentType } = req.body;
-      
+
       if (!documentContent || !documentType) {
         return res.status(400).json({ error: "Document content and type are required" });
       }
-      
+
       const result = await aiAssistantService.analyzeDocument(documentContent, documentType);
       res.json(result);
     } catch (error) {
@@ -4835,16 +4925,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Document analysis service unavailable" });
     }
   });
-  
+
   // AI Document Requirements
   app.post("/api/ai/document-requirements", authenticate, consentMiddleware.requireAIConsent, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentType, userContext } = req.body;
-      
+
       if (!documentType) {
         return res.status(400).json({ error: "Document type is required" });
       }
-      
+
       const result = await aiAssistantService.getDocumentRequirements(documentType, userContext);
       res.json(result);
     } catch (error) {
@@ -4852,16 +4942,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Requirements service unavailable" });
     }
   });
-  
+
   // AI Form Assistant
   app.post("/api/ai/form-assist", authenticate, consentMiddleware.requireAIConsent, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { formType, userInput, formData } = req.body;
-      
+
       if (!formType || !userInput) {
         return res.status(400).json({ error: "Form type and user input are required" });
       }
-      
+
       const result = await aiAssistantService.generateFormResponse(formType, userInput, formData);
       res.json(result);
     } catch (error) {
@@ -4869,16 +4959,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Form assistance unavailable" });
     }
   });
-  
+
   // AI Processing Time Prediction
   app.post("/api/ai/predict-processing-time", authenticate, consentMiddleware.requireAIConsent, apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentType, currentQueue, historicalData } = req.body;
-      
+
       if (!documentType) {
         return res.status(400).json({ error: "Document type is required" });
       }
-      
+
       const result = await aiAssistantService.predictProcessingTime(
         documentType,
         currentQueue || 0,
@@ -4890,16 +4980,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Prediction service unavailable" });
     }
   });
-  
+
   // AI Anomaly Detection
   app.post("/api/ai/detect-anomalies", authenticate, consentMiddleware.requireAIConsent, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { data, dataType } = req.body;
-      
+
       if (!data || !dataType) {
         return res.status(400).json({ error: "Data and data type are required" });
       }
-      
+
       const result = await aiAssistantService.detectAnomalies(data, dataType);
       res.json(result);
     } catch (error) {
@@ -4939,7 +5029,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!['1h', '24h', '7d', '30d'].includes(timeframe)) {
         return res.status(400).json({ error: "Invalid timeframe. Use: 1h, 24h, 7d, or 30d" });
       }
-      
+
       const trends = await enhancedMonitoringService.getSecurityTrends(timeframe as any);
       res.json(trends);
     } catch (error) {
@@ -4958,7 +5048,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
       });
-      
+
       const alertsData = await intelligentAlertingService.getAlerts(validatedQuery);
       res.json(alertsData);
     } catch (error) {
@@ -4976,11 +5066,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { alertId } = req.params;
       const validatedData = alertActionSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
         return res.status(400).json({ error: "Invalid alert ID format" });
       }
-      
+
       await intelligentAlertingService.acknowledgeAlert(alertId, userId, validatedData.notes);
       res.json({ message: "Alert acknowledged successfully" });
     } catch (error) {
@@ -4998,15 +5088,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { alertId } = req.params;
       const validatedData = alertActionSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
         return res.status(400).json({ error: "Invalid alert ID format" });
       }
-      
+
       if (!validatedData.resolution) {
         return res.status(400).json({ error: "Resolution description is required" });
       }
-      
+
       await intelligentAlertingService.resolveAlert(alertId, userId, validatedData.resolution);
       res.json({ message: "Alert resolved successfully" });
     } catch (error) {
@@ -5024,15 +5114,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { alertId } = req.params;
       const validatedData = alertActionSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!alertId || !/^[a-zA-Z0-9_-]+$/.test(alertId)) {
         return res.status(400).json({ error: "Invalid alert ID format" });
       }
-      
+
       if (!validatedData.reason) {
         return res.status(400).json({ error: "Escalation reason is required" });
       }
-      
+
       await intelligentAlertingService.escalateAlert(alertId, userId, validatedData.reason);
       res.json({ message: "Alert escalated successfully" });
     } catch (error) {
@@ -5057,7 +5147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
         outcome: req.query.outcome
       });
-      
+
       const filters = {
         userId: validatedQuery.userId,
         action: validatedQuery.action,
@@ -5068,7 +5158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : undefined,
         limit: validatedQuery.limit || 100
       };
-      
+
       const auditLogs = await auditTrailService.getAuditLogs(filters);
       res.json(auditLogs);
     } catch (error) {
@@ -5088,12 +5178,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: req.query.startDate,
         endDate: req.query.endDate
       });
-      
+
       const period = {
         start: new Date(validatedParams.startDate),
         end: new Date(validatedParams.endDate)
       };
-      
+
       const report = await auditTrailService.generateComplianceReport(validatedParams.regulation as any, period);
       res.json(report);
     } catch (error) {
@@ -5117,13 +5207,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: req.query.startDate,
         endDate: req.query.endDate
       });
-      
-      const incidents = await storage.getSecurityIncidents({
+
+      const filters = {
         status: validatedQuery.status,
         severity: validatedQuery.severity,
         assignedTo: validatedQuery.assignedTo,
         limit: validatedQuery.limit || 50
-      });
+      };
+
+      const incidents = await storage.getSecurityIncidents(filters);
       res.json(incidents);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5139,11 +5231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { incidentId } = req.params;
       const incident = await storage.getSecurityIncident(incidentId);
-      
+
       if (!incident) {
         return res.status(404).json({ error: "Security incident not found" });
       }
-      
+
       res.json(incident);
     } catch (error) {
       console.error("Get security incident error:", error);
@@ -5157,17 +5249,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { incidentId } = req.params;
       const validatedData = incidentActionSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!incidentId || !/^[a-zA-Z0-9_-]+$/.test(incidentId)) {
         return res.status(400).json({ error: "Invalid incident ID format" });
       }
-      
+
       if (!validatedData.assignedTo) {
         return res.status(400).json({ error: "Assigned user ID is required" });
       }
-      
+
       await storage.assignIncidentTo(incidentId, validatedData.assignedTo);
-      
+
       // Log the assignment
       await auditTrailService.logAdminAction(
         'security_incident_assigned',
@@ -5176,7 +5268,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         incidentId,
         { actionDetails: { assignedTo: validatedData.assignedTo } }
       );
-      
+
       res.json({ message: "Security incident assigned successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5193,15 +5285,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { incidentId } = req.params;
       const validatedData = incidentActionSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!incidentId || !/^[a-zA-Z0-9_-]+$/.test(incidentId)) {
         return res.status(400).json({ error: "Invalid incident ID format" });
       }
-      
+
       if (!validatedData.resolution) {
         return res.status(400).json({ error: "Resolution description is required" });
       }
-      
+
       await storage.resolveIncident(incidentId, validatedData.resolution, userId);
       res.json({ message: "Security incident resolved successfully" });
     } catch (error) {
@@ -5222,12 +5314,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.query.userId,
         riskThreshold: req.query.riskThreshold ? parseInt(req.query.riskThreshold as string) : undefined
       });
-      
+
       const timeRange = {
         start: validatedQuery.startDate ? new Date(validatedQuery.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
         end: validatedQuery.endDate ? new Date(validatedQuery.endDate) : new Date()
       };
-      
+
       const statistics = await fraudDetectionService.getFraudStatistics(timeRange);
       res.json(statistics);
     } catch (error) {
@@ -5250,25 +5342,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         includeDevicePatterns: req.query.includeDevicePatterns === 'true',
         timeframe: req.query.timeframe
       });
-      
+
       if (!validatedQuery.userId || !/^[a-zA-Z0-9_-]+$/.test(validatedQuery.userId)) {
         return res.status(400).json({ error: "Invalid user ID format" });
       }
-      
+
       const results: any = {};
-      
+
       if (validatedQuery.includeProfile !== false) {
         results.profile = await storage.getUserBehaviorProfile(validatedQuery.userId);
       }
-      
+
       if (validatedQuery.includeAnalysis !== false) {
         results.analysis = await storage.analyzeUserBehavior(validatedQuery.userId);
       }
-      
+
       if (validatedQuery.includeDevicePatterns !== false) {
         results.devicePatterns = await fraudDetectionService.analyzeDevicePatterns(validatedQuery.userId);
       }
-      
+
       res.json(results);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5283,13 +5375,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/security/rules", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { category, isActive, ruleType } = req.query;
-      
+
       const filters = {
         category: category as string,
         isActive: isActive !== undefined ? isActive === 'true' : undefined,
         ruleType: ruleType as string
       };
-      
+
       const rules = await storage.getSecurityRules(filters);
       res.json(rules);
     } catch (error) {
@@ -5304,13 +5396,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ruleId } = req.params;
       const { enabled } = req.body;
       const userId = (req as any).user.id;
-      
+
+      if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
+        return res.status(400).json({ error: "Invalid rule ID format" });
+      }
+
       if (enabled) {
         await storage.activateSecurityRule(ruleId);
       } else {
         await storage.deactivateSecurityRule(ruleId);
       }
-      
+
       // Log the rule toggle
       await auditTrailService.logAdminAction(
         'security_rule_toggled',
@@ -5319,7 +5415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ruleId,
         { actionDetails: { enabled, timestamp: new Date().toISOString() } }
       );
-      
+
       res.json({ message: `Security rule ${enabled ? 'activated' : 'deactivated'} successfully` });
     } catch (error) {
       console.error("Toggle security rule error:", error);
@@ -5336,12 +5432,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity: req.query.severity,
         status: req.query.status
       });
-      
+
       const timeRange = validatedQuery.startDate && validatedQuery.endDate ? {
         start: new Date(validatedQuery.startDate),
         end: new Date(validatedQuery.endDate)
       } : undefined;
-      
+
       const statistics = await intelligentAlertingService.getAlertStatistics(timeRange);
       res.json(statistics);
     } catch (error) {
@@ -5354,24 +5450,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ===================== DOCUMENT VERIFICATION ENDPOINTS =====================
-  
+
   // Register a new document in the verification system
   app.post("/api/documents/register", authenticate, requireRole(['admin', 'officer']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentType, documentNumber, documentData } = req.body;
       const userId = (req as any).user.id;
-      
+
       if (!documentType || !documentNumber || !documentData) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
       const verification = await verificationService.registerDocument(
         documentType,
         documentNumber,
         documentData,
         userId
       );
-      
+
       res.status(201).json({
         message: "Document registered successfully",
         verificationCode: verification.code,
@@ -5384,46 +5480,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to register document" });
     }
   });
-  
+
   // Verify document authenticity by code
   app.get("/api/verify/:code", async (req: Request, res: Response) => {
     try {
       const { code } = req.params;
-      
+
       if (!code) {
         return res.status(400).json({ error: "Verification code required" });
       }
-      
-      const result = await verificationService.verifyDocument({
-        verificationCode: code.toUpperCase(),
-        verificationMethod: 'manual_entry',
-        ipAddress: req.ip,
-        userAgent: req.get('User-Agent'),
-        location: { country: req.get('CF-IPCountry') || 'Unknown' }
-      });
-      
-      res.json(result);
+
+      const result = await verificationService.verifyDocument({ verificationCode: code.toUpperCase(), verificationMethod: 'manual_entry', ipAddress: req.ip, userAgent: req.get('User-Agent'), location: { country: req.get('CF-IPCountry') || 'Unknown' } });
+
+      if (result && result.isValid) {
+        res.json({
+          valid: true,
+          documentType: result.documentType,
+          documentNumber: result.documentNumber,
+          issuedDate: result.issuedDate,
+          verificationDate: new Date().toISOString(),
+          securityFeatures: result.securityFeatures
+        });
+      } else {
+        res.status(404).json({
+          valid: false,
+          error: 'Document not found or verification code invalid'
+        });
+      }
     } catch (error) {
       console.error("Document verification error:", error);
       res.status(500).json({ error: "Failed to verify document" });
     }
   });
-  
+
   // Get verification status and history for a document
   app.get("/api/verification/status/:documentId", authenticate, verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'get_status'), async (req: Request, res: Response) => {
     try {
       const { documentId } = req.params;
-      
+
       if (!documentId) {
         return res.status(400).json({ error: "Document ID required" });
       }
-      
+
       const status = await verificationService.getVerificationStatus(documentId);
-      
+
       if (!status.success) {
         return res.status(404).json({ error: status.message });
       }
-      
+
       // Apply PII scrubbing to status response for public endpoints
       const sanitizedStatus = {
         ...status,
@@ -5431,28 +5535,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...status.data,
           verificationHistory: status.data.verificationHistory?.map((entry: any) => ({
             ...entry,
-            ipAddress: privacyProtectionService.anonymizeIP(entry.ipAddress),
+            verifierIpAddress: privacyProtectionService.anonymizeIP(entry.ipAddress),
             location: typeof entry.location === 'object' ? JSON.stringify(entry.location) : (entry.location || 'Unknown')
           })) || []
         } : null
       };
-      
+
       res.json(sanitizedStatus);
     } catch (error) {
       console.error("Verification status error:", error);
       res.status(500).json({ error: "Failed to get verification status" });
     }
   });
-  
+
   // Log a verification scan attempt
   app.post("/api/verification/scan", verificationRateLimit, geoIPValidationMiddleware, auditMiddleware('verification', 'scan'), async (req: Request, res: Response) => {
     try {
       const { code, location, deviceInfo } = req.body;
-      
+
       if (!code) {
         return res.status(400).json({ error: "Verification code required" });
       }
-      
+
       const result = await verificationService.verifyDocument({
         verificationMethod: 'qr_scan',
         qrData: code.toUpperCase(),
@@ -5460,7 +5564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userAgent: req.get('User-Agent') || deviceInfo?.userAgent,
         location: location ? { country: location } : { country: req.get('CF-IPCountry') || 'Unknown' }
       });
-      
+
       // Log the scan attempt
       await storage.createSecurityEvent({
         eventType: 'document_verification_scan',
@@ -5475,7 +5579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
-      
+
       res.json({
         success: true,
         verification: result
@@ -5485,24 +5589,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to process verification scan" });
     }
   });
-  
+
   // Revoke a document's verification
   app.post("/api/verification/revoke/:documentId", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { documentId } = req.params;
       const { reason } = req.body;
       const userId = (req as any).user.id;
-      
+
       if (!documentId) {
         return res.status(400).json({ error: "Document ID required" });
       }
-      
+
       const success = await verificationService.revokeDocument(documentId, reason);
-      
+
       if (!success) {
         return res.status(404).json({ error: "Document not found" });
       }
-      
+
       // Log the revocation
       await auditTrailService.logAdminAction(
         'document_revoked',
@@ -5510,7 +5614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'document_verification',
         documentId
       );
-      
+
       res.json({
         message: "Document verification revoked successfully"
       });
@@ -5527,7 +5631,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = alertRuleCreationSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       // Create a new alert rule in the intelligent alerting service
       const ruleId = `rule_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const alertRule = {
@@ -5536,10 +5640,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdBy: userId,
         createdAt: new Date()
       };
-      
+
       // Add rule to intelligent alerting service
       await intelligentAlertingService.addAlertRule(alertRule);
-      
+
       // Log the rule creation
       await auditTrailService.logAdminAction(
         'alert_rule_created',
@@ -5548,7 +5652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ruleId,
         { actionDetails: { name: validatedData.name, severity: validatedData.severity } }
       );
-      
+
       res.status(201).json({
         message: "Alert rule created successfully",
         ruleId,
@@ -5573,7 +5677,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
       });
-      
+
       const rules = await intelligentAlertingService.getAlertRules(validatedQuery);
       res.json(rules);
     } catch (error) {
@@ -5591,13 +5695,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ruleId } = req.params;
       const validatedData = alertRuleUpdateSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
         return res.status(400).json({ error: "Invalid rule ID format" });
       }
-      
+
       await intelligentAlertingService.updateAlertRule(ruleId, validatedData);
-      
+
       // Log the rule update
       await auditTrailService.logAdminAction(
         'alert_rule_updated',
@@ -5606,7 +5710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ruleId,
         { actionDetails: validatedData }
       );
-      
+
       res.json({ message: "Alert rule updated successfully" });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5622,13 +5726,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { ruleId } = req.params;
       const userId = (req as any).user.id;
-      
+
       if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
         return res.status(400).json({ error: "Invalid rule ID format" });
       }
-      
+
       await intelligentAlertingService.deleteAlertRule(ruleId);
-      
+
       // Log the rule deletion
       await auditTrailService.logAdminAction(
         'alert_rule_deleted',
@@ -5637,7 +5741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ruleId,
         { actionDetails: { deletedAt: new Date().toISOString() } }
       );
-      
+
       res.json({ message: "Alert rule deleted successfully" });
     } catch (error) {
       console.error("Delete alert rule error:", error);
@@ -5651,13 +5755,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { ruleId } = req.params;
       const validatedData = securityRuleToggleSchema.parse(req.body);
       const userId = (req as any).user.id;
-      
+
       if (!ruleId || !/^[a-zA-Z0-9_-]+$/.test(ruleId)) {
         return res.status(400).json({ error: "Invalid rule ID format" });
       }
-      
+
       await intelligentAlertingService.toggleAlertRule(ruleId, validatedData.enabled);
-      
+
       // Log the rule toggle
       await auditTrailService.logAdminAction(
         'alert_rule_toggled',
@@ -5666,7 +5770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ruleId,
         { actionDetails: { enabled: validatedData.enabled, timestamp: new Date().toISOString() } }
       );
-      
+
       res.json({ message: `Alert rule ${validatedData.enabled ? 'enabled' : 'disabled'} successfully` });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5689,7 +5793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
         offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
       });
-      
+
       const filters = {
         regulation: validatedQuery.regulation,
         eventType: validatedQuery.eventType,
@@ -5698,7 +5802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         endDate: validatedQuery.endDate ? new Date(validatedQuery.endDate) : undefined,
         limit: validatedQuery.limit || 100
       };
-      
+
       const events = await storage.getComplianceEvents(filters);
       res.json(events);
     } catch (error) {
@@ -5714,7 +5818,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/security/system/health", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const dashboard = await enhancedMonitoringService.getSecurityDashboard();
-      
+
       const healthStatus = {
         status: dashboard.systemStatus,
         metrics: dashboard.metrics.system,
@@ -5724,7 +5828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         integrations: dashboard.metrics.system.integrationStatus,
         performanceScore: dashboard.metrics.system.performanceScore
       };
-      
+
       res.json(healthStatus);
     } catch (error) {
       console.error("System health error:", error);
@@ -5733,7 +5837,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =================== MILITARY SECURITY API ROUTES ===================
-  
+
   // Military Security Metrics - Combined dashboard endpoint
   app.get("/api/military/metrics", authenticate, requireRole(['admin', 'security_officer']), apiLimiter, async (req: Request, res: Response) => {
     try {
@@ -5778,7 +5882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/military/emergency", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { protocol } = req.body;
-      
+
       // Log emergency activation
       await governmentSecurityService.logToSIEM({
         eventType: 'EMERGENCY_PROTOCOL_ACTIVATED',
@@ -5787,7 +5891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: { protocol, activatedBy: (req.user as any).id },
         userId: (req.user as any).id
       });
-      
+
       res.json({ message: `Emergency protocol ${protocol} activated`, status: 'ACTIVE' });
     } catch (error) {
       console.error("Emergency activation error:", error);
@@ -5799,11 +5903,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/military/defcon", authenticate, requireRole(['admin']), apiLimiter, async (req: Request, res: Response) => {
     try {
       const { level } = req.body;
-      
+
       if (level < 1 || level > 5) {
         return res.status(400).json({ error: "Invalid DEFCON level (must be 1-5)" });
       }
-      
+
       await governmentSecurityService.logToSIEM({
         eventType: 'DEFCON_LEVEL_CHANGE',
         severity: level <= 2 ? 'critical' : level <= 3 ? 'high' : 'medium',
@@ -5811,7 +5915,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: { newLevel: level, changedBy: (req.user as any).id },
         userId: (req.user as any).id
       });
-      
+
       res.json({ level, message: `DEFCON level set to ${level}` });
     } catch (error) {
       console.error("DEFCON change error:", error);
@@ -5890,7 +5994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           organization: 'DHA'
         }
       };
-      
+
       const result = await militaryDocumentService.generateMilitaryDocument(documentRequest);
       res.json(result);
     } catch (error) {
@@ -5907,7 +6011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clearance: 'SECRET',
         organization: 'DHA'
       };
-      
+
       const result = await militaryDocumentService.generateSF86(req.body, requester);
       res.json(result);
     } catch (error) {
@@ -5923,7 +6027,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         initiator: (req.user as any).id
       };
-      
+
       const channel = await secureCommunicationsService.createSecureChannel(channelParams);
       res.json(channel);
     } catch (error) {
@@ -5939,7 +6043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         sender: (req.user as any).id
       };
-      
+
       const result = await secureCommunicationsService.sendSecureMessage(messageParams);
       res.json(result);
     } catch (error) {
@@ -5955,7 +6059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         caller: (req.user as any).id
       };
-      
+
       const session = await secureCommunicationsService.establishSecureVoIP(voipParams);
       res.json(session);
     } catch (error) {
@@ -5982,7 +6086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         sender: (req.user as any).id
       };
-      
+
       const result = await secureCommunicationsService.sendEmergencyMessage(emergencyParams);
       res.json(result);
     } catch (error) {
@@ -6069,7 +6173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.end(pdfBuffer);
   };
 
-  // 1. Birth Certificate PDF Generation
+  // 1. Birth Certificate PDF Generation (UPDATED - Using DocumentPdfFacade)
   app.post("/api/pdf/birth-certificate", authenticate, requireRole(['admin', 'officer']), documentsRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
       const birthCertSchema = z.object({
@@ -6101,33 +6205,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }),
         language: z.enum(['en', 'af', 'bilingual']).default('bilingual')
       });
+
+      const validatedData = birthCertSchema.parse(req.body);
       
-      const data = birthCertSchema.parse(req.body);
-      const birthCertData = {
-        fullName: data.childDetails.fullName,
-        dateOfBirth: data.childDetails.dateOfBirth,
-        placeOfBirth: data.childDetails.placeOfBirth,
-        gender: data.childDetails.gender,
-        nationality: data.childDetails.nationality,
+      // Transform to DocumentPdfFacade format
+      const birthCertificateData = {
+        personal: {
+          fullName: validatedData.childDetails.fullName,
+          dateOfBirth: new Date(validatedData.childDetails.dateOfBirth),
+          placeOfBirth: validatedData.childDetails.placeOfBirth,
+          gender: validatedData.childDetails.gender as 'M' | 'F',
+          nationality: validatedData.childDetails.nationality
+        },
+        registrationNumber: validatedData.registrationNumber,
+        registrationDate: new Date(validatedData.registrationDetails.dateOfRegistration),
+        registrationOffice: validatedData.registrationDetails.registrationOffice,
+        registrarName: validatedData.registrationDetails.registrarName,
         mother: {
-          fullName: data.parentDetails.mother.fullName,
-          idNumber: data.parentDetails.mother.idNumber || '',
-          nationality: data.parentDetails.mother.nationality
+          fullName: validatedData.parentDetails.mother.fullName,
+          idNumber: validatedData.parentDetails.mother.idNumber || '',
+          nationality: validatedData.parentDetails.mother.nationality
         },
-        father: data.parentDetails.father ? {
-          fullName: data.parentDetails.father.fullName,
-          idNumber: data.parentDetails.father.idNumber || '',
-          nationality: data.parentDetails.father.nationality
-        } : {
-          fullName: 'Not provided',
-          nationality: 'Unknown'
-        },
-        registrationNumber: data.registrationNumber,
-        dateOfRegistration: data.registrationDetails.dateOfRegistration,
-        registrationOffice: data.registrationDetails.registrationOffice
+        father: validatedData.parentDetails.father ? {
+          fullName: validatedData.parentDetails.father.fullName,
+          idNumber: validatedData.parentDetails.father.idNumber || '',
+          nationality: validatedData.parentDetails.father.nationality
+        } : undefined,
+        timeOfBirth: validatedData.childDetails.timeOfBirth
       };
-      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(birthCertData);
-      
+
+      // Use unified DocumentPdfFacade instead of direct service call
+      await generateUnifiedPDFResponse(
+        res, 
+        SupportedDocumentType.BIRTH_CERTIFICATE, 
+        birthCertificateData,
+        {
+          securityLevel: DocumentSecurityLevel.STANDARD,
+          includeDigitalSignature: true,
+          persistToStorage: true,
+          languages: [validatedData.language === 'bilingual' ? 'en' : validatedData.language as 'en' | 'af'],
+          includeAuditTrail: true
+        }
+      );
+
       // Log PDF generation
       await auditTrailService.logUserAction(
         'GENERATE_PDF',
@@ -6135,17 +6255,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           userId: (req.user as any).id,
           entityType: 'BIRTH_CERTIFICATE',
-          entityId: data.registrationNumber,
-          actionDetails: { documentType: 'birth_certificate' },
+          entityId: validatedData.registrationNumber,
+          actionDetails: { 
+            documentType: 'birth_certificate',
+            securityLevel: 'STANDARD',
+            usedFacade: true
+          },
           ipAddress: req.ip || '',
           userAgent: req.get('User-Agent') || ''
         }
       );
-      
-      generatePDFResponse(res, pdfBuffer, 'birth-certificate.pdf', 'birth_certificate');
     } catch (error) {
       console.error('Birth certificate PDF generation error:', error);
-      res.status(400).json({ error: 'Invalid request data', details: error instanceof Error ? error.message : 'Unknown error' });
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: error.errors,
+          errorCode: 'VALIDATION_FAILED'
+        });
+      }
+      
+      if (error instanceof DocumentGenerationError) {
+        return res.status(400).json({ 
+          error: 'Document generation failed', 
+          details: error.message,
+          errorCode: error.errorCode,
+          documentType: error.documentType
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to generate birth certificate', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'INTERNAL_ERROR'
+      });
     }
   }));
 
@@ -6198,15 +6342,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // 6. Work Permit PDF Generation
+  // 6. Work Permit PDF Generation (UPDATED - Using DocumentPdfFacade)
   app.post("/api/pdf/work-permit", authenticate, requireRole(['admin', 'officer']), documentsRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const data = req.body;
-      const pdfBuffer = await pdfGenerationService.generateWorkPermitPDF(data);
-      generatePDFResponse(res, pdfBuffer, 'work-permit.pdf', 'work_permit');
+      const workPermitSchema = z.object({
+        personal: z.object({
+          fullName: z.string(),
+          idNumber: z.string().optional(),
+          passportNumber: z.string().optional(),
+          dateOfBirth: z.string(),
+          nationality: z.string(),
+          gender: z.enum(['M', 'F'])
+        }),
+        permitNumber: z.string().optional(),
+        permitType: z.string().default("General Work Visa"),
+        employer: z.object({
+          name: z.string(),
+          address: z.string(),
+          sector: z.string().optional()
+        }),
+        occupation: z.string(),
+        validFrom: z.string(),
+        validUntil: z.string(),
+        conditions: z.array(z.string()).optional(),
+        endorsements: z.array(z.string()).optional()
+      });
+
+      const validatedData = workPermitSchema.parse(req.body);
+      
+      // Transform to DocumentPdfFacade format for work permit
+      const workPermitData = {
+        personal: {
+          fullName: validatedData.personal.fullName,
+          idNumber: validatedData.personal.idNumber,
+          passportNumber: validatedData.personal.passportNumber,
+          dateOfBirth: new Date(validatedData.personal.dateOfBirth),
+          nationality: validatedData.personal.nationality,
+          gender: validatedData.personal.gender
+        },
+        permitDetails: {
+          permitNumber: validatedData.permitNumber || `WP-${Date.now()}`,
+          permitType: validatedData.permitType,
+          issuanceDate: new Date(),
+          expiryDate: new Date(validatedData.validUntil),
+          validFrom: new Date(validatedData.validFrom),
+          validUntil: new Date(validatedData.validUntil)
+        },
+        employment: {
+          employerName: validatedData.employer.name,
+          employerAddress: validatedData.employer.address,
+          sector: validatedData.employer.sector,
+          occupation: validatedData.occupation
+        },
+        conditions: validatedData.conditions || [],
+        endorsements: validatedData.endorsements || []
+      };
+
+      // Use unified DocumentPdfFacade instead of direct service call
+      await generateUnifiedPDFResponse(
+        res, 
+        SupportedDocumentType.WORK_PERMIT, 
+        workPermitData,
+        {
+          securityLevel: DocumentSecurityLevel.ENHANCED,
+          includeDigitalSignature: true,
+          persistToStorage: true,
+          includeAuditTrail: true
+        }
+      );
+
     } catch (error) {
       console.error('Work permit PDF generation error:', error);
-      res.status(400).json({ error: 'Invalid request data' });
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: error.errors,
+          errorCode: 'VALIDATION_FAILED'
+        });
+      }
+      
+      if (error instanceof DocumentGenerationError) {
+        return res.status(400).json({ 
+          error: 'Document generation failed', 
+          details: error.message,
+          errorCode: error.errorCode,
+          documentType: error.documentType
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to generate work permit', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'INTERNAL_ERROR'
+      });
     }
   }));
 
@@ -6284,7 +6513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { verificationCode } = req.params;
       const verification = await verificationService.verifyDocument({ verificationCode: verificationCode, verificationMethod: 'manual_entry', ipAddress: req.ip, userAgent: req.get('User-Agent') });
-      
+
       if (verification && verification.isValid) {
         res.json({
           valid: true,
@@ -6309,667 +6538,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all supported DHA document types for PDF generation
   app.get("/api/pdf/document-types", apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const documentTypes = [
-        { type: 'birth_certificate', name: 'Birth Certificate', endpoint: '/api/pdf/birth-certificate' },
-        { type: 'death_certificate', name: 'Death Certificate', endpoint: '/api/pdf/death-certificate' },
-        { type: 'marriage_certificate', name: 'Marriage Certificate', endpoint: '/api/pdf/marriage-certificate' },
-        { type: 'sa_id', name: 'South African ID', endpoint: '/api/pdf/sa-id' },
-        { type: 'passport', name: 'Passport (All Types)', endpoint: '/api/pdf/passport' },
-        { type: 'work_permit', name: 'Work Permit (All Sections)', endpoint: '/api/pdf/work-permit' },
-        { type: 'study_permit', name: 'Study Permit', endpoint: '/api/pdf/study-permit' },
-        { type: 'business_permit', name: 'Business Permit', endpoint: '/api/pdf/business-permit' },
-        { type: 'visitor_visa', name: "Visitor's Visa", endpoint: '/api/pdf/visitor-visa' },
-        { type: 'transit_visa', name: 'Transit Visa', endpoint: '/api/pdf/transit-visa' },
-        { type: 'medical_treatment_visa', name: 'Medical Treatment Visa', endpoint: '/api/pdf/medical-visa' },
-        { type: 'emergency_travel_document', name: 'Emergency Travel Document', endpoint: '/api/pdf/emergency-travel' }
-      ];
-      
+      const supportedTypes = documentTemplateRegistry.getSupportedDocumentTypes();
+
+      // Helper functions for document type metadata
+      const getDocumentCategory = (type: string) => {
+        if (type.includes('card') || type.includes('identity') || type.includes('temporary_id')) return 'identity';
+        if (type.includes('passport') || type.includes('travel')) return 'travel';
+        if (type.includes('birth') || type.includes('death') || type.includes('marriage') || type.includes('divorce')) return 'civil';
+        if (type.includes('visa') || type.includes('permit') || type.includes('residence') || type.includes('exemption') || type.includes('citizenship')) return 'immigration';
+        return 'other';
+      };
+
+      const getFormNumber = (type: string) => {
+        const formNumbers: Record<string, string> = {
+          'smart_id_card': 'DHA-24',
+          'identity_document_book': 'BI-9',
+          'temporary_id_certificate': 'DHA-73',
+          'south_african_passport': 'DHA-73',
+          'emergency_travel_certificate': 'DHA-1738',
+          'refugee_travel_document': 'DHA-1590',
+          'birth_certificate': 'BI-24',
+          'death_certificate': 'BI-1663',
+          'marriage_certificate': 'BI-130',
+          'divorce_certificate': 'BI-281',
+          'general_work_visa': 'BI-1738',
+          'critical_skills_work_visa': 'DHA-1739',
+          'intra_company_transfer_work_visa': 'DHA-1740',
+          'business_visa': 'DHA-1741',
+          'study_visa_permit': 'DHA-1742',
+          'visitor_visa': 'DHA-1743',
+          'medical_treatment_visa': 'DHA-1744',
+          'retired_person_visa': 'DHA-1745',
+          'exchange_visa': 'DHA-1746',
+          'relatives_visa': 'DHA-1747',
+          'permanent_residence_permit': 'DHA-1748',
+          'certificate_of_exemption': 'DHA-1749',
+          'certificate_of_south_african_citizenship': 'DHA-1750'
+        };
+        return formNumbers[type] || 'DHA-000';
+      };
+
+
+      const getDocumentDescription = (type: string) => {
+        const descriptions: Record<string, string> = {
+          'smart_id_card': 'Polycarbonate smart ID card with biometric chip and laser engraving',
+          'identity_document_book': 'Traditional green book identity document',
+          'temporary_id_certificate': 'Temporary identity certificate for urgent cases',
+          'south_african_passport': 'Machine-readable South African passport with ICAO compliance',
+          'emergency_travel_certificate': 'Emergency travel document for urgent travel situations',
+          'refugee_travel_document': 'UNHCR compliant travel document for refugees',
+          'birth_certificate': 'Official birth certificate (unabridged format)',
+          'death_certificate': 'Official death certificate with medical details',
+          'marriage_certificate': 'Official marriage certificate for civil, religious or customary marriages',
+          'divorce_certificate': 'Official divorce certificate with decree details',
+          'general_work_visa': 'General work visa for employment in South Africa',
+          'critical_skills_work_visa': 'Work visa for critical and scarce skills occupations',
+          'intra_company_transfer_work_visa': 'Work visa for intra-company transfers',
+          'business_visa': 'Business visa for entrepreneurs and investors',
+          'study_visa_permit': 'Study visa for international students',
+          'visitor_visa': 'Tourist and visitor visa',
+          'medical_treatment_visa': 'Visa for medical treatment purposes',
+          'retired_person_visa': 'Visa for retired persons',
+          'exchange_visa': 'Visa for exchange programs',
+          'relatives_visa': 'Visa for visiting relatives',
+          'permanent_residence_permit': 'Permanent residence permit for long-term residents',
+          'certificate_of_exemption': 'Certificate of exemption from visa requirements',
+          'certificate_of_south_african_citizenship': 'Certificate of South African citizenship'
+        };
+        return descriptions[type] || 'Official DHA document';
+      };
+
+      // Build comprehensive response with schemas and metadata
+      const documentTypes = supportedTypes.map(type => {
+        const schema = documentTypeSchemas[type as keyof typeof documentTypeSchemas];
+
+        return {
+          type,
+          displayName: type.split('_').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+          ).join(' '),
+          category: getDocumentCategory(type),
+          formNumber: getFormNumber(type),
+          requiredFields: schema ? extractRequiredFields(schema) : [],
+          description: getDocumentDescription(type),
+          isImplemented: true,
+          securityFeatures: [
+            "Watermarks", "Guilloche Patterns", "Holographic Effects", 
+            "Microtext", "QR Codes", "Barcodes", "Digital Signatures",
+            "Cryptographic Hash", "Tamper Evidence", "Serial Numbers"
+          ]
+        };
+      });
+
       res.json({
-        totalTypes: documentTypes.length,
+        success: true,
+        totalTypes: supportedTypes.length,
+        implementedTypes: supportedTypes.length,
+        categories: {
+          identity: documentTypes.filter(d => d.category === 'identity').length,
+          travel: documentTypes.filter(d => d.category === 'travel').length,
+          civil: documentTypes.filter(d => d.category === 'civil').length,
+          immigration: documentTypes.filter(d => d.category === 'immigration').length
+        },
         documentTypes,
-        securityFeatures: [
-          'ICAO-compliant MRZ for travel documents',
-          'Government-grade digital signatures with PKI',
-          'QR codes with live verification URLs',
-          'Anti-counterfeiting security patterns and microprinting',
-          'Biometric data placeholders and templates',
-          'RFID/NFC chip data encoding for smart documents',
-          'Multi-language support (English/Afrikaans)',
-          'Government watermarks and holographic elements',
-          'POPIA data protection compliance',
-          'Audit trail integration and document lifecycle tracking'
-        ],
-        compliance: ['ICAO-9303', 'POPIA', 'DHA-Standards', 'Government-PKI']
+        apiUsage: {
+          generateEndpoint: "POST /api/documents/generate",
+          previewMode: "Add ?preview=true or ?mode=preview",
+          downloadMode: "Add ?download=true",
+          supportedFormats: ["PDF"],
+          authentication: "Required - DHA Officer or Admin role"
+        }
       });
+
     } catch (error) {
-      console.error('Error fetching document types:', error);
-      res.status(500).json({ error: 'Failed to fetch document types' });
-    }
-  }));
-
-  // =================== END DHA PDF GENERATION ROUTES ===================
-
-  // ==========================================
-  // PRODUCTION-READY SECURE PDF GENERATION API
-  // Cryptographically signed documents with comprehensive security
-  // ==========================================
-
-  // Unified secure PDF generation endpoint for all 21 DHA document types
-  app.post("/api/pdf/secure/:type", 
-    authenticate, 
-    auditTrailMiddleware.auditRequestMiddleware, 
-    documentsRateLimit, 
-    asyncHandler(async (req: Request, res: Response) => {
-      await securePDFAPIService.generateSecurePDF(req, res);
-    })
-  );
-
-  // Comprehensive document verification endpoint (QR codes + cryptographic signatures)
-  app.post("/api/verify", 
-    apiLimiter, 
-    auditTrailMiddleware.auditRequestMiddleware,
-    asyncHandler(async (req: Request, res: Response) => {
-      await securePDFAPIService.verifyDocument(req, res);
-    })
-  );
-
-  // Public verification endpoint (for QR code scanning - no authentication required)
-  app.get("/api/verify/public/:code", 
-    apiLimiter,
-    asyncHandler(async (req: Request, res: Response) => {
-      try {
-        const { code } = req.params;
-        
-        // Validate verification code format
-        if (!code || !/^[A-Fa-f0-9]{16,32}$/.test(code)) {
-          return res.status(400).json({
-            success: false,
-            error: 'Invalid verification code format'
-          });
-        }
-        
-        const verificationResult = await verificationService.verifyDocument({ verificationMethod: 'qr_scan', qrData: code, ipAddress: req.ip, userAgent: req.get('User-Agent') });
-        
-        res.json({
-          success: true,
-          verified: verificationResult.isValid,
-          documentType: verificationResult.documentType,
-          issuedDate: verificationResult.issuedDate,
-          verificationMethod: 'qr_code',
-          timestamp: new Date().toISOString()
-        });
-        
-      } catch (error) {
-        console.error('[Public Verification] Error:', error);
-        res.status(500).json({
-          success: false,
-          error: 'Verification service temporarily unavailable'
-        });
-      }
-    })
-  );
-
-  // Document generation statistics (admin only)
-  app.get("/api/admin/pdf/statistics", 
-    authenticate, 
-    requireRole(['admin', 'super_admin']), 
-    apiLimiter,
-    asyncHandler(async (req: Request, res: Response) => {
-      await securePDFAPIService.getDocumentStatistics(req, res);
-    })
-  );
-
-  // Security events monitoring (super admin only)
-  app.get("/api/admin/security/events", 
-    authenticate, 
-    requireRole(['super_admin']), 
-    adminRateLimit,
-    asyncHandler(async (req: Request, res: Response) => {
-      await securePDFAPIService.getSecurityEvents(req, res);
-    })
-  );
-
-  // Health check for secure PDF services
-  app.get("/api/pdf/health", 
-    asyncHandler(async (req: Request, res: Response) => {
-      const healthStatus = await securePDFAPIService.healthCheck();
-      
-      res.status(healthStatus.healthy ? 200 : 503).json({
-        status: healthStatus.healthy ? 'healthy' : 'unhealthy',
-        service: 'secure-pdf-generation',
-        details: healthStatus.details,
-        timestamp: new Date().toISOString()
+      console.error("[Unified Document API] Failed to get document types:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve document types",
+        details: error instanceof Error ? error.message : "Unknown error"
       });
-    })
-  );
-
-  // Cryptographic signature validation health check
-  app.get("/api/crypto/health", 
-    asyncHandler(async (req: Request, res: Response) => {
-      const cryptoHealth = await cryptographicSignatureService.healthCheck();
-      
-      res.status(cryptoHealth.healthy ? 200 : 503).json({
-        status: cryptoHealth.healthy ? 'healthy' : 'degraded',
-        service: 'cryptographic-signatures',
-        details: cryptoHealth.details,
-        timestamp: new Date().toISOString()
-      });
-    })
-  );
-
-  // Enhanced PDF service health check
-  app.get("/api/enhanced-pdf/health", 
-    asyncHandler(async (req: Request, res: Response) => {
-      const enhancedHealth = await enhancedPdfGenerationService.healthCheck();
-      
-      res.status(enhancedHealth.healthy ? 200 : 503).json({
-        status: enhancedHealth.healthy ? 'healthy' : 'degraded',
-        service: 'enhanced-pdf-generation',
-        details: enhancedHealth.details,
-        timestamp: new Date().toISOString()
-      });
-    })
-  );
-  
-  // Test Enhanced Work Permit Generation with All Security Features  
-  app.post("/api/enhanced-pdf/test-work-permit",
-    asyncHandler(async (req: Request, res: Response) => {
-      try {
-        // Use the test data for IKRAM IBRAHIM YUSUF MANSURI
-        const testData = {
-          personal: {
-            fullName: 'IKRAM IBRAHIM YUSUF MANSURI',
-            surname: 'MANSURI',
-            givenNames: 'IKRAM IBRAHIM YUSUF',
-            dateOfBirth: '1985-05-15',
-            placeOfBirth: 'Mumbai, India',
-            nationality: 'IND',
-            passportNumber: '10611952',
-            idNumber: '',
-            gender: 'M' as 'M' | 'F' | 'X',
-            maritalStatus: 'Married' as 'Single' | 'Married' | 'Divorced' | 'Widowed',
-            countryOfBirth: 'IND'
-          },
-          permitNumber: 'WP-2025-AA2540632',
-          section19Type: '19(2)' as '19(1)' | '19(2)' | '19(3)' | '19(4)',
-          sectionDescription: 'Work Permit Section 19(2) - Scarce Skills Work Visa',
-          employer: {
-            name: 'Tech Solutions South Africa (Pty) Ltd',
-            address: '123 Sandton Drive, Sandton, Johannesburg, 2196',
-            registrationNumber: '2024/123456/07',
-            taxNumber: 'TAX123456789',
-            contactPerson: 'HR Department'
-          },
-          occupation: 'Software Engineer - Critical Skills',
-          occupationCode: 'ICT2514',
-          validFrom: '2025-01-20',
-          validUntil: '2028-01-20',
-          conditions: [
-            'Employment restricted to specified employer only',
-            'Must maintain valid passport at all times',
-            'Subject to compliance with Immigration Act 13 of 2002'
-          ],
-          endorsements: [
-            'Approved under Critical Skills category',
-            'Spouse and dependents may accompany'
-          ],
-          portOfEntry: 'OR Tambo International Airport',
-          dateOfEntry: '2025-01-15',
-          controlNumber: 'AA2540632',
-          quotaReference: 'JHB 76298/2025/WPVC',
-          precedentPermit: ''
-        };
-
-        console.log('[Enhanced Work Permit Test] Generating work permit for IKRAM IBRAHIM YUSUF MANSURI');
-        console.log('[Enhanced Work Permit Test] Control No: AA2540632, Ref No: JHB 76298/2025/WPVC');
-        
-        // Generate the enhanced PDF with all security features
-        const pdfBuffer = await enhancedPdfGenerationService.generateWorkPermitSection19PDF(testData);
-        
-        // Set response headers for PDF download
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="WorkPermit_MANSURI_AA2540632_Enhanced.pdf"');
-        res.setHeader('Content-Length', pdfBuffer.length);
-        
-        // Log success
-        console.log('[Enhanced Work Permit Test] Successfully generated work permit with all security features');
-        console.log('[Enhanced Work Permit Test] Security features included:');
-        console.log('  ✓ Watermarks on every page');
-        console.log('  ✓ Microtext borders (visible when printed/zoomed)');
-        console.log('  ✓ Guilloche patterns');
-        console.log('  ✓ Void pantograph (shows VOID when photocopied)');
-        console.log('  ✓ South African coat of arms');
-        console.log('  ✓ DHA logo');
-        console.log('  ✓ Security serial numbers');
-        console.log('  ✓ Official stamps and seals');
-        console.log('  ✓ Encrypted QR codes');
-        console.log('  ✓ Tracking barcodes');
-        console.log('  ✓ Tamper-evident features');
-        console.log('  ✓ Rainbow printing effects');
-        console.log('  ✓ UV security features');
-        console.log('  ✓ Enhanced microprinting');
-        console.log('  ✓ Holographic foil effects');
-        console.log('  ✓ PAdES digital signatures');
-        console.log('  ✓ Document hash in QR code');
-        console.log('  ✓ Blockchain verification reference');
-        console.log('  ✓ Cryptographic timestamping');
-        
-        res.send(pdfBuffer);
-      } catch (error) {
-        console.error('[Enhanced Work Permit Test] Generation failed:', error);
-        res.status(500).json({ 
-          error: 'Failed to generate enhanced work permit',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    })
-  );
-
-  // =================== END PRODUCTION SECURE PDF API ===================
-
-  // =================== UNIFIED DHA DOCUMENT GENERATION API ===================
-  
-  /**
-   * UNIFIED DOCUMENT GENERATION ENDPOINT
-   * Handles all 21 official DHA document types with exact design specifications
-   * POST /api/documents/generate
-   */
-  app.post("/api/documents/generate", 
-    authenticate, 
-    requireRole(["dha_officer", "admin"]), 
-    apiLimiter, 
-    auditTrailMiddleware.auditRequestMiddleware,
-    async (req: Request, res: Response) => {
-      const requestId = crypto.randomUUID();
-      const startTime = Date.now();
-      
-      try {
-        console.log(`[Unified Document API] Starting generation request ${requestId}`);
-        
-        // Parse and validate request using discriminated union schema
-        const validation = documentGenerationRequestSchema.safeParse(req.body);
-        if (!validation.success) {
-          console.error(`[Unified Document API] Validation failed:`, validation.error.errors);
-          return res.status(400).json({
-            success: false,
-            error: "Invalid document data",
-            validationErrors: validation.error.errors,
-            requestId,
-            supportedDocumentTypes: documentTemplateRegistry.getSupportedDocumentTypes()
-          });
-        }
-
-        const documentRequest = validation.data;
-        const documentType = documentRequest.documentType;
-        
-        // Check if document type is supported
-        if (!documentTemplateRegistry.isDocumentTypeSupported(documentType)) {
-          return res.status(400).json({
-            success: false,
-            error: `Document type '${documentType}' is not supported`,
-            supportedDocumentTypes: documentTemplateRegistry.getSupportedDocumentTypes(),
-            requestId
-          });
-        }
-
-        // Extract query parameters for preview mode
-        const isPreview = req.query.preview === 'true' || req.query.mode === 'preview';
-        const downloadMode = req.query.download === 'true';
-        
-        console.log(`[Unified Document API] Generating ${documentType} (preview: ${isPreview}, download: ${downloadMode})`);
-
-        // Fraud detection screening
-        const user = (req as any).user;
-        const fraudCheck = await fraudDetectionService.analyzeUserBehavior({
-          userId: user.id,
-          ipAddress: req.ip || '0.0.0.0',
-          userAgent: req.get('User-Agent') || 'unknown',
-          location: req.headers['cf-ipcountry'] as string || 'unknown',
-          sessionData: {
-            sessionId: req.sessionID || 'unknown',
-            timestamp: new Date(),
-            action: `generate_document_${documentType}`,
-            documentType,
-            isPreview,
-            personalDetails: (documentRequest as any).personal || {
-              fullName: (documentRequest as any).fullName || (documentRequest as any).childFullName || "N/A",
-              idNumber: (documentRequest as any).idNumber || (documentRequest as any).passportNumber || "N/A"
-            }
-          }
-        });
-
-        if (fraudCheck.riskLevel === 'high' && !isPreview) {
-          console.warn(`[Unified Document API] High fraud risk detected for request ${requestId}`);
-          return res.status(429).json({
-            success: false,
-            error: "Request requires additional verification",
-            riskLevel: fraudCheck.riskLevel,
-            indicators: fraudCheck.indicators,
-            requestId,
-            contactSupport: true
-          });
-        }
-
-        // Log audit trail
-        await auditTrailService.logApiEvent(
-          'api_call',
-          user.id,
-          req.path,
-          req.method as any,
-          200,
-          {
-            actionDetails: {
-              documentType,
-              officerName: user.username,
-              applicantId: (documentRequest as any).personal?.idNumber || 
-                          (documentRequest as any).idNumber || 
-                          (documentRequest as any).passportNumber || 'N/A',
-              timestamp: new Date(),
-              isPreview
-            },
-            ipAddress: req.ip,
-            userAgent: req.get('User-Agent')
-          }
-        );
-
-        // Generate document using unified registry
-        const result = await documentTemplateRegistry.generateDocument(documentRequest, isPreview);
-        
-        if (!result.success) {
-          console.error(`[Unified Document API] Generation failed:`, result.error);
-          
-          // Log failure
-          await auditTrailService.logApiEvent(
-            'api_call',
-            user.id,
-            req.path,
-            req.method as any,
-            500,
-            {
-              actionDetails: {
-                documentType,
-                error: result.error || "Unknown error",
-                processingTime: Date.now() - startTime
-              }
-            }
-          );
-          
-          return res.status(500).json({
-            success: false,
-            error: result.error,
-            requestId,
-            documentType,
-            processingTime: Date.now() - startTime
-          });
-        }
-
-        // Log successful generation
-        const processingTime = Date.now() - startTime;
-        await auditTrailService.logApiEvent(
-          'api_call',
-          user.id,
-          req.path,
-          req.method as any,
-          200,
-          {
-            actionDetails: {
-              documentType,
-              documentId: result.documentId,
-              verificationCode: result.verificationCode,
-              processingTime,
-              securityFeatures: Object.keys(result.securityFeatures).filter(key => 
-                result.securityFeatures[key as keyof typeof result.securityFeatures] === true
-              ).length
-            }
-          }
-        );
-
-        console.log(`[Unified Document API] Successfully generated ${documentType} (${processingTime}ms)`);
-
-        // Handle different response modes
-        if (downloadMode) {
-          // Direct PDF download
-          try {
-            const pdfPath = path.join(DOCUMENTS_DIR, `${result.documentId}.pdf`);
-            const pdfBuffer = await fs.readFile(pdfPath);
-            
-            // Set PDF headers
-            res.setHeader('Content-Type', 'application/pdf');
-            res.setHeader('Content-Disposition', `attachment; filename="${documentType}_${result.documentId}.pdf"`);
-            res.setHeader('Content-Length', pdfBuffer.length);
-            
-            // Send PDF buffer
-            res.send(pdfBuffer);
-            return;
-          } catch (error) {
-            console.error(`[Unified Document API] Failed to read generated PDF:`, error);
-          }
-        }
-
-        // JSON response with metadata
-        const response = {
-          success: true,
-          requestId,
-          documentType,
-          documentId: result.documentId,
-          verificationCode: result.verificationCode,
-          qrCodeUrl: result.qrCodeUrl,
-          documentUrl: result.documentUrl,
-          downloadUrl: `${result.documentUrl}?download=true`,
-          previewUrl: isPreview ? result.documentUrl : `${result.documentUrl}?preview=true`,
-          
-          // Security features summary
-          securityFeatures: {
-            enabled: Object.keys(result.securityFeatures).filter(key => 
-              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
-            ),
-            totalCount: Object.keys(result.securityFeatures).filter(key => 
-              result.securityFeatures[key as keyof typeof result.securityFeatures] === true
-            ).length,
-            details: result.securityFeatures
-          },
-          
-          // Document metadata
-          metadata: {
-            ...result.metadata,
-            processingTime,
-            fileSize: result.documentUrl ? "Available" : "Processing",
-            isPreview,
-            generatedAt: new Date().toISOString()
-          },
-
-          // Verification info
-          verification: {
-            qrCode: result.qrCodeUrl,
-            verificationCode: result.verificationCode,
-            verificationUrl: `https://verify.dha.gov.za/verify/${result.verificationCode}`,
-            publicVerificationUrl: `/api/verify/public/${result.verificationCode}`
-          },
-
-          // Additional info
-          message: isPreview ? 
-            `${documentType} preview generated successfully with SAMPLE watermarks` : 
-            `${documentType} generated successfully with all security features`,
-          
-          warning: isPreview ? 
-            "This is a PREVIEW document with SAMPLE watermarks. Not valid for official use." : 
-            undefined
-        };
-
-        res.json(response);
-
-      } catch (error) {
-        const processingTime = Date.now() - startTime;
-        console.error(`[Unified Document API] Unexpected error in request ${requestId}:`, error);
-        
-        // Log failure
-        try {
-          await auditTrailService.logApiEvent(
-            'api_call',
-            (req as any).user?.id || 'unknown',
-            req.path,
-            req.method as any,
-            500,
-            {
-              actionDetails: {
-                documentType: req.body?.documentType || 'unknown',
-                error: error instanceof Error ? error.message : 'Unexpected error',
-                processingTime
-              }
-            }
-          );
-        } catch (auditError) {
-          console.error(`[Unified Document API] Failed to log audit trail:`, auditError);
-        }
-
-        res.status(500).json({
-          success: false,
-          error: "Internal server error during document generation",
-          requestId,
-          processingTime,
-          details: error instanceof Error ? error.message : "Unknown error",
-          contactSupport: true
-        });
-      }
     }
-  );
-
-  /**
-   * GET SUPPORTED DOCUMENT TYPES
-   * Returns list of all supported document types and their schemas
-   * GET /api/documents/types
-   */
-  app.get("/api/documents/types", 
-    authenticate, 
-    apiLimiter,
-    async (req: Request, res: Response) => {
-      try {
-        const supportedTypes = documentTemplateRegistry.getSupportedDocumentTypes();
-        
-        // Helper functions for document type metadata
-        const getDocumentCategory = (type: string) => {
-          if (type.includes('card') || type.includes('identity') || type.includes('temporary_id')) return 'identity';
-          if (type.includes('passport') || type.includes('travel')) return 'travel';
-          if (type.includes('birth') || type.includes('death') || type.includes('marriage') || type.includes('divorce')) return 'civil';
-          if (type.includes('visa') || type.includes('permit') || type.includes('residence') || type.includes('exemption') || type.includes('citizenship')) return 'immigration';
-          return 'other';
-        };
-
-        const getFormNumber = (type: string) => {
-          const formNumbers: Record<string, string> = {
-            'smart_id_card': 'DHA-24',
-            'identity_document_book': 'BI-9',
-            'temporary_id_certificate': 'DHA-73',
-            'south_african_passport': 'DHA-73',
-            'emergency_travel_certificate': 'DHA-1738',
-            'refugee_travel_document': 'DHA-1590',
-            'birth_certificate': 'BI-24',
-            'death_certificate': 'BI-1663',
-            'marriage_certificate': 'BI-130',
-            'divorce_certificate': 'BI-281',
-            'general_work_visa': 'BI-1738',
-            'critical_skills_work_visa': 'DHA-1739',
-            'intra_company_transfer_work_visa': 'DHA-1740',
-            'business_visa': 'DHA-1741',
-            'study_visa_permit': 'DHA-1742',
-            'visitor_visa': 'DHA-1743',
-            'medical_treatment_visa': 'DHA-1744',
-            'retired_person_visa': 'DHA-1745',
-            'exchange_visa': 'DHA-1746',
-            'relatives_visa': 'DHA-1747',
-            'permanent_residence_permit': 'DHA-1748',
-            'certificate_of_exemption': 'DHA-1749',
-            'certificate_of_south_african_citizenship': 'DHA-1750'
-          };
-          return formNumbers[type] || 'DHA-000';
-        };
-
-        const extractRequiredFields = (schema: any) => {
-          if (!schema || !schema._def || !schema._def.shape) return [];
-          return Object.keys(schema._def.shape);
-        };
-
-        const getDocumentDescription = (type: string) => {
-          const descriptions: Record<string, string> = {
-            'smart_id_card': 'Polycarbonate smart ID card with biometric chip and laser engraving',
-            'identity_document_book': 'Traditional green book identity document',
-            'temporary_id_certificate': 'Temporary identity certificate for urgent cases',
-            'south_african_passport': 'Machine-readable South African passport with ICAO compliance',
-            'emergency_travel_certificate': 'Emergency travel document for urgent travel situations',
-            'refugee_travel_document': 'UNHCR compliant travel document for refugees',
-            'birth_certificate': 'Official birth certificate (unabridged format)',
-            'death_certificate': 'Official death certificate with medical details',
-            'marriage_certificate': 'Official marriage certificate for civil, religious or customary marriages',
-            'divorce_certificate': 'Official divorce certificate with decree details',
-            'general_work_visa': 'General work visa for employment in South Africa',
-            'critical_skills_work_visa': 'Work visa for critical and scarce skills occupations',
-            'intra_company_transfer_work_visa': 'Work visa for intra-company transfers',
-            'business_visa': 'Business visa for entrepreneurs and investors',
-            'study_visa_permit': 'Study visa for international students',
-            'visitor_visa': 'Tourist and visitor visa',
-            'medical_treatment_visa': 'Visa for medical treatment purposes',
-            'retired_person_visa': 'Visa for retired persons',
-            'exchange_visa': 'Visa for exchange programs',
-            'relatives_visa': 'Visa for visiting relatives',
-            'permanent_residence_permit': 'Permanent residence permit',
-            'certificate_of_exemption': 'Certificate of exemption from visa requirements',
-            'certificate_of_south_african_citizenship': 'Certificate of South African citizenship'
-          };
-          return descriptions[type] || 'Official DHA document';
-        };
-
-        // Build comprehensive response with schemas and metadata
-        const documentTypes = supportedTypes.map(type => {
-          const schema = documentTypeSchemas[type as keyof typeof documentTypeSchemas];
-          
-          return {
-            type,
-            displayName: type.split('_').map(word => 
-              word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' '),
-            category: getDocumentCategory(type),
-            formNumber: getFormNumber(type),
-            requiredFields: schema ? extractRequiredFields(schema) : [],
-            description: getDocumentDescription(type),
-            isImplemented: true,
-            securityFeatures: [
-              "Watermarks", "Guilloche Patterns", "Holographic Effects", 
-              "Microtext", "QR Codes", "Barcodes", "Digital Signatures",
-              "Cryptographic Hash", "Tamper Evidence", "Serial Numbers"
-            ]
-          };
-        });
-        
-        res.json({
-          success: true,
-          totalTypes: supportedTypes.length,
-          implementedTypes: supportedTypes.length,
-          categories: {
-            identity: documentTypes.filter(d => d.category === 'identity').length,
-            travel: documentTypes.filter(d => d.category === 'travel').length,
-            civil: documentTypes.filter(d => d.category === 'civil').length,
-            immigration: documentTypes.filter(d => d.category === 'immigration').length
-          },
-          documentTypes,
-          apiUsage: {
-            generateEndpoint: "POST /api/documents/generate",
-            previewMode: "Add ?preview=true or ?mode=preview",
-            downloadMode: "Add ?download=true",
-            supportedFormats: ["PDF"],
-            authentication: "Required - DHA Officer or Admin role"
-          }
-        });
-        
-      } catch (error) {
-        console.error("[Unified Document API] Failed to get document types:", error);
-        res.status(500).json({
-          success: false,
-          error: "Failed to retrieve document types",
-          details: error instanceof Error ? error.message : "Unknown error"
-        });
-      }
-    }
-  );
+  });
 
   // Helper methods (these would typically be in a utility class)
   function getDocumentCategory(type: string): string {
@@ -6999,28 +6688,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       divorce_certificate: "BI-281",
       general_work_visa: "BI-1738",
       critical_skills_work_visa: "DHA-1739",
-      permanent_residence_permit: "BI-947"
+      intra_company_transfer_work_visa: "DHA-1740",
+      business_visa: "DHA-1741",
+      study_visa_permit: "DHA-1742",
+      visitor_visa: "DHA-1743",
+      medical_treatment_visa: "DHA-1744",
+      retired_person_visa: "DHA-1745",
+      exchange_visa: "DHA-1746",
+      relatives_visa: "DHA-1747",
+      permanent_residence_permit: "DHA-1748",
+      certificate_of_exemption: "DHA-1749",
+      certificate_of_south_african_citizenship: "DHA-1750"
     };
     return formNumbers[type] || "DHA-GENERIC";
   }
 
   function getDocumentDescription(type: string): string {
     const descriptions: Record<string, string> = {
-      smart_id_card: "Polycarbonate smart ID card with biometric chip and laser engraving",
-      identity_document_book: "Traditional green book identity document",
-      temporary_id_certificate: "Temporary identity certificate for urgent cases",
-      south_african_passport: "Machine-readable South African passport with ICAO compliance",
-      emergency_travel_certificate: "Emergency travel document for urgent travel situations",
-      refugee_travel_document: "UNHCR compliant travel document for refugees",
-      birth_certificate: "Official birth certificate (unabridged format)",
-      death_certificate: "Official death certificate with medical details",
-      marriage_certificate: "Official marriage certificate for civil, religious or customary marriages",
-      divorce_certificate: "Official divorce certificate with decree details",
-      general_work_visa: "General work visa for employment in South Africa",
-      critical_skills_work_visa: "Work visa for critical and scarce skills occupations",
-      permanent_residence_permit: "Permanent residence permit for long-term residents"
+      smart_id_card: 'Polycarbonate smart ID card with biometric chip and laser engraving',
+      identity_document_book: 'Traditional green book identity document',
+      temporary_id_certificate: 'Temporary identity certificate for urgent cases',
+      south_african_passport: 'Machine-readable South African passport with ICAO compliance',
+      emergency_travel_certificate: 'Emergency travel document for urgent travel situations',
+      refugee_travel_document: 'UNHCR compliant travel document for refugees',
+      birth_certificate: 'Official birth certificate (unabridged format)',
+      death_certificate: 'Official death certificate with medical details',
+      marriage_certificate: 'Official marriage certificate for civil, religious or customary marriages',
+      divorce_certificate: 'Official divorce certificate with decree details',
+      general_work_visa: 'General work visa for employment in South Africa',
+      critical_skills_work_visa: 'Work visa for critical and scarce skills occupations',
+      intra_company_transfer_work_visa: 'Work visa for intra-company transfers',
+      business_visa: 'Business visa for entrepreneurs and investors',
+      study_visa_permit: 'Study visa for international students',
+      visitor_visa: 'Tourist and visitor visa',
+      medical_treatment_visa: 'Visa for medical treatment purposes',
+      retired_person_visa: 'Visa for retired persons',
+      exchange_visa: 'Visa for exchange programs',
+      relatives_visa: 'Visa for visiting relatives',
+      permanent_residence_permit: 'Permanent residence permit for long-term residents',
+      certificate_of_exemption: 'Certificate of exemption from visa requirements',
+      certificate_of_south_african_citizenship: 'Certificate of South African citizenship'
     };
-    return descriptions[type] || "Official South African government document";
+    return descriptions[type] || 'Official DHA document';
   }
 
   function extractRequiredFields(schema: any): string[] {
@@ -7040,12 +6749,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // =================== END SECURITY MONITORING API ROUTES ===================
 
-  // =================== AUTONOMOUS MONITORING ROUTES ===================
-  
+  // ===================== AUTONOMOUS MONITORING ROUTES =====================
+
   // Mount monitoring routes
   app.use("/api/monitoring", monitoringRoutes);
 
-  // =================== END AUTONOMOUS MONITORING ROUTES ===================
+  // =================== END AUTONOMOUS MONITORING ROUTES =====================
 
   const httpServer = createServer(app);
 

@@ -12,6 +12,15 @@ import { configService, config } from "../middleware/provider-config";
 
 // SECURITY: OpenAI API key now managed by centralized configuration service
 const apiKey = config.OPENAI_API_KEY || '';
+
+// Initialize OpenAI client
+let openai: OpenAI | null = null;
+if (apiKey) {
+  openai = new OpenAI({ apiKey });
+  console.log('[AI Assistant] OpenAI client initialized successfully');
+} else {
+  console.warn('[AI Assistant] OpenAI API key not configured - AI features will be limited');
+}
 const isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey.length > 0);
 
 let openai: OpenAI | null = null;
@@ -980,8 +989,139 @@ Answer the user's question based on the current system state and your security e
       };
     } catch (error) {
       console.error("Anomaly detection error:", error);
-      return { anomalies: [], severity: [], recommendations: [] };
+      return { anomalies: [], severity: export interface AIAssistantRequest {
+  message: string;
+  context?: string;
+  userId?: string;
+  conversationId?: string;
+  isAdmin?: boolean;
+}
+
+export interface AIAssistantResponse {
+  response: string;
+  confidence: number;
+  sources?: string[];
+  conversationId: string;
+  timestamp: Date;
+}
+
+export class AIAssistantService {
+  private conversationHistory: Map<string, any[]> = new Map();
+
+  async processMessage(request: AIAssistantRequest): Promise<AIAssistantResponse> {
+    try {
+      if (!openai) {
+        return {
+          response: "AI Assistant is currently unavailable. Please check the OpenAI API configuration.",
+          confidence: 0,
+          conversationId: request.conversationId || 'offline',
+          timestamp: new Date()
+        };
+      }
+
+      const conversationId = request.conversationId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Get conversation history
+      const history = this.conversationHistory.get(conversationId) || [];
+      
+      // Build system prompt based on user role
+      const systemPrompt = this.buildSystemPrompt(request.isAdmin);
+      
+      // Prepare messages
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...history,
+        { role: "user", content: request.message }
+      ];
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: messages as any,
+        temperature: 0.7,
+        max_tokens: 2000
+      });
+
+      const aiResponse = response.choices[0]?.message?.content || "I apologize, but I couldn't generate a response.";
+      
+      // Update conversation history
+      history.push(
+        { role: "user", content: request.message },
+        { role: "assistant", content: aiResponse }
+      );
+      
+      // Keep only last 10 exchanges
+      if (history.length > 20) {
+        history.splice(0, history.length - 20);
+      }
+      
+      this.conversationHistory.set(conversationId, history);
+
+      // Log interaction
+      if (request.userId) {
+        await storage.createSecurityEvent({
+          userId: request.userId,
+          eventType: "ai_assistant_interaction",
+          severity: "low",
+          details: {
+            conversationId,
+            messageLength: request.message.length,
+            responseLength: aiResponse.length,
+            isAdmin: request.isAdmin
+          }
+        });
+      }
+
+      return {
+        response: aiResponse,
+        confidence: 0.85,
+        conversationId,
+        timestamp: new Date()
+      };
+
+    } catch (error) {
+      console.error('AI Assistant error:', error);
+      return {
+        response: "I encountered an error processing your request. Please try again.",
+        confidence: 0,
+        conversationId: request.conversationId || 'error',
+        timestamp: new Date()
+      };
     }
+  }
+
+  private buildSystemPrompt(isAdmin: boolean): string {
+    const basePrompt = `You are an AI assistant for the South African Department of Home Affairs (DHA) Digital Services Platform.
+
+You help users with:
+- Document generation and verification
+- Understanding DHA procedures
+- Navigation of government services
+- General assistance with the platform
+
+Guidelines:
+- Be professional and helpful
+- Provide accurate information about DHA services
+- Suggest appropriate actions for user queries
+- Maintain government standards of communication
+- Always prioritize security and privacy`;
+
+    if (isAdmin) {
+      return basePrompt + `
+
+ADMIN CAPABILITIES:
+You have access to advanced system functions including:
+- System monitoring and health checks
+- Security analysis and recommendations
+- User management guidance
+- Technical troubleshooting
+- Quantum encryption status
+- Government integration status
+- Performance optimization suggestions
+
+Provide detailed technical insights when requested.`;
+    }
+
+    return basePrompt;
   }
 
   async analyzeSecurityData(data: any): Promise<{
@@ -999,7 +1139,7 @@ Answer the user's question based on the current system state and your security e
       }
       
       const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // PRODUCTION: Using stable model instead of preview
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -1010,7 +1150,84 @@ Answer the user's question based on the current system state and your security e
             content: `Analyze this security data: ${JSON.stringify(data)}`
           }
         ],
-        response_format: { type: "json_object" },
+        response_format: { type: "json_object" }
+      });
+
+      const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+      
+      return {
+        insights: result.insights || ['Unable to analyze data'],
+        recommendations: result.recommendations || ['Manual review required'],
+        riskLevel: result.riskLevel || 'unknown'
+      };
+
+    } catch (error) {
+      console.error('Security analysis error:', error);
+      return {
+        insights: ['Analysis error occurred'],
+        recommendations: ['Manual security review required'],
+        riskLevel: 'medium'
+      };
+    }
+  }
+
+  async generateDocumentInsights(documentType: string, content: any): Promise<{
+    suggestions: string[];
+    compliance: boolean;
+    issues: string[];
+  }> {
+    try {
+      if (!openai) {
+        return {
+          suggestions: ['Document analysis not available'],
+          compliance: false,
+          issues: ['AI service unavailable']
+        };
+      }
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a DHA document compliance expert. Analyze the document content and provide suggestions, compliance status, and identify issues. Respond with JSON."
+          },
+          {
+            role: "user",
+            content: `Document Type: ${documentType}\nContent: ${JSON.stringify(content)}`
+          }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+      
+      return {
+        suggestions: result.suggestions || [],
+        compliance: result.compliance || false,
+        issues: result.issues || []
+      };
+
+    } catch (error) {
+      console.error('Document analysis error:', error);
+      return {
+        suggestions: ['Manual review recommended'],
+        compliance: false,
+        issues: ['Analysis error']
+      };
+    }
+  }
+
+  clearConversation(conversationId: string): void {
+    this.conversationHistory.delete(conversationId);
+  }
+
+  getConversationHistory(conversationId: string): any[] {
+    return this.conversationHistory.get(conversationId) || [];
+  }
+}
+
+export const aiAssistantService = new AIAssistantService();t" },
         max_tokens: 1000
       });
 

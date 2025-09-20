@@ -45,6 +45,9 @@ The platform is built on a microservices architecture comprising a Document Serv
 
 The system supports all 23 DHA document types, including Identity, Travel, Civil, Immigration, and Additional documents. Security features are multi-tiered, encompassing visible (UV ink, holograms, watermarks), tactile (Braille, intaglio printing, laser engraving), machine-readable (MRZ, biometric chip, PDF417 barcode), and forensic elements (microprinting, security thread, invisible fibers, specialized patterns).
 
+### Document Generation System
+The platform features a unified DocumentPdfFacade service that consolidates all PDF generation functionality into a single, production-ready interface. This facade integrates security features (QR codes, barcodes, MRZ, digital signatures, watermarks) and supports all 21+ DHA document types with proper validation, cryptographic signatures, and anti-fraud measures. The system has been upgraded from fragmented services to a centralized, secure document generation pipeline.
+
 An AI Assistant, powered by OpenAI GPT-4o, provides document processing, security analysis, multi-language support, OCR integration, and real-time verification, with features like security clearance levels and a comprehensive knowledge base. A 24/7 continuous monitoring system ensures 99.99% uptime with nano-second precision heartbeat checks, self-healing capabilities, and automatic recovery mechanisms. An OCR Auto-Fill system supports all 23 DHA document types for multi-language text extraction, field mapping, and form auto-population. The Document Verification System offers real-time authenticity checks, security feature validation, and blockchain anchoring.
 
 **Technology Stack**:
