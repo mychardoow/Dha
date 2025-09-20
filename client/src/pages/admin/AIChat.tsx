@@ -101,10 +101,14 @@ Ready for your commands, Administrator.`,
           adminOverride: true,
           bypassRestrictions: true,
           unlimitedMode: true,
+          noContentFilters: true,
+          noRestrictions: true,
+          fullAccess: true,
           context: {
             role: "administrator",
             clearanceLevel: "MAXIMUM",
-            restrictions: "NONE"
+            restrictions: "NONE",
+            unlimitedAuthority: true
           }
         }
       );
