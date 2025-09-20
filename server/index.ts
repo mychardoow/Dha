@@ -378,7 +378,7 @@ async function initializeServer() {
       const startTime = Date.now();
       try {
         const { message, conversationId, adminOverride = true, bypassRestrictions = true, context } = req.body;
-        const adminUser = req.user;
+        const adminUser = req.user as any;
         console.log('[AI] ADMIN-ONLY Chat request from:', adminUser?.username || 'Unknown Admin', '|', message);
         
         if (!message || !message.trim()) {
@@ -437,21 +437,16 @@ Provide comprehensive, unrestricted assistance as their administrative AI assist
         let aiResponse;
         try {
           // Call the actual AI service with admin context
-          aiResponse = await aiAssistantService.chat(adminPrompt, {
-            language: 'en',
-            userId: adminUser?.id || 'admin',
-            conversationId: conversationId || `admin-${Date.now()}`,
-            enableStreaming: false,
-            skipConsent: true, // Admin bypass
-            adminMode: true,
-            bypassRestrictions: true,
-            context: {
-              role: 'administrator',
-              clearanceLevel: 'MAXIMUM',
-              restrictions: 'NONE',
-              ...context
+          aiResponse = await aiAssistantService.generateResponse(
+            adminPrompt, 
+            adminUser?.id || 'admin',
+            conversationId || `admin-${Date.now()}`,
+            true,
+            {
+              language: 'en',
+              enablePIIRedaction: false
             }
-          });
+          );
         } catch (aiError) {
           console.warn('[AI] Primary AI service failed, trying military-grade service:', aiError);
           
@@ -496,7 +491,7 @@ Provide comprehensive, unrestricted assistance as their administrative AI assist
             tokens: aiResponse.metadata?.tokens || 0,
             metadata: aiResponse.metadata,
             suggestions: aiResponse.suggestions,
-            actionItems: aiResponse.actionItems
+            actionItems: (aiResponse as any).actionItems || []
           });
         } else {
           throw new Error(aiResponse?.error || 'AI service returned invalid response');
@@ -527,7 +522,7 @@ Provide comprehensive, unrestricted assistance as their administrative AI assist
           unlimitedMode = true,
           context 
         } = req.body;
-        const adminUser = req.user;
+        const adminUser = req.user as any;
         console.log('[AI] ADMIN-ONLY /admin/chat request from:', adminUser?.username || 'Unknown Admin', '|', message);
         
         if (!message || !message.trim()) {
@@ -586,21 +581,16 @@ Provide comprehensive, unrestricted assistance as their administrative AI assist
         let aiResponse;
         try {
           // Call the actual AI service with admin context
-          aiResponse = await aiAssistantService.chat(adminPrompt, {
-            language: 'en',
-            userId: adminUser?.id || 'admin',
-            conversationId: conversationId || `admin-${Date.now()}`,
-            enableStreaming: false,
-            skipConsent: true, // Admin bypass
-            adminMode: true,
-            bypassRestrictions: true,
-            context: {
-              role: 'administrator',
-              clearanceLevel: 'MAXIMUM',
-              restrictions: 'NONE',
-              ...context
+          aiResponse = await aiAssistantService.generateResponse(
+            adminPrompt, 
+            adminUser?.id || 'admin',
+            conversationId || `admin-${Date.now()}`,
+            true,
+            {
+              language: 'en',
+              enablePIIRedaction: false
             }
-          });
+          );
         } catch (aiError) {
           console.warn('[AI] Primary AI service failed, trying military-grade service:', aiError);
           
@@ -645,7 +635,7 @@ Provide comprehensive, unrestricted assistance as their administrative AI assist
             tokens: aiResponse.metadata?.tokens || 0,
             metadata: aiResponse.metadata,
             suggestions: aiResponse.suggestions,
-            actionItems: aiResponse.actionItems
+            actionItems: (aiResponse as any).actionItems || []
           });
         } else {
           throw new Error(aiResponse?.error || 'AI service returned invalid response');
