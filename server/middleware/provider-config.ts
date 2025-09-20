@@ -21,29 +21,30 @@ const configSchema = z.object({
   // Server configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(val => parseInt(val, 10)).default('5000'),
-  
+
   // CRITICAL SECURITY SECRETS - REQUIRED in production
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters for security'),
   JWT_SECRET: z.string().min(64, 'JWT_SECRET must be at least 64 characters for government-grade security'),
-  
+
   // Database configuration
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL').optional(),
-  
+
   // External service API keys
   OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required').optional(),
+  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required').optional(),
   GITHUB_TOKEN: z.string().min(1, 'GITHUB_TOKEN is required').optional(),
-  
+
   // Optional configuration
   ALLOWED_ORIGINS: z.string().optional(),
   REPL_ID: z.string().optional(),
-  
+
   // Rate limiting configuration
   RATE_LIMIT_WINDOW_MS: z.string().transform(val => parseInt(val, 10)).default('900000'), // 15 minutes
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(val => parseInt(val, 10)).default('100'),
-  
+
   // Session configuration
   SESSION_MAX_AGE: z.string().transform(val => parseInt(val, 10)).default('86400000'), // 24 hours
-  
+
   // Government service provider API keys (optional)
   DHA_NPR_API_KEY: z.string().optional(),
   DHA_ABIS_API_KEY: z.string().optional(),
@@ -80,6 +81,7 @@ class ConfigurationService {
         JWT_SECRET: process.env.JWT_SECRET,
         DATABASE_URL: process.env.DATABASE_URL,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
         GITHUB_TOKEN: process.env.GITHUB_TOKEN,
         ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
         REPL_ID: process.env.REPL_ID,
@@ -178,7 +180,7 @@ class ConfigurationService {
     const crypto = require('crypto');
     const timestamp = Date.now().toString();
     const randomBytes = crypto.randomBytes(32).toString('hex');
-    
+
     if (type === 'session') {
       return `dev-session-${timestamp}-${randomBytes}`;
     } else {
@@ -200,6 +202,7 @@ class ConfigurationService {
     console.log(`JWT Secret: ${this.config.JWT_SECRET ? '✓ Configured' : '✗ Missing'}`);
     console.log(`Database URL: ${this.config.DATABASE_URL ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`OpenAI API Key: ${this.config.OPENAI_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
+    console.log(`Anthropic API Key: ${this.config.ANTHROPIC_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`GitHub Token: ${this.config.GITHUB_TOKEN ? '✓ Configured' : '✗ Not configured'}`);
     console.log('═══════════════════════════════════════════════════════════════');
 
@@ -267,14 +270,14 @@ class ConfigurationService {
    */
   public static initialize(): ConfigurationService {
     const service = new ConfigurationService();
-    
+
     try {
       service.validateAndLoad();
       console.log('✅ Configuration validation successful');
       return service;
     } catch (error) {
       console.error('❌ Configuration validation failed:', error instanceof Error ? error.message : String(error));
-      
+
       if (isProduction) {
         console.error('CRITICAL: Cannot start application in production with invalid configuration');
         console.error('EXITING APPLICATION TO PREVENT SECURITY VULNERABILITIES');
