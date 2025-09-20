@@ -946,7 +946,9 @@ async function initializeServer() {
     logFn(`
 ═══════════════════════════════════════════════════════════════
   DHA Digital Services Platform - SERVER READY
-  🌐 URL: http://localhost:${port}
+  🌐 Local: http://localhost:${port}
+  🌐 Network: http://0.0.0.0:${port}
+  📱 Mobile: Access via Replit preview or network IP
   📊 Health Check: http://localhost:${port}/api/health
   🔗 Preview: Available in Replit preview
 ═══════════════════════════════════════════════════════════════
