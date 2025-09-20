@@ -26,7 +26,7 @@ const configSchema = z.object({
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters for security'),
   JWT_SECRET: z.string().min(64, 'JWT_SECRET must be at least 64 characters for government-grade security'),
 
-  // Database configuration
+  // Database configuration with validation and fallback
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL').optional(),
 
   // External service API keys
@@ -64,6 +64,13 @@ class ConfigurationService {
   }
 
   /**
+   * Get environment variable or return a default value
+   */
+  private getEnvVar(key: string, defaultValue: string = ''): string | undefined {
+    return process.env[key] || defaultValue;
+  }
+
+  /**
    * Validate and load configuration from environment variables
    * CRITICAL: Throws error in production if required secrets are missing
    */
@@ -75,24 +82,24 @@ class ConfigurationService {
     try {
       // Parse environment variables
       const rawConfig = {
-        NODE_ENV: process.env.NODE_ENV,
-        PORT: process.env.PORT,
-        SESSION_SECRET: process.env.SESSION_SECRET,
-        JWT_SECRET: process.env.JWT_SECRET,
-        DATABASE_URL: process.env.DATABASE_URL,
-        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-        ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
-        REPL_ID: process.env.REPL_ID,
-        RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS,
-        RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
-        SESSION_MAX_AGE: process.env.SESSION_MAX_AGE,
-        DHA_NPR_API_KEY: process.env.DHA_NPR_API_KEY,
-        DHA_ABIS_API_KEY: process.env.DHA_ABIS_API_KEY,
-        SAPS_CRC_API_KEY: process.env.SAPS_CRC_API_KEY,
-        ICAO_PKD_API_KEY: process.env.ICAO_PKD_API_KEY,
-        SITA_ESERVICES_API_KEY: process.env.SITA_ESERVICES_API_KEY,
+        NODE_ENV: this.getEnvVar('NODE_ENV', 'development'),
+        PORT: this.getEnvVar('PORT'),
+        SESSION_SECRET: this.getEnvVar('SESSION_SECRET'),
+        JWT_SECRET: this.getEnvVar('JWT_SECRET'),
+        DATABASE_URL: this.getEnvVar('DATABASE_URL'),
+        OPENAI_API_KEY: this.getEnvVar('OPENAI_API_KEY'),
+        ANTHROPIC_API_KEY: this.getEnvVar('ANTHROPIC_API_KEY'),
+        GITHUB_TOKEN: this.getEnvVar('GITHUB_TOKEN'),
+        ALLOWED_ORIGINS: this.getEnvVar('ALLOWED_ORIGINS'),
+        REPL_ID: this.getEnvVar('REPL_ID'),
+        RATE_LIMIT_WINDOW_MS: this.getEnvVar('RATE_LIMIT_WINDOW_MS'),
+        RATE_LIMIT_MAX_REQUESTS: this.getEnvVar('RATE_LIMIT_MAX_REQUESTS'),
+        SESSION_MAX_AGE: this.getEnvVar('SESSION_MAX_AGE'),
+        DHA_NPR_API_KEY: this.getEnvVar('DHA_NPR_API_KEY'),
+        DHA_ABIS_API_KEY: this.getEnvVar('DHA_ABIS_API_KEY'),
+        SAPS_CRC_API_KEY: this.getEnvVar('SAPS_CRC_API_KEY'),
+        ICAO_PKD_API_KEY: this.getEnvVar('ICAO_PKD_API_KEY'),
+        SITA_ESERVICES_API_KEY: this.getEnvVar('SITA_ESERVICES_API_KEY'),
       };
 
       // CRITICAL: In production, ensure critical secrets are present
@@ -286,6 +293,26 @@ class ConfigurationService {
         console.warn('WARNING: Configuration issues detected in development mode');
         throw error;
       }
+    }
+  }
+
+  // Database URL handling and fallback
+  private getDefaultDatabaseUrl(): string {
+    if (this.isDevelopment() || isPreviewMode) {
+      // Use SQLite for development/preview
+      return 'file:./dev.db';
+    }
+    return '';
+  }
+
+  private validateDatabaseUrl(url: string): boolean {
+    if (!url) return false;
+    try {
+      const parsed = new URL(url);
+      // Check if it's a valid database URL
+      return ['postgresql:', 'postgres:', 'file:'].includes(parsed.protocol);
+    } catch {
+      return false;
     }
   }
 }
