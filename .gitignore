@@ -4,3 +4,50 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Netlify
+.netlify/
+
+# Replit specific
+.replit
+replit.nix
+.config/
+.upm/
+.cache/
+
+# Build artifacts
+*.tsbuildinfo
+build/
+
+# Testing
+coverage/
+
+# VS Code
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
