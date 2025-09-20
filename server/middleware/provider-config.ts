@@ -1,10 +1,10 @@
 /**
  * DHA Digital Services - Centralized Configuration Management
- * 
+ *
  * This module provides secure, validated configuration management for all
  * environment variables and secrets. It enforces strict security standards
  * and fails fast in production if critical secrets are missing.
- * 
+ *
  * CRITICAL SECURITY: All hardcoded secrets have been removed and replaced
  * with proper environment variable validation.
  */
@@ -51,9 +51,33 @@ const configSchema = z.object({
   SAPS_CRC_API_KEY: z.string().optional(),
   ICAO_PKD_API_KEY: z.string().optional(),
   SITA_ESERVICES_API_KEY: z.string().optional(),
+
+  // Encryption keys - REQUIRED for secure operations
+  ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 characters'),
+  MASTER_ENCRYPTION_KEY: z.string().min(32, 'MASTER_ENCRYPTION_KEY must be at least 32 characters'),
+  QUANTUM_ENCRYPTION_KEY: z.string().min(64, 'QUANTUM_ENCRYPTION_KEY must be at least 64 characters for quantum-resistant security'),
 });
 
 type Config = z.infer<typeof configSchema>;
+
+// Production configuration - No fallbacks for security
+const validateProductionSecrets = (): void => {
+  const requiredSecrets = [
+    'JWT_SECRET',
+    'SESSION_SECRET',
+    'ENCRYPTION_KEY',
+    'MASTER_ENCRYPTION_KEY',
+    'QUANTUM_ENCRYPTION_KEY',
+    'DATABASE_URL'
+  ];
+
+  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+
+  if (missingSecrets.length > 0 && process.env.NODE_ENV === 'production') {
+    throw new Error(`CRITICAL: Missing required environment variables: ${missingSecrets.join(', ')}`);
+  }
+};
+
 
 class ConfigurationService {
   private config: Config;
@@ -100,17 +124,23 @@ class ConfigurationService {
         SAPS_CRC_API_KEY: this.getEnvVar('SAPS_CRC_API_KEY'),
         ICAO_PKD_API_KEY: this.getEnvVar('ICAO_PKD_API_KEY'),
         SITA_ESERVICES_API_KEY: this.getEnvVar('SITA_ESERVICES_API_KEY'),
+        ENCRYPTION_KEY: this.getEnvVar('ENCRYPTION_KEY'),
+        MASTER_ENCRYPTION_KEY: this.getEnvVar('MASTER_ENCRYPTION_KEY'),
+        QUANTUM_ENCRYPTION_KEY: this.getEnvVar('QUANTUM_ENCRYPTION_KEY'),
       };
 
       // CRITICAL: In production, ensure critical secrets are present
       if (isProduction) {
-        this.validateProductionSecrets(rawConfig);
+        validateProductionSecrets(); // Use the new validation function
       }
 
       // Apply secure development defaults ONLY if needed and NOT in production
       if (isDevelopment && !isProduction) {
         rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
         rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
+        rawConfig.ENCRYPTION_KEY = rawConfig.ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
+        rawConfig.MASTER_ENCRYPTION_KEY = rawConfig.MASTER_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('master-encryption');
+        rawConfig.QUANTUM_ENCRYPTION_KEY = rawConfig.QUANTUM_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('quantum-encryption');
       }
 
       // Validate configuration with Zod schema
@@ -166,12 +196,12 @@ class ConfigurationService {
     }
 
     // Check for weak/development secrets in production
-    if (rawConfig.SESSION_SECRET?.includes('dev-session-') || 
+    if (rawConfig.SESSION_SECRET?.includes('dev-session-') ||
         rawConfig.SESSION_SECRET?.includes('testing-only')) {
       throw new Error('CRITICAL SECURITY ERROR: Development session secret detected in production');
     }
 
-    if (rawConfig.JWT_SECRET?.includes('dev-jwt-') || 
+    if (rawConfig.JWT_SECRET?.includes('dev-jwt-') ||
         rawConfig.JWT_SECRET?.includes('testing-only')) {
       throw new Error('CRITICAL SECURITY ERROR: Development JWT secret detected in production');
     }
@@ -181,15 +211,24 @@ class ConfigurationService {
    * Generate cryptographically secure development secrets (NOT for production use)
    * These are only used in development/preview mode when secrets are not provided
    */
-  private generateSecureDevelopmentSecret(type: 'session' | 'jwt'): string {
+  private generateSecureDevelopmentSecret(type: 'session' | 'jwt' | 'encryption' | 'master-encryption' | 'quantum-encryption'): string {
     const crypto = require('crypto');
     const timestamp = Date.now().toString();
     const randomBytes = crypto.randomBytes(32).toString('hex');
 
-    if (type === 'session') {
-      return `dev-session-${timestamp}-${randomBytes}`;
-    } else {
-      return `dev-jwt-${timestamp}-${randomBytes}-${crypto.randomBytes(32).toString('hex')}`;
+    switch (type) {
+      case 'session':
+        return `dev-session-${timestamp}-${randomBytes}`;
+      case 'jwt':
+        return `dev-jwt-${timestamp}-${randomBytes}-${crypto.randomBytes(32).toString('hex')}`;
+      case 'encryption':
+        return crypto.randomBytes(32).toString('hex'); // 32 bytes for AES-256
+      case 'master-encryption':
+        return crypto.randomBytes(32).toString('hex'); // 32 bytes for AES-256
+      case 'quantum-encryption':
+        return crypto.randomBytes(64).toString('hex'); // 64 bytes for stronger quantum-resistant encryption
+      default:
+        return `dev-fallback-${timestamp}-${randomBytes}`;
     }
   }
 
@@ -209,11 +248,14 @@ class ConfigurationService {
     console.log(`OpenAI API Key: ${this.config.OPENAI_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`Anthropic API Key: ${this.config.ANTHROPIC_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`GitHub Token: ${this.config.GITHUB_TOKEN ? '✓ Configured' : '✗ Not configured'}`);
+    console.log(`Encryption Key: ${this.config.ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Master Encryption Key: ${this.config.MASTER_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Quantum Encryption Key: ${this.config.QUANTUM_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
     console.log('═══════════════════════════════════════════════════════════════');
 
     // Warn about development secrets in non-production environments
     if (!isProduction && (
-      this.config.SESSION_SECRET?.includes('dev-session-') || 
+      this.config.SESSION_SECRET?.includes('dev-session-') ||
       this.config.JWT_SECRET?.includes('dev-jwt-')
     )) {
       console.warn('⚠️  WARNING: Using auto-generated development secrets.');

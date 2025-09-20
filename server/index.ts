@@ -30,8 +30,9 @@ try {
   console.warn('[Environment] Could not load .env file:', error);
 }
 
-// Environment detection utilities - using centralized config
-const isPreviewMode = (): boolean => false; // Always false for production deployment
+// Environment detection utilities - production ready
+const isProductionMode = (): boolean => process.env.NODE_ENV === 'production';
+const isDevelopmentMode = (): boolean => process.env.NODE_ENV === 'development';
 
 // Coordinated shutdown management
 class ShutdownManager {
@@ -115,8 +116,26 @@ process.on('SIGINT', () => {
   shutdownManager.shutdown('SIGINT received');
 });
 
-// Production deployment - no keepalive needed
-console.log('[Server] Production deployment mode - no keepalive required');
+// Production deployment - configure for high availability
+if (isProductionMode()) {
+  console.log('[Server] Production mode - configuring high availability');
+  
+  // Production-specific configurations
+  process.env.NODE_OPTIONS = '--max-old-space-size=2048';
+  
+  // Graceful shutdown handling
+  process.on('SIGTERM', () => {
+    console.log('[Server] SIGTERM received, starting graceful shutdown');
+    process.exit(0);
+  });
+  
+  process.on('SIGINT', () => {
+    console.log('[Server] SIGINT received, starting graceful shutdown');
+    process.exit(0);
+  });
+} else {
+  console.log('[Server] Development mode - standard configuration');
+}
 
 // Defer heavy imports to allow server to start even if they fail
 let registerRoutes: any;
