@@ -13,12 +13,14 @@ export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   
   // WebSocket connection for real-time status
   const { isConnected, error } = useWebSocket({
+    token: token, // Pass the auth token for authentication
     enableToasts: false,
-    enableEventHandlers: false
+    enableEventHandlers: true, // Enable event handlers to get proper status updates
+    autoConnect: !!user // Only auto-connect if user is logged in
   });
 
   useEffect(() => {
