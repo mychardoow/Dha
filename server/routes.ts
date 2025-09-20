@@ -137,12 +137,109 @@ import { documentGenerationRequestSchema, documentTypeSchemas } from "@shared/sc
 import { dataGovernanceService } from "./services/data-governance";
 // Import AI Assistant routes
 import aiAssistantRoutes from "./routes/ai-assistant";
+// Import unified PDF generation facade
+import { 
+  DocumentPdfFacade, 
+  SupportedDocumentType, 
+  DocumentSecurityLevel, 
+  DocumentGenerationError,
+  type DocumentGenerationOptions,
+  type DocumentGenerationResponse,
+  type DocumentData 
+} from "./services/document-pdf-facade";
 
 // Constants
 const DOCUMENTS_DIR = "./documents"; // Using fixed path for document storage
 
 // Ensure documents directory exists
 fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
+
+// Initialize DocumentPdfFacade for unified document generation
+const documentPdfFacade = new DocumentPdfFacade();
+
+/**
+ * LEGACY ENDPOINT ADAPTERS
+ * 
+ * These functions map legacy endpoint types to the unified SupportedDocumentType enum
+ * and transform legacy request data to the standardized document data format.
+ */
+
+// Legacy endpoint type to SupportedDocumentType mapping
+const LEGACY_TYPE_MAPPING: Record<string, SupportedDocumentType> = {
+  'work-permit': SupportedDocumentType.WORK_PERMIT,
+  'birth-certificate': SupportedDocumentType.BIRTH_CERTIFICATE,
+  'passport': SupportedDocumentType.PASSPORT,
+  'sa-id': SupportedDocumentType.SA_ID,
+  'smart-id': SupportedDocumentType.SMART_ID,
+  'temporary-id': SupportedDocumentType.TEMPORARY_ID,
+  'death-certificate': SupportedDocumentType.DEATH_CERTIFICATE,
+  'marriage-certificate': SupportedDocumentType.MARRIAGE_CERTIFICATE,
+  'study-permit': SupportedDocumentType.STUDY_PERMIT,
+  'business-permit': SupportedDocumentType.BUSINESS_PERMIT,
+  'visitor-visa': SupportedDocumentType.VISITOR_VISA,
+  'transit-visa': SupportedDocumentType.TRANSIT_VISA,
+  'asylum-visa': SupportedDocumentType.REFUGEE_PERMIT,
+  'residence-permit': SupportedDocumentType.PERMANENT_RESIDENCE,
+  'temporary-residence': SupportedDocumentType.TEMPORARY_RESIDENCE,
+  'critical-skills': SupportedDocumentType.CRITICAL_SKILLS_WORK_VISA,
+  'business-visa': SupportedDocumentType.BUSINESS_VISA,
+  'medical-treatment-visa': SupportedDocumentType.MEDICAL_TREATMENT_VISA,
+  'retirement-visa': SupportedDocumentType.RETIRED_PERSON_VISA,
+  'relatives-visa': SupportedDocumentType.RELATIVES_VISA,
+  'corporate-visa': SupportedDocumentType.BUSINESS_VISA,
+  'exchange-permit': SupportedDocumentType.EXCHANGE_PERMIT
+};
+
+/**
+ * Generate PDF response with proper headers and error handling
+ */
+const generateUnifiedPDFResponse = async (
+  res: Response, 
+  documentType: SupportedDocumentType,
+  data: any,
+  options: DocumentGenerationOptions = {}
+): Promise<void> => {
+  try {
+    const response = await documentPdfFacade.generateDocument(documentType, data, {
+      securityLevel: DocumentSecurityLevel.STANDARD,
+      includeDigitalSignature: true,
+      persistToStorage: false, // Don't persist legacy API calls by default
+      isPreview: false,
+      ...options
+    });
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${response.metadata.fileName}"`,
+      'Content-Length': response.documentBuffer.length.toString(),
+      'X-Document-Type': documentType,
+      'X-Document-ID': response.metadata.documentId,
+      'X-Generated-At': response.metadata.createdAt.toISOString(),
+      'X-Security-Level': 'GOVERNMENT-GRADE',
+      'X-Compliance': 'ICAO,POPIA,DHA',
+      'X-Verification-URL': response.verification.verificationUrl,
+      'X-Security-Features': response.appliedSecurityFeatures.join(',')
+    });
+    
+    res.end(response.documentBuffer);
+    
+  } catch (error) {
+    console.error(`PDF generation error for ${documentType}:`, error);
+    
+    if (error instanceof DocumentGenerationError) {
+      res.status(400).json({ 
+        error: `Failed to generate ${documentType}`, 
+        details: error.message,
+        errorCode: error.errorCode
+      });
+    } else {
+      res.status(500).json({ 
+        error: `Failed to generate ${documentType}`,
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize DHA workflow engine
@@ -6076,7 +6173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.end(pdfBuffer);
   };
 
-  // 1. Birth Certificate PDF Generation
+  // 1. Birth Certificate PDF Generation (UPDATED - Using DocumentPdfFacade)
   app.post("/api/pdf/birth-certificate", authenticate, requireRole(['admin', 'officer']), documentsRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
       const birthCertSchema = z.object({
@@ -6109,31 +6206,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         language: z.enum(['en', 'af', 'bilingual']).default('bilingual')
       });
 
-      const data = birthCertSchema.parse(req.body);
-      const birthCertData = {
-        fullName: data.childDetails.fullName,
-        dateOfBirth: data.childDetails.dateOfBirth,
-        placeOfBirth: data.childDetails.placeOfBirth,
-        gender: data.childDetails.gender,
-        nationality: data.childDetails.nationality,
+      const validatedData = birthCertSchema.parse(req.body);
+      
+      // Transform to DocumentPdfFacade format
+      const birthCertificateData = {
+        personal: {
+          fullName: validatedData.childDetails.fullName,
+          dateOfBirth: new Date(validatedData.childDetails.dateOfBirth),
+          placeOfBirth: validatedData.childDetails.placeOfBirth,
+          gender: validatedData.childDetails.gender as 'M' | 'F',
+          nationality: validatedData.childDetails.nationality
+        },
+        registrationNumber: validatedData.registrationNumber,
+        registrationDate: new Date(validatedData.registrationDetails.dateOfRegistration),
+        registrationOffice: validatedData.registrationDetails.registrationOffice,
+        registrarName: validatedData.registrationDetails.registrarName,
         mother: {
-          fullName: data.parentDetails.mother.fullName,
-          idNumber: data.parentDetails.mother.idNumber || '',
-          nationality: data.parentDetails.mother.nationality
+          fullName: validatedData.parentDetails.mother.fullName,
+          idNumber: validatedData.parentDetails.mother.idNumber || '',
+          nationality: validatedData.parentDetails.mother.nationality
         },
-        father: data.parentDetails.father ? {
-          fullName: data.parentDetails.father.fullName,
-          idNumber: data.parentDetails.father.idNumber || '',
-          nationality: data.parentDetails.father.nationality
-        } : {
-          fullName: 'Not provided',
-          nationality: 'Unknown'
-        },
-        registrationNumber: data.registrationNumber,
-        dateOfRegistration: data.registrationDetails.dateOfRegistration,
-        registrationOffice: data.registrationDetails.registrationOffice
+        father: validatedData.parentDetails.father ? {
+          fullName: validatedData.parentDetails.father.fullName,
+          idNumber: validatedData.parentDetails.father.idNumber || '',
+          nationality: validatedData.parentDetails.father.nationality
+        } : undefined,
+        timeOfBirth: validatedData.childDetails.timeOfBirth
       };
-      const pdfBuffer = await pdfGenerationService.generateBirthCertificatePDF(birthCertData);
+
+      // Use unified DocumentPdfFacade instead of direct service call
+      await generateUnifiedPDFResponse(
+        res, 
+        SupportedDocumentType.BIRTH_CERTIFICATE, 
+        birthCertificateData,
+        {
+          securityLevel: DocumentSecurityLevel.STANDARD,
+          includeDigitalSignature: true,
+          persistToStorage: true,
+          languages: [validatedData.language === 'bilingual' ? 'en' : validatedData.language as 'en' | 'af'],
+          includeAuditTrail: true
+        }
+      );
 
       // Log PDF generation
       await auditTrailService.logUserAction(
@@ -6142,17 +6255,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           userId: (req.user as any).id,
           entityType: 'BIRTH_CERTIFICATE',
-          entityId: data.registrationNumber,
-          actionDetails: { documentType: 'birth_certificate' },
+          entityId: validatedData.registrationNumber,
+          actionDetails: { 
+            documentType: 'birth_certificate',
+            securityLevel: 'STANDARD',
+            usedFacade: true
+          },
           ipAddress: req.ip || '',
           userAgent: req.get('User-Agent') || ''
         }
       );
-
-      generatePDFResponse(res, pdfBuffer, 'birth-certificate.pdf', 'birth_certificate');
     } catch (error) {
       console.error('Birth certificate PDF generation error:', error);
-      res.status(400).json({ error: 'Invalid request data', details: error instanceof Error ? error.message : 'Unknown error' });
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: error.errors,
+          errorCode: 'VALIDATION_FAILED'
+        });
+      }
+      
+      if (error instanceof DocumentGenerationError) {
+        return res.status(400).json({ 
+          error: 'Document generation failed', 
+          details: error.message,
+          errorCode: error.errorCode,
+          documentType: error.documentType
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to generate birth certificate', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'INTERNAL_ERROR'
+      });
     }
   }));
 
@@ -6205,15 +6342,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // 6. Work Permit PDF Generation
+  // 6. Work Permit PDF Generation (UPDATED - Using DocumentPdfFacade)
   app.post("/api/pdf/work-permit", authenticate, requireRole(['admin', 'officer']), documentsRateLimit, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const data = req.body;
-      const pdfBuffer = await pdfGenerationService.generateWorkPermitPDF(data);
-      generatePDFResponse(res, pdfBuffer, 'work-permit.pdf', 'work_permit');
+      const workPermitSchema = z.object({
+        personal: z.object({
+          fullName: z.string(),
+          idNumber: z.string().optional(),
+          passportNumber: z.string().optional(),
+          dateOfBirth: z.string(),
+          nationality: z.string(),
+          gender: z.enum(['M', 'F'])
+        }),
+        permitNumber: z.string().optional(),
+        permitType: z.string().default("General Work Visa"),
+        employer: z.object({
+          name: z.string(),
+          address: z.string(),
+          sector: z.string().optional()
+        }),
+        occupation: z.string(),
+        validFrom: z.string(),
+        validUntil: z.string(),
+        conditions: z.array(z.string()).optional(),
+        endorsements: z.array(z.string()).optional()
+      });
+
+      const validatedData = workPermitSchema.parse(req.body);
+      
+      // Transform to DocumentPdfFacade format for work permit
+      const workPermitData = {
+        personal: {
+          fullName: validatedData.personal.fullName,
+          idNumber: validatedData.personal.idNumber,
+          passportNumber: validatedData.personal.passportNumber,
+          dateOfBirth: new Date(validatedData.personal.dateOfBirth),
+          nationality: validatedData.personal.nationality,
+          gender: validatedData.personal.gender
+        },
+        permitDetails: {
+          permitNumber: validatedData.permitNumber || `WP-${Date.now()}`,
+          permitType: validatedData.permitType,
+          issuanceDate: new Date(),
+          expiryDate: new Date(validatedData.validUntil),
+          validFrom: new Date(validatedData.validFrom),
+          validUntil: new Date(validatedData.validUntil)
+        },
+        employment: {
+          employerName: validatedData.employer.name,
+          employerAddress: validatedData.employer.address,
+          sector: validatedData.employer.sector,
+          occupation: validatedData.occupation
+        },
+        conditions: validatedData.conditions || [],
+        endorsements: validatedData.endorsements || []
+      };
+
+      // Use unified DocumentPdfFacade instead of direct service call
+      await generateUnifiedPDFResponse(
+        res, 
+        SupportedDocumentType.WORK_PERMIT, 
+        workPermitData,
+        {
+          securityLevel: DocumentSecurityLevel.ENHANCED,
+          includeDigitalSignature: true,
+          persistToStorage: true,
+          includeAuditTrail: true
+        }
+      );
+
     } catch (error) {
       console.error('Work permit PDF generation error:', error);
-      res.status(400).json({ error: 'Invalid request data' });
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          error: 'Invalid request data', 
+          details: error.errors,
+          errorCode: 'VALIDATION_FAILED'
+        });
+      }
+      
+      if (error instanceof DocumentGenerationError) {
+        return res.status(400).json({ 
+          error: 'Document generation failed', 
+          details: error.message,
+          errorCode: error.errorCode,
+          documentType: error.documentType
+        });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to generate work permit', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'INTERNAL_ERROR'
+      });
     }
   }));
 
@@ -6356,18 +6578,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return formNumbers[type] || 'DHA-000';
       };
 
-      const extractRequiredFields = (schema: any) => {
-        // Extract required fields from Zod schema - this is a simplified version
-        try {
-          const shape = schema._def?.shape || {};
-          return Object.keys(shape).filter(key => {
-            const field = shape[key];
-            return field?._def && !field.isOptional();
-          });
-        } catch {
-          return ['documentType', 'personal'];
-        }
-      };
 
       const getDocumentDescription = (type: string) => {
         const descriptions: Record<string, string> = {

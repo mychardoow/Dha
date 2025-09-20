@@ -1,3 +1,15 @@
+/**
+ * @deprecated This service is deprecated in favor of DocumentPdfFacade.
+ * Use server/services/document-pdf-facade.ts for new implementations.
+ * This service is kept for backward compatibility only.
+ * 
+ * MIGRATION GUIDE:
+ * - Replace direct calls to pdfGenerationService with DocumentPdfFacade
+ * - Use SupportedDocumentType enum instead of string types
+ * - Leverage unified security features and digital signatures
+ * - Follow the new standardized response format
+ */
+
 import jsPDF from "jspdf";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
@@ -2653,7 +2665,7 @@ export class PDFGenerationService {
            .fillColor(SA_COLORS.black);
         
         // Use enhanced MRZ generation
-        const mrzLines = data.machineReadableZone || this.generateMRZ(data);
+        const mrzLines = data.machineReadableZone || this.generatePassportMRZ(data);
         mrzLines.forEach((line, index) => {
           doc.text(line, 25, yPos + (index * 15));
         });
@@ -3165,7 +3177,7 @@ export class PDFGenerationService {
   /**
    * Generate machine-readable zone for passport
    */
-  private generateMRZ(data: PassportData): string[] {
+  private generatePassportMRZ(data: PassportData): string[] {
     // Generate ICAO compliant Machine Readable Zone
     const surname = data.personal.surname || data.personal.fullName.split(' ').pop() || '';
     const givenNames = data.personal.givenNames || data.personal.fullName.split(' ').slice(0, -1).join(' ') || '';
@@ -3726,10 +3738,10 @@ export class PDFGenerationService {
           { name: 'Criminal Record Check', attached: !data.criminalRecord }
         ];
         
-        documents.forEach(doc => {
-          doc.text(`☐ ${doc.name}`, 50, yPos, { continued: true });
+        documents.forEach(docItem => {
+          doc.text(`☐ ${docItem.name}`, 50, yPos, { continued: true });
           doc.font('Helvetica-Bold')
-             .text(doc.attached ? ' ✓' : ' ✗', 250, yPos)
+             .text(docItem.attached ? ' ✓' : ' ✗', 250, yPos)
              .font('Helvetica');
           yPos += 18;
         });

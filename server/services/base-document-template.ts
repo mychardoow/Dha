@@ -151,11 +151,15 @@ export abstract class BaseDocumentTemplate {
     );
     
     // Watermark text
+    doc.save();
+    doc.translate(100, 400);
+    doc.rotate(-45, { origin: [0, 0] });
     doc.fontSize(40)
        .font(SA_GOVERNMENT_DESIGN.fonts.header)
        .fillColor(colors.watermark)
        .fillOpacity(0.1)
-       .text("REPUBLIC OF SOUTH AFRICA", 100, 400, { angle: -45 });
+       .text("REPUBLIC OF SOUTH AFRICA", 0, 0);
+    doc.restore();
     
     doc.restore();
   }
