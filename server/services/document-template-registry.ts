@@ -8,7 +8,7 @@ import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as QRCode from "qrcode";
-const bwipjs = require("bwip-js");
+import bwipjs from "bwip-js";
 
 // Import existing generators
 import { enhancedPdfGenerationService, EnhancedPDFGenerationService, DocumentType } from "./enhanced-pdf-generation-service";
