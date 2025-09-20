@@ -92,10 +92,8 @@ interface SystemHealth {
 
 function AdminDashboard() {
   const { toast } = useToast();
-  // FIXED: Disable WebSocket to prevent connection errors
-  // const { socket, isConnected } = useWebSocket();
-  const socket = null; // System works without real-time updates
-  const isConnected = false; // Fallback mode
+  // Re-enable WebSocket with proper error handling
+  const { socket, isConnected } = useWebSocket();
   const [showPDFGenerateDialog, setShowPDFGenerateDialog] = useState(false);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -109,62 +107,92 @@ function AdminDashboard() {
     gcTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
-  // Transform the API response to match the expected structure
+  // Transform the API response to match the expected structure with safe coercion
   const normalizedSystemHealth = useMemo(() => {
     if (!systemHealth) return null;
     
-    // Handle simple response structure {cpu, memory, network, storage, timestamp}
-    if (typeof systemHealth.memory === 'number' && !systemHealth.memory?.percentage) {
-      // Use default total memory of 8GB if not available
-      const defaultTotalMemory = 8 * 1024 * 1024 * 1024; // 8GB in bytes
-      const memoryPercentage = systemHealth.memory || 0;
-      const memoryUsed = (memoryPercentage / 100) * defaultTotalMemory;
-      
-      return {
-        status: 'healthy', // Default to healthy if we have data
-        uptime: 0, // Not provided in simple response
-        memory: {
-          used: memoryUsed,
-          total: defaultTotalMemory,
-          percentage: memoryPercentage
-        },
-        cpu: {
-          percentage: systemHealth.cpu || 0
-        },
-        database: { status: 'unknown', connectionCount: 0 },
-        integrations: {}
-      };
-    }
+    const defaultTotalMemory = 8 * 1024 * 1024 * 1024; // 8GB in bytes
     
-    // If it's the autonomous monitoring bot response structure (resources instead of memory/cpu)
-    if (systemHealth.resources && !systemHealth.memory) {
-      // Use default total memory of 8GB if not available
-      const defaultTotalMemory = 8 * 1024 * 1024 * 1024; // 8GB in bytes
-      const memoryPercentage = systemHealth.resources.memory || 0;
+    // Safe coercion function for numeric values
+    const safeNumber = (value: any): number => {
+      const num = Number(value ?? 0);
+      return isNaN(num) ? 0 : num;
+    };
+    
+    // Handle simple response structure {cpu, memory, network, storage, timestamp}
+    if (typeof systemHealth.memory === 'number') {
+      const memoryPercentage = safeNumber(systemHealth.memory);
       const memoryUsed = (memoryPercentage / 100) * defaultTotalMemory;
       
       return {
-        status: systemHealth.overall || systemHealth.status || 'unknown',
-        uptime: systemHealth.compliance?.uptime || systemHealth.uptime || 0,
+        status: 'healthy',
+        uptime: safeNumber(systemHealth.uptime),
         memory: {
           used: memoryUsed,
           total: defaultTotalMemory,
           percentage: memoryPercentage
         },
         cpu: {
-          percentage: systemHealth.resources.cpu || 0
+          percentage: safeNumber(systemHealth.cpu)
         },
         database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
         integrations: systemHealth.integrations || {}
       };
     }
     
-    // Return as-is if it already has the expected structure with defaults
+    // Handle autonomous monitoring bot response structure (resources instead of memory/cpu)
+    if (systemHealth.resources && !systemHealth.memory) {
+      const memoryPercentage = safeNumber(systemHealth.resources.memory);
+      const memoryUsed = (memoryPercentage / 100) * defaultTotalMemory;
+      
+      return {
+        status: systemHealth.overall || systemHealth.status || 'unknown',
+        uptime: safeNumber(systemHealth.compliance?.uptime || systemHealth.uptime),
+        memory: {
+          used: memoryUsed,
+          total: defaultTotalMemory,
+          percentage: memoryPercentage
+        },
+        cpu: {
+          percentage: safeNumber(systemHealth.resources.cpu)
+        },
+        database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
+        integrations: systemHealth.integrations || {}
+      };
+    }
+    
+    // Handle object structure with memory/cpu as objects
+    if (systemHealth.memory && typeof systemHealth.memory === 'object') {
+      return {
+        status: systemHealth.status || 'unknown',
+        uptime: safeNumber(systemHealth.uptime),
+        memory: {
+          used: safeNumber(systemHealth.memory.used),
+          total: safeNumber(systemHealth.memory.total) || defaultTotalMemory,
+          percentage: safeNumber(systemHealth.memory.percentage)
+        },
+        cpu: {
+          percentage: safeNumber(
+            typeof systemHealth.cpu === 'object' ? systemHealth.cpu.percentage : systemHealth.cpu
+          )
+        },
+        database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
+        integrations: systemHealth.integrations || {}
+      };
+    }
+    
+    // Fallback for any other structure
     return {
-      status: systemHealth.status || 'unknown',
-      uptime: systemHealth.uptime || 0,
-      memory: systemHealth.memory || { used: 0, total: 8 * 1024 * 1024 * 1024, percentage: 0 },
-      cpu: systemHealth.cpu || { percentage: 0 },
+      status: systemHealth.status || systemHealth.overall || 'unknown',
+      uptime: safeNumber(systemHealth.uptime),
+      memory: {
+        used: 0,
+        total: defaultTotalMemory,
+        percentage: 0
+      },
+      cpu: {
+        percentage: 0
+      },
       database: systemHealth.database || { status: 'unknown', connectionCount: 0 },
       integrations: systemHealth.integrations || {}
     };
@@ -213,8 +241,10 @@ function AdminDashboard() {
       socket.on("security:alert", handleSecurityAlert);
 
       return () => {
-        socket.off("system:health", handleSystemHealth);
-        socket.off("security:alert", handleSecurityAlert);
+        if (socket) {
+          socket.off("system:health", handleSystemHealth);
+          socket.off("security:alert", handleSecurityAlert);
+        }
       };
     }
   }, [socket, isConnected, handleSystemHealth, handleSecurityAlert]);
@@ -285,18 +315,15 @@ function AdminDashboard() {
         });
         
         // Log the generation in audit trail
-        await apiRequest("/api/audit/log", {
-          method: "POST",
-          body: JSON.stringify({
-            action: "pdf_generated",
-            entityType: "application",
-            entityId: selectedApplication.id,
-            details: {
-              documentType: pdfDocumentType,
-              applicationId: selectedApplication.id,
-              timestamp: new Date().toISOString(),
-            },
-          }),
+        await apiRequest("/api/audit/log", "POST", {
+          action: "pdf_generated",
+          entityType: "application",
+          entityId: selectedApplication.id,
+          details: {
+            documentType: pdfDocumentType,
+            applicationId: selectedApplication.id,
+            timestamp: new Date().toISOString(),
+          },
         });
         
         setShowPDFGenerateDialog(false);
@@ -437,12 +464,12 @@ function AdminDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Used: {Math.round((normalizedSystemHealth.memory?.used || 0) / 1024 / 1024)}MB</span>
-                    <span>Total: {Math.round((normalizedSystemHealth.memory?.total || 0) / 1024 / 1024)}MB</span>
+                    <span>Used: {Math.round((normalizedSystemHealth.memory.used || 0) / 1024 / 1024)}MB</span>
+                    <span>Total: {Math.round((normalizedSystemHealth.memory.total || 0) / 1024 / 1024)}MB</span>
                   </div>
-                  <Progress value={normalizedSystemHealth.memory?.percentage || 0} className="w-full" />
+                  <Progress value={normalizedSystemHealth.memory.percentage || 0} className="w-full" />
                   <p className="text-xs text-muted-foreground">
-                    {(normalizedSystemHealth.memory?.percentage || 0).toFixed(1)}% utilized
+                    {Number(normalizedSystemHealth.memory.percentage || 0).toFixed(1)}% utilized
                   </p>
                 </div>
               </CardContent>
@@ -459,9 +486,9 @@ function AdminDashboard() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>CPU Load</span>
-                    <span>{(normalizedSystemHealth.cpu?.percentage || 0).toFixed(1)}%</span>
+                    <span>{Number(normalizedSystemHealth.cpu.percentage || 0).toFixed(1)}%</span>
                   </div>
-                  <Progress value={normalizedSystemHealth.cpu?.percentage || 0} className="w-full" />
+                  <Progress value={normalizedSystemHealth.cpu.percentage || 0} className="w-full" />
                   <p className="text-xs text-muted-foreground">
                     System performance optimal
                   </p>

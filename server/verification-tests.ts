@@ -2,7 +2,6 @@
 // These tests provide concrete evidence of system security and constraint validation
 
 import { storage } from './storage';
-import { EnhancedStorage } from './enhanced-storage';
 import type { InsertBiometricProfile, InsertDocumentDelivery } from '@shared/schema';
 
 /**
@@ -39,8 +38,7 @@ export async function testBiometricProfileCreation(): Promise<{
     // Test biometric data that would be encrypted
     const mockBiometricTemplate = "MOCK_FINGERPRINT_TEMPLATE_DATA_FOR_TESTING";
     
-    // Create biometric profile using enhanced storage (which should route through encryptedArtifacts)
-    const enhancedStorage = new EnhancedStorage(storage);
+    // Create biometric profile using storage (which should route through encryptedArtifacts)
     
     const biometricProfile: InsertBiometricProfile = {
       userId: testUser.id,
