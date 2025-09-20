@@ -12,7 +12,6 @@ import bwipjs from "bwip-js";
 
 // Import existing generators
 import { enhancedPdfGenerationService, EnhancedPDFGenerationService, DocumentType } from "./enhanced-pdf-generation-service";
-import { ExactWorkVisaGenerator } from "./exact-work-visa-generator";
 import { documentGenerator, DocumentGeneratorService } from "./document-generator";
 import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service";
 import { verificationService } from "./verification-service";
@@ -139,7 +138,6 @@ export class DocumentTemplateRegistry {
   private generators: Map<string, any> = new Map();
   private enhancedService: EnhancedPDFGenerationService;
   private basicService: DocumentGeneratorService;
-  private workVisaGenerator: ExactWorkVisaGenerator;
   
   // Instantiate all 21 DHA document generators
   private idBookGenerator: IdentityDocumentBookGenerator;
@@ -168,7 +166,6 @@ export class DocumentTemplateRegistry {
   private constructor() {
     this.enhancedService = enhancedPdfGenerationService;
     this.basicService = documentGenerator;
-    this.workVisaGenerator = new ExactWorkVisaGenerator();
     
     // Initialize all 21 DHA document generators
     this.idBookGenerator = new IdentityDocumentBookGenerator();
