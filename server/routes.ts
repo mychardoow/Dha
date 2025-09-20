@@ -122,6 +122,7 @@ import { militaryAccessControl } from "./services/military-access-control";
 import { cyberDefenseSystem } from "./services/cyber-defense";
 import { militaryDocumentService } from "./services/military-documents";
 import { secureCommunicationsService } from "./services/secure-comms";
+import { gitHubIntegrationService } from "./services/github-integration";
 import { z } from "zod";
 import { consentMiddleware } from "./middleware/consent-middleware";
 
@@ -409,6 +410,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('[Government Operations] Error testing failover:', error);
       res.status(500).json({ error: 'Failed to test failover' });
+    }
+  });
+
+  // GitHub Integration API Endpoints
+  app.get("/api/admin/github/health", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const health = await gitHubIntegrationService.healthCheck();
+      res.json(health);
+    } catch (error) {
+      console.error('[GitHub] Error checking health:', error);
+      res.status(500).json({ error: 'Failed to check GitHub health' });
+    }
+  });
+
+  app.get("/api/admin/github/user", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const user = await gitHubIntegrationService.getAuthenticatedUser();
+      res.json(user);
+    } catch (error) {
+      console.error('[GitHub] Error getting user:', error);
+      res.status(500).json({ error: 'Failed to get GitHub user' });
+    }
+  });
+
+  app.get("/api/admin/github/repositories", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { type, sort, direction, per_page, page } = req.query;
+      const repositories = await gitHubIntegrationService.listRepositories({
+        type: type as any,
+        sort: sort as any,
+        direction: direction as any,
+        per_page: per_page ? parseInt(per_page as string) : undefined,
+        page: page ? parseInt(page as string) : undefined
+      });
+      res.json(repositories);
+    } catch (error) {
+      console.error('[GitHub] Error listing repositories:', error);
+      res.status(500).json({ error: 'Failed to list repositories' });
+    }
+  });
+
+  app.get("/api/admin/github/repository/:owner/:repo", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { owner, repo } = req.params;
+      const repository = await gitHubIntegrationService.getRepository(owner, repo);
+      res.json(repository);
+    } catch (error) {
+      console.error('[GitHub] Error getting repository:', error);
+      res.status(500).json({ error: 'Failed to get repository' });
+    }
+  });
+
+  app.get("/api/admin/github/repository/:owner/:repo/workflows", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { owner, repo } = req.params;
+      const { branch, event, status, per_page, page } = req.query;
+      const workflows = await gitHubIntegrationService.getWorkflowRuns(owner, repo, {
+        branch: branch as string,
+        event: event as string,
+        status: status as any,
+        per_page: per_page ? parseInt(per_page as string) : undefined,
+        page: page ? parseInt(page as string) : undefined
+      });
+      res.json(workflows);
+    } catch (error) {
+      console.error('[GitHub] Error getting workflows:', error);
+      res.status(500).json({ error: 'Failed to get workflow runs' });
+    }
+  });
+
+  app.post("/api/admin/github/repository/:owner/:repo/trigger-workflow", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { owner, repo } = req.params;
+      const { eventType, clientPayload } = req.body;
+      const result = await gitHubIntegrationService.triggerWorkflow(owner, repo, eventType, clientPayload);
+      res.json(result);
+    } catch (error) {
+      console.error('[GitHub] Error triggering workflow:', error);
+      res.status(500).json({ error: 'Failed to trigger workflow' });
+    }
+  });
+
+  app.get("/api/admin/github/repository/:owner/:repo/file/*", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { owner, repo } = req.params;
+      const filePath = req.params[0]; // Get the wildcard path
+      const { ref } = req.query;
+      const file = await gitHubIntegrationService.getFileContent(owner, repo, filePath, ref as string);
+      res.json(file);
+    } catch (error) {
+      console.error('[GitHub] Error getting file:', error);
+      res.status(500).json({ error: 'Failed to get file content' });
+    }
+  });
+
+  app.put("/api/admin/github/repository/:owner/:repo/file/*", authenticate, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { owner, repo } = req.params;
+      const filePath = req.params[0]; // Get the wildcard path
+      const { content, message, branch, sha } = req.body;
+      const result = await gitHubIntegrationService.createOrUpdateFile(owner, repo, filePath, content, message, { branch, sha });
+      res.json(result);
+    } catch (error) {
+      console.error('[GitHub] Error updating file:', error);
+      res.status(500).json({ error: 'Failed to update file' });
     }
   });
 

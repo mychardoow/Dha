@@ -5,6 +5,14 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--production=false"
+  # Build environment variables for proper compilation
+  JWT_SECRET = "${JWT_SECRET}"
+  SESSION_SECRET = "${SESSION_SECRET}"
+  OPENAI_API_KEY = "${OPENAI_API_KEY}"
+  DHA_NPR_API_KEY = "${DHA_NPR_API_KEY}"
+  ICAO_PKD_API_KEY = "${ICAO_PKD_API_KEY}"
+  SAPS_CRC_API_KEY = "${SAPS_CRC_API_KEY}"
+  DHA_ABIS_API_KEY = "${DHA_ABIS_API_KEY}"
 
 [[redirects]]
   from = "/api/*"

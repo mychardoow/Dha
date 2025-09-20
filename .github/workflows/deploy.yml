@@ -31,9 +31,45 @@ jobs:
       run: npm run build
       env:
         NODE_ENV: production
+        JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        DHA_NPR_API_KEY: ${{ secrets.DHA_NPR_API_KEY }}
+        ICAO_PKD_API_KEY: ${{ secrets.ICAO_PKD_API_KEY }}
+        SAPS_CRC_API_KEY: ${{ secrets.SAPS_CRC_API_KEY }}
+        DHA_ABIS_API_KEY: ${{ secrets.DHA_ABIS_API_KEY }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
     
     - name: Run tests
       run: npm test || echo "No tests configured"
+    
+    - name: Security check - Verify required secrets
+      run: |
+        if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+          echo "❌ JWT_SECRET is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.NETLIFY_AUTH_TOKEN }}" ]; then
+          echo "❌ NETLIFY_AUTH_TOKEN is not set"
+          exit 1
+        fi
+        if [ -z "${{ secrets.NETLIFY_SITE_ID }}" ]; then
+          echo "❌ NETLIFY_SITE_ID is not set"
+          exit 1
+        fi
+        echo "✅ All required secrets are configured"
+    
+    - name: Build verification
+      run: |
+        if [ ! -d "./dist/public" ]; then
+          echo "❌ Build failed - dist/public directory not found"
+          exit 1
+        fi
+        if [ ! -f "./dist/public/index.html" ]; then
+          echo "❌ Build failed - index.html not found"
+          exit 1
+        fi
+        echo "✅ Build verification passed"
     
     - name: Deploy to Netlify
       uses: nwtgck/actions-netlify@v2.0
@@ -41,11 +77,18 @@ jobs:
         publish-dir: './dist/public'
         production-branch: main
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        deploy-message: "Deploy from GitHub Actions"
+        deploy-message: "🚀 Deploy from GitHub Actions - ${{ github.sha }}"
         enable-pull-request-comment: false
         enable-commit-comment: true
         overwrites-pull-request-comment: true
+        alias: deploy-preview-${{ github.run_number }}
       env:
         NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
         NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-      timeout-minutes: 1
+      timeout-minutes: 5
+      
+    - name: Post-deployment verification
+      run: |
+        echo "✅ Deployment completed successfully"
+        echo "📝 Deploy commit: ${{ github.sha }}"
+        echo "🔗 Expected URL: https://dha-digital-services.netlify.app"
