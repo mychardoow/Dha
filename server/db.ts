@@ -46,7 +46,12 @@ let connectionString: string | undefined = config.DATABASE_URL;
 function isValidDatabaseUrl(url: string | undefined): boolean {
   if (!url) return false;
   // Check if it's a valid PostgreSQL URL
-  return url.startsWith('postgres://') || url.startsWith('postgresql://');
+  try {
+    const urlObj = new URL(url);
+    return urlObj.protocol === 'postgres:' || urlObj.protocol === 'postgresql:';
+  } catch {
+    return url.startsWith('postgres://') || url.startsWith('postgresql://');
+  }
 }
 
 // If DATABASE_URL is invalid but we have individual components, construct it

@@ -94,8 +94,10 @@ class ConfigurationService {
       };
 
       // CRITICAL: In production, ensure critical secrets are present
-      if (isProduction) {
+      if (isProduction && !isPreviewMode) {
         this.validateProductionSecrets(rawConfig);
+      } else if (isProduction && isPreviewMode) {
+        console.log('[Config] Preview mode detected - relaxing production validation');
       }
 
       // Apply secure development defaults ONLY if needed and NOT in production

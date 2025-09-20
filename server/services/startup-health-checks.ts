@@ -71,7 +71,7 @@ export class StartupHealthChecksService {
       // 1. Security Configuration Validation
       console.log('[Startup Health] Validating security configuration...');
       result.securityValidation = await this.validateSecurityConfiguration();
-      
+
       if (result.securityValidation.blockers.length > 0) {
         result.failedChecks.push('Security configuration validation failed');
         result.configurationIssues.push(...result.securityValidation.blockers);
@@ -108,14 +108,14 @@ export class StartupHealthChecksService {
       // Calculate final results
       result.totalChecks = result.healthChecks.length;
       result.passedChecks = result.healthChecks.filter(check => check.healthy).length;
-      
+
       // Determine overall success
       const criticalFailures = result.failedChecks.length > 0 || result.configurationIssues.length > 0;
       result.success = !criticalFailures && result.passedChecks === result.totalChecks;
 
       const duration = Date.now() - startTime;
       console.log(`[Startup Health] Validation completed in ${duration}ms`);
-      
+
       if (result.success) {
         console.log('✅ [Startup Health] ALL CHECKS PASSED - Application ready for production');
       } else {
@@ -293,7 +293,7 @@ export class StartupHealthChecksService {
     try {
       // Check if service is enabled
       const enabled = process.env[service.enabledVar] === 'true';
-      
+
       if (!enabled && process.env.NODE_ENV === 'production') {
         throw new Error(`${service.name} must be enabled in production`);
       }
@@ -358,7 +358,7 @@ export class StartupHealthChecksService {
    */
   private async testServiceConnectivity(baseUrl: string): Promise<{ success: boolean; responseTime: number }> {
     const startTime = Date.now();
-    
+
     try {
       // Create a simple health check request
       const controller = new AbortController();
@@ -373,7 +373,7 @@ export class StartupHealthChecksService {
       });
 
       clearTimeout(timeoutId);
-      
+
       return {
         success: response.status < 500, // Any response < 500 means server is reachable
         responseTime: Date.now() - startTime
@@ -465,7 +465,7 @@ export class StartupHealthChecksService {
     try {
       // Test cryptographic service initialization
       // This would call a health check method on the cryptographic service
-      
+
       if (process.env.NODE_ENV === 'production') {
         const requiredPKICerts = [
           'DHA_SIGNING_CERT',
@@ -522,7 +522,7 @@ export class StartupHealthChecksService {
 
       // Test monitoring service
       // This would call a health check on the autonomous monitoring bot
-      
+
       healthCheck.healthy = true;
       healthCheck.details = {
         monitoringEnabled: process.env.MONITORING_ENABLED === 'true',
@@ -623,7 +623,7 @@ export class StartupHealthChecksService {
     try {
       const systemTime = new Date();
       const currentYear = systemTime.getFullYear();
-      
+
       // Basic sanity check - ensure system time is reasonable
       if (currentYear < 2024 || currentYear > 2030) {
         throw new Error('System time appears to be incorrect');
@@ -652,7 +652,7 @@ export class StartupHealthChecksService {
       const status = check.healthy ? '✅' : '❌';
       const time = `${check.responseTime}ms`;
       summary.push(`  ${status} ${check.service} (${time})`);
-      
+
       if (check.error) {
         summary.push(`     Error: ${check.error}`);
       }

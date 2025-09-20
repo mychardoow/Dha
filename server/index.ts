@@ -2,6 +2,32 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { configService, config } from "./middleware/provider-config";
 
+// Load environment variables if .env file exists
+try {
+  const fs = await import('fs');
+  const path = await import('path');
+  const envPath = path.join(process.cwd(), '.env');
+  
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf-8');
+    const envVars = envContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
+    
+    envVars.forEach(line => {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        const value = valueParts.join('=').trim();
+        if (!process.env[key]) {
+          process.env[key] = value;
+        }
+      }
+    });
+    
+    console.log('[Environment] Loaded environment variables from .env file');
+  }
+} catch (error) {
+  console.warn('[Environment] Could not load .env file:', error);
+}
+
 // Environment detection utilities - using centralized config
 const isPreviewMode = (): boolean => configService.isPreviewMode();
 
