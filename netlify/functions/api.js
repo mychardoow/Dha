@@ -1,91 +1,99 @@
-import { createServer } from '../../dist/index.js';
+import serverless from 'serverless-http';
 
-// Ensure environment variables are available for the server
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-process.env.JWT_SECRET = process.env.JWT_SECRET || process.env.VITE_JWT_SECRET;
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || process.env.VITE_SESSION_SECRET;
-process.env.OPENAI_API_KEY = process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
-process.env.DHA_NPR_API_KEY = process.env.DHA_NPR_API_KEY || process.env.VITE_DHA_NPR_API_KEY;
-process.env.ICAO_PKD_API_KEY = process.env.ICAO_PKD_API_KEY || process.env.VITE_ICAO_PKD_API_KEY;
-process.env.SAPS_CRC_API_KEY = process.env.SAPS_CRC_API_KEY || process.env.VITE_SAPS_CRC_API_KEY;
-process.env.DHA_ABIS_API_KEY = process.env.DHA_ABIS_API_KEY || process.env.VITE_DHA_ABIS_API_KEY;
+// Critical security: Validate required environment variables at startup
+const requiredSecrets = ['JWT_SECRET', 'SESSION_SECRET'];
+const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
 
-const server = createServer();
+if (missingSecrets.length > 0) {
+  console.error('[SECURITY] Missing required secrets:', missingSecrets);
+  throw new Error(`Critical security error: Missing required environment variables: ${missingSecrets.join(', ')}`);
+}
+
+// Validate JWT secret strength for production
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 64) {
+  console.error('[SECURITY] JWT_SECRET must be at least 64 characters for government-grade security');
+  throw new Error('JWT_SECRET too short for production use');
+}
+
+// Set production environment
+process.env.NODE_ENV = 'production';
+
+console.log('[Netlify] Initializing DHA Digital Services serverless function...');
+
+// Dynamically import and create Express app
+let app;
+try {
+  // Import the Express app factory (bundled with function)
+  const { createServer } = await import('./server/index.js');
+  app = createServer();
+  console.log('[Netlify] Express app created successfully');
+} catch (error) {
+  console.error('[Netlify] Failed to create Express app:', error);
+  throw new Error('Failed to initialize server application');
+}
+
+// Create serverless handler with proper Express integration
+const serverlessHandler = serverless(app, {
+  binary: false,
+  request: (request, event, context) => {
+    // Add Netlify-specific context to request
+    request.netlify = {
+      event,
+      context
+    };
+    
+    // Normalize path - strip Netlify function base path
+    if (request.url && request.url.startsWith('/.netlify/functions/api')) {
+      request.url = request.url.replace('/.netlify/functions/api', '') || '/';
+    }
+    
+    // Preserve original IP for security logging
+    if (event.headers['x-forwarded-for']) {
+      request.ip = event.headers['x-forwarded-for'].split(',')[0].trim();
+    }
+    
+    return request;
+  },
+  response: (response, event, context) => {
+    // Add security headers for all responses
+    response.headers = {
+      ...response.headers,
+      'X-Powered-By': 'DHA Digital Services',
+      'X-Frame-Options': 'DENY',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin'
+    };
+    
+    return response;
+  }
+});
 
 export const handler = async (event, context) => {
-  // Set up timeout handling for Netlify functions
-  const timeoutId = setTimeout(() => {
-    console.warn('[Netlify] Function timeout approaching');
-  }, 8000); // Warn at 8 seconds for 10-second limit
+  try {
+    // Add timeout warning for monitoring
+    const timeoutWarning = setTimeout(() => {
+      console.warn('[Netlify] Function approaching timeout limit');
+    }, 8000);
 
-  return new Promise((resolve, reject) => {
-    const { httpMethod, path, queryStringParameters, headers, body } = event;
+    const result = await serverlessHandler(event, context);
     
-    // Create a mock request object
-    const req = {
-      method: httpMethod,
-      url: path,
-      query: queryStringParameters || {},
-      headers: headers || {},
-      body: body ? JSON.parse(body) : null,
-      params: {},
-      get: (header) => headers[header.toLowerCase()],
+    clearTimeout(timeoutWarning);
+    return result;
+    
+  } catch (error) {
+    console.error('[Netlify] Function error:', error);
+    
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Error-Source': 'netlify-function'
+      },
+      body: JSON.stringify({
+        error: 'Internal server error',
+        timestamp: new Date().toISOString(),
+        message: 'DHA Digital Services temporarily unavailable'
+      })
     };
-
-    // Create a mock response object
-    const res = {
-      statusCode: 200,
-      headers: {},
-      body: '',
-      status: function(code) {
-        this.statusCode = code;
-        return this;
-      },
-      json: function(data) {
-        this.body = JSON.stringify(data);
-        this.headers['Content-Type'] = 'application/json';
-        resolve({
-          statusCode: this.statusCode,
-          headers: this.headers,
-          body: this.body,
-        });
-        return this;
-      },
-      send: function(data) {
-        this.body = typeof data === 'string' ? data : JSON.stringify(data);
-        resolve({
-          statusCode: this.statusCode,
-          headers: this.headers,
-          body: this.body,
-        });
-        return this;
-      },
-      set: function(header, value) {
-        this.headers[header] = value;
-        return this;
-      },
-    };
-
-    try {
-      // Route the request through your Express app
-      server(req, res);
-    } catch (error) {
-      console.error('Netlify function error:', error);
-      clearTimeout(timeoutId);
-      resolve({
-        statusCode: 500,
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-Error-Source': 'netlify-function'
-        },
-        body: JSON.stringify({ 
-          error: 'Internal server error',
-          timestamp: new Date().toISOString(),
-          path: path
-        }),
-      });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  });
+  }
 };
