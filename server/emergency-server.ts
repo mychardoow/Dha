@@ -23,23 +23,14 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Basic auth endpoint (hardcoded)
+// SECURITY: Emergency server authentication disabled - requires proper configuration
+// In production, this server should not be used - use main server with proper auth
 app.post("/api/auth/login", (req, res) => {
-  const { username, password } = req.body;
-  
-  if ((username === "admin" && password === "admin123") || 
-      (username === "user" && password === "password123")) {
-    res.json({ 
-      success: true, 
-      user: { username, role: username === "admin" ? "admin" : "user" },
-      message: "Login successful (emergency mode)"
-    });
-  } else {
-    res.status(401).json({ 
-      success: false, 
-      message: "Invalid credentials" 
-    });
-  }
+  res.status(503).json({ 
+    success: false, 
+    message: "Emergency server does not support authentication. Please use the main server.",
+    error: "EMERGENCY_MODE_NO_AUTH"
+  });
 });
 
 // Serve static files
