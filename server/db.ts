@@ -2,9 +2,10 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import { configService, config } from './middleware/provider-config';
 
-// Environment detection utility
-const isPreviewMode = (): boolean => Boolean(process.env.REPL_ID);
+// Environment detection utility - using centralized config
+const isPreviewMode = (): boolean => configService.isPreviewMode();
 
 // Simple shutdown manager for database cleanup
 class DatabaseShutdownManager {
@@ -37,9 +38,9 @@ const dbShutdownManager = new DatabaseShutdownManager();
 
 neonConfig.webSocketConstructor = ws;
 
-// Check and validate DATABASE_URL
+// SECURITY: DATABASE_URL now managed by centralized configuration service
 let databaseUrlError: string | null = null;
-let connectionString: string | undefined = process.env.DATABASE_URL;
+let connectionString: string | undefined = config.DATABASE_URL;
 
 // Validate DATABASE_URL format
 function isValidDatabaseUrl(url: string | undefined): boolean {

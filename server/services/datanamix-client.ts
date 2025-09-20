@@ -16,7 +16,8 @@ import fs from 'fs/promises';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { auditLogger } from '../middleware/audit-logger';
-import { providerConfigService } from '../middleware/provider-config';
+// SECURITY: Updated to use centralized configuration service  
+import { configService, config } from '../middleware/provider-config';
 
 export interface DatanamixCredentials {
   clientId: string;

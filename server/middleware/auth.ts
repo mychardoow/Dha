@@ -4,27 +4,11 @@ import bcrypt from "bcrypt";
 import { storage } from "../storage";
 import type { User } from "@shared/schema";
 import { privacyProtectionService } from "../services/privacy-protection";
+import { configService, config } from "./provider-config";
 
-const JWT_SECRET = (() => {
-  if (!process.env.JWT_SECRET) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for authentication in production');
-    }
-    console.warn('WARNING: JWT_SECRET missing - using development fallback key (NOT FOR PRODUCTION)');
-    return 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
-  }
-  
-  // Validate JWT secret strength for government security standards
-  if (process.env.JWT_SECRET.length < 64) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security in production');
-    }
-    console.warn('WARNING: JWT_SECRET too short - using development fallback key (NOT FOR PRODUCTION)');
-    return 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
-  }
-  
-  return process.env.JWT_SECRET;
-})();
+// SECURITY: JWT_SECRET now comes from centralized configuration service
+// No hardcoded fallbacks - production will fail fast if not properly configured
+const JWT_SECRET = config.JWT_SECRET;
 
 // Type for authenticated user in request object (excludes sensitive fields)
 export type AuthenticatedUser = {
@@ -85,8 +69,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    // Check if this is a mock admin user (for development/testing)
-    if (decoded.id === 'mock-admin-001' || decoded.id === 'admin-1') {
+    // SECURITY: Mock admin bypass ONLY allowed in development/preview mode
+    // CRITICAL: This bypass is completely disabled in production to prevent authentication vulnerabilities
+    if ((decoded.id === 'mock-admin-001' || decoded.id === 'admin-1') && !configService.isProduction()) {
+      console.warn(`[SECURITY] Using mock admin bypass for development - ID: ${decoded.id}`);
       req.user = {
         id: decoded.id,
         username: decoded.username || 'admin',
@@ -105,7 +91,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
         email: user.email,
         role: user.role
       } as AuthenticatedUser;
-    } else if (process.env.NODE_ENV !== 'production') {
+    } else if (!configService.isProduction()) {
       // In development mode, allow token-based authentication if user not in DB
       req.user = {
         id: decoded.id,
