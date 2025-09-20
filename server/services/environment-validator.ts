@@ -16,6 +16,7 @@ export class EnvironmentValidator {
     'JWT_SECRET',
     'SESSION_SECRET', 
     'ENCRYPTION_KEY',
+    'VITE_ENCRYPTION_KEY',
     'MASTER_ENCRYPTION_KEY',
     'QUANTUM_ENCRYPTION_KEY',
     'BIOMETRIC_ENCRYPTION_KEY',

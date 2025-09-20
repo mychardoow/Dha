@@ -54,8 +54,11 @@ const configSchema = z.object({
 
   // Encryption keys - REQUIRED for secure operations
   ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 characters'),
+  VITE_ENCRYPTION_KEY: z.string().min(32, 'VITE_ENCRYPTION_KEY must be at least 32 characters'),
   MASTER_ENCRYPTION_KEY: z.string().min(32, 'MASTER_ENCRYPTION_KEY must be at least 32 characters'),
   QUANTUM_ENCRYPTION_KEY: z.string().min(64, 'QUANTUM_ENCRYPTION_KEY must be at least 64 characters for quantum-resistant security'),
+  BIOMETRIC_ENCRYPTION_KEY: z.string().min(32, 'BIOMETRIC_ENCRYPTION_KEY must be at least 32 characters'),
+  DOCUMENT_SIGNING_KEY: z.string().min(32, 'DOCUMENT_SIGNING_KEY must be at least 32 characters'),
 });
 
 type Config = z.infer<typeof configSchema>;
@@ -66,8 +69,11 @@ const validateProductionSecrets = (): void => {
     'JWT_SECRET',
     'SESSION_SECRET',
     'ENCRYPTION_KEY',
+    'VITE_ENCRYPTION_KEY',
     'MASTER_ENCRYPTION_KEY',
     'QUANTUM_ENCRYPTION_KEY',
+    'BIOMETRIC_ENCRYPTION_KEY',
+    'DOCUMENT_SIGNING_KEY',
     'DATABASE_URL'
   ];
 
@@ -125,8 +131,11 @@ class ConfigurationService {
         ICAO_PKD_API_KEY: this.getEnvVar('ICAO_PKD_API_KEY'),
         SITA_ESERVICES_API_KEY: this.getEnvVar('SITA_ESERVICES_API_KEY'),
         ENCRYPTION_KEY: this.getEnvVar('ENCRYPTION_KEY'),
+        VITE_ENCRYPTION_KEY: this.getEnvVar('VITE_ENCRYPTION_KEY'),
         MASTER_ENCRYPTION_KEY: this.getEnvVar('MASTER_ENCRYPTION_KEY'),
         QUANTUM_ENCRYPTION_KEY: this.getEnvVar('QUANTUM_ENCRYPTION_KEY'),
+        BIOMETRIC_ENCRYPTION_KEY: this.getEnvVar('BIOMETRIC_ENCRYPTION_KEY'),
+        DOCUMENT_SIGNING_KEY: this.getEnvVar('DOCUMENT_SIGNING_KEY'),
       };
 
       // CRITICAL: In production, ensure critical secrets are present
@@ -139,8 +148,11 @@ class ConfigurationService {
         rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
         rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
         rawConfig.ENCRYPTION_KEY = rawConfig.ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
+        rawConfig.VITE_ENCRYPTION_KEY = rawConfig.VITE_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
         rawConfig.MASTER_ENCRYPTION_KEY = rawConfig.MASTER_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('master-encryption');
         rawConfig.QUANTUM_ENCRYPTION_KEY = rawConfig.QUANTUM_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('quantum-encryption');
+        rawConfig.BIOMETRIC_ENCRYPTION_KEY = rawConfig.BIOMETRIC_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
+        rawConfig.DOCUMENT_SIGNING_KEY = rawConfig.DOCUMENT_SIGNING_KEY || this.generateSecureDevelopmentSecret('encryption');
       }
 
       // Validate configuration with Zod schema
@@ -249,8 +261,11 @@ class ConfigurationService {
     console.log(`Anthropic API Key: ${this.config.ANTHROPIC_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`GitHub Token: ${this.config.GITHUB_TOKEN ? '✓ Configured' : '✗ Not configured'}`);
     console.log(`Encryption Key: ${this.config.ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Vite Encryption Key: ${this.config.VITE_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
     console.log(`Master Encryption Key: ${this.config.MASTER_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
     console.log(`Quantum Encryption Key: ${this.config.QUANTUM_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Biometric Encryption Key: ${this.config.BIOMETRIC_ENCRYPTION_KEY ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Document Signing Key: ${this.config.DOCUMENT_SIGNING_KEY ? '✓ Configured' : '✗ Missing'}`);
     console.log('═══════════════════════════════════════════════════════════════');
 
     // Warn about development secrets in non-production environments
