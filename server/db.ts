@@ -192,8 +192,33 @@ if (pool && connectionString && isValidDatabaseUrl(connectionString)) {
 // In BYPASS mode, db will be null and we use MemStorage instead
 export const db = pool ? drizzle({ client: pool, schema }) : null;
 
+// Add connection status tracking
+let connectionStatus = { healthy: true, lastCheck: new Date() };
+
+// Health check function
+export function getConnectionStatus() {
+  return connectionStatus;
+}
+
+// Periodic health check
+setInterval(async () => {
+  try {
+    if (pool) {
+      const client = await pool.connect();
+      await client.query('SELECT 1');
+      client.release();
+      connectionStatus = { healthy: true, lastCheck: new Date() };
+    } else {
+      connectionStatus = { healthy: false, lastCheck: new Date() };
+    }
+  } catch (error) {
+    console.error('[DB] Connection health check failed:', error);
+    connectionStatus = { healthy: false, lastCheck: new Date() };
+  }
+}, 30000); // Check every 30 seconds
+
 // Export connection status
-export const getConnectionStatus = () => ({
+export const getConnectionStatusExport = () => ({
   healthy: connectionHealthy,
   lastHealthCheck: new Date(lastHealthCheck),
   poolSize: pool ? (pool.totalCount || 0) : 0,

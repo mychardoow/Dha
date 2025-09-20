@@ -91,18 +91,18 @@ export enum SupportedDocumentType {
   SMART_ID_CARD = 'smart_id_card',
   IDENTITY_DOCUMENT_BOOK = 'identity_document_book',
   TEMPORARY_ID_CERTIFICATE = 'temporary_id_certificate',
-  
+
   // Travel Documents (3)
   SOUTH_AFRICAN_PASSPORT = 'south_african_passport',
   EMERGENCY_TRAVEL_CERTIFICATE = 'emergency_travel_certificate',
   REFUGEE_TRAVEL_DOCUMENT = 'refugee_travel_document',
-  
+
   // Civil Documents (4)
   BIRTH_CERTIFICATE = 'birth_certificate',
   DEATH_CERTIFICATE = 'death_certificate',
   MARRIAGE_CERTIFICATE = 'marriage_certificate',
   DIVORCE_CERTIFICATE = 'divorce_certificate',
-  
+
   // Immigration Documents (11)
   GENERAL_WORK_VISA = 'general_work_visa',
   CRITICAL_SKILLS_WORK_VISA = 'critical_skills_work_visa',
@@ -115,11 +115,11 @@ export enum SupportedDocumentType {
   EXCHANGE_VISA = 'exchange_visa',
   RELATIVES_VISA = 'relatives_visa',
   PERMANENT_RESIDENCE_PERMIT = 'permanent_residence_permit',
-  
+
   // Additional DHA Documents (2)
   CERTIFICATE_OF_EXEMPTION = 'certificate_of_exemption',
   CERTIFICATE_OF_SOUTH_AFRICAN_CITIZENSHIP = 'certificate_of_south_african_citizenship',
-  
+
   // Legacy compatibility
   PASSPORT = 'passport',
   SA_ID = 'sa_id',
@@ -304,7 +304,7 @@ export class DocumentPdfFacade {
     this.securityFeatures = new SecurityFeaturesV2();
     this.documentGenerators = this.initializeDocumentGenerators();
     this.logger = console; // In production, use proper logging service
-    
+
     this.logger.log('[DocumentPdfFacade] Initialized with support for', this.documentGenerators.size, 'document types');
   }
 
@@ -320,18 +320,18 @@ export class DocumentPdfFacade {
     // Identity Documents
     generators.set(SupportedDocumentType.IDENTITY_DOCUMENT_BOOK, new IdentityDocumentBookGenerator());
     generators.set(SupportedDocumentType.TEMPORARY_ID_CERTIFICATE, new TemporaryIdCertificateGenerator());
-    
+
     // Travel Documents
     generators.set(SupportedDocumentType.SOUTH_AFRICAN_PASSPORT, new SouthAfricanPassportGenerator());
     generators.set(SupportedDocumentType.EMERGENCY_TRAVEL_CERTIFICATE, new EmergencyTravelCertificateGenerator());
     generators.set(SupportedDocumentType.REFUGEE_TRAVEL_DOCUMENT, new RefugeeTravelDocumentGenerator());
-    
+
     // Civil Documents
     generators.set(SupportedDocumentType.BIRTH_CERTIFICATE, new BirthCertificateGenerator());
     generators.set(SupportedDocumentType.DEATH_CERTIFICATE, new DeathCertificateGenerator());
     generators.set(SupportedDocumentType.MARRIAGE_CERTIFICATE, new MarriageCertificateGenerator());
     generators.set(SupportedDocumentType.DIVORCE_CERTIFICATE, new DivorceCertificateGenerator());
-    
+
     // Immigration Documents
     generators.set(SupportedDocumentType.GENERAL_WORK_VISA, new GeneralWorkVisaGenerator());
     generators.set(SupportedDocumentType.CRITICAL_SKILLS_WORK_VISA, new CriticalSkillsWorkVisaGenerator());
@@ -344,11 +344,11 @@ export class DocumentPdfFacade {
     generators.set(SupportedDocumentType.EXCHANGE_VISA, new ExchangeVisaGenerator());
     generators.set(SupportedDocumentType.RELATIVES_VISA, new RelativesVisaGenerator());
     generators.set(SupportedDocumentType.PERMANENT_RESIDENCE_PERMIT, new PermanentResidencePermitGenerator());
-    
+
     // Additional Documents
     generators.set(SupportedDocumentType.CERTIFICATE_OF_EXEMPTION, new CertificateOfExemptionGenerator());
     generators.set(SupportedDocumentType.CERTIFICATE_OF_SOUTH_AFRICAN_CITIZENSHIP, new CertificateOfSouthAfricanCitizenshipGenerator());
-    
+
     // Legacy compatibility mappings
     generators.set(SupportedDocumentType.PASSPORT, generators.get(SupportedDocumentType.SOUTH_AFRICAN_PASSPORT));
     generators.set(SupportedDocumentType.SA_ID, generators.get(SupportedDocumentType.IDENTITY_DOCUMENT_BOOK));
@@ -406,25 +406,25 @@ export class DocumentPdfFacade {
   ): Promise<DocumentGenerationResponse> {
     const startTime = Date.now();
     const documentId = this.generateDocumentId(documentType);
-    
+
     try {
       this.logger.log(`[DocumentPdfFacade] Starting generation of ${documentType} (ID: ${documentId})`);
-      
+
       // Validate inputs
       this.validateGenerationInputs(documentType, data, options);
-      
+
       // Apply default options
       const mergedOptions = this.applyDefaultOptions(options);
-      
+
       // Get the appropriate generator
       const generator = this.getDocumentGenerator(documentType);
-      
+
       // Validate document data
       await this.validateDocumentData(documentType, data);
-      
+
       // Generate the base document
       const documentBuffer = await this.generateBaseDocument(generator, data, mergedOptions);
-      
+
       // Apply security features
       const secureDocumentBuffer = await this.applySecurityFeatures(
         documentBuffer, 
@@ -432,12 +432,12 @@ export class DocumentPdfFacade {
         data, 
         mergedOptions
       );
-      
+
       // Apply digital signature if requested
       const finalDocumentBuffer = mergedOptions.includeDigitalSignature
         ? await this.applyDigitalSignature(secureDocumentBuffer, documentType, data, documentId)
         : secureDocumentBuffer;
-      
+
       // Generate verification information
       const verification = await this.generateVerificationInfo(
         finalDocumentBuffer, 
@@ -445,7 +445,7 @@ export class DocumentPdfFacade {
         data, 
         documentId
       );
-      
+
       // Create response metadata
       const metadata = this.createDocumentMetadata(
         documentType, 
@@ -453,16 +453,16 @@ export class DocumentPdfFacade {
         documentId, 
         data
       );
-      
+
       // Store document if requested
       let storage: any = undefined;
       if (mergedOptions.persistToStorage && !mergedOptions.isPreview) {
         storage = await this.storeDocument(finalDocumentBuffer, metadata, verification);
       }
-      
+
       const generationTime = Date.now() - startTime;
       this.logger.log(`[DocumentPdfFacade] Successfully generated ${documentType} in ${generationTime}ms`);
-      
+
       // Create standardized response
       const response: DocumentGenerationResponse = {
         documentBuffer: finalDocumentBuffer,
@@ -472,25 +472,18 @@ export class DocumentPdfFacade {
         storage,
         warnings: []
       };
-      
+
       // Add any generation warnings
       this.addGenerationWarnings(response, mergedOptions);
-      
+
       return response;
-      
     } catch (error) {
-      const generationTime = Date.now() - startTime;
-      this.logger.error(`[DocumentPdfFacade] Failed to generate ${documentType} after ${generationTime}ms:`, error);
-      
-      if (error instanceof DocumentGenerationError) {
-        throw error;
-      }
-      
+      console.error(`Document generation failed for ${documentType}:`, error);
       throw new DocumentGenerationError(
-        `Failed to generate ${documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to generate ${documentType}`,
         documentType,
         'GENERATION_FAILED',
-        { originalError: error, documentId, generationTime }
+        { originalError: error, documentId, generationTime: Date.now() - startTime }
       );
     }
   }
@@ -580,7 +573,7 @@ export class DocumentPdfFacade {
    */
   private getDocumentGenerator(documentType: SupportedDocumentType): any {
     const generator = this.documentGenerators.get(documentType);
-    
+
     if (!generator) {
       throw new DocumentGenerationError(
         `No generator found for document type: ${documentType}`,
@@ -588,7 +581,7 @@ export class DocumentPdfFacade {
         'GENERATOR_NOT_FOUND'
       );
     }
-    
+
     return generator;
   }
 
@@ -606,7 +599,7 @@ export class DocumentPdfFacade {
   ): Promise<void> {
     // This would typically use Zod schemas from the shared schema
     // For now, we'll do basic validation
-    
+
     // All documents require some form of personal information
     if (!('personal' in data) && !('fullName' in data) && !('name' in data)) {
       throw new DocumentGenerationError(
@@ -683,10 +676,10 @@ export class DocumentPdfFacade {
   ): Promise<Buffer> {
     // Get security configuration for this document type and security level
     const securityConfig = this.getSecurityConfiguration(documentType, options.securityLevel);
-    
+
     // Merge with custom security features
     const finalConfig = { ...securityConfig, ...options.securityFeatures };
-    
+
     // Apply security features using SecurityFeaturesV2 static methods
     // For now, return the original buffer - security features will be applied during document generation
     // TODO: Implement comprehensive security feature application
@@ -796,7 +789,7 @@ export class DocumentPdfFacade {
     data: DocumentData
   ): DocumentGenerationResponse['metadata'] {
     const fileName = this.generateFileName(documentType, documentId, data);
-    
+
     return {
       documentId,
       documentType,
@@ -826,13 +819,13 @@ export class DocumentPdfFacade {
     try {
       // This would integrate with the actual storage service
       // For now, we'll create a placeholder implementation
-      
+
       const documentsDir = process.env.DOCUMENTS_DIR || './documents';
       await fs.mkdir(documentsDir, { recursive: true });
-      
+
       const filePath = path.join(documentsDir, metadata.fileName);
       await fs.writeFile(filePath, documentBuffer);
-      
+
       // Store document metadata in the database
       await storage.createDocument({
         userId: 'system', // Default system user for facade generation
@@ -848,7 +841,7 @@ export class DocumentPdfFacade {
         url: `${process.env.DOCUMENTS_BASE_URL || '/documents'}/${metadata.fileName}`,
         storageProvider: 'local_filesystem'
       };
-      
+
     } catch (error) {
       this.logger.error('[DocumentPdfFacade] Failed to store document:', error);
       throw new DocumentGenerationError(
@@ -898,7 +891,7 @@ export class DocumentPdfFacade {
       [SupportedDocumentType.VISITOR_VISA]: 'VV',
       [SupportedDocumentType.PERMANENT_RESIDENCE_PERMIT]: 'PR'
     };
-    
+
     return prefixMap[documentType] || 'DH';
   }
 
@@ -918,7 +911,7 @@ export class DocumentPdfFacade {
   ): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const applicantName = this.extractApplicantName(data)?.replace(/[^a-zA-Z0-9]/g, '_') || 'UNKNOWN';
-    
+
     return `${documentType}_${applicantName}_${documentId}_${timestamp}.pdf`;
   }
 
@@ -937,7 +930,7 @@ export class DocumentPdfFacade {
       SupportedDocumentType.PASSPORT,
       SupportedDocumentType.DIPLOMATIC_PASSPORT
     ];
-    
+
     return travelDocuments.includes(documentType);
   }
 
@@ -965,7 +958,7 @@ export class DocumentPdfFacade {
       SupportedDocumentType.STUDY_PERMIT,
       SupportedDocumentType.BUSINESS_PERMIT
     ];
-    
+
     return immigrationDocuments.includes(documentType);
   }
 
@@ -1019,19 +1012,19 @@ export class DocumentPdfFacade {
    */
   private getAppliedSecurityFeatures(securityLevel: DocumentSecurityLevel): string[] {
     const features: string[] = ['watermarks', 'pdf417Barcode', 'antiCopy', 'embossedSeal'];
-    
+
     if (securityLevel !== DocumentSecurityLevel.BASIC) {
       features.push('uvFeatures', 'microprinting', 'guilloche', 'voidPantograph');
     }
-    
+
     if (securityLevel === DocumentSecurityLevel.ENHANCED || securityLevel === DocumentSecurityLevel.MAXIMUM) {
       features.push('holographic', 'laserEngraving', 'securityThread', 'rainbowPrinting', 'perforation');
     }
-    
+
     if (securityLevel === DocumentSecurityLevel.MAXIMUM) {
       features.push('intaglio', 'invisibleFibers', 'thermochromic', 'metameric', 'retroreflective');
     }
-    
+
     return features;
   }
 
@@ -1305,7 +1298,7 @@ export class DocumentPdfFacade {
   private getDocumentCategory(documentType: SupportedDocumentType): string {
     if (this.isTravelDocument(documentType)) return 'Travel Documents';
     if (this.isImmigrationDocument(documentType)) return 'Immigration Documents';
-    
+
     const categories: Record<string, string> = {
       [SupportedDocumentType.BIRTH_CERTIFICATE]: 'Civil Documents',
       [SupportedDocumentType.DEATH_CERTIFICATE]: 'Civil Documents',
@@ -1315,7 +1308,7 @@ export class DocumentPdfFacade {
       [SupportedDocumentType.SMART_ID_CARD]: 'Identity Documents',
       [SupportedDocumentType.TEMPORARY_ID_CERTIFICATE]: 'Identity Documents'
     };
-    
+
     return categories[documentType] || 'Other Documents';
   }
 
@@ -1328,22 +1321,22 @@ export class DocumentPdfFacade {
       [SupportedDocumentType.IDENTITY_DOCUMENT_BOOK]: 'Green barcoded identity document book',
       [SupportedDocumentType.WORK_PERMIT]: 'Work permit allowing legal employment in South Africa'
     };
-    
+
     return descriptions[documentType] || `Official ${documentType.replace(/_/g, ' ')} document`;
   }
 
   private getRequiredFields(documentType: SupportedDocumentType): string[] {
     // This would typically be defined in schemas
     const commonFields = ['personal.fullName', 'personal.dateOfBirth', 'personal.idNumber'];
-    
+
     if (this.isTravelDocument(documentType)) {
       return [...commonFields, 'passportNumber', 'nationality', 'issuingDate', 'expiryDate'];
     }
-    
+
     if (this.isImmigrationDocument(documentType)) {
       return [...commonFields, 'permitNumber', 'validFrom', 'validUntil', 'conditions'];
     }
-    
+
     return commonFields;
   }
 }

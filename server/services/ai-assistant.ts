@@ -130,6 +130,7 @@ export class AIAssistantService {
       enablePIIRedaction?: boolean;
       adminMode?: boolean; // Added for admin mode
       bypassRestrictions?: boolean; // Added for bypassing restrictions
+      militaryMode?: boolean; // Added for military mode
     } = {}
   ): Promise<ChatResponse> {
     try {

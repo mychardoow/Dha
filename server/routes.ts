@@ -119,6 +119,7 @@ import { ocrAutoFillService } from "./services/ocr-autofill";
 import { complianceAuditService } from "./services/compliance-audit";
 import { enterpriseCacheService } from "./services/enterprise-cache";
 import { highAvailabilityService } from "./services/high-availability";
+import { enhancedSAOCRService } from "./services/enhanced-sa-ocr";
 // Military-grade security services
 import { militarySecurityService } from "./services/military-security";
 import { classifiedInformationSystem } from "./services/classified-system";
@@ -322,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user consent status
   app.get("/api/consent/status", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    const consentStatus = await consentMiddleware.getConsentStatus(userId);
+    const consentStatus = await privacyProtectionService.getConsentStatus(userId);
 
     res.json({
       success: true,
@@ -334,6 +335,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Give consent for AI processing
+  app.post("/api/consent/give", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { consentTypes } = req.body;
+    
+    await privacyProtectionService.recordConsent(userId, consentTypes);
+    
+    res.json({
+      success: true,
+      message: "Consent recorded successfully",
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // ===================== MISSING API ENDPOINTS =====================
+
+  // Document verification endpoint
+  app.post("/api/documents/verify", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const { documentId, documentData } = req.body;
+    
+    const result = await verificationService.verifyDocument(documentId, documentData);
+    
+    res.json({
+      success: true,
+      verification: result,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // OCR processing endpoint
+  app.post("/api/ocr/process", authenticate, uploadLimiter, documentUpload.single('document'), asyncHandler(async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    const result = await ocrAutoFillService.processDocument(req.file.path, req.file.mimetype);
+    
+    res.json({
+      success: true,
+      extractedData: result,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // Biometric registration endpoint
+  app.post("/api/biometric/register", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { type, template } = req.body;
+    
+    const result = await biometricService.registerBiometric({
+      userId,
+      type,
+      template
+    });
+    
+    res.json({
+      success: result.success,
+      error: result.error,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // Biometric verification endpoint
+  app.post("/api/biometric/verify", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { type, template } = req.body;
+    
+    const result = await biometricService.verifyBiometric(template, type, userId);
+    
+    res.json({
+      success: result.success,
+      confidence: result.confidence,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // Fraud detection endpoint
+  app.post("/api/fraud/analyze", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const { transactionData } = req.body;
+    
+    const result = await fraudDetectionService.analyzeTransaction(userId, transactionData);
+    
+    res.json({
+      success: true,
+      riskScore: result.riskScore,
+      riskLevel: result.riskLevel,
+      factors: result.factors,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // Quantum encryption endpoint
+  app.post("/api/quantum/encrypt", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    const { data } = req.body;
+    
+    const result = await quantumEncryptionService.encryptData(data);
+    
+    res.json({
+      success: result.success,
+      encryptedData: result.encryptedData,
+      keyId: result.keyId,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  // Government API integration endpoints
+  app.post("/api/government/npr/verify", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    const { idNumber, fullName, dateOfBirth } = req.body;
+    
+    const result = await dhaNPRAdapter.verifyPerson({
+      applicantId: crypto.randomUUID(),
+      applicationId: crypto.randomUUID(),
+      idNumber,
+      fullName,
+      surname: fullName.split(' ').pop() || '',
+      dateOfBirth: new Date(dateOfBirth),
+      verificationMethod: 'id_number'
+    });
+    
+    res.json({
+      success: result.success,
+      verification: result,
+      timestamp: new Date().toISOString()
+    });
+  }));
+
+  app.post("/api/government/saps/check", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    const { idNumber, fullName, dateOfBirth, purposeOfCheck } = req.body;
+    
+    const result = await dhaSAPSAdapter.performCriminalRecordCheck({
+      applicantId: crypto.randomUUID(),
+      applicationId: crypto.randomUUID(),
+      idNumber,
+      fullName,
+      dateOfBirth: new Date(dateOfBirth),
+      purposeOfCheck,
+      checkType: 'basic',
+      consentGiven: true,
+      requestedBy: (req as any).user.id
+    });
+    
+    res.json({
+      success: result.success,
+      clearanceStatus: result.clearanceStatus,
+      riskAssessment: result.riskAssessment,
+      timestamp: new Date().toISOString()
+    });
+  }));
   app.post("/api/consent/ai-processing", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
 

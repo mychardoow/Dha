@@ -1,17 +1,19 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { configService, config } from "./middleware/provider-config";
+import { createServer } from 'http'; // Import createServer
+import { initializeWebSocket } from './websocket'; // Assuming this is the correct path for WebSocket initialization
 
 // Load environment variables if .env file exists
 try {
   const fs = await import('fs');
   const path = await import('path');
   const envPath = path.join(process.cwd(), '.env');
-  
+
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     const envVars = envContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
-    
+
     envVars.forEach(line => {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
@@ -21,7 +23,7 @@ try {
         }
       }
     });
-    
+
     console.log('[Environment] Loaded environment variables from .env file');
   }
 } catch (error) {
@@ -351,14 +353,14 @@ async function initializeServer() {
           },
           {
             id: "identity_document_book",
-            type: "identity_document_book", 
+            type: "identity_document_book",
             name: "Identity Document Book",
             displayName: "Identity Document Book",
             description: "Traditional green book identity document",
             category: "identity",
             formNumber: "BI-9",
             icon: "BookOpen",
-            color: "bg-green-500", 
+            color: "bg-green-500",
             isImplemented: true,
             requirements: ["SA Citizenship", "Proof of Identity", "Proof of Residence", "Photographs"],
             securityFeatures: ["Security Paper", "Watermarks", "Microprint", "Serial Numbers"],
@@ -368,7 +370,7 @@ async function initializeServer() {
           {
             id: "temporary_id_certificate",
             type: "temporary_id_certificate",
-            name: "Temporary ID Certificate", 
+            name: "Temporary ID Certificate",
             displayName: "Temporary ID Certificate",
             description: "Temporary identity certificate for urgent cases",
             category: "identity",
@@ -387,7 +389,7 @@ async function initializeServer() {
             id: "south_african_passport",
             type: "south_african_passport",
             name: "South African Passport",
-            displayName: "South African Passport", 
+            displayName: "South African Passport",
             description: "Machine-readable South African passport with ICAO compliance",
             category: "travel",
             formNumber: "DHA-73",
@@ -400,12 +402,12 @@ async function initializeServer() {
             fees: "R400.00"
           },
           {
-            id: "emergency_travel_certificate", 
+            id: "emergency_travel_certificate",
             type: "emergency_travel_certificate",
             name: "Emergency Travel Certificate",
             displayName: "Emergency Travel Certificate",
             description: "Emergency travel document for urgent travel situations",
-            category: "travel", 
+            category: "travel",
             formNumber: "DHA-1738",
             icon: "AlertTriangle",
             color: "bg-red-500",
@@ -417,12 +419,12 @@ async function initializeServer() {
           },
           {
             id: "refugee_travel_document",
-            type: "refugee_travel_document", 
+            type: "refugee_travel_document",
             name: "Refugee Travel Document",
             displayName: "Refugee Travel Document",
             description: "UNHCR compliant travel document for refugees",
             category: "travel",
-            formNumber: "DHA-1590", 
+            formNumber: "DHA-1590",
             icon: "Globe",
             color: "bg-teal-500",
             isImplemented: true,
@@ -436,7 +438,7 @@ async function initializeServer() {
           {
             id: "birth_certificate",
             type: "birth_certificate",
-            name: "Birth Certificate", 
+            name: "Birth Certificate",
             displayName: "Birth Certificate",
             description: "Official birth certificate (unabridged format)",
             category: "civil",
@@ -453,7 +455,7 @@ async function initializeServer() {
             id: "death_certificate",
             type: "death_certificate",
             name: "Death Certificate",
-            displayName: "Death Certificate", 
+            displayName: "Death Certificate",
             description: "Official death certificate with medical details",
             category: "civil",
             formNumber: "BI-1663",
@@ -462,7 +464,7 @@ async function initializeServer() {
             isImplemented: true,
             requirements: ["Death Registration", "Medical Certificate", "Identity Documents"],
             securityFeatures: ["Security Paper", "Official Seal", "Medical Verification"],
-            processingTime: "3-5 working days", 
+            processingTime: "3-5 working days",
             fees: "R75.00"
           },
           {
@@ -473,7 +475,7 @@ async function initializeServer() {
             description: "Official marriage certificate for civil, religious or customary marriages",
             category: "civil",
             formNumber: "BI-130",
-            icon: "Heart", 
+            icon: "Heart",
             color: "bg-rose-500",
             isImplemented: true,
             requirements: ["Marriage Registration", "Identity Documents", "Witness Details"],
@@ -482,7 +484,7 @@ async function initializeServer() {
             fees: "R75.00"
           },
           {
-            id: "divorce_certificate", 
+            id: "divorce_certificate",
             type: "divorce_certificate",
             name: "Divorce Certificate",
             displayName: "Divorce Certificate",
@@ -504,7 +506,7 @@ async function initializeServer() {
             type: "general_work_visa",
             name: "General Work Visa",
             displayName: "General Work Visa",
-            description: "General work visa for employment in South Africa", 
+            description: "General work visa for employment in South Africa",
             category: "immigration",
             formNumber: "BI-1738",
             icon: "Briefcase",
@@ -517,7 +519,7 @@ async function initializeServer() {
           },
           {
             id: "critical_skills_work_visa",
-            type: "critical_skills_work_visa", 
+            type: "critical_skills_work_visa",
             name: "Critical Skills Work Visa",
             displayName: "Critical Skills Work Visa",
             description: "Work visa for critical and scarce skills occupations",
@@ -535,7 +537,7 @@ async function initializeServer() {
             id: "intra_company_transfer_work_visa",
             type: "intra_company_transfer_work_visa",
             name: "Intra-Company Transfer Work Visa",
-            displayName: "Intra-Company Transfer Work Visa", 
+            displayName: "Intra-Company Transfer Work Visa",
             description: "Work visa for intra-company transfers",
             category: "immigration",
             formNumber: "DHA-1740",
@@ -556,7 +558,7 @@ async function initializeServer() {
             category: "immigration",
             formNumber: "DHA-1741",
             icon: "Target",
-            color: "bg-emerald-500", 
+            color: "bg-emerald-500",
             isImplemented: true,
             requirements: ["Business Plan", "Financial Proof", "Investment Capital"],
             securityFeatures: ["Business Verification", "Financial Assessment", "Investment Tracking"],
@@ -569,7 +571,7 @@ async function initializeServer() {
             name: "Study Visa/Permit",
             displayName: "Study Visa/Permit",
             description: "Study visa for international students",
-            category: "immigration", 
+            category: "immigration",
             formNumber: "DHA-1742",
             icon: "BookOpen",
             color: "bg-blue-400",
@@ -592,7 +594,7 @@ async function initializeServer() {
             isImplemented: true,
             requirements: ["Travel Itinerary", "Financial Proof", "Accommodation"],
             securityFeatures: ["Travel Verification", "Purpose Documentation", "Duration Control"],
-            processingTime: "2-4 weeks", 
+            processingTime: "2-4 weeks",
             fees: "R425.00"
           },
           {
@@ -614,7 +616,7 @@ async function initializeServer() {
           {
             id: "retired_person_visa",
             type: "retired_person_visa",
-            name: "Retired Person's Visa", 
+            name: "Retired Person's Visa",
             displayName: "Retired Person's Visa",
             description: "Visa for retired persons",
             category: "immigration",
@@ -651,7 +653,7 @@ async function initializeServer() {
             description: "Visa for visiting relatives",
             category: "immigration",
             formNumber: "DHA-1747",
-            icon: "Users", 
+            icon: "Users",
             color: "bg-orange-400",
             isImplemented: true,
             requirements: ["Relationship Proof", "Invitation Letter", "Financial Support"],
@@ -713,33 +715,33 @@ async function initializeServer() {
 
         // Categories for organization
         const categories = {
-          identity: { 
-            name: "Identity Documents", 
-            icon: "UserCheck", 
+          identity: {
+            name: "Identity Documents",
+            icon: "UserCheck",
             color: "text-blue-600",
             count: documentTemplates.filter(doc => doc.category === 'identity').length
           },
-          travel: { 
-            name: "Travel Documents", 
-            icon: "Plane", 
+          travel: {
+            name: "Travel Documents",
+            icon: "Plane",
             color: "text-purple-600",
             count: documentTemplates.filter(doc => doc.category === 'travel').length
           },
-          civil: { 
-            name: "Civil Documents", 
-            icon: "FileText", 
+          civil: {
+            name: "Civil Documents",
+            icon: "FileText",
             color: "text-pink-600",
             count: documentTemplates.filter(doc => doc.category === 'civil').length
           },
-          immigration: { 
-            name: "Immigration Documents", 
-            icon: "Globe", 
+          immigration: {
+            name: "Immigration Documents",
+            icon: "Globe",
             color: "text-indigo-600",
             count: documentTemplates.filter(doc => doc.category === 'immigration').length
           },
-          certification: { 
-            name: "Official Certificates", 
-            icon: "Award", 
+          certification: {
+            name: "Official Certificates",
+            icon: "Award",
             color: "text-emerald-600",
             count: documentTemplates.filter(doc => doc.category === 'certification').length
           }
@@ -758,9 +760,9 @@ async function initializeServer() {
 
       } catch (error) {
         console.error('[Templates] Error fetching document templates:', error);
-        res.status(500).json({ 
+        res.status(500).json({
           success: false,
-          error: 'Failed to fetch document templates', 
+          error: 'Failed to fetch document templates',
           details: (error as Error).message,
           timestamp: new Date().toISOString()
         });
@@ -811,7 +813,7 @@ async function initializeServer() {
     } else {
       console.warn(`API route not found: ${req.method} ${req.originalUrl}`);
     }
-    res.status(404).json({ 
+    res.status(404).json({
       error: 'API endpoint not found',
       path: req.originalUrl,
       method: req.method
@@ -839,7 +841,7 @@ async function initializeServer() {
       });
     }
 
-    res.status(status).json({ 
+    res.status(status).json({
       error: message,
       ...(configService.isDevelopment() && { stack: err.stack })
     });
@@ -875,39 +877,39 @@ async function initializeServer() {
       const path = await import('path');
       const fs = await import('fs');
 
-    // Primary fallback: serve built files from dist/public
-    app.use(express.static('dist/public'));
+      // Primary fallback: serve built files from dist/public
+      app.use(express.static('dist/public'));
 
-    // Check if built index.html exists
-    const builtIndexPath = path.join(process.cwd(), 'dist/public/index.html');
-    const devIndexPath = path.join(process.cwd(), 'client/index.html');
+      // Check if built index.html exists
+      const builtIndexPath = path.join(process.cwd(), 'dist/public/index.html');
+      const devIndexPath = path.join(process.cwd(), 'client/index.html');
 
-    if (fs.existsSync(builtIndexPath)) {
-      // Production-like fallback: serve built index.html for all non-API routes
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(builtIndexPath);
-        }
-      });
-      console.log('[Server] Using built files from dist/public');
-    } else if (fs.existsSync(devIndexPath)) {
-      // Development fallback: serve client files directly
-      app.use(express.static('client'));
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(devIndexPath);
-        }
-      });
-      console.log('[Server] Using development files from client/');
-    } else {
-      // Last resort: serve a basic response
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.send('<h1>DHA Digital Services Platform</h1><p>Frontend not found. Please run: npm run build</p>');
-        }
-      });
-      console.warn('[Server] No frontend files found, serving basic response');
-    }
+      if (fs.existsSync(builtIndexPath)) {
+        // Production-like fallback: serve built index.html for all non-API routes
+        app.get('*', (req, res) => {
+          if (!req.path.startsWith('/api')) {
+            res.sendFile(builtIndexPath);
+          }
+        });
+        console.log('[Server] Using built files from dist/public');
+      } else if (fs.existsSync(devIndexPath)) {
+        // Development fallback: serve client files directly
+        app.use(express.static('client'));
+        app.get('*', (req, res) => {
+          if (!req.path.startsWith('/api')) {
+            res.sendFile(devIndexPath);
+          }
+        });
+        console.log('[Server] Using development files from client/');
+      } else {
+        // Last resort: serve a basic response
+        app.get('*', (req, res) => {
+          if (!req.path.startsWith('/api')) {
+            res.send('<h1>DHA Digital Services Platform</h1><p>Frontend not found. Please run: npm run build</p>');
+          }
+        });
+        console.warn('[Server] No frontend files found, serving basic response');
+      }
     } catch (error) {
       console.warn('[Server] Failed to setup static file serving:', error);
       // Basic fallback - serve a simple response
@@ -955,43 +957,67 @@ async function initializeServer() {
 }
 
 // Initialize the server with proper error handling
-initializeServer().catch((error) => {
-  console.error('FATAL: Server initialization failed:', error);
-  console.error('Stack:', error.stack);
+async function startApplication() {
+  try {
+    // Initialize critical services first
+    const { nanosecondMonitoringService } = await import('./services/nanosecond-monitoring-service');
+    const { autoRecoveryService } = await import('./services/auto-recovery');
+    const { optimizedCacheService } = await import('./services/optimized-cache');
 
-  // In preview mode, try to continue with basic server
-  if (isPreviewMode()) {
-    console.log('[Server] Attempting to start basic fallback server...');
+    nanosecondMonitoringService.startMonitoring();
+    console.log('[Startup] Nanosecond monitoring started.');
 
-    // Create a basic fallback server
-    const fallbackApp = express();
-    fallbackApp.use(express.json());
+    await autoRecoveryService.initialize();
+    console.log('[Startup] Auto-recovery service initialized.');
 
-    fallbackApp.get('/api/health/basic', (req, res) => {
-      res.json({
-        status: 'fallback',
-        message: 'Basic server running after initialization failure',
-        timestamp: new Date().toISOString(),
-        error: 'Main server initialization failed'
-      });
-    });
+    optimizedCacheService.initialize();
+    console.log('[Startup] Cache service initialized.');
 
-    fallbackApp.get('*', (req, res) => {
-      if (req.path.startsWith('/api')) {
-        res.status(503).json({ 
-          error: 'Service temporarily unavailable - server initialization failed',
-          fallback: true
+    // Now, initialize the server with all its middleware and routes
+    await initializeServer();
+    console.log('[Startup] Server initialization process completed.');
+
+  } catch (error) {
+    console.error('FATAL: Application startup failed:', error);
+    console.error('Stack:', (error as Error).stack);
+
+    // In preview mode, try to continue with basic server
+    if (isPreviewMode()) {
+      console.log('[Server] Attempting to start basic fallback server due to startup failure...');
+
+      // Create a basic fallback server
+      const fallbackApp = express();
+      fallbackApp.use(express.json());
+
+      fallbackApp.get('/api/health/basic', (req, res) => {
+        res.json({
+          status: 'fallback',
+          message: 'Basic server running after initialization failure',
+          timestamp: new Date().toISOString(),
+          error: 'Main server initialization failed'
         });
-      } else {
-        res.send('<h1>DHA Digital Services Platform</h1><p>Server starting in fallback mode...</p>');
-      }
-    });
+      });
 
-    const port = config.PORT;
-    fallbackApp.listen(port, '0.0.0.0', () => {
-      console.log(`[Server] Fallback server running on port ${port}`);
-    });
-  } else {
-    process.exit(1);
+      fallbackApp.get('*', (req, res) => {
+        if (req.path.startsWith('/api')) {
+          res.status(503).json({
+            error: 'Service temporarily unavailable - server initialization failed',
+            fallback: true
+          });
+        } else {
+          res.send('<h1>DHA Digital Services Platform</h1><p>Server starting in fallback mode...</p>');
+        }
+      });
+
+      const port = config.PORT;
+      fallbackApp.listen(port, '0.0.0.0', () => {
+        console.log(`[Server] Fallback server running on port ${port}`);
+      });
+    } else {
+      process.exit(1); // Exit if not in preview mode
+    }
   }
-});
+}
+
+// Start the application
+startApplication();
