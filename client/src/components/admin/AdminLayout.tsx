@@ -88,10 +88,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20 lg:pb-0">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-border shadow-sm">
-        <div className="flex items-center justify-between h-16 px-4 lg:px-8">
+      <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-border shadow-sm safe-area-top">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
           <div className="flex items-center space-x-4">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
               <SheetTrigger asChild>
@@ -106,10 +106,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             
             <Link href="/admin/dashboard">
               <div className="flex items-center space-x-2 cursor-pointer">
-                <Shield className="h-6 w-6 text-primary" />
+                <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 <div>
-                  <h1 className="text-lg font-bold text-foreground">DHA Admin Portal</h1>
-                  <p className="text-xs text-muted-foreground">Digital Services Management</p>
+                  <h1 className="text-base sm:text-lg font-bold text-foreground">DHA Admin Portal</h1>
+                  <p className="text-xs text-muted-foreground hidden sm:block">Digital Services Management</p>
                 </div>
               </div>
             </Link>
@@ -160,7 +160,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 lg:ml-64">
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {children}
           </div>
         </main>

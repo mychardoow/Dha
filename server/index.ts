@@ -30,8 +30,9 @@ try {
   console.warn('[Environment] Could not load .env file:', error);
 }
 
-// Environment detection utilities - using centralized config
-const isPreviewMode = (): boolean => configService.isPreviewMode();
+// Environment detection utilities - production ready
+const isProductionMode = (): boolean => process.env.NODE_ENV === 'production';
+const isDevelopmentMode = (): boolean => process.env.NODE_ENV === 'development';
 
 // Coordinated shutdown management
 class ShutdownManager {
@@ -82,8 +83,8 @@ process.on('uncaughtException', (error: Error) => {
   console.error('CRITICAL: Uncaught Exception:', error);
   console.error('Stack:', error.stack);
 
-  if (isPreviewMode() || configService.isDevelopment()) {
-    console.log('[Error] Continuing despite uncaught exception in preview/dev mode...');
+  if (configService.isDevelopment()) {
+    console.log('[Error] Continuing despite uncaught exception in development mode...');
   } else {
     console.log('[Error] Exiting due to uncaught exception in production...');
     shutdownManager.shutdown('uncaught exception').catch(() => {
@@ -96,8 +97,8 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('CRITICAL: Unhandled Promise Rejection at:', promise);
   console.error('Reason:', reason);
 
-  if (isPreviewMode() || configService.isDevelopment()) {
-    console.log('[Error] Continuing despite unhandled rejection in preview/dev mode...');
+  if (configService.isDevelopment()) {
+    console.log('[Error] Continuing despite unhandled rejection in development mode...');
   } else {
     console.log('[Error] Exiting due to unhandled rejection in production...');
     shutdownManager.shutdown('unhandled rejection').catch(() => {
@@ -115,20 +116,25 @@ process.on('SIGINT', () => {
   shutdownManager.shutdown('SIGINT received');
 });
 
-// Setup keepalive only in preview mode
-let keepaliveInterval: NodeJS.Timeout | null = null;
-if (isPreviewMode()) {
-  console.log('[Keepalive] Setting up preview mode keepalive...');
-  keepaliveInterval = setInterval(() => {
-    // Silent heartbeat to keep process alive in preview mode
-  }, 30000);
-
-  shutdownManager.addShutdownHandler('keepalive-cleanup', async () => {
-    if (keepaliveInterval) {
-      clearInterval(keepaliveInterval);
-      console.log('[Keepalive] Cleared keepalive interval');
-    }
+// Production deployment - configure for high availability
+if (isProductionMode()) {
+  console.log('[Server] Production mode - configuring high availability');
+  
+  // Production-specific configurations
+  process.env.NODE_OPTIONS = '--max-old-space-size=2048';
+  
+  // Graceful shutdown handling
+  process.on('SIGTERM', () => {
+    console.log('[Server] SIGTERM received, starting graceful shutdown');
+    process.exit(0);
   });
+  
+  process.on('SIGINT', () => {
+    console.log('[Server] SIGINT received, starting graceful shutdown');
+    process.exit(0);
+  });
+} else {
+  console.log('[Server] Development mode - standard configuration');
 }
 
 // Defer heavy imports to allow server to start even if they fail
@@ -946,7 +952,9 @@ async function initializeServer() {
     logFn(`
 ═══════════════════════════════════════════════════════════════
   DHA Digital Services Platform - SERVER READY
-  🌐 URL: http://localhost:${port}
+  🌐 Local: http://localhost:${port}
+  🌐 Network: http://0.0.0.0:${port}
+  📱 Mobile: Access via Replit preview or network IP
   📊 Health Check: http://localhost:${port}/api/health
   🔗 Preview: Available in Replit preview
 ═══════════════════════════════════════════════════════════════

@@ -244,8 +244,16 @@ export class NanosecondMonitoringService extends EventEmitter {
   private async measureNetworkLatency(): Promise<number> {
     const start = performance.now();
     try {
-      // Test connection to database
-      await fetch('http://localhost:3000/health', { method: 'GET', timeout: 1000 });
+      // Test connection to actual health endpoint
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1000);
+      
+      await fetch('http://0.0.0.0:5000/api/health', { 
+        method: 'GET',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
       return performance.now() - start;
     } catch (error) {
       return -1; // Error indicator
@@ -257,28 +265,20 @@ export class NanosecondMonitoringService extends EventEmitter {
    */
   private async measureDiskIO(): Promise<DiskIOMetrics> {
     const start = performance.now();
-    const testFile = '/tmp/io_test_' + crypto.randomBytes(8).toString('hex');
     
     try {
-      // Write test
-      const writeStart = performance.now();
-      await fs.writeFile(testFile, 'test data for I/O measurement');
-      const writeLatency = performance.now() - writeStart;
-      
-      // Read test
-      const readStart = performance.now();
-      await fs.readFile(testFile);
-      const readLatency = performance.now() - readStart;
-      
-      // Cleanup
-      await fs.unlink(testFile);
+      // Use actual application directories for real I/O measurement
+      const statsStart = performance.now();
+      await fs.stat('./server');
+      await fs.readdir('./server');
+      const ioLatency = performance.now() - statsStart;
       
       return {
-        readOps: 1,
-        writeOps: 1,
-        readBytes: 34,
-        writeBytes: 34,
-        ioLatency: (writeLatency + readLatency) / 2
+        readOps: 2,
+        writeOps: 0,
+        readBytes: 0,
+        writeBytes: 0,
+        ioLatency
       };
     } catch (error) {
       return {

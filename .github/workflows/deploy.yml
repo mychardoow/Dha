@@ -33,12 +33,37 @@ jobs:
         NODE_ENV: production
         JWT_SECRET: ${{ secrets.JWT_SECRET }}
         SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+        VITE_ENCRYPTION_KEY: ${{ secrets.VITE_ENCRYPTION_KEY }}
+        MASTER_ENCRYPTION_KEY: ${{ secrets.MASTER_ENCRYPTION_KEY }}
+        QUANTUM_ENCRYPTION_KEY: ${{ secrets.QUANTUM_ENCRYPTION_KEY }}
+        BIOMETRIC_ENCRYPTION_KEY: ${{ secrets.BIOMETRIC_ENCRYPTION_KEY }}
+        DOCUMENT_SIGNING_KEY: ${{ secrets.DOCUMENT_SIGNING_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         DHA_NPR_API_KEY: ${{ secrets.DHA_NPR_API_KEY }}
+        DHA_ABIS_API_KEY: ${{ secrets.DHA_ABIS_API_KEY }}
         ICAO_PKD_API_KEY: ${{ secrets.ICAO_PKD_API_KEY }}
         SAPS_CRC_API_KEY: ${{ secrets.SAPS_CRC_API_KEY }}
-        DHA_ABIS_API_KEY: ${{ secrets.DHA_ABIS_API_KEY }}
+        SITA_ESERVICES_API_KEY: ${{ secrets.SITA_ESERVICES_API_KEY }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+        # Government API Endpoints
+        DHA_NPR_API_ENDPOINT: ${{ secrets.DHA_NPR_API_ENDPOINT }}
+        SAPS_CRC_API_ENDPOINT: ${{ secrets.SAPS_CRC_API_ENDPOINT }}
+        ICAO_PKD_API_ENDPOINT: ${{ secrets.ICAO_PKD_API_ENDPOINT }}
+        DHA_ABIS_API_ENDPOINT: ${{ secrets.DHA_ABIS_API_ENDPOINT }}
+        SITA_ESERVICES_API_ENDPOINT: ${{ secrets.SITA_ESERVICES_API_ENDPOINT }}
+
+        # Feature Flags for Production
+        DHA_NPR_ENABLED: "true"
+        SAPS_CRC_ENABLED: "true" 
+        DHA_ABIS_ENABLED: "true"
+        ICAO_PKD_ENABLED: "true"
+        SITA_ESERVICES_ENABLED: "true"
+        MONITORING_ENABLED: "true"
+        AUDIT_LOGGING_ENABLED: "true"
     
     - name: Prepare Netlify deployment artifacts
       run: |

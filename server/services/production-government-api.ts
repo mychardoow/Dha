@@ -15,382 +15,223 @@
  */
 
 import crypto from "crypto";
-import https from "https";
-import fs from "fs/promises";
+// import https from "https"; // Not used in the new implementation
+// import fs from "fs/promises"; // Not used in the new implementation
 // SECURITY: Updated to use centralized configuration service
-import { configService, config } from "../middleware/provider-config";
-import { storage } from "../storage";
+// import { configService, config } from "../middleware/provider-config"; // Not used in the new implementation
+// import { storage } from "../storage"; // Not used in the new implementation
 
-export interface GovernmentApiCredentials {
-  apiKey: string;
-  clientId?: string;
-  clientSecret?: string;
-  certificatePath?: string;
-  privateKeyPath?: string;
-  environment: 'production' | 'staging' | 'development';
-}
+// Removed original GovernmentApiCredentials, ApiRequest, ApiResponse interfaces as they are not used in the new implementation.
+// Removed original ProductionGovernmentApi class.
 
-export interface ApiRequest {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  endpoint: string;
-  headers?: Record<string, string>;
-  data?: any;
-  timeout?: number;
-  retries?: number;
-}
-
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  statusCode: number;
-  headers: Record<string, string>;
-  requestId: string;
-  responseTime: number;
-  rateLimit?: {
-    limit: number;
-    remaining: number;
-    resetTime: Date;
-  };
-}
-
-/**
- * Production Government API Client
- */
-export class ProductionGovernmentApi {
-  private credentials: Map<string, GovernmentApiCredentials>;
-  private httpsAgents: Map<string, https.Agent>;
-  private baseUrls: Map<string, string>;
-  private rateLimiters: Map<string, { requests: number; windowStart: Date }>;
+export class ProductionGovernmentAPIService {
+  private readonly DHA_NPR_ENDPOINT: string;
+  private readonly SAPS_CRC_ENDPOINT: string;
+  private readonly ICAO_PKD_ENDPOINT: string;
+  private readonly DHA_ABIS_ENDPOINT: string;
+  private readonly SITA_ESERVICES_ENDPOINT: string;
 
   constructor() {
-    this.credentials = new Map();
-    this.httpsAgents = new Map();
-    this.baseUrls = new Map();
-    this.rateLimiters = new Map();
-    this.initializeServices();
+    this.DHA_NPR_ENDPOINT = process.env.DHA_NPR_API_ENDPOINT || 'https://api.dha.gov.za/npr/v1';
+    this.SAPS_CRC_ENDPOINT = process.env.SAPS_CRC_API_ENDPOINT || 'https://api.saps.gov.za/crc/v1';
+    this.ICAO_PKD_ENDPOINT = process.env.ICAO_PKD_API_ENDPOINT || 'https://pkddownloadsg.icao.int/api/v1';
+    this.DHA_ABIS_ENDPOINT = process.env.DHA_ABIS_API_ENDPOINT || 'https://api.dha.gov.za/abis/v1';
+    this.SITA_ESERVICES_ENDPOINT = process.env.SITA_ESERVICES_API_ENDPOINT || 'https://api.sita.co.za/eservices/v1';
   }
 
-  /**
-   * Initialize all government services with production endpoints
-   */
-  private async initializeServices(): Promise<void> {
-    // DHA NPR (National Population Register)
-    this.baseUrls.set('dha-npr', process.env.DHA_NPR_BASE_URL || 'https://npr-api.dha.gov.za/v2');
-    this.credentials.set('dha-npr', {
-      apiKey: process.env.DHA_NPR_API_KEY || '',
-      clientId: process.env.DHA_NPR_CLIENT_ID || '',
-      clientSecret: process.env.DHA_NPR_CLIENT_SECRET || '',
-      certificatePath: process.env.DHA_NPR_CLIENT_CERT || '',
-      privateKeyPath: process.env.DHA_NPR_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
+  async verifyIdentity(idNumber: string, biometricData?: any): Promise<any> {
+    const headers = {
+      'Authorization': `Bearer ${process.env.DHA_NPR_API_KEY}`,
+      'Content-Type': 'application/json',
+      'X-Client-ID': process.env.DHA_CLIENT_ID || 'dha-digital-services',
+      'X-Request-ID': crypto.randomUUID()
+    };
 
-    // SAPS Criminal Record Check
-    this.baseUrls.set('saps-crc', process.env.SAPS_CRC_BASE_URL || 'https://crc-api.saps.gov.za/v1');
-    this.credentials.set('saps-crc', {
-      apiKey: process.env.SAPS_API_KEY || process.env.SAPS_CRC_API_KEY || '',
-      clientId: process.env.SAPS_CLIENT_ID || '',
-      clientSecret: process.env.SAPS_CLIENT_SECRET || '',
-      certificatePath: process.env.SAPS_CLIENT_CERT || '',
-      privateKeyPath: process.env.SAPS_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
+    try {
+      const response = await fetch(`${this.DHA_NPR_ENDPOINT}/identity/verify`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          idNumber,
+          biometricData,
+          requestTimestamp: new Date().toISOString()
+        })
+      });
 
-    // DHA ABIS (Automated Biometric Identification System)
-    this.baseUrls.set('dha-abis', process.env.DHA_ABIS_BASE_URL || 'https://abis-api.dha.gov.za/v1');
-    this.credentials.set('dha-abis', {
-      apiKey: process.env.DHA_ABIS_API_KEY || '',
-      certificatePath: process.env.DHA_ABIS_CLIENT_CERT || '',
-      privateKeyPath: process.env.DHA_ABIS_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
+      if (!response.ok) {
+        throw new Error(`DHA NPR API error: ${response.status} ${response.statusText}`);
+      }
 
-    // ICAO PKD (Public Key Directory)
-    this.baseUrls.set('icao-pkd', process.env.ICAO_PKD_BASE_URL || 'https://pkddownloadsg.icao.int');
-    this.credentials.set('icao-pkd', {
-      apiKey: process.env.ICAO_PKD_API_KEY || '',
-      clientId: process.env.ICAO_PKD_CLIENT_ID || '',
-      certificatePath: process.env.ICAO_PKD_CLIENT_CERT || '',
-      privateKeyPath: process.env.ICAO_PKD_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
-
-    // SITA eServices
-    this.baseUrls.set('sita-eservices', process.env.SITA_BASE_URL || 'https://api.sita.co.za');
-    this.credentials.set('sita-eservices', {
-      apiKey: process.env.SITA_API_KEY || '',
-      clientId: process.env.SITA_CLIENT_ID || '',
-      clientSecret: process.env.SITA_CLIENT_SECRET || '',
-      certificatePath: process.env.SITA_CLIENT_CERT || '',
-      privateKeyPath: process.env.SITA_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
-
-    // DHA Home Affairs Database
-    this.baseUrls.set('dha-home-affairs', process.env.DHA_HOME_AFFAIRS_BASE_URL || 'https://homeaffairs-api.dha.gov.za/v1');
-    this.credentials.set('dha-home-affairs', {
-      apiKey: process.env.DHA_HOME_AFFAIRS_API_KEY || '',
-      certificatePath: process.env.DHA_HOME_AFFAIRS_CLIENT_CERT || '',
-      privateKeyPath: process.env.DHA_HOME_AFFAIRS_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
-
-    // Government Payment Gateway
-    this.baseUrls.set('gov-payment', process.env.GOV_PAYMENT_BASE_URL || 'https://payments.gov.za/api/v1');
-    this.credentials.set('gov-payment', {
-      apiKey: process.env.GOVERNMENT_PAYMENT_GATEWAY_KEY || '',
-      clientId: process.env.GOV_PAYMENT_CLIENT_ID || '',
-      clientSecret: process.env.GOV_PAYMENT_CLIENT_SECRET || '',
-      certificatePath: process.env.GOV_PAYMENT_CLIENT_CERT || '',
-      privateKeyPath: process.env.GOV_PAYMENT_PRIVATE_KEY || '',
-      environment: (process.env.NODE_ENV as any) || 'development'
-    });
-
-    // Initialize HTTPS agents with client certificates for mutual TLS
-    await this.initializeHttpsAgents();
-
-    console.log('[Production Government API] All services initialized');
+      return await response.json();
+    } catch (error) {
+      console.error('DHA NPR identity verification failed:', error);
+      throw error;
+    }
   }
 
-  /**
-   * Initialize HTTPS agents with client certificates for mutual TLS authentication
-   */
-  private async initializeHttpsAgents(): Promise<void> {
-    for (const [service, creds] of Array.from(this.credentials.entries())) {
-      if (creds.certificatePath && creds.privateKeyPath) {
+  async performBackgroundCheck(idNumber: string, purpose: string): Promise<any> {
+    const headers = {
+      'Authorization': `Bearer ${process.env.SAPS_CRC_API_KEY}`,
+      'Content-Type': 'application/json',
+      'X-Purpose': purpose,
+      'X-Request-ID': crypto.randomUUID()
+    };
+
+    try {
+      const response = await fetch(`${this.SAPS_CRC_ENDPOINT}/background-check`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          idNumber,
+          purpose,
+          requestedBy: 'DHA Digital Services',
+          requestTimestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`SAPS CRC API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('SAPS CRC background check failed:', error);
+      throw error;
+    }
+  }
+
+  async validatePassport(passportNumber: string, countryCode: string): Promise<any> {
+    const headers = {
+      'Authorization': `Bearer ${process.env.ICAO_PKD_API_KEY}`,
+      'Content-Type': 'application/json',
+      'X-Country-Code': countryCode,
+      'X-Request-ID': crypto.randomUUID()
+    };
+
+    try {
+      const response = await fetch(`${this.ICAO_PKD_ENDPOINT}/passport/validate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          passportNumber,
+          countryCode,
+          requestTimestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`ICAO PKD API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('ICAO PKD passport validation failed:', error);
+      throw error;
+    }
+  }
+
+  async biometricAuthentication(template: any, operation: string): Promise<any> {
+    const headers = {
+      'Authorization': `Bearer ${process.env.DHA_ABIS_API_KEY}`,
+      'Content-Type': 'application/json',
+      'X-Operation': operation,
+      'X-Request-ID': crypto.randomUUID()
+    };
+
+    try {
+      const response = await fetch(`${this.DHA_ABIS_ENDPOINT}/biometric/authenticate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          template,
+          operation,
+          qualityThreshold: 80,
+          requestTimestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`DHA ABIS API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('DHA ABIS biometric authentication failed:', error);
+      throw error;
+    }
+  }
+
+  async processGovernmentWorkflow(workflowType: string, data: any): Promise<any> {
+    const headers = {
+      'Authorization': `Bearer ${process.env.SITA_ESERVICES_API_KEY}`,
+      'Content-Type': 'application/json',
+      'X-Workflow-Type': workflowType,
+      'X-Request-ID': crypto.randomUUID()
+    };
+
+    try {
+      const response = await fetch(`${this.SITA_ESERVICES_ENDPOINT}/workflow/process`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          workflowType,
+          data,
+          priority: 'high',
+          requestTimestamp: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`SITA eServices API error: ${response.status} ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('SITA eServices workflow processing failed:', error);
+      throw error;
+    }
+  }
+
+  async getServiceHealth(): Promise<any> {
+    const services = [
+      { name: 'DHA NPR', endpoint: `${this.DHA_NPR_ENDPOINT}/health` },
+      { name: 'SAPS CRC', endpoint: `${this.SAPS_CRC_ENDPOINT}/health` },
+      { name: 'ICAO PKD', endpoint: `${this.ICAO_PKD_ENDPOINT}/health` },
+      { name: 'DHA ABIS', endpoint: `${this.DHA_ABIS_ENDPOINT}/health` },
+      { name: 'SITA eServices', endpoint: `${this.SITA_ESERVICES_ENDPOINT}/health` }
+    ];
+
+    const healthChecks = await Promise.allSettled(
+      services.map(async (service) => {
         try {
-          const cert = await fs.readFile(creds.certificatePath);
-          const key = await fs.readFile(creds.privateKeyPath);
-
-          const agent = new https.Agent({
-            cert: cert,
-            key: key,
-            rejectUnauthorized: creds.environment === 'production',
-            keepAlive: true,
-            maxSockets: 10,
-            timeout: 30000
+          const response = await fetch(service.endpoint, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(5000)
           });
 
-          this.httpsAgents.set(service, agent);
-          console.log(`[Production Government API] HTTPS agent initialized for ${service}`);
+          return {
+            service: service.name,
+            status: response.ok ? 'healthy' : 'unhealthy',
+            responseTime: response.headers.get('x-response-time') || 'unknown'
+          };
         } catch (error) {
-          console.warn(`[Production Government API] Failed to initialize HTTPS agent for ${service}:`, error);
+          return {
+            service: service.name,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error'
+          };
         }
-      }
-    }
-  }
+      })
+    );
 
-  /**
-   * Make authenticated request to government API
-   */
-  async makeRequest<T>(service: string, request: ApiRequest): Promise<ApiResponse<T>> {
-    const requestId = crypto.randomUUID();
-    const startTime = Date.now();
-
-    // Check if service should use real API
-    // TODO: Implement service provider configuration if needed
-    if (false) { // Temporarily disabled - service provider config functionality
-      throw new Error(`Service ${service} is not configured for real API usage`);
-    }
-
-    // Rate limiting check
-    if (!this.checkRateLimit(service)) {
-      throw new Error(`Rate limit exceeded for service ${service}`);
-    }
-
-    try {
-      const baseUrl = this.baseUrls.get(service);
-      const credentials = this.credentials.get(service);
-      
-      if (!baseUrl || !credentials) {
-        throw new Error(`Service ${service} not configured`);
-      }
-
-      // Build headers with authentication
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'DHA-Digital-Services/2.0',
-        'X-Request-ID': requestId,
-        'X-Client-Version': '2.0.0',
-        ...request.headers
-      };
-
-      // Add API key authentication
-      if (credentials.apiKey) {
-        headers['Authorization'] = `Bearer ${credentials.apiKey}`;
-        headers['X-API-Key'] = credentials.apiKey;
-      }
-
-      // OAuth 2.0 client credentials if available
-      if (credentials.clientId && credentials.clientSecret) {
-        const accessToken = await this.getOAuthToken(service, credentials);
-        headers['Authorization'] = `Bearer ${accessToken}`;
-      }
-
-      // Make the actual HTTP request
-      const url = `${baseUrl}${request.endpoint}`;
-      const options: any = {
-        method: request.method,
-        headers,
-        timeout: request.timeout || 30000
-      };
-
-      // Add HTTPS agent if available
-      const httpsAgent = this.httpsAgents.get(service);
-      if (httpsAgent) {
-        options.agent = httpsAgent;
-      }
-
-      // Add request body for POST/PUT/PATCH
-      if (request.data && ['POST', 'PUT', 'PATCH'].includes(request.method)) {
-        options.body = JSON.stringify(request.data);
-      }
-
-      console.log(`[Production Government API] Making ${request.method} request to ${service}: ${request.endpoint}`);
-
-      const response = await fetch(url, options);
-      const responseData = await response.json().catch(() => null);
-      const responseTime = Date.now() - startTime;
-
-      // Record success for circuit breaker
-      // TODO: Implement success recording if needed for service provider monitoring
-
-      // Extract rate limit information
-      const rateLimit = {
-        limit: parseInt(response.headers.get('X-RateLimit-Limit') || '0'),
-        remaining: parseInt(response.headers.get('X-RateLimit-Remaining') || '0'),
-        resetTime: new Date(parseInt(response.headers.get('X-RateLimit-Reset') || '0') * 1000)
-      };
-
-      // Log audit event
-      await storage.createSecurityEvent({
-        eventType: 'government_api_request',
-        severity: response.ok ? 'low' : 'medium',
-        details: {
-          service,
-          endpoint: request.endpoint,
-          method: request.method,
-          statusCode: response.status,
-          requestId,
-          responseTime
-        }
-      });
-
-      const apiResponse: ApiResponse<T> = {
-        success: response.ok,
-        data: responseData,
-        error: response.ok ? undefined : `HTTP ${response.status}: ${response.statusText}`,
-        statusCode: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        requestId,
-        responseTime,
-        rateLimit
-      };
-
-      return apiResponse;
-
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      
-      // Record failure for circuit breaker
-      // TODO: Implement failure recording if needed for service provider monitoring
-
-      // Log error
-      await storage.createSecurityEvent({
-        eventType: 'government_api_error',
-        severity: 'high',
-        details: {
-          service,
-          endpoint: request.endpoint,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          requestId,
-          responseTime
-        }
-      });
-
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        statusCode: 500,
-        headers: {},
-        requestId,
-        responseTime
-      };
-    }
-  }
-
-  /**
-   * Get OAuth 2.0 access token using client credentials flow
-   */
-  private async getOAuthToken(service: string, credentials: GovernmentApiCredentials): Promise<string> {
-    // Implementation would vary per service
-    // This is a simplified example
-    const tokenEndpoint = `${this.baseUrls.get(service)}/oauth/token`;
-    
-    const response = await fetch(tokenEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString('base64')}`
-      },
-      body: 'grant_type=client_credentials'
-    });
-
-    const tokenData = await response.json();
-    return tokenData.access_token;
-  }
-
-  /**
-   * Check rate limiting for service
-   */
-  private checkRateLimit(service: string): boolean {
-    const rateLimiter = this.rateLimiters.get(service);
-    const now = new Date();
-    const windowMs = 60000; // 1 minute window
-    const maxRequests = 100; // Adjust per service
-
-    if (!rateLimiter || (now.getTime() - rateLimiter.windowStart.getTime()) > windowMs) {
-      this.rateLimiters.set(service, { requests: 1, windowStart: now });
-      return true;
-    }
-
-    if (rateLimiter.requests >= maxRequests) {
-      return false;
-    }
-
-    rateLimiter.requests++;
-    return true;
-  }
-
-  /**
-   * Get service health status
-   */
-  async getServiceHealth(service: string): Promise<{ status: 'healthy' | 'unhealthy'; responseTime: number; error?: string }> {
-    const startTime = Date.now();
-    
-    try {
-      const response = await this.makeRequest(service, {
-        method: 'GET',
-        endpoint: '/health',
-        timeout: 5000
-      });
-
-      return {
-        status: response.success ? 'healthy' : 'unhealthy',
-        responseTime: Date.now() - startTime,
-        error: response.error
-      };
-    } catch (error) {
-      return {
-        status: 'unhealthy',
-        responseTime: Date.now() - startTime,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
+    return {
+      timestamp: new Date().toISOString(),
+      services: healthChecks.map(result => 
+        result.status === 'fulfilled' ? result.value : result.reason
+      )
+    };
   }
 }
 
-// Export singleton instance
-export const productionGovernmentApi = new ProductionGovernmentApi();
+export const productionGovernmentAPI = new ProductionGovernmentAPIService();

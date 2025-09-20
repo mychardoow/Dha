@@ -18,6 +18,8 @@ import AdminGuard from "./components/admin/AdminGuard";
 import AIChatAssistant from "./components/AIChatAssistant";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -47,12 +49,13 @@ function AdminLoadingFallback() {
 
 function App() {
   const [showAIChat, setShowAIChat] = useState(false);
+  const isMobile = useIsMobile();
   
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ErrorBoundary>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
           <Switch>
             <Route path="/login" component={Login} />
             
@@ -201,13 +204,16 @@ function App() {
         {/* Floating AI Chat Button */}
         {!showAIChat && (
           <Button
-            className="fixed bottom-4 right-4 rounded-full h-14 w-14 shadow-lg z-40"
+            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 rounded-full h-12 w-12 sm:h-14 sm:w-14 shadow-lg z-40 touch-manipulation safe-area-bottom"
             onClick={() => setShowAIChat(true)}
             data-testid="button-open-ai-chat"
           >
-            <MessageSquare className="h-6 w-6" />
+            <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
         )}
+        
+        {/* Mobile Bottom Navigation */}
+        {isMobile && <MobileBottomNav className="pb-safe" />}
         
         <Toaster />
         </ErrorBoundary>

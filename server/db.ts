@@ -5,7 +5,7 @@ import * as schema from "@shared/schema";
 import { configService, config } from './middleware/provider-config';
 
 // Environment detection utility - using centralized config
-const isPreviewMode = (): boolean => configService.isPreviewMode();
+const isPreviewMode = (): boolean => false; // Always false for production
 
 // Simple shutdown manager for database cleanup
 class DatabaseShutdownManager {
@@ -16,12 +16,7 @@ class DatabaseShutdownManager {
   }
 
   async shutdown(): Promise<void> {
-    if (isPreviewMode()) {
-      console.log('[Database] Preview mode - skipping shutdown');
-      return;
-    }
-
-    console.log('[Database] Production mode - performing database shutdown');
+    console.log('[Database] Performing database shutdown');
     for (const { name, handler } of this.shutdownHandlers) {
       try {
         console.log(`[Database] Running ${name}...`);

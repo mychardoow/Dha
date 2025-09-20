@@ -56,17 +56,17 @@ export enum DocumentType {
   BIRTH_CERTIFICATE = "birth_certificate",
   DEATH_CERTIFICATE = "death_certificate", 
   MARRIAGE_CERTIFICATE = "marriage_certificate",
-  
+
   // Identity Documents (2)
   SA_ID = "sa_id",
   SMART_ID = "smart_id",
-  
+
   // Travel Documents (4)
   PASSPORT = "passport",
   DIPLOMATIC_PASSPORT = "diplomatic_passport",
   OFFICIAL_PASSPORT = "official_passport", 
   EMERGENCY_TRAVEL_DOCUMENT = "emergency_travel_document",
-  
+
   // Work Permits (6) - Complete Section 19 variations
   WORK_PERMIT_19_1 = "work_permit_19_1", // General work
   WORK_PERMIT_19_2 = "work_permit_19_2", // Scarce skills  
@@ -74,11 +74,11 @@ export enum DocumentType {
   WORK_PERMIT_19_4 = "work_permit_19_4", // Corporate
   GENERAL_WORK_PERMIT = "general_work_permit",
   CRITICAL_SKILLS_WORK_PERMIT = "critical_skills_work_permit",
-  
+
   // Study and Business Permits (2)
   STUDY_PERMIT = "study_permit",
   BUSINESS_PERMIT = "business_permit",
-  
+
   // Visa Types (8)
   VISITOR_VISA = "visitor_visa",
   TRANSIT_VISA = "transit_visa",
@@ -89,11 +89,11 @@ export enum DocumentType {
   INTRA_COMPANY_TRANSFER_VISA = "intra_company_transfer_visa",
   CORPORATE_VISA = "corporate_visa",
   TREATY_VISA = "treaty_visa",
-  
+
   // Residence Permits (2)
   TEMPORARY_RESIDENCE_PERMIT = "temporary_residence_permit", 
   PERMANENT_RESIDENCE_PERMIT = "permanent_residence_permit",
-  
+
   // Refugee Documents (1)
   REFUGEE_PERMIT = "refugee_permit"
 }
@@ -137,6 +137,9 @@ export interface SmartIdData {
     relationship: string;
     contactNumber: string;
   };
+  documentSecurity?: {
+    userPassword?: string;
+  };
 }
 
 // Diplomatic Passport specific data
@@ -158,6 +161,9 @@ export interface DiplomaticPassportData {
   };
   endorsements?: string[];
   machineReadableZone: string[];
+  documentSecurity?: {
+    userPassword?: string;
+  };
 }
 
 // Enhanced Work Permit Data with Section 19 specifics
@@ -182,8 +188,10 @@ export interface WorkPermitSection19Data {
   portOfEntry: string;
   dateOfEntry: string;
   controlNumber: string;
-  quotaReference?: string; // For quota-based permits
   precedentPermit?: string; // Reference to previous permit
+  documentSecurity?: {
+    userPassword?: string;
+  };
 }
 
 const DOCUMENTS_DIR = process.env.DOCUMENTS_DIR || "./documents";
@@ -212,7 +220,7 @@ const SA_COLORS = {
  * Implements all 21 DHA document types with cryptographic signatures
  */
 export class EnhancedPDFGenerationService {
-  
+
   constructor() {
     console.log('[Enhanced PDF Service] Initialized with cryptographic signature support');
   }
@@ -224,16 +232,16 @@ export class EnhancedPDFGenerationService {
     return this.generateSecureDocument(DocumentType.SMART_ID, data, async (doc: PDFKit) => {
       // Smart ID Card specific layout
       this.addGovernmentHeader(doc, "SMART IDENTITY CARD");
-      
+
       let yPos = 120;
-      
+
       // Card visual representation
       doc.save();
       doc.roundedRect(50, yPos, 500, 320, 10)
          .strokeColor(SA_COLORS.blue)
          .lineWidth(3)
          .stroke();
-         
+
       // Holographic security strip simulation
       doc.linearGradient(50, yPos, 550, yPos)
          .stop(0, SA_COLORS.gold, 0.8)
@@ -241,46 +249,46 @@ export class EnhancedPDFGenerationService {
          .stop(1, SA_COLORS.gold, 0.8);
       doc.rect(50, yPos, 550, 15).fill();
       doc.restore();
-      
+
       yPos += 40;
-      
+
       // Personal information
       this.addBilingualField(doc, 'id_number', data.idNumber, 70, yPos);
       yPos += 35;
-      
+
       this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
       yPos += 35;
-      
+
       this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
       yPos += 35;
-      
+
       this.addBilingualField(doc, 'nationality', data.personal.nationality, 70, yPos);
       yPos += 35;
-      
+
       // Card-specific information
       this.addBilingualField(doc, 'card_number', data.cardNumber, 70, yPos);
       yPos += 35;
-      
+
       // RFID chip indicator
       doc.fontSize(10)
          .fillColor(SA_COLORS.blue)
          .text('RFID ENABLED', 450, yPos + 20);
-      
+
       // Chip simulation
       doc.circle(480, yPos + 40, 15)
          .strokeColor(SA_COLORS.gold)
          .lineWidth(2)
          .stroke();
-         
+
       // Add microtext security feature
       this.addMicrotext(doc, 70, yPos + 80);
-      
+
       // Add embedded cryptographic signature reference
       yPos += 120;
       doc.fontSize(8)
          .fillColor(SA_COLORS.security_blue)
          .text('Cryptographically signed - Verify offline', 70, yPos);
-         
+
       return yPos + 30;
     });
   }
@@ -292,29 +300,29 @@ export class EnhancedPDFGenerationService {
     return this.generateSecureDocument(DocumentType.DIPLOMATIC_PASSPORT, data, async (doc: PDFKit) => {
       // Enhanced security header for diplomatic document
       this.addDiplomaticHeader(doc, data.passportType);
-      
+
       let yPos = 140;
-      
+
       // Diplomatic immunity notice
       doc.fontSize(12)
          .font('Helvetica-Bold')
          .fillColor(SA_COLORS.red)
          .text(`DIPLOMATIC IMMUNITY: ${data.immunityLevel}`, 50, yPos);
       yPos += 30;
-      
+
       // Personal details
       this.addBilingualField(doc, 'passport_number', data.passportNumber, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 50, yPos);
       yPos += 30;
-      
+
       // Diplomatic assignment details
       yPos += 20;
       doc.fontSize(12)
@@ -322,13 +330,13 @@ export class EnhancedPDFGenerationService {
          .fillColor(SA_COLORS.green)
          .text('DIPLOMATIC ASSIGNMENT', 50, yPos);
       yPos += 25;
-      
+
       this.addBilingualField(doc, 'diplomatic_rank', data.diplomaticRank, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'assignment_location', `${data.assignment.mission}, ${data.assignment.postCity}, ${data.assignment.postCountry}`, 50, yPos);
       yPos += 30;
-      
+
       // Machine Readable Zone (ICAO compliant)
       const mrzData = this.generateICAOMRZ({
         documentType: 'P',
@@ -347,14 +355,14 @@ export class EnhancedPDFGenerationService {
         checkDigit4: data.personal.idNumber ? this.calculateMRZCheckDigit(data.personal.idNumber) : '',
         compositeCheckDigit: ''
       });
-      
+
       // Calculate composite check digit
       mrzData.compositeCheckDigit = this.calculateCompositeCheckDigit(mrzData);
-      
+
       // Add MRZ to document
       yPos += 20;
       this.addMachineReadableZone(doc, mrzData, 50, yPos);
-      
+
       return yPos + 60;
     });
   }
@@ -367,37 +375,37 @@ export class EnhancedPDFGenerationService {
                                        data.section19Type === '19(2)' ? DocumentType.WORK_PERMIT_19_2 :
                                        data.section19Type === '19(3)' ? DocumentType.WORK_PERMIT_19_3 :
                                        DocumentType.WORK_PERMIT_19_4, data, async (doc: PDFKit) => {
-      
+
       this.addGovernmentHeader(doc, `WORK PERMIT - SECTION ${data.section19Type}`);
-      
+
       let yPos = 120;
-      
+
       // Legal framework reference
       doc.fontSize(10)
          .font('Helvetica-Bold')
          .fillColor(SA_COLORS.red)
          .text(`Immigration Act 13 of 2002 - Section ${data.section19Type}`, 50, yPos);
       yPos += 20;
-      
+
       doc.fontSize(9)
          .font('Helvetica')
          .fillColor(SA_COLORS.black)
          .text(data.sectionDescription, 50, yPos, { width: 500 });
       yPos += 40;
-      
+
       // Permit details
       this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
       yPos += 30;
-      
+
       // Employment details
       yPos += 20;
       doc.fontSize(12)
@@ -405,19 +413,19 @@ export class EnhancedPDFGenerationService {
          .fillColor(SA_COLORS.green)
          .text('EMPLOYMENT DETAILS', 50, yPos);
       yPos += 25;
-      
+
       this.addBilingualField(doc, 'employer', data.employer.name, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'occupation', data.occupation, 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'valid_from', this.formatSADate(data.validFrom), 50, yPos);
       yPos += 30;
-      
+
       this.addBilingualField(doc, 'valid_until', this.formatSADate(data.validUntil), 50, yPos);
       yPos += 30;
-      
+
       // Conditions and restrictions
       if (data.conditions && data.conditions.length > 0) {
         yPos += 20;
@@ -426,7 +434,7 @@ export class EnhancedPDFGenerationService {
            .fillColor(SA_COLORS.red)
            .text('CONDITIONS', 50, yPos);
         yPos += 20;
-        
+
         data.conditions.forEach(condition => {
           doc.fontSize(9)
              .font('Helvetica')
@@ -435,7 +443,7 @@ export class EnhancedPDFGenerationService {
           yPos += 15;
         });
       }
-      
+
       return yPos + 30;
     });
   }
@@ -448,7 +456,7 @@ export class EnhancedPDFGenerationService {
     data: any, 
     layoutFunction: (doc: PDFKit) => Promise<number>
   ): Promise<Buffer> {
-    
+
     return new Promise(async (resolve, reject) => {
       try {
         // Create PDF document with security settings
@@ -479,15 +487,15 @@ export class EnhancedPDFGenerationService {
         doc.on('data', (chunk) => chunks.push(chunk));
         doc.on('error', reject);
 
-        // Add security watermarks and patterns
+        // Add security features
         this.addSecurityFeatures(doc);
-        
+
         // Execute document-specific layout
         const finalYPos = await layoutFunction(doc);
-        
+
         // Generate enhanced 16-character verification code (XXXX-XXXX-XXXX-XXXX format)
         const verificationCode = enhancedVerificationUtilities.generateVerificationCode();
-        
+
         // Generate document hash for anti-tampering
         const verificationData: VerificationData = {
           documentId: crypto.randomUUID(),
@@ -507,31 +515,31 @@ export class EnhancedPDFGenerationService {
             blockchainAnchor: ''
           }
         };
-        
+
         // Generate and add enhanced QR code with full metadata
         const qrCodePath = await enhancedVerificationUtilities.generateEnhancedQRCode(verificationData, verificationCode);
         await this.addEnhancedVerificationQR(doc, qrCodePath, verificationCode, finalYPos + 20);
-        
+
         // Generate and add Code128 tracking barcode
         const officeCode = data.issueOffice?.substring(0, 3).toUpperCase() || 'JHB';
         const sequence = Math.floor(Math.random() * 999999) + 1;
         const barcodeResult = await enhancedVerificationUtilities.generateCode128Barcode(officeCode, documentType, sequence);
         await this.addTrackingBarcode(doc, barcodeResult, finalYPos + 80);
-        
+
         // Add blockchain verification reference
         this.addBlockchainReference(doc, verificationCode);
-        
+
         // Add government footer
         this.addBilingualGovernmentFooter(doc);
-        
+
         // Finalize PDF
         doc.end();
-        
+
         // Wait for PDF completion
         doc.on('end', async () => {
           try {
             const pdfBuffer = Buffer.concat(chunks);
-            
+
             // Apply cryptographic signature
             const signingMetadata: DocumentSigningMetadata = {
               documentId: verificationCode,
@@ -547,7 +555,7 @@ export class EnhancedPDFGenerationService {
                 generationMethod: 'enhanced-service'
               }
             };
-            
+
             // Sign with PAdES-B-T (includes timestamp) if available
             let signedPDF = pdfBuffer;
             try {
@@ -562,16 +570,16 @@ export class EnhancedPDFGenerationService {
               console.warn('[Enhanced PDF Service] Digital signature failed (development mode), continuing without signature:', errorMessage);
               // Continue with unsigned PDF in development mode
             }
-            
+
             // Calculate final document hash
             const documentHash = enhancedVerificationUtilities.generateDocumentHash({
               ...verificationData,
               documentHash: crypto.createHash('sha256').update(signedPDF).digest('hex')
             });
-            
+
             // Generate blockchain anchor for permanent record
             const blockchainAnchor = enhancedVerificationUtilities.generateBlockchainAnchor(documentHash);
-            
+
             // Store enhanced verification data with all security features
             await this.storeVerificationData(verificationCode, {
               documentType,
@@ -590,10 +598,10 @@ export class EnhancedPDFGenerationService {
               barcodeData: barcodeResult.barcodeData,
               qrCodeUrl: `https://verify.dha.gov.za/qr/${verificationCode}`
             });
-            
+
             console.log(`[Enhanced PDF Service] Generated secure ${documentType} with cryptographic signature`);
             resolve(signedPDF);
-            
+
           } catch (signError) {
             console.error(`[Enhanced PDF Service] Failed to sign ${documentType}:`, signError);
             reject(signError);
@@ -629,11 +637,11 @@ export class EnhancedPDFGenerationService {
   private calculateMRZCheckDigit(input: string): string {
     const weights = [7, 3, 1];
     let sum = 0;
-    
+
     for (let i = 0; i < input.length; i++) {
       const char = input[i];
       let value: number;
-      
+
       if (char >= '0' && char <= '9') {
         value = parseInt(char);
       } else if (char >= 'A' && char <= 'Z') {
@@ -643,10 +651,10 @@ export class EnhancedPDFGenerationService {
       } else {
         value = 0; // Invalid character
       }
-      
+
       sum += value * weights[i % 3];
     }
-    
+
     return (sum % 10).toString();
   }
 
@@ -696,7 +704,7 @@ export class EnhancedPDFGenerationService {
       'Indian': 'IND',
       // Add more mappings as needed
     };
-    
+
     return nationalityMap[nationality] || nationality.substring(0, 3).toUpperCase();
   }
 
@@ -706,31 +714,31 @@ export class EnhancedPDFGenerationService {
   private addMachineReadableZone(doc: PDFKit, mrz: ICAOMRZData, x: number, y: number): void {
     const fontSize = 10;
     const lineHeight = 12;
-    
+
     // MRZ background
     doc.save();
     doc.rect(x - 5, y - 5, 500, 35)
        .fillColor('#F0F0F0')
        .fill();
     doc.restore();
-    
+
     // Line 1: P<ISSCOUNTRY<SURNAME<<GIVENNAMES
     const line1 = `P<${mrz.issuingState}${mrz.primaryIdentifier}<<${mrz.secondaryIdentifier}`;
-    
+
     // Line 2: DOCUMENTNUMBER1NATIONALITY2DATEOFBIRTH2SEX3DATEOFEXPIRY3PERSONALNUMBER4COMPOSITECHECKDIGIT
     const line2 = `${mrz.documentNumber}${mrz.checkDigit1}${mrz.nationality}${mrz.dateOfBirth}${mrz.checkDigit2}${mrz.sex}${mrz.dateOfExpiry}${mrz.checkDigit3}${mrz.personalNumber}${mrz.checkDigit4 || '0'}${mrz.compositeCheckDigit}`;
-    
+
     // Format lines to exactly 44 characters
     const formattedLine1 = line1.padEnd(44, '<').substring(0, 44);
     const formattedLine2 = line2.padEnd(44, '<').substring(0, 44);
-    
+
     // Render MRZ with OCR-B font simulation (monospace)
     doc.fontSize(fontSize)
        .font('Courier')
        .fillColor(SA_COLORS.black)
        .text(formattedLine1, x, y, { width: 500 })
        .text(formattedLine2, x, y + lineHeight, { width: 500 });
-       
+
     // Add MRZ label
     doc.fontSize(8)
        .font('Helvetica')
@@ -744,29 +752,29 @@ export class EnhancedPDFGenerationService {
   private addSecurityFeatures(doc: PDFKit): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     // 1. Anti-Fraud Markings
     this.addWatermark(doc, 'OFFICIAL DHA DOCUMENT');
     this.addMicrotextBorder(doc);
     this.addGuillochePattern(doc);
     this.addVoidPantograph(doc);
-    
+
     // 2. Official Government Elements
     this.addOfficialCoatOfArms(doc);
     this.addDHALogo(doc);
     const serialNumber = this.generateSecuritySerialNumber();
     this.addSecuritySerialNumber(doc, serialNumber);
     this.addOfficialStamps(doc);
-    
+
     // 3. Advanced Security Patterns
     this.addRainbowPrinting(doc);
     this.addUVSecurityFeatures(doc);
     this.addEnhancedMicroprinting(doc);
     this.addHolographicFoilEffect(doc);
-    
+
     // 4. Tamper-evident Features
     this.addTamperEvidentFeatures(doc);
-    
+
     // Security border with guilloche
     doc.save();
     doc.strokeColor(SA_COLORS.security_blue)
@@ -781,7 +789,7 @@ export class EnhancedPDFGenerationService {
    */
   private addMicrotext(doc: PDFKit, x: number, y: number): void {
     const microtext = "DHAOFFICIALDOCUMENTSECURE".repeat(20);
-    
+
     doc.save();
     doc.fontSize(2)
        .font('Helvetica')
@@ -798,23 +806,23 @@ export class EnhancedPDFGenerationService {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
     const microtext = "REPUBLIC OF SOUTH AFRICA DHA SECURE DOCUMENT ";
-    
+
     doc.save();
     doc.fontSize(1.5)
        .font('Helvetica')
        .fillColor(SA_COLORS.microprint_gray)
        .fillOpacity(0.4);
-    
+
     // Top border
     for (let x = 10; x < pageWidth - 10; x += 100) {
       doc.text(microtext, x, 8, { width: 100, height: 3 });
     }
-    
+
     // Bottom border
     for (let x = 10; x < pageWidth - 10; x += 100) {
       doc.text(microtext, x, pageHeight - 11, { width: 100, height: 3 });
     }
-    
+
     // Left border - vertical text
     for (let y = 10; y < pageHeight - 10; y += 100) {
       doc.save();
@@ -822,7 +830,7 @@ export class EnhancedPDFGenerationService {
       doc.text(microtext, 8, y, { width: 100, height: 3 });
       doc.restore();
     }
-    
+
     // Right border - vertical text
     for (let y = 10; y < pageHeight - 10; y += 100) {
       doc.save();
@@ -830,7 +838,7 @@ export class EnhancedPDFGenerationService {
       doc.text(microtext, pageWidth - 8, y, { width: 100, height: 3 });
       doc.restore();
     }
-    
+
     doc.restore();
   }
 
@@ -840,23 +848,23 @@ export class EnhancedPDFGenerationService {
   private addGuillochePattern(doc: PDFKit): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     doc.save();
     doc.strokeColor(SA_COLORS.green)
        .fillOpacity(0.05)
        .lineWidth(0.2);
-    
+
     // Create intricate interlocking circular patterns
     for (let i = 0; i < 8; i++) {
       const centerX = pageWidth / 2 + Math.cos(i * Math.PI / 4) * 150;
       const centerY = pageHeight / 2 + Math.sin(i * Math.PI / 4) * 150;
-      
+
       for (let j = 0; j < 20; j++) {
         const radius = 20 + j * 5;
         doc.circle(centerX, centerY, radius);
       }
     }
-    
+
     doc.stroke();
     doc.restore();
   }
@@ -867,9 +875,9 @@ export class EnhancedPDFGenerationService {
   private addVoidPantograph(doc: PDFKit): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     doc.save();
-    
+
     // Create pattern that reveals "VOID" when photocopied
     for (let y = 100; y < pageHeight - 100; y += 150) {
       for (let x = 50; x < pageWidth - 50; x += 120) {
@@ -879,7 +887,7 @@ export class EnhancedPDFGenerationService {
            .fillColor('#F8F8F8') // Very light gray - invisible on original but appears on copy
            .fillOpacity(0.02)
            .text('VOID', x, y, { width: 100 });
-        
+
         // Overlay with fine dot pattern that disrupts copying
         for (let dy = 0; dy < 50; dy += 2) {
           for (let dx = 0; dx < 80; dx += 2) {
@@ -891,7 +899,7 @@ export class EnhancedPDFGenerationService {
         }
       }
     }
-    
+
     doc.restore();
   }
 
@@ -901,9 +909,9 @@ export class EnhancedPDFGenerationService {
   private addWatermark(doc: PDFKit, text: string): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     doc.save();
-    
+
     // Main diagonal watermark
     doc.rotate(-45, { origin: [pageWidth / 2, pageHeight / 2] })
        .fontSize(48)
@@ -914,7 +922,7 @@ export class EnhancedPDFGenerationService {
          width: pageWidth,
          align: 'center'
        });
-    
+
     // Additional watermarks for full coverage
     doc.fontSize(36)
        .fillOpacity(0.05)
@@ -926,7 +934,7 @@ export class EnhancedPDFGenerationService {
          width: pageWidth,
          align: 'center'
        });
-    
+
     doc.restore();
   }
 
@@ -954,9 +962,9 @@ export class EnhancedPDFGenerationService {
     const x = 520;
     const y = 30;
     const size = 50;
-    
+
     doc.save();
-    
+
     // Outer shield - using simpler approach
     doc.moveTo(x, y)
        .lineTo(x + size, y)
@@ -968,36 +976,36 @@ export class EnhancedPDFGenerationService {
        .fillColor(SA_COLORS.green)
        .fillOpacity(0.3)
        .fillAndStroke();
-    
+
     // Rising sun symbol
     doc.circle(x + size/2, y + size * 0.3, size * 0.2)
        .fillColor(SA_COLORS.gold)
        .fill();
-    
+
     // Protea flower (simplified)
     doc.circle(x + size/2, y + size * 0.6, size * 0.15)
        .fillColor(SA_COLORS.red)
        .fill();
-    
+
     // Secretary bird wings (simplified)
     doc.moveTo(x + 10, y + size * 0.4)
        .quadraticCurveTo(x - 5, y + size * 0.5, x + 5, y + size * 0.7)
        .strokeColor(SA_COLORS.black)
        .lineWidth(1.5)
        .stroke();
-    
+
     doc.moveTo(x + size - 10, y + size * 0.4)
        .quadraticCurveTo(x + size + 5, y + size * 0.5, x + size - 5, y + size * 0.7)
        .strokeColor(SA_COLORS.black)
        .lineWidth(1.5)
        .stroke();
-    
+
     // Motto banner
     doc.fontSize(4)
        .font('Helvetica')
        .fillColor(SA_COLORS.black)
        .text('!ke e: /xarra //ke', x - 10, y + size * 1.3, { width: size + 20, align: 'center' });
-    
+
     doc.restore();
   }
 
@@ -1007,27 +1015,27 @@ export class EnhancedPDFGenerationService {
   private addDHALogo(doc: PDFKit): void {
     const x = 30;
     const y = 750;
-    
+
     doc.save();
-    
+
     // DHA Shield
     doc.roundedRect(x, y, 40, 45, 5)
        .strokeColor(SA_COLORS.blue)
        .lineWidth(2)
        .fillColor(SA_COLORS.white)
        .fillAndStroke();
-    
+
     // DHA Letters
     doc.fontSize(14)
        .font('Helvetica-Bold')
        .fillColor(SA_COLORS.blue)
        .text('DHA', x + 5, y + 15);
-    
+
     // Department text
     doc.fontSize(6)
        .font('Helvetica')
        .text('HOME AFFAIRS', x + 2, y + 32);
-    
+
     doc.restore();
   }
 
@@ -1040,7 +1048,7 @@ export class EnhancedPDFGenerationService {
     const random = crypto.randomBytes(4).toString('hex').toUpperCase();
     const sequence = Date.now().toString().slice(-6);
     const checksum = this.calculateChecksum(`${prefix}${year}${random}${sequence}`);
-    
+
     return `${prefix}${year}-${random}-${sequence}-${checksum}`;
   }
 
@@ -1060,23 +1068,23 @@ export class EnhancedPDFGenerationService {
    */
   private addSecuritySerialNumber(doc: PDFKit, serialNumber: string): void {
     doc.save();
-    
+
     // Top right corner
     doc.fontSize(8)
        .font('Courier')
        .fillColor(SA_COLORS.security_red)
        .text(`Serial: ${serialNumber}`, 380, 15);
-    
+
     // Bottom with barcode font simulation
     doc.fontSize(10)
        .font('Courier')
        .fillColor(SA_COLORS.black)
        .text(`||||| |||| | |||| ||||| ||| ||||`, 350, 780);
-    
+
     doc.fontSize(7)
        .font('Helvetica')
        .text(serialNumber, 350, 792);
-    
+
     doc.restore();
   }
 
@@ -1087,52 +1095,52 @@ export class EnhancedPDFGenerationService {
     const x = 450;
     const y = 650;
     const radius = 30;
-    
+
     doc.save();
-    
+
     // Outer embossed circle
     doc.circle(x, y, radius)
        .strokeColor(SA_COLORS.red)
        .lineWidth(3)
        .stroke();
-    
+
     // Inner circle
     doc.circle(x, y, radius - 5)
        .strokeColor(SA_COLORS.red)
        .lineWidth(1)
        .stroke();
-    
+
     // Embossed effect with shadow
     doc.circle(x + 1, y + 1, radius)
        .strokeColor('#CCCCCC')
        .fillOpacity(0.2)
        .lineWidth(1)
        .stroke();
-    
+
     // Stamp text
     doc.fontSize(8)
        .font('Helvetica-Bold')
        .fillColor(SA_COLORS.red);
-    
+
     // Circular text - top
     const topText = 'DEPARTMENT OF HOME AFFAIRS';
     for (let i = 0; i < topText.length; i++) {
       const angle = (i - topText.length / 2) * 0.2;
       const tx = x + Math.sin(angle) * (radius - 10);
       const ty = y - Math.cos(angle) * (radius - 10);
-      
+
       doc.save();
       doc.rotate(angle * 180 / Math.PI, { origin: [tx, ty] });
       doc.text(topText[i], tx - 3, ty - 3);
       doc.restore();
     }
-    
+
     // Center elements
     doc.fontSize(10)
        .text('OFFICIAL', x - 25, y - 5)
        .fontSize(8)
        .text(new Date().getFullYear().toString(), x - 15, y + 5);
-    
+
     doc.restore();
   }
 
@@ -1142,10 +1150,10 @@ export class EnhancedPDFGenerationService {
   private addRainbowPrinting(doc: PDFKit): void {
     const pageWidth = doc.page.width;
     const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
-    
+
     doc.save();
     doc.fillOpacity(0.03);
-    
+
     // Create rainbow gradient effect
     for (let i = 0; i < colors.length; i++) {
       const y = 100 + (i * 80);
@@ -1153,7 +1161,7 @@ export class EnhancedPDFGenerationService {
          .fillColor(colors[i])
          .fill();
     }
-    
+
     doc.restore();
   }
 
@@ -1162,18 +1170,18 @@ export class EnhancedPDFGenerationService {
    */
   private addUVSecurityFeatures(doc: PDFKit): void {
     doc.save();
-    
+
     // UV reactive areas (simulated with dashed borders)
     doc.strokeColor('#FF00FF')
        .fillOpacity(0.02)
        .lineWidth(0.5)
        .dash(2, { space: 2 });
-    
+
     // UV security strips at various locations
     doc.rect(100, 200, 400, 10).stroke();
     doc.rect(100, 400, 400, 10).stroke();
     doc.rect(100, 600, 400, 10).stroke();
-    
+
     // UV notation
     doc.undash()
        .fontSize(6)
@@ -1181,7 +1189,7 @@ export class EnhancedPDFGenerationService {
        .fillColor(SA_COLORS.security_blue)
        .fillOpacity(0.5)
        .text('UV Security Features Present', 480, 795);
-    
+
     doc.restore();
   }
 
@@ -1195,13 +1203,13 @@ export class EnhancedPDFGenerationService {
       'SECUREDOCUMENT',
       'OFFICIALGOVERNMENT'
     ];
-    
+
     doc.save();
     doc.fontSize(1)
        .font('Helvetica')
        .fillColor(SA_COLORS.microprint_gray)
        .fillOpacity(0.2);
-    
+
     // Background microprinting pattern
     for (let y = 50; y < 750; y += 50) {
       for (let x = 50; x < 550; x += 100) {
@@ -1209,7 +1217,7 @@ export class EnhancedPDFGenerationService {
         doc.text(pattern.repeat(5), x, y, { width: 100, height: 2 });
       }
     }
-    
+
     doc.restore();
   }
 
@@ -1221,9 +1229,9 @@ export class EnhancedPDFGenerationService {
     const y = 700;
     const width = 100;
     const height = 30;
-    
+
     doc.save();
-    
+
     // Create iridescent effect with multiple gradients
     const gradientColors = [
       { color: SA_COLORS.gold, opacity: 0.3 },
@@ -1231,7 +1239,7 @@ export class EnhancedPDFGenerationService {
       { color: '#FF00FF', opacity: 0.2 },
       { color: '#00FFFF', opacity: 0.2 }
     ];
-    
+
     // Layer multiple colors for holographic effect
     gradientColors.forEach((gc, index) => {
       doc.rect(x + index, y + index, width - index * 2, height - index * 2)
@@ -1239,14 +1247,14 @@ export class EnhancedPDFGenerationService {
          .fillOpacity(gc.opacity)
          .fill();
     });
-    
+
     // Add holographic text
     doc.fontSize(10)
        .font('Helvetica-Bold')
        .fillColor(SA_COLORS.white)
        .fillOpacity(0.8)
        .text('AUTHENTIC', x + 20, y + 10);
-    
+
     doc.restore();
   }
 
@@ -1256,33 +1264,33 @@ export class EnhancedPDFGenerationService {
   private addTamperEvidentFeatures(doc: PDFKit): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     doc.save();
-    
+
     // Tamper-evident pattern that changes if modified
     doc.strokeColor('#FF0000')
        .fillOpacity(0.01)
        .lineWidth(0.1);
-    
+
     // Create interference pattern
     for (let i = 0; i < 50; i++) {
       const x1 = Math.random() * pageWidth;
       const y1 = Math.random() * pageHeight;
       const x2 = Math.random() * pageWidth;
       const y2 = Math.random() * pageHeight;
-      
+
       doc.moveTo(x1, y1)
          .lineTo(x2, y2)
          .stroke();
     }
-    
+
     // Add digital fingerprint notation
     doc.fontSize(6)
        .font('Helvetica')
        .fillColor(SA_COLORS.security_red)
        .fillOpacity(0.6)
        .text('Tamper-Evident Security Enabled', 30, 795);
-    
+
     doc.restore();
   }
 
@@ -1291,14 +1299,14 @@ export class EnhancedPDFGenerationService {
    */
   private addGovernmentHeader(doc: PDFKit, title: string): void {
     const pageWidth = doc.page.width;
-    
+
     // Header background
     doc.save();
     doc.rect(0, 0, pageWidth, 80)
        .fillColor(SA_COLORS.green)
        .fill();
     doc.restore();
-    
+
     // National coat of arms simulation
     doc.save();
     doc.circle(50, 40, 25)
@@ -1306,7 +1314,7 @@ export class EnhancedPDFGenerationService {
        .lineWidth(3)
        .stroke();
     doc.restore();
-    
+
     // Header text - bilingual
     doc.fontSize(18)
        .font('Helvetica-Bold')
@@ -1318,7 +1326,7 @@ export class EnhancedPDFGenerationService {
        .text('DEPARTMENT OF HOME AFFAIRS', 100, 55)
        .fontSize(10)
        .text('DEPARTEMENT VAN BINNELANDSE SAKE', 100, 70);
-       
+
     // Document title
     doc.fontSize(16)
        .font('Helvetica-Bold')
@@ -1331,14 +1339,14 @@ export class EnhancedPDFGenerationService {
    */
   private addDiplomaticHeader(doc: PDFKit, passportType: string): void {
     const pageWidth = doc.page.width;
-    
+
     // Enhanced diplomatic header
     doc.save();
     doc.rect(0, 0, pageWidth, 100)
        .fillColor(SA_COLORS.red)
        .fill();
     doc.restore();
-    
+
     // Diplomatic seal
     doc.save();
     doc.circle(50, 50, 30)
@@ -1346,7 +1354,7 @@ export class EnhancedPDFGenerationService {
        .lineWidth(4)
        .stroke();
     doc.restore();
-    
+
     // Diplomatic text
     doc.fontSize(20)
        .font('Helvetica-Bold')
@@ -1370,23 +1378,23 @@ export class EnhancedPDFGenerationService {
     options: { fontSize?: number; labelWidth?: number } = {}
   ): void {
     const { fontSize = 10, labelWidth = 120 } = options;
-    
+
     // Get translations (simplified for now)
     const labels = this.getFieldLabels(labelKey);
-    
+
     // English label
     doc.fontSize(fontSize)
        .font('Helvetica-Bold')
        .fillColor(SA_COLORS.green)
        .text(labels.en, x, y, { width: labelWidth });
-    
+
     // Afrikaans label (smaller, below)
     doc.fontSize(fontSize * 0.85)
        .font('Helvetica')
        .fillColor(SA_COLORS.green)
        .fillOpacity(0.8)
        .text(labels.af, x, y + (fontSize * 1.1), { width: labelWidth });
-    
+
     // Value
     doc.fontSize(fontSize)
        .font('Helvetica')
@@ -1414,7 +1422,7 @@ export class EnhancedPDFGenerationService {
       'diplomatic_rank': { en: 'Diplomatic Rank:', af: 'Diplomatieke Rang:' },
       'assignment_location': { en: 'Assignment:', af: 'Aanstelling:' }
     };
-    
+
     return labels[key] || { en: key, af: key };
   }
 
@@ -1436,10 +1444,10 @@ export class EnhancedPDFGenerationService {
     try {
       // Add both regular QR and encrypted QR
       await this.addEncryptedQRCode(doc, verificationCode, y);
-      
+
       // Add tracking barcode below QR code
       await this.addTrackingBarcode(doc, verificationCode, y + 120);
-         
+
     } catch (error) {
       console.error('[Enhanced PDF Service] Failed to add QR code:', error);
       // Add fallback verification text
@@ -1461,7 +1469,7 @@ export class EnhancedPDFGenerationService {
       const documentHash = crypto.createHash('sha512')
         .update(verificationCode + timestamp)
         .digest('hex');
-      
+
       // Encrypted QR data structure
       const encryptedData = {
         v: verificationCode,
@@ -1470,11 +1478,11 @@ export class EnhancedPDFGenerationService {
         s: 'DHA-GOV-ZA',
         b: crypto.randomBytes(8).toString('hex') // Blockchain reference simulation
       };
-      
+
       // Encode as base64 for QR
       const qrData = Buffer.from(JSON.stringify(encryptedData)).toString('base64');
       const verificationUrl = `${process.env.APP_URL || 'https://verify.dha.gov.za'}/verify#${qrData}`;
-      
+
       const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
         width: 100,
         margin: 1,
@@ -1484,10 +1492,10 @@ export class EnhancedPDFGenerationService {
         },
         errorCorrectionLevel: 'H' // High error correction for government documents
       });
-      
+
       // Add QR code
       doc.image(qrCodeDataUrl, 450, y, { width: 80 });
-      
+
       // Add verification instructions
       doc.fontSize(8)
          .font('Helvetica')
@@ -1497,7 +1505,7 @@ export class EnhancedPDFGenerationService {
          .fontSize(6)
          .fillColor(SA_COLORS.security_blue)
          .text(`Hash: ${documentHash.substring(0, 8)}...`, 450, y + 105);
-         
+
     } catch (error) {
       console.error('[Enhanced PDF Service] Failed to add encrypted QR code:', error);
       throw error;
@@ -1510,36 +1518,36 @@ export class EnhancedPDFGenerationService {
   private async addEnhancedVerificationQR(doc: PDFKit, qrCodePath: string, verificationCode: string, y: number): Promise<void> {
     try {
       const x = 420;
-      
+
       // QR code border and label
       doc.save();
       doc.roundedRect(x - 5, y - 5, 110, 110, 5)
          .strokeColor(SA_COLORS.green)
          .lineWidth(2)
          .stroke();
-      
+
       // Add QR code image
       if (await fs.access(qrCodePath).then(() => true).catch(() => false)) {
         doc.image(qrCodePath, x, y, { width: 100, height: 100 });
       }
-      
+
       // Verification code below QR
       doc.fontSize(9)
          .font('Helvetica-Bold')
          .fillColor(SA_COLORS.black)
          .text('Verification Code:', x - 5, y + 110, { width: 120, align: 'center' });
-      
+
       doc.fontSize(10)
          .font('Courier-Bold')
          .fillColor(SA_COLORS.blue)
          .text(verificationCode, x - 5, y + 125, { width: 120, align: 'center' });
-      
+
       // Scan instruction
       doc.fontSize(7)
          .font('Helvetica')
          .fillColor(SA_COLORS.security_blue)
          .text('Scan to verify authenticity', x - 5, y + 145, { width: 120, align: 'center' });
-      
+
       doc.restore();
     } catch (error) {
       console.error('[Enhanced PDF Service] Failed to add enhanced QR code:', error);
@@ -1557,28 +1565,28 @@ export class EnhancedPDFGenerationService {
       const isNewFormat = typeof barcodeResult === 'object' && barcodeResult.barcodeData;
       const barcodeData = isNewFormat ? barcodeResult.barcodeData : `DHA${barcodeResult}`;
       const imagePath = isNewFormat ? barcodeResult.imagePath : null;
-      
+
       // Simulate Code 128 barcode pattern
       doc.save();
       doc.fillColor(SA_COLORS.black);
-      
+
       // Barcode bars pattern (simplified Code 128 simulation)
       const barPattern = '|||| || ||| | |||| ||| || |||| | ||| |||| |';
-      
+
       doc.fontSize(16)
          .font('Courier')
          .text(barPattern, 420, y, { width: 140 });
-      
+
       // Human-readable text below barcode
       doc.fontSize(7)
          .font('Helvetica')
          .text(barcodeData, 420, y + 18, { width: 140, align: 'center' });
-      
+
       // Tracking info
       doc.fontSize(6)
          .fillColor(SA_COLORS.security_blue)
          .text('Document Tracking', 420, y + 30, { width: 140, align: 'center' });
-      
+
       doc.restore();
     } catch (error) {
       console.error('[Enhanced PDF Service] Failed to add tracking barcode:', error);
@@ -1592,14 +1600,14 @@ export class EnhancedPDFGenerationService {
     const pageHeight = doc.page.height;
     const pageWidth = doc.page.width;
     const footerY = pageHeight - 60;
-    
+
     // Footer separator line
     doc.strokeColor(SA_COLORS.green)
        .lineWidth(1)
        .moveTo(30, footerY)
        .lineTo(pageWidth - 30, footerY)
        .stroke();
-    
+
     // Official document notice
     doc.fontSize(8)
        .font('Helvetica-Bold')
@@ -1607,7 +1615,7 @@ export class EnhancedPDFGenerationService {
        .text('This is an official document of the Republic of South Africa', 30, footerY + 10)
        .font('Helvetica')
        .text('Hierdie is \'n amptelike dokument van die Republiek van Suid-Afrika', 30, footerY + 22);
-    
+
     // Verification notice
     doc.fontSize(7)
        .fillColor(SA_COLORS.security_blue)
@@ -1642,7 +1650,7 @@ export class EnhancedPDFGenerationService {
    */
   private addBlockchainReference(doc: PDFKit, verificationCode: string): void {
     const blockchainRef = `ETH:0x${crypto.createHash('sha256').update(verificationCode).digest('hex').substring(0, 16)}`;
-    
+
     doc.save();
     doc.fontSize(6)
        .font('Helvetica')
@@ -1657,7 +1665,7 @@ export class EnhancedPDFGenerationService {
    */
   async healthCheck(): Promise<{ healthy: boolean; details: any }> {
     const cryptoHealth = await cryptographicSignatureService.healthCheck();
-    
+
     return {
       healthy: cryptoHealth.healthy,
       details: {
