@@ -3,7 +3,7 @@
  * High-security AI assistant with RBAC, clearance levels, and government workflow safeguards
  */
 
-import OpenAI from "openai";
+import { Anthropic } from "@anthropic-ai/sdk";
 import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -167,7 +167,7 @@ export interface ContentPolicyResult {
 }
 
 export class MilitaryGradeAIAssistant {
-  private openai: OpenAI | null = null;
+  private anthropic: Anthropic | null = null;
   private isApiKeyConfigured: boolean;
   
   // Military-grade security protocols
@@ -222,13 +222,13 @@ export class MilitaryGradeAIAssistant {
   };
 
   constructor() {
-    const apiKey = process.env.OPENAI_API_KEY || '';
-    this.isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey !== 'dev-openai-key');
+    const apiKey = process.env.ANTHROPIC_API_KEY || '';
+    this.isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey !== 'dev-anthropic-key');
     
     if (this.isApiKeyConfigured) {
-      this.openai = new OpenAI({ apiKey });
+      this.anthropic = new Anthropic({ apiKey });
     } else {
-      console.warn('[Military AI] OpenAI API key not configured - Operating in secure limited mode');
+      console.warn('[Military AI] Anthropic API key not configured - Operating in secure limited mode');
     }
   }
 
@@ -482,7 +482,7 @@ export class MilitaryGradeAIAssistant {
    * Process AI request with appropriate security protocols
    */
   private async processSecureAIRequest(request: MilitaryAIRequest): Promise<Partial<MilitaryAIResponse>> {
-    if (!this.isApiKeyConfigured || !this.openai) {
+    if (!this.isApiKeyConfigured || !this.anthropic) {
       return await this.processSecureFallbackResponse(request);
     }
 
@@ -493,20 +493,17 @@ export class MilitaryGradeAIAssistant {
       // Apply message sanitization based on clearance level
       const sanitizedMessage = await this.sanitizeMessageForClearanceLevel(request.message, request.userContext.clearanceLevel);
 
-      const messages = [
-        { role: "system" as const, content: systemPrompt },
-        { role: "user" as const, content: sanitizedMessage }
-      ];
-
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4o", // Use latest model for military-grade responses
-        messages,
+      const response = await this.anthropic.messages.create({
+        model: "claude-3-5-sonnet-20241022", // Use latest Claude model for military-grade responses
         max_tokens: 2000,
         temperature: 0.3, // Lower temperature for more deterministic responses
-        stream: false
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: sanitizedMessage }
+        ]
       });
 
-      const content = response.choices[0].message.content;
+      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
 
       if (!content) {
         return {
@@ -520,7 +517,7 @@ export class MilitaryGradeAIAssistant {
         content,
         classificationLevel: request.classificationLevel,
         metadata: {
-          model: "gpt-4o",
+          model: "claude-3-5-sonnet-20241022",
           temperature: 0.3,
           securityProtocol: "MILITARY_GRADE",
           timestamp: new Date()
@@ -528,7 +525,7 @@ export class MilitaryGradeAIAssistant {
       };
 
     } catch (error) {
-      console.error('[Military AI] OpenAI request failed:', error);
+      console.error('[Military AI] Claude request failed:', error);
       return await this.processSecureFallbackResponse(request);
     }
   }

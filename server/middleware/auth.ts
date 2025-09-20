@@ -51,7 +51,7 @@ export function verifyToken(token: string): any {
 export async function authenticate(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ 
         error: "Authentication required", 
@@ -71,7 +71,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     // SECURITY: All authentication must go through real user verification
     // No mock bypasses allowed - production-ready authentication only
-    
+
     // Try to fetch user from storage
     const user = await storage.getUser(decoded.id);
     if (!user || !user.isActive) {
@@ -104,7 +104,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     next();
   } catch (error) {
     console.error("Authentication error:", error);
-    
+
     // Log failed authentication
     const securityEvent = {
       eventType: "authentication_failed",
@@ -128,7 +128,7 @@ export const requireAuth = authenticate;
 export function requireRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.user as AuthenticatedUser | undefined;
-    
+
     if (!user) {
       return res.status(401).json({ 
         error: "Authentication required",
@@ -150,7 +150,7 @@ export function requireRole(roles: string[]) {
 export async function requireApiKey(req: Request, res: Response, next: NextFunction) {
   try {
     const apiKey = req.headers["x-api-key"] as string;
-    
+
     if (!apiKey) {
       return res.status(401).json({ 
         error: "API key required",
@@ -161,7 +161,7 @@ export async function requireApiKey(req: Request, res: Response, next: NextFunct
     // Get all API keys and compare using bcrypt.compare
     const allApiKeys = await storage.getAllApiKeys();
     let matchedKey = null;
-    
+
     for (const storedKey of allApiKeys) {
       const isMatch = await bcrypt.compare(apiKey, storedKey.keyHash);
       if (isMatch) {
@@ -169,7 +169,7 @@ export async function requireApiKey(req: Request, res: Response, next: NextFunct
         break;
       }
     }
-    
+
     if (!matchedKey) {
       return res.status(401).json({ 
         error: "Invalid API key",
