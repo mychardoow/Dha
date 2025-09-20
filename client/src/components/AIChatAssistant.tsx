@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -61,7 +60,7 @@ export default function AIChatAssistant({
   const { toast } = useToast();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-  
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -71,13 +70,13 @@ export default function AIChatAssistant({
   const [autoTranslate, setAutoTranslate] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
+
   // Generate or retrieve stable conversation ID for the session
   const conversationIdRef = useRef<string>(
     sessionStorage.getItem("ai-chat-conversation-id") || 
     `chat-${Date.now()}-${Math.random().toString(36).substring(7)}`
   );
-  
+
   // Store conversation ID in sessionStorage on mount
   useEffect(() => {
     sessionStorage.setItem("ai-chat-conversation-id", conversationIdRef.current);
@@ -185,7 +184,7 @@ Ready for your commands, Administrator.`,
         "What are the requirements for permanent residence?"
       ]
     };
-    
+
     setMessages([welcomeMessage]);
   }, [isAdmin]);
 
@@ -296,7 +295,7 @@ Ready for your commands, Administrator.`,
     onSuccess: (data) => {
       const requirements = data.requirements?.join("\n• ") || "No requirements found";
       const message = `**Requirements for ${data.documentType}:**\n\n• ${requirements}\n\n**Processing Time:** ${data.processingTime}\n**Fees:** ${data.fees}`;
-      
+
       const newMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
@@ -629,7 +628,7 @@ Ready for your commands, Administrator.`,
                     </>
                   )}
                 </div>
-                
+
                 {/* Suggestions */}
                 {message.suggestions && message.suggestions.length > 0 && (
                   <div className="space-y-1">
@@ -649,7 +648,7 @@ Ready for your commands, Administrator.`,
                     </div>
                   </div>
                 )}
-                
+
                 {/* Action Items */}
                 {message.actionItems && message.actionItems.length > 0 && (
                   <Alert className="mt-2">
@@ -664,7 +663,7 @@ Ready for your commands, Administrator.`,
                     </AlertDescription>
                   </Alert>
                 )}
-                
+
                 {/* Message Actions */}
                 {!message.isLoading && (
                   <div className="flex gap-1 mt-2">

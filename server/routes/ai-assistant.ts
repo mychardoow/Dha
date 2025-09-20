@@ -370,7 +370,7 @@ router.post('/document/process', requireAuth, upload.single('document'), async (
     const path = await import('path');
     const tempPath = path.join('/tmp', `ocr-${Date.now()}-${req.file.originalname}`);
     await fs.writeFile(tempPath, req.file.buffer);
-    
+
     // Process document with enhanced OCR
     const ocrResult = await enhancedSAOCR.processDocument(tempPath, req.file.mimetype, {
       documentType,
@@ -380,7 +380,7 @@ router.post('/document/process', requireAuth, upload.single('document'), async (
       validateExtractedData: true,
       enhanceImageQuality: true
     });
-    
+
     // Clean up temp file
     await fs.unlink(tempPath).catch(() => {});
 
@@ -393,7 +393,7 @@ router.post('/document/process', requireAuth, upload.single('document'), async (
         value: field.value,
         confidence: field.confidence
       })));
-      
+
       // Use generateFormResponse instead of generateFormAutofill
       const formResponse = await aiAssistant.generateFormResponse(
         documentType,
@@ -455,7 +455,7 @@ router.post('/passport/extract', requireAuth, upload.single('passportImage'), as
 
     // Initialize services
     const aiocrService = new AIOCRIntegrationService();
-    
+
     // Process passport with comprehensive OCR and AI analysis
     const result = await aiocrService.processDocumentForAI({
       file: {
@@ -489,27 +489,27 @@ router.post('/passport/extract', requireAuth, upload.single('passportImage'), as
       placeOfBirth: result.extractedFields.place_of_birth?.value || '',
       nationality: result.extractedFields.nationality?.value || '',
       sex: result.extractedFields.sex?.value || 'M',
-      
+
       // Document Information
       passportNumber: result.extractedFields.passport_number?.value || '',
       controlNumber: result.extractedFields.control_number?.value || '',
       referenceNumber: result.extractedFields.reference_number?.value || '',
       documentNumber: result.extractedFields.document_number?.value || '',
-      
+
       // Validity Dates
       dateOfIssue: result.extractedFields.date_of_issue?.value || '',
       dateOfExpiry: result.extractedFields.date_of_expiry?.value || '',
       validFrom: result.extractedFields.valid_from?.value || '',
       validUntil: result.extractedFields.valid_until?.value || '',
-      
+
       // Additional Information
       issuingAuthority: result.extractedFields.issuing_authority?.value || 'DHA',
       portOfEntry: result.extractedFields.port_of_entry?.value || '',
-      
+
       // MRZ Data if available
       mrzLine1: result.mrzData?.mrzLines?.[0] || '',
       mrzLine2: result.mrzData?.mrzLines?.[1] || '',
-      
+
       // AI Analysis
       documentAuthenticity: result.aiAnalysis.documentAuthenticity,
       confidenceScore: result.confidence,
@@ -542,7 +542,7 @@ router.post('/passport/extract', requireAuth, upload.single('passportImage'), as
         expiryDate: passportData.dateOfExpiry,
         height: result.extractedFields.height?.value || '',
         eyeColor: result.extractedFields.eye_color?.value || '',
-        
+
         // Work permit specific fields
         employeeFullName: passportData.fullName,
         employeeNationality: passportData.nationality,
@@ -552,14 +552,14 @@ router.post('/passport/extract', requireAuth, upload.single('passportImage'), as
         workLocation: passportData.workLocation,
         validFrom: passportData.validFrom,
         validUntil: passportData.validUntil,
-        
+
         // Visa specific fields
         holderFullName: passportData.fullName,
         holderNationality: passportData.nationality,
         holderPassportNumber: passportData.passportNumber,
         countryOfIssue: 'South Africa',
         portOfEntry: passportData.portOfEntry,
-        
+
         // ID card fields
         address: result.extractedFields.address?.value || '',
         idNumber: result.extractedFields.id_number?.value || ''
