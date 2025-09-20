@@ -42,15 +42,15 @@ class CircuitBreaker {
   private lastFailureTime?: Date;
   private _state: 'closed' | 'open' | 'half-open' = 'closed';
   private readonly config: CircuitBreakerConfig;
-  
+
   constructor(config: CircuitBreakerConfig) {
     this.config = config;
   }
-  
+
   get state(): 'closed' | 'open' | 'half-open' {
     return this._state;
   }
-  
+
   canAttempt(): boolean {
     if (this._state === 'closed') return true;
     if (this._state === 'open') {
@@ -66,7 +66,7 @@ class CircuitBreaker {
     // half-open
     return this.successes < this.config.halfOpenRequests;
   }
-  
+
   recordSuccess(): void {
     this.successes++;
     if (this._state === 'half-open' && this.successes >= this.config.successThreshold) {
@@ -74,7 +74,7 @@ class CircuitBreaker {
       this.failures = 0;
     }
   }
-  
+
   recordFailure(): void {
     this.failures++;
     this.lastFailureTime = new Date();
@@ -243,24 +243,24 @@ export class AutoRecoveryService {
 
         // Execute operation
         const result = await operation();
-        
+
         // Record success
         circuitBreaker?.recordSuccess();
         this.recordPerformanceMetric(operationType, attempt, true);
-        
+
         return result;
       } catch (error: any) {
         lastError = error;
-        
+
         // Check if error is retryable
         const isRetryable = this.isRetryableError(error, config.retryableErrors);
-        
+
         if (!isRetryable || attempt === config.maxRetries) {
           // Record failure
           const circuitBreaker = this.circuitBreakers.get(operationType);
           circuitBreaker?.recordFailure();
           this.recordPerformanceMetric(operationType, attempt, false);
-          
+
           // Log error
           await errorTrackingService.logError({
             error,
@@ -272,7 +272,7 @@ export class AutoRecoveryService {
             },
             severity: attempt === config.maxRetries ? 'high' : 'medium'
           });
-          
+
           throw error;
         }
 
@@ -280,12 +280,12 @@ export class AutoRecoveryService {
         if (config.jitter) {
           delay = delay + Math.random() * delay * 0.3;
         }
-        
+
         console.log(`[AutoRecovery] Retrying ${operationType} operation. Attempt ${attempt + 1}/${config.maxRetries}. Delay: ${delay}ms`);
-        
+
         // Wait before retry
         await this.delay(Math.min(delay, config.maxDelay));
-        
+
         // Exponential backoff
         delay *= config.backoffMultiplier;
       }
@@ -303,7 +303,7 @@ export class AutoRecoveryService {
     fallback?: () => T | Promise<T>
   ): Promise<T> {
     const breaker = this.circuitBreakers.get(breakerName);
-    
+
     if (!breaker) {
       return operation();
     }
@@ -322,12 +322,12 @@ export class AutoRecoveryService {
       return result;
     } catch (error) {
       breaker.recordFailure();
-      
+
       if (fallback && breaker.state === 'open') {
         console.log(`[CircuitBreaker] ${breakerName} opened, using fallback`);
         return fallback();
       }
-      
+
       throw error;
     }
   }
@@ -335,7 +335,7 @@ export class AutoRecoveryService {
   private isRetryableError(error: any, retryableErrors: string[]): boolean {
     const errorMessage = error.message || '';
     const errorCode = error.code || '';
-    
+
     return retryableErrors.some(retryableError => 
       errorMessage.includes(retryableError) || 
       errorCode === retryableError ||
@@ -503,7 +503,7 @@ export class AutoRecoveryService {
         if (needsRecovery) {
           console.log(`[AutoRecovery] Running recovery strategy: ${strategy.name}`);
           const recovered = await strategy.recover();
-          
+
           if (!recovered && strategy.fallback) {
             console.log(`[AutoRecovery] Recovery failed, using fallback for ${strategy.name}`);
             await strategy.fallback();
@@ -527,20 +527,20 @@ export class AutoRecoveryService {
    */
   private async cleanupExpiredData(): Promise<void> {
     console.log('[AutoRecovery] Running automatic cleanup...');
-    
+
     try {
       // Cleanup expired sessions
       await this.cleanupExpiredSessions();
-      
+
       // Cleanup old error logs
       await this.cleanupOldErrorLogs();
-      
+
       // Cleanup temporary files
       await this.cleanupTempFiles();
-      
+
       // Optimize database
       await this.optimizeDatabase();
-      
+
       console.log('[AutoRecovery] Cleanup completed successfully');
     } catch (error) {
       console.error('[AutoRecovery] Cleanup failed:', error);
@@ -550,7 +550,7 @@ export class AutoRecoveryService {
   private async cleanupExpiredSessions(): Promise<void> {
     const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours
     const sessions = await storage.getWebSocketSessions();
-    
+
     for (const session of sessions) {
       if (session.lastSeen && session.lastSeen < cutoffTime && session.isActive) {
         await storage.deactivateWebSocketSession(session.socketId);
@@ -588,7 +588,7 @@ export class AutoRecoveryService {
 
   private async autoOptimizePerformance(): Promise<void> {
     const metrics = await this.collectPerformanceMetrics();
-    
+
     // Adjust cache size based on memory usage
     if (metrics.memoryUsage > 80) {
       await this.reduceCacheSize();
@@ -614,7 +614,7 @@ export class AutoRecoveryService {
   private async collectPerformanceMetrics(): Promise<any> {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
-    
+
     return {
       memoryUsage: (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
       cpuUsage: cpuUsage.user / 1000000, // Convert to seconds
@@ -630,6 +630,16 @@ export class AutoRecoveryService {
       return false; // No recovery needed
     } catch {
       return true; // Recovery needed
+    }
+  }
+
+  private async testDatabaseConnection(): Promise<void> {
+    try {
+      await db.execute(sql`SELECT 1`);
+      console.log('[AutoRecovery] Database connection verified.');
+    } catch (error) {
+      console.error('[AutoRecovery] Database connection failed:', error);
+      throw error; // Re-throw to be caught by the caller
     }
   }
 
@@ -734,7 +744,7 @@ export class AutoRecoveryService {
    */
   public getCircuitBreakerStatus(): Map<string, CircuitBreakerStatus> {
     const status = new Map<string, CircuitBreakerStatus>();
-    
+
     for (const [name, breaker] of Array.from(this.circuitBreakers)) {
       status.set(name, {
         state: breaker.state,
@@ -743,7 +753,7 @@ export class AutoRecoveryService {
         lastFailureTime: (breaker as any).lastFailureTime
       });
     }
-    
+
     return status;
   }
 }

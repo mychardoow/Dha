@@ -8,6 +8,7 @@ import jwt from "jsonwebtoken";
 import { errorTrackingService } from "./services/error-tracking";
 import { privacyProtectionService } from "./services/privacy-protection";
 import { configService, config } from "./middleware/provider-config";
+import { LRUCache } from 'lru-cache';
 
 export interface AuthenticatedSocket {
   id: string;
@@ -19,7 +20,7 @@ export interface AuthenticatedSocket {
 export class WebSocketService {
   private io: SocketIOServer;
   private authenticatedSockets = new Map<string, AuthenticatedSocket>();
-  
+
   constructor(server: Server) {
     this.io = new SocketIOServer(server, {
       cors: {
@@ -29,19 +30,19 @@ export class WebSocketService {
       },
       path: "/ws"
     });
-    
+
     this.setupAuthentication();
     this.setupEventHandlers();
     this.setupErrorTracking();
   }
-  
+
   /**
    * Validate JWT secret with strict production enforcement aligned with provider-config
    * CRITICAL: Must match provider-config 64+ character requirement for government-grade security
    */
   private validateJWTSecret(): string | null {
     const value = config.JWT_SECRET;
-    
+
     if (!value) {
       const errorMessage = 'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication';
       if (configService.isProduction()) {
@@ -52,46 +53,46 @@ export class WebSocketService {
       // SECURITY: No development fallbacks - must be configured properly
       return null;
     }
-    
+
     // ALIGNED: Validate 64+ character requirement to match provider-config standards
     if (value.length < 64) {
       console.error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security');
       return null;
     }
-    
+
     return value;
   }
-  
+
   private setupAuthentication() {
     this.io.use(async (socket, next) => {
       try {
         const token = socket.handshake.auth.token;
-        
+
         // SECURITY: Production-ready authentication only
         // No development mode bypasses or mock user support
         if (!token) {
           return next(new Error("Authentication token required"));
         }
-        
+
         const JWT_SECRET = this.validateJWTSecret();
         if (!JWT_SECRET) {
           return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET validation failed'));
         }
-        
+
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);
-        
+
         if (!user || !user.isActive) {
           return next(new Error("User not found or inactive"));
         }
-        
+
         this.authenticatedSockets.set(socket.id, {
           id: socket.id,
           userId: user.id,
           username: user.username,
           role: user.role
         });
-        
+
         await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
           userId: user.id,
           eventType: "websocket_connected",
@@ -103,7 +104,7 @@ export class WebSocketService {
           ipAddress: socket.handshake.address,
           userAgent: socket.handshake.headers["user-agent"] as string
         }) as any);
-        
+
         next();
       } catch (error) {
         console.error("WebSocket authentication error:", error);
@@ -111,21 +112,21 @@ export class WebSocketService {
       }
     });
   }
-  
+
   private setupEventHandlers() {
     this.io.on("connection", (socket) => {
       const authSocket = this.authenticatedSockets.get(socket.id);
-      
+
       if (!authSocket) {
         socket.disconnect();
         return;
       }
-      
+
       console.log(`User ${privacyProtectionService.anonymizeUsername(authSocket.username)} connected via WebSocket`);
-      
+
       socket.join(`user:${authSocket.userId}`);
       socket.join(`role:${authSocket.role}`);
-      
+
       // Handle chat message streaming
       socket.on("chat:stream", async (data: { 
         message: string; 
@@ -139,19 +140,19 @@ export class WebSocketService {
             socket.emit("chat:error", { error: "Conversation not found" });
             return;
           }
-          
+
           // Create user message
           const userMessage = await storage.createMessage({
             conversationId: data.conversationId,
             role: "user",
             content: data.message
           });
-          
+
           socket.emit("chat:userMessage", userMessage);
-          
+
           // Start streaming AI response
           socket.emit("chat:streamStart");
-          
+
           let fullContent = "";
           const response = await aiAssistantService.streamResponse(
             data.message,
@@ -163,7 +164,7 @@ export class WebSocketService {
             },
             data.includeContext !== false
           );
-          
+
           if (response.success) {
             // Create AI message
             const aiMessage = await storage.createMessage({
@@ -172,7 +173,7 @@ export class WebSocketService {
               content: response.content || fullContent,
               metadata: response.metadata
             });
-            
+
             socket.emit("chat:streamComplete", { 
               message: aiMessage,
               metadata: response.metadata 
@@ -180,7 +181,7 @@ export class WebSocketService {
           } else {
             socket.emit("chat:streamError", { error: response.error });
           }
-          
+
         } catch (error) {
           console.error("Chat streaming error:", error);
           socket.emit("chat:streamError", { 
@@ -188,12 +189,12 @@ export class WebSocketService {
           });
         }
       });
-      
+
       // Handle quick actions
       socket.on("chat:quickAction", async (data: { action: string; conversationId: string }) => {
         try {
           let message = "";
-          
+
           switch (data.action) {
             case "analyze-security-logs":
               message = "Analyze the current security logs and highlight any concerning patterns or anomalies.";
@@ -208,20 +209,20 @@ export class WebSocketService {
               socket.emit("chat:error", { error: "Unknown quick action" });
               return;
           }
-          
+
           // Trigger the same streaming process as regular messages
           socket.emit("chat:stream", { 
             message, 
             conversationId: data.conversationId,
             includeContext: true 
           });
-          
+
         } catch (error) {
           console.error("Quick action error:", error);
           socket.emit("chat:error", { error: "Failed to execute quick action" });
         }
       });
-      
+
       // Handle system context requests with role-based authorization
       socket.on("system:getContext", async () => {
         try {
@@ -230,17 +231,17 @@ export class WebSocketService {
             socket.emit("system:contextError", { error: "Insufficient permissions for system context" });
             return;
           }
-          
+
           const { monitoringService } = await import("./services/monitoring");
           const { quantumEncryptionService } = await import("./services/quantum-encryption");
-          
+
           const [systemHealth, securityMetrics, quantumStatus, recentAlerts] = await Promise.all([
             monitoringService.getSystemHealth(),
             monitoringService.getSecurityMetrics(),
             quantumEncryptionService.getSystemStatus(),
             storage.getFraudAlerts(authSocket.userId, false)
           ]);
-          
+
           // Sanitize sensitive system data before sending
           const sanitizedContext = {
             health: {
@@ -275,16 +276,16 @@ export class WebSocketService {
               // Remove sensitive details, user data, investigation notes
             }))
           };
-          
+
           socket.emit("system:context", sanitizedContext);
         } catch (error) {
           console.error("Get system context error:", error);
           socket.emit("system:contextError", { error: "Failed to fetch system context" });
         }
       });
-      
+
       // ===================== NOTIFICATION HANDLERS =====================
-      
+
       // Mark notification as read
       socket.on("notification:markRead", async (data: { notificationId: string }) => {
         try {
@@ -320,7 +321,7 @@ export class WebSocketService {
           if (authSocket.role === "admin") {
             socket.join("admin:notifications");
           }
-          
+
           // Send initial notification count
           const count = await notificationService.getUnreadCount(authSocket.userId);
           socket.emit("notification:subscribed", { count });
@@ -331,26 +332,26 @@ export class WebSocketService {
       });
 
       // ===================== SECURITY ALERT SUBSCRIPTION HANDLERS =====================
-      
+
       // Subscribe to security alerts with enhanced role-based validation
       socket.on("security:subscribe", async (data: { eventTypes: string[]; severity?: string; userId?: string }) => {
         try {
           // Import and validate subscription data with strict validation
           const { webSocketSubscriptionSchema } = await import("@shared/schema");
           const validatedData = webSocketSubscriptionSchema.parse(data);
-          
+
           // Enhanced deny-by-default security for sensitive alert types
           const highPrivilegeAlerts = ['fraud_alert', 'incident_update', 'system_status'];
           const hasHighPrivilegeRequest = validatedData.eventTypes.some(type => 
             highPrivilegeAlerts.includes(type)
           );
-          
+
           if (hasHighPrivilegeRequest && !['admin', 'security_officer'].includes(authSocket.role)) {
             socket.emit("security:subscriptionError", { 
               error: "Insufficient permissions for sensitive security alerts",
               requiredRole: "admin or security_officer"
             });
-            
+
             // Log unauthorized subscription attempt
             await storage.createSecurityEvent({
               userId: authSocket.userId,
@@ -366,7 +367,7 @@ export class WebSocketService {
             });
             return;
           }
-          
+
           // Users can only subscribe to their own alerts unless they're admin/security_officer
           if (validatedData.userId && validatedData.userId !== authSocket.userId) {
             if (!['admin', 'security_officer'].includes(authSocket.role)) {
@@ -377,7 +378,7 @@ export class WebSocketService {
               return;
             }
           }
-          
+
           // Apply tenant/user scoping based on role and permissions
           const scopedEventTypes = validatedData.eventTypes.map(eventType => {
             if (['admin', 'security_officer'].includes(authSocket.role)) {
@@ -388,7 +389,7 @@ export class WebSocketService {
               return `${eventType}:user:${authSocket.userId}`;
             }
           });
-          
+
           // Join appropriate channels with scoped permissions
           scopedEventTypes.forEach(eventType => {
             const channelSuffix = validatedData.userId && ['admin', 'security_officer'].includes(authSocket.role) 
@@ -396,7 +397,7 @@ export class WebSocketService {
               : '';
             socket.join(`security:${eventType}${channelSuffix}`);
           });
-          
+
           // If severity filter specified, join severity-specific channels with role check
           if (validatedData.severity) {
             const severityChannel = ['admin', 'security_officer'].includes(authSocket.role)
@@ -404,14 +405,14 @@ export class WebSocketService {
               : `security:severity:${validatedData.severity}:user:${authSocket.userId}`;
             socket.join(severityChannel);
           }
-          
+
           socket.emit("security:subscribed", { 
             eventTypes: validatedData.eventTypes, 
             severity: validatedData.severity,
             userId: validatedData.userId,
             scope: ['admin', 'security_officer'].includes(authSocket.role) ? 'global' : 'user_only'
           });
-          
+
           // Log security alert subscription with enhanced details
           await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
             userId: authSocket.userId,
@@ -427,7 +428,7 @@ export class WebSocketService {
             ipAddress: socket.handshake.address,
             userAgent: socket.handshake.headers["user-agent"] as string
           }) as any);
-          
+
         } catch (error) {
           console.error("Security subscription error:", error);
           if (error instanceof Error && error.name === 'ZodError') {
@@ -437,21 +438,21 @@ export class WebSocketService {
           }
         }
       });
-      
+
       // Unsubscribe from security alerts
       socket.on("security:unsubscribe", async (data: { eventTypes: string[] }) => {
         try {
           const { webSocketSubscriptionSchema } = await import("@shared/schema");
           const validatedData = webSocketSubscriptionSchema.parse(data);
-          
+
           // Leave the specified channels
           validatedData.eventTypes.forEach(eventType => {
             socket.leave(`security:${eventType}`);
             socket.leave(`security:${eventType}:${authSocket.userId}`);
           });
-          
+
           socket.emit("security:unsubscribed", { eventTypes: validatedData.eventTypes });
-          
+
         } catch (error) {
           console.error("Security unsubscribe error:", error);
           socket.emit("security:subscriptionError", { error: "Failed to unsubscribe from security alerts" });
@@ -459,7 +460,7 @@ export class WebSocketService {
       });
 
       // ===================== ADMIN NOTIFICATION HANDLERS =====================
-      
+
       if (authSocket.role === "admin" || authSocket.role === "security_officer") {
         // Get active admin alerts
         socket.on("admin:getActiveAlerts", async () => {
@@ -518,7 +519,7 @@ export class WebSocketService {
               title: data.title,
               message: data.message
             }, data.targetRole as "user" | "admin" | undefined);
-            
+
             socket.emit("admin:systemNotificationSent", { count: notifications.length });
           } catch (error) {
             console.error("Send system notification error:", error);
@@ -535,7 +536,7 @@ export class WebSocketService {
               monitoringService.getSecurityMetrics(),
               errorTrackingService.getErrorStats(1)
             ]);
-            
+
             socket.emit("admin:systemMetrics", {
               health: systemHealth,
               security: securityMetrics,
@@ -550,13 +551,13 @@ export class WebSocketService {
       }
 
       // ===================== STATUS UPDATE HANDLERS =====================
-      
+
       // Subscribe to status updates for specific entities
       socket.on("status:subscribe", async (data: { entityType: string; entityId: string }) => {
         try {
           const channel = `status:${data.entityType}:${data.entityId}`;
           socket.join(channel);
-          
+
           // Send current status
           const latestStatus = await storage.getLatestStatusUpdate(data.entityType, data.entityId);
           if (latestStatus) {
@@ -566,7 +567,7 @@ export class WebSocketService {
               status: latestStatus 
             });
           }
-          
+
           socket.emit("status:subscribed", { entityType: data.entityType, entityId: data.entityId });
         } catch (error) {
           console.error("Subscribe status error:", error);
@@ -721,45 +722,45 @@ export class WebSocketService {
 
       socket.on("disconnect", async () => {
         console.log(`User ${privacyProtectionService.anonymizeUsername(authSocket.username)} disconnected`);
-        
+
         await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
           userId: authSocket.userId,
           eventType: "websocket_disconnected",
           severity: "low",
           details: { socketId: socket.id }
         }) as any);
-        
+
         this.authenticatedSockets.delete(socket.id);
       });
     });
   }
-  
+
   private setupErrorTracking() {
     // Listen for new errors from the error tracking service
     errorTrackingService.on("error:new", (error) => {
       // Broadcast to all admin users
       this.io.to("role:admin").emit("error:new", error);
     });
-    
+
     errorTrackingService.on("error:resolved", (error) => {
       // Broadcast to all admin users
       this.io.to("role:admin").emit("error:resolved", error);
     });
-    
+
     errorTrackingService.on("metrics:update", (metrics) => {
       // Broadcast metrics updates to all admin users
       this.io.to("role:admin").emit("metrics:update", metrics);
     });
-    
+
     // Send periodic system metrics to connected admin clients
     setInterval(() => {
       const connectedAdmins = Array.from(this.authenticatedSockets.values())
         .filter(s => s.role === "admin");
-      
+
       if (connectedAdmins.length > 0) {
         errorTrackingService.getErrorStats(1).then(stats => {
           const performanceReport = errorTrackingService.getPerformanceReport();
-          
+
           this.io.to("role:admin").emit("metrics:update", {
             errors: stats,
             performance: performanceReport,
@@ -770,20 +771,20 @@ export class WebSocketService {
       }
     }, 30000); // Every 30 seconds
   }
-  
+
   // Public methods for other services
   sendToUser(userId: string, event: string, data: any) {
     this.io.to(`user:${userId}`).emit(event, data);
   }
-  
+
   sendToRole(role: string, event: string, data: any) {
     this.io.to(`role:${role}`).emit(event, data);
   }
-  
+
   broadcast(event: string, data: any) {
     this.io.emit(event, data);
   }
-  
+
   getConnectedUsers(): number {
     return this.authenticatedSockets.size;
   }

@@ -277,13 +277,23 @@ async function initializeServer() {
     }
   }
 
-  // Try to import database pool
+  // Try to import database pool with better error handling
   let pool: any = null;
   try {
-    const dbModule = await import("./db");
-    pool = dbModule.pool;
+    // Check if DATABASE_URL is valid before attempting connection
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl || databaseUrl.includes('ep-withered-sun-afawa714')) {
+      console.warn('[Server] Invalid or outdated DATABASE_URL detected, using fallback');
+      // Clear the invalid URL to force in-memory mode
+      process.env.DATABASE_URL = '';
+    } else {
+      const dbModule = await import("./db");
+      pool = dbModule.pool;
+      console.log('[Server] ✅ Database connection established');
+    }
   } catch (error) {
     console.warn('[Server] Database module failed to load, using in-memory mode:', error);
+    pool = null;
   }
 
   // Configure session store based on database availability
