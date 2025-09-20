@@ -4,6 +4,16 @@
  */
 
 import { Anthropic } from "@anthropic-ai/sdk";
+
+// LATEST MILITARY-GRADE AI MODEL CONFIGURATION - Updated December 2024
+const MILITARY_AI_MODEL_CONFIG = {
+  CLAUDE_3_5_SONNET: "claude-3-5-sonnet-20241022", // Latest Claude 3.5 Sonnet - Military Grade
+  CLAUDE_3_HAIKU: "claude-3-haiku-20240307", // Latest Claude 3 Haiku - Rapid Response
+  CLAUDE_3_OPUS: "claude-3-opus-20240229" // Latest Claude 3 Opus - Maximum Intelligence
+};
+
+// Use latest Sonnet model for military operations
+const CURRENT_MILITARY_AI_MODEL = MILITARY_AI_MODEL_CONFIG.CLAUDE_3_5_SONNET;
 import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -11,7 +21,7 @@ import { quantumEncryptionService } from "./quantum-encryption";
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedVoiceService } from "./enhanced-voice-service";
 import { realTimeValidationService } from "./real-time-validation-service";
-import { productionGovernmentApi } from "./production-government-api";
+import { productionGovernmentAPI } from "./production-government-api";
 import { SecurityFeaturesV2 } from "./security-features-v2";
 import * as crypto from "crypto";
 
@@ -494,7 +504,7 @@ export class MilitaryGradeAIAssistant {
       const sanitizedMessage = await this.sanitizeMessageForClearanceLevel(request.message, request.userContext.clearanceLevel);
 
       const response = await this.anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022", // Use latest Claude model for military-grade responses
+        model: CURRENT_MILITARY_AI_MODEL, // Latest military-grade Claude model
         max_tokens: 2000,
         temperature: 0.3, // Lower temperature for more deterministic responses
         system: systemPrompt,
