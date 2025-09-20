@@ -40,6 +40,55 @@ jobs:
         DHA_ABIS_API_KEY: ${{ secrets.DHA_ABIS_API_KEY }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
     
+    - name: Prepare Netlify deployment artifacts
+      run: |
+        # Ensure all build artifacts exist
+        echo "📦 Preparing deployment artifacts..."
+        
+        # Create functions directory
+        mkdir -p .netlify/functions-dist
+        
+        # Verify server build artifacts
+        if [ ! -f "dist/server/index.js" ]; then
+          echo "❌ Server build artifact missing: dist/server/index.js"
+          echo "Available files in dist/:"
+          find dist/ -type f -name "*.js" | head -10
+          exit 1
+        fi
+        
+        # Bundle server build with Netlify function (slim bundle - server only)
+        echo "📦 Bundling server with Netlify function..."
+        
+        # Copy only server build (not entire dist to avoid size issues)
+        cp -r dist/server .netlify/functions-dist/
+        
+        # Copy serverless-http dependency for function
+        mkdir -p .netlify/functions-dist/node_modules
+        cp -r node_modules/serverless-http .netlify/functions-dist/node_modules/
+        
+        # Copy ESM Netlify function
+        cp netlify/functions/api.mjs .netlify/functions-dist/api.mjs
+        
+        # Create package.json for ESM support
+        echo '{"type":"module"}' > .netlify/functions-dist/package.json
+        
+        # Verify the bundle
+        if [ ! -f ".netlify/functions-dist/server/index.js" ]; then
+          echo "❌ Server bundle verification failed"
+          exit 1
+        fi
+        
+        if [ ! -f ".netlify/functions-dist/api.mjs" ]; then
+          echo "❌ Function bundle verification failed"
+          exit 1
+        fi
+        
+        echo "✅ Server build bundled: .netlify/functions-dist/server/index.js"
+        echo "✅ Netlify function prepared: .netlify/functions-dist/api.mjs (ESM)"
+        echo "✅ Dependencies bundled: serverless-http"
+        echo "📊 Bundle size:"
+        du -sh .netlify/functions-dist/
+    
     - name: Run tests
       run: npm test || echo "No tests configured"
     
@@ -72,9 +121,11 @@ jobs:
         echo "✅ Build verification passed"
     
     - name: Deploy to Netlify
+      id: netlify-deploy
       uses: nwtgck/actions-netlify@v2.0
       with:
         publish-dir: './dist/public'
+        functions-dir: './.netlify/functions-dist'
         production-branch: main
         github-token: ${{ secrets.GITHUB_TOKEN }}
         deploy-message: "🚀 Deploy from GitHub Actions - ${{ github.sha }}"
@@ -87,8 +138,57 @@ jobs:
         NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       timeout-minutes: 5
       
-    - name: Post-deployment verification
+    - name: Post-deployment health check
       run: |
-        echo "✅ Deployment completed successfully"
+        echo "🏥 Performing post-deployment health check..."
+        
+        # Get the actual deployment URL from the Netlify deploy action
+        DEPLOY_URL="${{ steps.netlify-deploy.outputs.deploy-url }}"
+        
+        if [ -z "$DEPLOY_URL" ]; then
+          echo "❌ Deploy URL not available from Netlify action"
+          DEPLOY_URL="https://dha-digital-services.netlify.app"
+          echo "⚠️ Falling back to default URL: $DEPLOY_URL"
+        else
+          echo "✅ Using deployment URL: $DEPLOY_URL"
+        fi
+        
+        # Wait for deployment to be available
+        echo "⏳ Waiting for deployment to become available..."
+        sleep 30
+        
+        # Test static assets first
+        echo "🌐 Testing static assets..."
+        STATIC_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL" -o /dev/null)
+        if [ "$STATIC_RESPONSE" = "200" ]; then
+          echo "✅ Static assets check passed (HTTP $STATIC_RESPONSE)"
+        else
+          echo "❌ Static assets check failed (HTTP $STATIC_RESPONSE)"
+          exit 1
+        fi
+        
+        # Test API health endpoint via redirect (/api/health -> /.netlify/functions/api)
+        echo "🔌 Testing API health endpoint..."
+        API_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL/api/health" -o /dev/null)
+        if [ "$API_RESPONSE" = "200" ]; then
+          echo "✅ API health check passed (HTTP $API_RESPONSE)"
+        else
+          echo "⚠️ API health check failed (HTTP $API_RESPONSE) - function may need warmup"
+          
+          # Try direct function access as fallback
+          echo "🔄 Trying direct function access..."
+          DIRECT_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL/.netlify/functions/api/health" -o /dev/null)
+          if [ "$DIRECT_RESPONSE" = "200" ]; then
+            echo "✅ Direct function access passed (HTTP $DIRECT_RESPONSE)"
+          else
+            echo "❌ Both API routes failed - deployment issue detected"
+            echo "Debug info:"
+            curl -s --max-time 10 "$DEPLOY_URL/api/health" || echo "API route failed"
+            curl -s --max-time 10 "$DEPLOY_URL/.netlify/functions/api/health" || echo "Direct function failed"
+            exit 1
+          fi
+        fi
+        
         echo "📝 Deploy commit: ${{ github.sha }}"
-        echo "🔗 Expected URL: https://dha-digital-services.netlify.app"
+        echo "🔗 Site URL: $DEPLOY_URL"
+        echo "✅ Deployment verification completed successfully"

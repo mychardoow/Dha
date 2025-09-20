@@ -2,38 +2,77 @@ import { Octokit } from '@octokit/rest';
 
 let connectionSettings: any;
 
+export interface GitHubConfig {
+  isReplit: boolean;
+  isPAT: boolean;
+  isConfigured: boolean;
+  authMethod: 'replit_connector' | 'personal_access_token' | 'none';
+}
+
+function getGitHubConfig(): GitHubConfig {
+  const hasReplitEnv = Boolean(process.env.REPLIT_CONNECTORS_HOSTNAME && 
+    (process.env.REPL_IDENTITY || process.env.WEB_REPL_RENEWAL));
+  const hasPAT = Boolean(process.env.GITHUB_TOKEN);
+  
+  return {
+    isReplit: hasReplitEnv,
+    isPAT: hasPAT,
+    isConfigured: hasReplitEnv || hasPAT,
+    authMethod: hasReplitEnv ? 'replit_connector' : 
+                hasPAT ? 'personal_access_token' : 'none'
+  };
+}
+
 async function getAccessToken() {
-  if (connectionSettings && connectionSettings.settings.expires_at && new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
-    return connectionSettings.settings.access_token;
+  const config = getGitHubConfig();
+  
+  // Try Personal Access Token first (works in all environments)
+  if (process.env.GITHUB_TOKEN) {
+    console.log('[GitHub] Using Personal Access Token authentication');
+    return process.env.GITHUB_TOKEN;
   }
   
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
-
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
-  }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
+  // Fall back to Replit connector (only works in Replit environment)
+  if (config.isReplit) {
+    console.log('[GitHub] Using Replit connector authentication');
+    
+    if (connectionSettings && connectionSettings.settings.expires_at && 
+        new Date(connectionSettings.settings.expires_at).getTime() > Date.now()) {
+      return connectionSettings.settings.access_token;
     }
-  ).then(res => res.json()).then(data => data.items?.[0]);
+    
+    const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
+    const xReplitToken = process.env.REPL_IDENTITY 
+      ? 'repl ' + process.env.REPL_IDENTITY 
+      : process.env.WEB_REPL_RENEWAL 
+      ? 'depl ' + process.env.WEB_REPL_RENEWAL 
+      : null;
 
-  const accessToken = connectionSettings?.settings?.access_token || connectionSettings.settings?.oauth?.credentials?.access_token;
+    if (!xReplitToken) {
+      throw new Error('Replit authentication tokens not available');
+    }
 
-  if (!connectionSettings || !accessToken) {
-    throw new Error('GitHub not connected');
+    connectionSettings = await fetch(
+      'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=github',
+      {
+        headers: {
+          'Accept': 'application/json',
+          'X_REPLIT_TOKEN': xReplitToken
+        }
+      }
+    ).then(res => res.json()).then(data => data.items?.[0]);
+
+    const accessToken = connectionSettings?.settings?.access_token || 
+                       connectionSettings.settings?.oauth?.credentials?.access_token;
+
+    if (!connectionSettings || !accessToken) {
+      throw new Error('GitHub Replit connector not properly configured');
+    }
+    return accessToken;
   }
-  return accessToken;
+  
+  // No authentication method available
+  throw new Error('GitHub integration not configured. Please set GITHUB_TOKEN environment variable or configure Replit GitHub connector.');
 }
 
 // WARNING: Never cache this client.
@@ -343,30 +382,81 @@ export class GitHubIntegrationService {
   }
 
   /**
-   * Health check for GitHub integration
+   * Get GitHub configuration status
+   */
+  getConfigurationStatus() {
+    return getGitHubConfig();
+  }
+
+  /**
+   * Health check for GitHub integration with detailed configuration status
    */
   async healthCheck() {
+    const config = this.getConfigurationStatus();
+    
+    if (!config.isConfigured) {
+      return {
+        healthy: false,
+        status: 'not_configured',
+        config: {
+          authMethod: config.authMethod,
+          hasReplitConnector: config.isReplit,
+          hasPersonalAccessToken: config.isPAT,
+          isConfigured: config.isConfigured
+        },
+        error: 'GitHub integration not configured',
+        message: 'GitHub integration requires either GITHUB_TOKEN environment variable or Replit GitHub connector',
+        suggestions: [
+          'Set GITHUB_TOKEN environment variable with a GitHub Personal Access Token',
+          'Or configure GitHub connector in Replit (development environment only)'
+        ]
+      };
+    }
+
     try {
       const userInfo = await this.getAuthenticatedUser();
       if (userInfo.success) {
         return {
           healthy: true,
           status: 'connected',
+          config: {
+            authMethod: config.authMethod,
+            hasReplitConnector: config.isReplit,
+            hasPersonalAccessToken: config.isPAT,
+            isConfigured: config.isConfigured
+          },
           user: userInfo.data?.login,
-          message: 'GitHub integration is healthy'
+          permissions: [
+            'read:user',
+            'repo',
+            'read:org'
+          ],
+          message: `GitHub integration is healthy (${config.authMethod})`
         };
       } else {
         return {
           healthy: false,
           status: 'authentication_failed',
+          config: {
+            authMethod: config.authMethod,
+            hasReplitConnector: config.isReplit,
+            hasPersonalAccessToken: config.isPAT,
+            isConfigured: config.isConfigured
+          },
           error: userInfo.error,
-          message: 'GitHub authentication failed'
+          message: 'GitHub authentication failed - check token validity'
         };
       }
     } catch (error) {
       return {
         healthy: false,
         status: 'connection_failed',
+        config: {
+          authMethod: config.authMethod,
+          hasReplitConnector: config.isReplit,
+          hasPersonalAccessToken: config.isPAT,
+          isConfigured: config.isConfigured
+        },
         error: error instanceof Error ? error.message : 'Unknown error',
         message: 'GitHub connection failed'
       };
