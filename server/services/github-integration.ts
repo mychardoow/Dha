@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest';
+import { configService, config } from '../middleware/provider-config';
 
 let connectionSettings: any;
 
@@ -12,7 +13,8 @@ export interface GitHubConfig {
 function getGitHubConfig(): GitHubConfig {
   const hasReplitEnv = Boolean(process.env.REPLIT_CONNECTORS_HOSTNAME && 
     (process.env.REPL_IDENTITY || process.env.WEB_REPL_RENEWAL));
-  const hasPAT = Boolean(process.env.GITHUB_TOKEN);
+  // SECURITY: GitHub token now managed by centralized configuration service
+  const hasPAT = Boolean(config.GITHUB_TOKEN);
   
   return {
     isReplit: hasReplitEnv,
@@ -24,16 +26,17 @@ function getGitHubConfig(): GitHubConfig {
 }
 
 async function getAccessToken() {
-  const config = getGitHubConfig();
+  const githubConfig = getGitHubConfig();
   
   // Try Personal Access Token first (works in all environments)
-  if (process.env.GITHUB_TOKEN) {
+  // SECURITY: GitHub token now comes from centralized configuration service
+  if (config.GITHUB_TOKEN) {
     console.log('[GitHub] Using Personal Access Token authentication');
-    return process.env.GITHUB_TOKEN;
+    return config.GITHUB_TOKEN;
   }
   
   // Fall back to Replit connector (only works in Replit environment)
-  if (config.isReplit) {
+  if (githubConfig.isReplit) {
     console.log('[GitHub] Using Replit connector authentication');
     
     if (connectionSettings && connectionSettings.settings.expires_at && 

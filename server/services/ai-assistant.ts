@@ -8,10 +8,11 @@ import { privacyProtectionService } from "./privacy-protection";
 import { enhancedVoiceService } from "./enhanced-voice-service";
 import { realTimeValidationService } from "./real-time-validation-service";
 import { productionGovernmentApi } from "./production-government-api";
+import { configService, config } from "../middleware/provider-config";
 
-// Using GPT-4 Turbo for advanced AI capabilities
-const apiKey = process.env.OPENAI_API_KEY || '';
-const isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey !== 'dev-openai-key');
+// SECURITY: OpenAI API key now managed by centralized configuration service
+const apiKey = config.OPENAI_API_KEY || '';
+const isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey.length > 0);
 
 let openai: OpenAI | null = null;
 if (isApiKeyConfigured) {

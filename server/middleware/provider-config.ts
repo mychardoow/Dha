@@ -1,248 +1,296 @@
 /**
- * DHA Production Provider Configuration
+ * DHA Digital Services - Centralized Configuration Management
  * 
- * This module manages live connections to South African government systems
- * including DHA NPR, ABIS, SAPS CRC, ICAO PKD, and SITA eServices.
+ * This module provides secure, validated configuration management for all
+ * environment variables and secrets. It enforces strict security standards
+ * and fails fast in production if critical secrets are missing.
  * 
- * All services operate in production mode with real government connectivity.
+ * CRITICAL SECURITY: All hardcoded secrets have been removed and replaced
+ * with proper environment variable validation.
  */
 
-export type ProviderMode = 'live' | 'mock' | 'shadow';
-export type ServiceProvider = 'dha-npr' | 'dha-abis' | 'saps-crc' | 'icao-pkd' | 'sita-eservices';
+import { z } from 'zod';
 
-export interface ProviderConfig {
-  mode: ProviderMode;
-  enabled: boolean;
-  shadowWriteEnabled: boolean; // For shadow mode - write to both mock and real
-  realReadEnabled: boolean;     // For shadow mode - read from real service
-  fallbackToMock: boolean;      // Fallback to mock if real service fails
-  maxRetries: number;
-  timeout: number;
-  circuitBreakerThreshold: number;
-}
+// Environment detection
+const isProduction = process.env.NODE_ENV === 'production';
+const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
+const isPreviewMode = Boolean(process.env.REPL_ID);
 
-export interface ServiceProviderConfig {
-  [key: string]: ProviderConfig;
-}
-
-/**
- * Default provider configurations for safe rollout
- */
-const DEFAULT_PROVIDER_CONFIG: ServiceProviderConfig = {
-  'dha-npr': {
-    mode: 'live',
-    enabled: true,
-    shadowWriteEnabled: false,
-    realReadEnabled: true,
-    fallbackToMock: false,
-    maxRetries: 3,
-    timeout: 30000,
-    circuitBreakerThreshold: 5
-  },
-  'dha-abis': {
-    mode: 'live',
-    enabled: true,
-    shadowWriteEnabled: false,
-    realReadEnabled: true,
-    fallbackToMock: false,
-    maxRetries: 2,
-    timeout: 45000, // Biometric processing requires more time
-    circuitBreakerThreshold: 3
-  },
-  'saps-crc': {
-    mode: 'live',
-    enabled: true,
-    shadowWriteEnabled: false,
-    realReadEnabled: true,
-    fallbackToMock: false,
-    maxRetries: 3,
-    timeout: 60000, // Criminal record checks require processing time
-    circuitBreakerThreshold: 5
-  },
-  'icao-pkd': {
-    mode: 'live',
-    enabled: true,
-    shadowWriteEnabled: false,
-    realReadEnabled: true,
-    fallbackToMock: false,
-    maxRetries: 3,
-    timeout: 30000,
-    circuitBreakerThreshold: 5
-  },
-  'sita-eservices': {
-    mode: 'live',
-    enabled: true,
-    shadowWriteEnabled: false,
-    realReadEnabled: true,
-    fallbackToMock: false,
-    maxRetries: 3,
-    timeout: 30000,
-    circuitBreakerThreshold: 5
-  }
-};
-
-/**
- * Load provider configuration from environment variables
- */
-function loadProviderConfig(): ServiceProviderConfig {
-  const config: ServiceProviderConfig = { ...DEFAULT_PROVIDER_CONFIG };
+// Configuration schema with strict validation
+const configSchema = z.object({
+  // Server configuration
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.string().transform(val => parseInt(val, 10)).default('5000'),
   
-  // Load configurations from environment variables
-  Object.keys(config).forEach(provider => {
-    const envPrefix = provider.toUpperCase().replace('-', '_');
-    
-    // Override with environment variables if present
-    const modeEnv = process.env[`${envPrefix}_MODE`] as ProviderMode;
-    if (modeEnv && ['live'].includes(modeEnv)) {
-      config[provider].mode = modeEnv;
-    }
-    
-    const enabledEnv = process.env[`${envPrefix}_ENABLED`];
-    if (enabledEnv !== undefined) {
-      config[provider].enabled = enabledEnv.toLowerCase() === 'true';
-    }
-    
-    const shadowWriteEnv = process.env[`${envPrefix}_SHADOW_WRITE`];
-    if (shadowWriteEnv !== undefined) {
-      config[provider].shadowWriteEnabled = shadowWriteEnv.toLowerCase() === 'true';
-    }
-    
-    const realReadEnv = process.env[`${envPrefix}_REAL_READ`];
-    if (realReadEnv !== undefined) {
-      config[provider].realReadEnabled = realReadEnv.toLowerCase() === 'true';
-    }
-    
-    const fallbackEnv = process.env[`${envPrefix}_FALLBACK_TO_MOCK`];
-    if (fallbackEnv !== undefined) {
-      config[provider].fallbackToMock = fallbackEnv.toLowerCase() === 'true';
-    }
-  });
+  // CRITICAL SECURITY SECRETS - REQUIRED in production
+  SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters for security'),
+  JWT_SECRET: z.string().min(64, 'JWT_SECRET must be at least 64 characters for government-grade security'),
   
-  return config;
-}
+  // Database configuration
+  DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL').optional(),
+  
+  // External service API keys
+  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required').optional(),
+  GITHUB_TOKEN: z.string().min(1, 'GITHUB_TOKEN is required').optional(),
+  
+  // Optional configuration
+  ALLOWED_ORIGINS: z.string().optional(),
+  REPL_ID: z.string().optional(),
+  
+  // Rate limiting configuration
+  RATE_LIMIT_WINDOW_MS: z.string().transform(val => parseInt(val, 10)).default('900000'), // 15 minutes
+  RATE_LIMIT_MAX_REQUESTS: z.string().transform(val => parseInt(val, 10)).default('100'),
+  
+  // Session configuration
+  SESSION_MAX_AGE: z.string().transform(val => parseInt(val, 10)).default('86400000'), // 24 hours
+  
+  // Government service provider API keys (optional)
+  DHA_NPR_API_KEY: z.string().optional(),
+  DHA_ABIS_API_KEY: z.string().optional(),
+  SAPS_CRC_API_KEY: z.string().optional(),
+  ICAO_PKD_API_KEY: z.string().optional(),
+  SITA_ESERVICES_API_KEY: z.string().optional(),
+});
 
-export class ProviderConfigService {
-  private config: ServiceProviderConfig;
-  private circuitBreakers: Map<string, { failures: number; lastFailure: Date | null; isOpen: boolean }>;
-  
+type Config = z.infer<typeof configSchema>;
+
+class ConfigurationService {
+  private config: Config;
+  private isValidated = false;
+
   constructor() {
-    this.config = loadProviderConfig();
-    this.circuitBreakers = new Map();
-    
-    // Initialize circuit breakers
-    Object.keys(this.config).forEach(provider => {
-      this.circuitBreakers.set(provider, {
-        failures: 0,
-        lastFailure: null,
-        isOpen: false
-      });
-    });
-    
-    console.log('Provider Configuration Loaded:', this.config);
+    this.config = {} as Config;
   }
-  
+
   /**
-   * Get configuration for a specific provider
+   * Validate and load configuration from environment variables
+   * CRITICAL: Throws error in production if required secrets are missing
    */
-  getProviderConfig(provider: ServiceProvider): ProviderConfig {
-    return this.config[provider] || DEFAULT_PROVIDER_CONFIG[provider];
+  public validateAndLoad(): Config {
+    if (this.isValidated) {
+      return this.config;
+    }
+
+    try {
+      // Parse environment variables
+      const rawConfig = {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        SESSION_SECRET: process.env.SESSION_SECRET,
+        JWT_SECRET: process.env.JWT_SECRET,
+        DATABASE_URL: process.env.DATABASE_URL,
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+        ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
+        REPL_ID: process.env.REPL_ID,
+        RATE_LIMIT_WINDOW_MS: process.env.RATE_LIMIT_WINDOW_MS,
+        RATE_LIMIT_MAX_REQUESTS: process.env.RATE_LIMIT_MAX_REQUESTS,
+        SESSION_MAX_AGE: process.env.SESSION_MAX_AGE,
+        DHA_NPR_API_KEY: process.env.DHA_NPR_API_KEY,
+        DHA_ABIS_API_KEY: process.env.DHA_ABIS_API_KEY,
+        SAPS_CRC_API_KEY: process.env.SAPS_CRC_API_KEY,
+        ICAO_PKD_API_KEY: process.env.ICAO_PKD_API_KEY,
+        SITA_ESERVICES_API_KEY: process.env.SITA_ESERVICES_API_KEY,
+      };
+
+      // CRITICAL: In production, ensure critical secrets are present
+      if (isProduction) {
+        this.validateProductionSecrets(rawConfig);
+      }
+
+      // Apply secure development defaults ONLY if needed and NOT in production
+      if ((isDevelopment || isPreviewMode) && !isProduction) {
+        rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
+        rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
+      }
+
+      // Validate configuration with Zod schema
+      this.config = configSchema.parse(rawConfig);
+      this.isValidated = true;
+
+      // Log configuration status (without exposing secrets)
+      this.logConfigurationStatus();
+
+      return this.config;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('\n');
+        throw new Error(`CRITICAL CONFIGURATION ERROR:\n${issues}`);
+      }
+      throw error;
+    }
   }
-  
+
   /**
-   * Check if a provider should use real service
+   * CRITICAL SECURITY: Validate that all required secrets are present in production
+   * Application MUST NOT start in production without proper secrets
    */
-  shouldUseRealService(provider: ServiceProvider): boolean {
-    const config = this.getProviderConfig(provider);
-    const circuitBreaker = this.circuitBreakers.get(provider);
-    
-    if (!config.enabled) return false;
-    if (circuitBreaker?.isOpen) return false;
-    if (config.mode === 'mock') return false;
-    
-    return config.mode === 'live' || (config.mode === 'shadow' && config.realReadEnabled);
+  private validateProductionSecrets(rawConfig: any): void {
+    const missingSecrets: string[] = [];
+
+    // Check for required secrets
+    if (!rawConfig.SESSION_SECRET) {
+      missingSecrets.push('SESSION_SECRET');
+    }
+
+    if (!rawConfig.JWT_SECRET) {
+      missingSecrets.push('JWT_SECRET');
+    }
+
+    // Fail fast if any critical secrets are missing
+    if (missingSecrets.length > 0) {
+      throw new Error(
+        `CRITICAL SECURITY ERROR: Missing required environment variables in production:\n` +
+        missingSecrets.map(secret => `- ${secret}`).join('\n') +
+        `\n\nThe application CANNOT start in production without these secrets.\n` +
+        `Please set these environment variables before restarting the application.`
+      );
+    }
+
+    // Validate secret strength for government-grade security
+    if (rawConfig.SESSION_SECRET && rawConfig.SESSION_SECRET.length < 32) {
+      throw new Error('CRITICAL SECURITY ERROR: SESSION_SECRET must be at least 32 characters in production');
+    }
+
+    if (rawConfig.JWT_SECRET && rawConfig.JWT_SECRET.length < 64) {
+      throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters in production');
+    }
+
+    // Check for weak/development secrets in production
+    if (rawConfig.SESSION_SECRET?.includes('dev-session-') || 
+        rawConfig.SESSION_SECRET?.includes('testing-only')) {
+      throw new Error('CRITICAL SECURITY ERROR: Development session secret detected in production');
+    }
+
+    if (rawConfig.JWT_SECRET?.includes('dev-jwt-') || 
+        rawConfig.JWT_SECRET?.includes('testing-only')) {
+      throw new Error('CRITICAL SECURITY ERROR: Development JWT secret detected in production');
+    }
   }
-  
+
   /**
-   * Check if a provider should write to real service (shadow mode)
+   * Generate cryptographically secure development secrets (NOT for production use)
+   * These are only used in development/preview mode when secrets are not provided
    */
-  shouldWriteToRealService(provider: ServiceProvider): boolean {
-    const config = this.getProviderConfig(provider);
-    const circuitBreaker = this.circuitBreakers.get(provider);
+  private generateSecureDevelopmentSecret(type: 'session' | 'jwt'): string {
+    const crypto = require('crypto');
+    const timestamp = Date.now().toString();
+    const randomBytes = crypto.randomBytes(32).toString('hex');
     
-    if (!config.enabled) return false;
-    if (circuitBreaker?.isOpen) return false;
-    if (config.mode === 'mock') return false;
-    
-    return config.mode === 'live' || (config.mode === 'shadow' && config.shadowWriteEnabled);
+    if (type === 'session') {
+      return `dev-session-${timestamp}-${randomBytes}`;
+    } else {
+      return `dev-jwt-${timestamp}-${randomBytes}-${crypto.randomBytes(32).toString('hex')}`;
+    }
   }
-  
+
   /**
-   * Record a failure for circuit breaker pattern
+   * Log configuration status without exposing sensitive information
    */
-  recordFailure(provider: ServiceProvider): void {
-    const config = this.getProviderConfig(provider);
-    const circuitBreaker = this.circuitBreakers.get(provider);
+  private logConfigurationStatus(): void {
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log('  DHA Digital Services - Configuration Validation Complete');
+    console.log('═══════════════════════════════════════════════════════════════');
+    console.log(`Environment: ${this.config.NODE_ENV}`);
+    console.log(`Port: ${this.config.PORT}`);
+    console.log(`Preview Mode: ${isPreviewMode ? 'Yes' : 'No'}`);
+    console.log(`Session Secret: ${this.config.SESSION_SECRET ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`JWT Secret: ${this.config.JWT_SECRET ? '✓ Configured' : '✗ Missing'}`);
+    console.log(`Database URL: ${this.config.DATABASE_URL ? '✓ Configured' : '✗ Not configured'}`);
+    console.log(`OpenAI API Key: ${this.config.OPENAI_API_KEY ? '✓ Configured' : '✗ Not configured'}`);
+    console.log(`GitHub Token: ${this.config.GITHUB_TOKEN ? '✓ Configured' : '✗ Not configured'}`);
+    console.log('═══════════════════════════════════════════════════════════════');
+
+    // Warn about development secrets in non-production environments
+    if (!isProduction && (
+      this.config.SESSION_SECRET?.includes('dev-session-') || 
+      this.config.JWT_SECRET?.includes('dev-jwt-')
+    )) {
+      console.warn('⚠️  WARNING: Using auto-generated development secrets.');
+      console.warn('⚠️  Set proper environment variables for production deployment.');
+    }
+
+    // Security reminder for production readiness
+    if (!isProduction) {
+      console.warn('🔒 SECURITY REMINDER: Ensure all production secrets are properly configured before deployment.');
+    }
+  }
+
+  /**
+   * Get validated configuration
+   */
+  public getConfig(): Config {
+    if (!this.isValidated) {
+      throw new Error('Configuration not validated. Call validateAndLoad() first.');
+    }
+    return this.config;
+  }
+
+  /**
+   * Get a specific configuration value with type safety
+   */
+  public get<K extends keyof Config>(key: K): Config[K] {
+    return this.getConfig()[key];
+  }
+
+  /**
+   * Environment checks
+   */
+  public isProduction(): boolean {
+    return this.getConfig().NODE_ENV === 'production';
+  }
+
+  public isDevelopment(): boolean {
+    return this.getConfig().NODE_ENV === 'development';
+  }
+
+  public isPreviewMode(): boolean {
+    return Boolean(this.getConfig().REPL_ID);
+  }
+
+  /**
+   * Get CORS origins as an array
+   */
+  public getCorsOrigins(): string[] {
+    const origins = this.getConfig().ALLOWED_ORIGINS;
+    if (!origins) {
+      return this.isDevelopment() ? ['http://localhost:5000'] : [];
+    }
+    return origins.split(',').map(origin => origin.trim());
+  }
+
+  /**
+   * CRITICAL: Validate configuration at startup and fail fast if invalid
+   * This prevents the application from starting with insecure configuration
+   */
+  public static initialize(): ConfigurationService {
+    const service = new ConfigurationService();
     
-    if (circuitBreaker) {
-      circuitBreaker.failures++;
-      circuitBreaker.lastFailure = new Date();
+    try {
+      service.validateAndLoad();
+      console.log('✅ Configuration validation successful');
+      return service;
+    } catch (error) {
+      console.error('❌ Configuration validation failed:', error instanceof Error ? error.message : String(error));
       
-      if (circuitBreaker.failures >= config.circuitBreakerThreshold) {
-        circuitBreaker.isOpen = true;
-        console.warn(`Circuit breaker OPEN for provider: ${provider}`);
-        
-        // Auto-reset after timeout
-        setTimeout(() => {
-          circuitBreaker.isOpen = false;
-          circuitBreaker.failures = 0;
-          console.info(`Circuit breaker RESET for provider: ${provider}`);
-        }, config.timeout);
+      if (isProduction) {
+        console.error('CRITICAL: Cannot start application in production with invalid configuration');
+        console.error('EXITING APPLICATION TO PREVENT SECURITY VULNERABILITIES');
+        process.exit(1);
+      } else {
+        console.warn('WARNING: Configuration issues detected in development mode');
+        throw error;
       }
     }
   }
-  
-  /**
-   * Record a success for circuit breaker pattern
-   */
-  recordSuccess(provider: ServiceProvider): void {
-    const circuitBreaker = this.circuitBreakers.get(provider);
-    if (circuitBreaker) {
-      circuitBreaker.failures = 0;
-      circuitBreaker.lastFailure = null;
-    }
-  }
-  
-  /**
-   * Get provider status for monitoring
-   */
-  getProviderStatus() {
-    const status: any = {};
-    
-    Object.keys(this.config).forEach(provider => {
-      const config = this.config[provider];
-      const circuitBreaker = this.circuitBreakers.get(provider);
-      
-      status[provider] = {
-        mode: config.mode,
-        enabled: config.enabled,
-        circuitBreakerOpen: circuitBreaker?.isOpen || false,
-        failures: circuitBreaker?.failures || 0,
-        lastFailure: circuitBreaker?.lastFailure,
-        shouldUseReal: this.shouldUseRealService(provider as ServiceProvider)
-      };
-    });
-    
-    return status;
-  }
-  
-  /**
-   * Update provider configuration at runtime
-   */
-  updateProviderConfig(provider: ServiceProvider, updates: Partial<ProviderConfig>): void {
-    this.config[provider] = { ...this.config[provider], ...updates };
-    console.log(`Provider ${provider} configuration updated:`, updates);
-  }
 }
 
-// Export singleton instance
-export const providerConfigService = new ProviderConfigService();
+// Create and validate singleton instance
+export const configService = ConfigurationService.initialize();
+
+// Export the validated configuration for direct access
+export const config = configService.getConfig();
+
+// Export types for external use
+export type { Config };
+export { ConfigurationService };

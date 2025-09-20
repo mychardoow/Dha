@@ -125,6 +125,7 @@ import { secureCommunicationsService } from "./services/secure-comms";
 import { gitHubIntegrationService } from "./services/github-integration";
 import { z } from "zod";
 import { consentMiddleware } from "./middleware/consent-middleware";
+import { configService, config } from "./middleware/provider-config";
 
 // Import unified document generation system
 import { documentTemplateRegistry } from "./services/document-template-registry";
@@ -132,7 +133,7 @@ import { documentGenerationRequestSchema, documentTypeSchemas } from "@shared/sc
 import { dataGovernanceService } from "./services/data-governance";
 
 // Constants
-const DOCUMENTS_DIR = process.env.DOCUMENTS_DIR || "./documents";
+const DOCUMENTS_DIR = "./documents"; // Using fixed path for document storage
 
 // Ensure documents directory exists
 fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
@@ -173,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       status: isHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: process.env.NODE_ENV || "development",
+      environment: config.NODE_ENV,
       version: "1.0.0",
       database: dbStatus,
       cache: {

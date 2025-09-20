@@ -7,6 +7,7 @@ import { adminNotificationService } from "./services/admin-notification-service"
 import jwt from "jsonwebtoken";
 import { errorTrackingService } from "./services/error-tracking";
 import { privacyProtectionService } from "./services/privacy-protection";
+import { configService, config } from "./middleware/provider-config";
 
 export interface AuthenticatedSocket {
   id: string;
@@ -22,7 +23,7 @@ export class WebSocketService {
   constructor(server: Server) {
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: process.env.FRONTEND_URL || "http://localhost:5000",
+        origin: configService.getCorsOrigins(),
         methods: ["GET", "POST"],
         credentials: true
       },
@@ -38,11 +39,11 @@ export class WebSocketService {
    * Validate JWT secret with strict production enforcement
    */
   private validateJWTSecret(): string | null {
-    const value = process.env.JWT_SECRET;
+    const value = config.JWT_SECRET;
     
     if (!value) {
       const errorMessage = 'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication';
-      if (process.env.NODE_ENV === 'production') {
+      if (configService.isProduction()) {
         console.error(errorMessage);
         return null;
       }
@@ -52,7 +53,7 @@ export class WebSocketService {
     }
     
     // Validate key strength in production
-    if (process.env.NODE_ENV === 'production' && value.length < 32) {
+    if (configService.isProduction() && value.length < 32) {
       console.error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 32 characters for production use');
       return null;
     }
@@ -66,7 +67,7 @@ export class WebSocketService {
         const token = socket.handshake.auth.token;
         
         // DEVELOPMENT MODE: Handle JWT authentication with mock admin support
-        if (!process.env.NODE_ENV || process.env.NODE_ENV !== 'production') {
+        if (!configService.isProduction()) {
           // If no token provided, use default dev user
           if (!token) {
             console.log('[WebSocket] Development mode: No token provided, using default dev user');
@@ -87,8 +88,9 @@ export class WebSocketService {
           try {
             const decoded = jwt.verify(token, JWT_SECRET) as any;
             
-            // Check if this is the mock admin user
-            if (decoded.id === 'mock-admin-001') {
+            // SECURITY: Mock admin bypass ONLY allowed in development/preview mode
+            // CRITICAL: This bypass is completely disabled in production to prevent authentication vulnerabilities
+            if (decoded.id === 'mock-admin-001' && !configService.isProduction()) {
               console.log('[WebSocket] Development mode: Mock admin user authenticated');
               this.authenticatedSockets.set(socket.id, {
                 id: socket.id,
