@@ -38,6 +38,10 @@ import {
   insertDhaApplicationSchema, 
   insertDhaApplicantSchema,
   updateUserSchema,
+  userProfileUpdateSchema,
+  changePasswordSchema,
+  passwordResetRequestSchema,
+  passwordResetSchema,
   documentVerificationSchema,
   adminDocumentVerificationSchema,
   productionBackupSchema,
@@ -519,67 +523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mock Login Endpoint for Preview Mode
-  app.post("/api/auth/mock-login", asyncHandler(async (req: Request, res: Response) => {
-    const { username, password } = req.body;
-
-    console.log("Mock login attempt for username:", username);
-
-    // Check for mock admin credentials
-    if (username === "admin" && password === "admin123") {
-      // Create mock admin user
-      const mockAdminUser = {
-        id: "mock-admin-001",
-        username: "admin",
-        email: "admin@dha.gov.za",
-        role: "admin"
-      };
-
-      // Generate token with admin privileges
-      const token = generateToken(mockAdminUser);
-
-      // Try to log successful mock login (optional for development)
-      try {
-        await storage.createSecurityEvent({
-          userId: mockAdminUser.id,
-          eventType: "mock_login_successful",
-          severity: "low",
-          details: { 
-            email: mockAdminUser.email,
-            mockMode: true
-          },
-          ipAddress: req.ip,
-          userAgent: req.get("User-Agent") || ""
-        });
-      } catch (storageError) {
-        // Log error but don't fail the login for mock mode
-        console.log("Mock login: Security event logging skipped (development mode)");
-      }
-
-      return res.json({
-        message: "Mock login successful",
-        token,
-        user: mockAdminUser,
-        mockMode: true
-      });
-    } else {
-      // Try to log failed mock login (optional for development)
-      try {
-        await storage.createSecurityEvent({
-          eventType: "mock_login_failed",
-          severity: "medium",
-          details: { username },
-          ipAddress: req.ip,
-          userAgent: req.get("User-Agent") || ""
-        });
-      } catch (storageError) {
-        // Log error but don't fail the response
-        console.log("Mock login: Failed login event logging skipped (development mode)");
-      }
-      
-      return res.status(401).json({ error: "Invalid mock credentials" });
-    }
-  }));
+  // SECURITY: Mock login endpoint removed for production security
+  // All authentication must use real user registration and login endpoints
 
   // Registration
   app.post("/api/auth/register", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
@@ -648,9 +593,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email and password required" });
       }
 
+      // Check for account lockout
+      const lockoutStatus = await storage.isAccountLocked(email);
+      if (lockoutStatus.locked) {
+        await storage.createSecurityEvent({
+          eventType: "login_blocked_account_locked",
+          severity: "high",
+          details: { 
+            email,
+            failedAttempts: lockoutStatus.failedAttempts,
+            lockedUntil: lockoutStatus.lockedUntil
+          },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || ""
+        });
+        return res.status(423).json({ 
+          error: "Account temporarily locked", 
+          message: `Account locked due to too many failed login attempts. Try again after ${lockoutStatus.lockedUntil?.toISOString()}`,
+          lockedUntil: lockoutStatus.lockedUntil
+        });
+      }
+
       // Get user
       const user = await storage.getUserByEmail(email);
       if (!user || !user.isActive) {
+        // Record failed attempt for non-existent users to prevent enumeration via timing
+        await storage.recordFailedLoginAttempt(email);
         await storage.createSecurityEvent({
           eventType: "login_failed_user_not_found",
           severity: "medium",
@@ -664,6 +632,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Verify password
       const isValid = await verifyPassword(password, user.password);
       if (!isValid) {
+        // Record failed login attempt
+        await storage.recordFailedLoginAttempt(email);
         await storage.createSecurityEvent({
           userId: user.id,
           eventType: "login_failed_invalid_password",
@@ -674,6 +644,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         return res.status(401).json({ error: "Invalid credentials" });
       }
+
+      // Clear failed login attempts on successful authentication
+      await storage.clearFailedLoginAttempts(email);
 
       // Run fraud detection
       const fraudAnalysis = await fraudDetectionService.analyzeUserBehavior({
@@ -732,6 +705,289 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
+    }
+  }));
+
+  // User Profile Management
+  app.get("/api/auth/profile", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      
+      // Get fresh user data from database
+      const currentUser = await storage.getUser(user.id);
+      if (!currentUser || !currentUser.isActive) {
+        return res.status(404).json({ error: "User not found or inactive" });
+      }
+
+      // Return user profile without password
+      res.json({
+        id: currentUser.id,
+        username: currentUser.username,
+        email: currentUser.email,
+        role: currentUser.role,
+        isActive: currentUser.isActive,
+        createdAt: currentUser.createdAt
+      });
+
+    } catch (error) {
+      console.error("Profile fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch profile" });
+    }
+  }));
+
+  app.put("/api/auth/profile", authenticate, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const validatedData = userProfileUpdateSchema.parse(req.body);
+
+      // Check if email is being changed and if it's already taken
+      if (validatedData.email) {
+        const existingUser = await storage.getUserByEmail(validatedData.email);
+        if (existingUser && existingUser.id !== user.id) {
+          return res.status(409).json({ error: "Email already in use" });
+        }
+      }
+
+      // Check if username is being changed and if it's already taken
+      if (validatedData.username) {
+        const existingUser = await storage.getUserByUsername(validatedData.username);
+        if (existingUser && existingUser.id !== user.id) {
+          return res.status(409).json({ error: "Username already in use" });
+        }
+      }
+
+      // Update user profile
+      await storage.updateUser(user.id, validatedData);
+
+      // Log profile update
+      await storage.createSecurityEvent({
+        userId: user.id,
+        eventType: "profile_updated",
+        severity: "low",
+        details: { 
+          updatedFields: Object.keys(validatedData),
+          email: user.email 
+        },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      // Get updated user data
+      const updatedUser = await storage.getUser(user.id);
+      
+      res.json({
+        message: "Profile updated successfully",
+        user: {
+          id: updatedUser!.id,
+          username: updatedUser!.username,
+          email: updatedUser!.email,
+          role: updatedUser!.role,
+          isActive: updatedUser!.isActive,
+          createdAt: updatedUser!.createdAt
+        }
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Profile update error:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  }));
+
+  // Change Password
+  app.post("/api/auth/change-password", authenticate, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const validatedData = changePasswordSchema.parse(req.body);
+
+      // Get current user data
+      const currentUser = await storage.getUser(user.id);
+      if (!currentUser || !currentUser.isActive) {
+        return res.status(404).json({ error: "User not found or inactive" });
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await verifyPassword(validatedData.currentPassword, currentUser.password);
+      if (!isCurrentPasswordValid) {
+        // Log failed password change attempt
+        await storage.createSecurityEvent({
+          userId: user.id,
+          eventType: "password_change_failed_wrong_current",
+          severity: "medium",
+          details: { email: user.email },
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent") || ""
+        });
+        
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+
+      // Update password with new hashed password
+      const hashedNewPassword = await hashPassword(validatedData.newPassword);
+      await storage.updateUser(user.id, { password: hashedNewPassword });
+
+      // Log successful password change
+      await storage.createSecurityEvent({
+        userId: user.id,
+        eventType: "password_changed",
+        severity: "medium",
+        details: { email: user.email },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({ message: "Password changed successfully" });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Password change error:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  }));
+
+  // Logout (JWT is stateless, but we can log the event)
+  app.post("/api/auth/logout", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+
+      // Log logout event
+      await storage.createSecurityEvent({
+        userId: user.id,
+        eventType: "user_logout",
+        severity: "low",
+        details: { email: user.email },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({ message: "Logout successful" });
+
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  }));
+
+  // Password Reset Request
+  app.post("/api/auth/reset-password-request", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const validatedData = passwordResetRequestSchema.parse(req.body);
+      
+      // Check if user exists
+      const user = await storage.getUserByEmail(validatedData.email);
+      if (!user || !user.isActive) {
+        // For security, always return success to prevent email enumeration
+        return res.json({ 
+          message: "If the email exists in our system, you will receive a password reset link shortly." 
+        });
+      }
+
+      // Generate reset token (in a real system, this would be sent via email)
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+      // Store reset token (for this implementation, we'll store it in memory)
+      // In production, this should be stored in database with expiry
+      if (!global.passwordResetTokens) {
+        global.passwordResetTokens = new Map();
+      }
+      
+      global.passwordResetTokens.set(resetToken, {
+        userId: user.id,
+        email: user.email,
+        expiresAt: resetTokenExpiry
+      });
+
+      // Log password reset request
+      await storage.createSecurityEvent({
+        userId: user.id,
+        eventType: "password_reset_requested",
+        severity: "medium",
+        details: { email: user.email },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      // In production, send email with reset link
+      console.log(`[DEV] Password reset token for ${user.email}: ${resetToken}`);
+      console.log(`[DEV] Reset link: ${req.protocol}://${req.get('host')}/reset-password?token=${resetToken}`);
+
+      res.json({ 
+        message: "If the email exists in our system, you will receive a password reset link shortly.",
+        // For development only - remove in production
+        ...(process.env.NODE_ENV === 'development' && { 
+          devResetToken: resetToken,
+          devNote: "In production, this token would be sent via email" 
+        })
+      });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Password reset request error:", error);
+      res.status(500).json({ error: "Failed to process reset request" });
+    }
+  }));
+
+  // Password Reset
+  app.post("/api/auth/reset-password", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const validatedData = passwordResetSchema.parse(req.body);
+      
+      // Check if reset tokens exist
+      if (!global.passwordResetTokens) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      // Verify reset token
+      const tokenData = global.passwordResetTokens.get(validatedData.token);
+      if (!tokenData) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      // Check if token is expired
+      if (new Date() > tokenData.expiresAt) {
+        global.passwordResetTokens.delete(validatedData.token);
+        return res.status(400).json({ error: "Reset token has expired" });
+      }
+
+      // Get user
+      const user = await storage.getUser(tokenData.userId);
+      if (!user || !user.isActive) {
+        global.passwordResetTokens.delete(validatedData.token);
+        return res.status(400).json({ error: "User not found or inactive" });
+      }
+
+      // Update password
+      const hashedNewPassword = await hashPassword(validatedData.newPassword);
+      await storage.updateUser(user.id, { password: hashedNewPassword });
+
+      // Delete used token
+      global.passwordResetTokens.delete(validatedData.token);
+
+      // Log password reset
+      await storage.createSecurityEvent({
+        userId: user.id,
+        eventType: "password_reset_completed",
+        severity: "medium",
+        details: { email: user.email },
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent") || ""
+      });
+
+      res.json({ message: "Password reset successfully" });
+
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: "Invalid input", details: error.errors });
+      }
+      console.error("Password reset error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
     }
   }));
 

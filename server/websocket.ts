@@ -36,7 +36,8 @@ export class WebSocketService {
   }
   
   /**
-   * Validate JWT secret with strict production enforcement
+   * Validate JWT secret with strict production enforcement aligned with provider-config
+   * CRITICAL: Must match provider-config 64+ character requirement for government-grade security
    */
   private validateJWTSecret(): string | null {
     const value = config.JWT_SECRET;
@@ -47,14 +48,14 @@ export class WebSocketService {
         console.error(errorMessage);
         return null;
       }
-      console.warn(`WARNING: ${errorMessage} - Using development fallback`);
-      // Generate a random key for development only
-      return require('crypto').randomBytes(32).toString('hex');
+      console.error(errorMessage);
+      // SECURITY: No development fallbacks - must be configured properly
+      return null;
     }
     
-    // Validate key strength in production
-    if (configService.isProduction() && value.length < 32) {
-      console.error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 32 characters for production use');
+    // ALIGNED: Validate 64+ character requirement to match provider-config standards
+    if (value.length < 64) {
+      console.error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters for government-grade security');
       return null;
     }
     
@@ -66,70 +67,8 @@ export class WebSocketService {
       try {
         const token = socket.handshake.auth.token;
         
-        // DEVELOPMENT MODE: Handle JWT authentication with mock admin support
-        if (!configService.isProduction()) {
-          // If no token provided, use default dev user
-          if (!token) {
-            console.log('[WebSocket] Development mode: No token provided, using default dev user');
-            
-            this.authenticatedSockets.set(socket.id, {
-              id: socket.id,
-              userId: 'dev-user-001',
-              username: 'developer',
-              role: 'admin' // Give admin role in development for testing
-            });
-            
-            return next();
-          }
-          
-          // Token is provided, decode it using the appropriate JWT secret
-          const JWT_SECRET = this.validateJWTSecret() || 'dev-jwt-secret-for-testing-only-12345678901234567890123456789012345678901234567890123456';
-          
-          try {
-            const decoded = jwt.verify(token, JWT_SECRET) as any;
-            
-            // SECURITY: Mock admin bypass ONLY allowed in development/preview mode
-            // CRITICAL: This bypass is completely disabled in production to prevent authentication vulnerabilities
-            if (decoded.id === 'mock-admin-001' && !configService.isProduction()) {
-              console.log('[WebSocket] Development mode: Mock admin user authenticated');
-              this.authenticatedSockets.set(socket.id, {
-                id: socket.id,
-                userId: decoded.id,
-                username: decoded.username || 'admin',
-                role: decoded.role || 'admin'
-              });
-              return next();
-            }
-            
-            // For other users in development mode, try to fetch from storage
-            // but fall back to token data if user not found
-            const user = await storage.getUser(decoded.id);
-            if (user && user.isActive) {
-              this.authenticatedSockets.set(socket.id, {
-                id: socket.id,
-                userId: user.id,
-                username: user.username,
-                role: user.role
-              });
-            } else {
-              // User not found in DB, use token data in development mode
-              console.log(`[WebSocket] Development mode: User ${decoded.id} not found in DB, using token data`);
-              this.authenticatedSockets.set(socket.id, {
-                id: socket.id,
-                userId: decoded.id,
-                username: decoded.username || 'unknown',
-                role: decoded.role || 'user'
-              });
-            }
-            
-            return next();
-          } catch (tokenError) {
-            console.error('WebSocket token verification error in development mode:', tokenError);
-            return next(new Error("Invalid authentication token"));
-          }
-        }
-        
-        // PRODUCTION MODE: Require proper authentication
+        // SECURITY: Production-ready authentication only
+        // No development mode bypasses or mock user support
         if (!token) {
           return next(new Error("Authentication token required"));
         }
@@ -138,6 +77,7 @@ export class WebSocketService {
         if (!JWT_SECRET) {
           return next(new Error('CRITICAL SECURITY ERROR: JWT_SECRET validation failed'));
         }
+        
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const user = await storage.getUser(decoded.id);
         

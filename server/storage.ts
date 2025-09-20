@@ -79,6 +79,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
+import bcrypt from "bcrypt";
 
 export interface IStorage {
   // User methods
@@ -88,6 +89,11 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<void>;
   getAllUsers(): Promise<User[]>;
+
+  // Account lockout methods for production-ready brute force protection
+  recordFailedLoginAttempt(identifier: string): Promise<void>;
+  isAccountLocked(identifier: string): Promise<{ locked: boolean; lockedUntil?: Date; failedAttempts: number }>;
+  clearFailedLoginAttempts(identifier: string): Promise<void>;
 
   // Conversation methods
   getConversations(userId: string): Promise<Conversation[]>;
@@ -4724,5 +4730,324 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database-backed storage implementation
+export class DbStorage implements IStorage {
+  // ===================== USER METHODS =====================
+  
+  async getUser(id: string): Promise<User | undefined> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.getUser(id);
+    }
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error('[DbStorage] Error getting user:', error);
+      return undefined;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.getUserByUsername(username);
+    }
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error('[DbStorage] Error getting user by username:', error);
+      return undefined;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.getUserByEmail(email);
+    }
+    
+    try {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user;
+    } catch (error) {
+      console.error('[DbStorage] Error getting user by email:', error);
+      return undefined;
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.createUser(insertUser);
+    }
+    
+    try {
+      // Ensure password is hashed
+      const hashedPassword = insertUser.password.startsWith('$2b$') 
+        ? insertUser.password 
+        : await bcrypt.hash(insertUser.password, 12);
+      
+      const [newUser] = await db.insert(users).values({
+        ...insertUser,
+        password: hashedPassword,
+        role: insertUser.role || 'user',
+        isActive: true
+      }).returning();
+      
+      return newUser;
+    } catch (error) {
+      console.error('[DbStorage] Error creating user:', error);
+      throw new Error('Failed to create user');
+    }
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<void> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.updateUser(id, updates);
+    }
+    
+    try {
+      // If password is being updated, hash it
+      if (updates.password && !updates.password.startsWith('$2b$')) {
+        updates.password = await bcrypt.hash(updates.password, 12);
+      }
+      
+      await db.update(users)
+        .set(updates)
+        .where(eq(users.id, id));
+    } catch (error) {
+      console.error('[DbStorage] Error updating user:', error);
+      throw new Error('Failed to update user');
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, falling back to memory storage');
+      return memStorage.getAllUsers();
+    }
+    
+    try {
+      const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+      return allUsers;
+    } catch (error) {
+      console.error('[DbStorage] Error getting all users:', error);
+      return [];
+    }
+  }
+
+  // ===================== DATABASE-BACKED ACCOUNT LOCKOUT METHODS =====================
+  
+  /**
+   * Records a failed login attempt and implements account lockout for brute force protection
+   * Uses database fields for persistent lockout state across server restarts
+   */
+  async recordFailedLoginAttempt(identifier: string): Promise<void> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, skipping failed login attempt recording');
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const user = await db.select().from(users)
+        .where(or(eq(users.email, identifier), eq(users.username, identifier)))
+        .limit(1);
+      
+      if (user.length === 0) {
+        console.warn(`[DbStorage] User not found for identifier: ${identifier}`);
+        return;
+      }
+
+      const currentUser = user[0];
+      const newFailedAttempts = (currentUser.failedAttempts || 0) + 1;
+      
+      // Lock account after 5 failed attempts for 15 minutes
+      const updates: Partial<User> = {
+        failedAttempts: newFailedAttempts,
+        lastFailedAttempt: now
+      };
+      
+      if (newFailedAttempts >= 5) {
+        updates.lockedUntil = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
+      }
+
+      await db.update(users)
+        .set(updates)
+        .where(eq(users.id, currentUser.id));
+
+    } catch (error) {
+      console.error('[DbStorage] Error recording failed login attempt:', error);
+      throw new Error('Failed to record failed login attempt');
+    }
+  }
+
+  /**
+   * Checks if an account is currently locked due to failed login attempts
+   * Automatically clears expired lockouts
+   */
+  async isAccountLocked(identifier: string): Promise<{ locked: boolean; lockedUntil?: Date; failedAttempts: number }> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, assuming account not locked');
+      return { locked: false, failedAttempts: 0 };
+    }
+
+    try {
+      const user = await db.select().from(users)
+        .where(or(eq(users.email, identifier), eq(users.username, identifier)))
+        .limit(1);
+      
+      if (user.length === 0) {
+        return { locked: false, failedAttempts: 0 };
+      }
+
+      const currentUser = user[0];
+      const now = new Date();
+      
+      // Check if lockout has expired and clear it
+      if (currentUser.lockedUntil && now > currentUser.lockedUntil) {
+        await db.update(users)
+          .set({ 
+            failedAttempts: 0, 
+            lockedUntil: null,
+            lastFailedAttempt: null 
+          })
+          .where(eq(users.id, currentUser.id));
+          
+        return { locked: false, failedAttempts: 0 };
+      }
+
+      return {
+        locked: !!currentUser.lockedUntil && now < currentUser.lockedUntil,
+        lockedUntil: currentUser.lockedUntil || undefined,
+        failedAttempts: currentUser.failedAttempts || 0
+      };
+      
+    } catch (error) {
+      console.error('[DbStorage] Error checking account lockout:', error);
+      // Fail safe: if we can't check lockout, assume not locked to prevent denial of service
+      return { locked: false, failedAttempts: 0 };
+    }
+  }
+
+  /**
+   * Clears failed login attempts and lockout status (e.g., after successful login)
+   */
+  async clearFailedLoginAttempts(identifier: string): Promise<void> {
+    if (!db) {
+      console.warn('[DbStorage] Database not available, skipping clear failed login attempts');
+      return;
+    }
+
+    try {
+      const user = await db.select().from(users)
+        .where(or(eq(users.email, identifier), eq(users.username, identifier)))
+        .limit(1);
+      
+      if (user.length === 0) {
+        return;
+      }
+
+      await db.update(users)
+        .set({ 
+          failedAttempts: 0, 
+          lockedUntil: null,
+          lastFailedAttempt: null 
+        })
+        .where(eq(users.id, user[0].id));
+        
+    } catch (error) {
+      console.error('[DbStorage] Error clearing failed login attempts:', error);
+      throw new Error('Failed to clear failed login attempts');
+    }
+  }
+
+  // For methods not yet implemented in DbStorage, delegate to MemStorage
+  async getConversations(userId: string): Promise<Conversation[]> {
+    return memStorage.getConversations(userId);
+  }
+
+  async getConversation(id: string): Promise<Conversation | undefined> {
+    return memStorage.getConversation(id);
+  }
+
+  async createConversation(conversation: InsertConversation): Promise<Conversation> {
+    return memStorage.createConversation(conversation);
+  }
+
+  async updateConversation(id: string, updates: Partial<Conversation>): Promise<void> {
+    return memStorage.updateConversation(id, updates);
+  }
+
+  async deleteConversation(id: string): Promise<void> {
+    return memStorage.deleteConversation(id);
+  }
+
+  async getMessages(conversationId: string): Promise<Message[]> {
+    return memStorage.getMessages(conversationId);
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    return memStorage.createMessage(message);
+  }
+
+  async getDocuments(userId: string): Promise<Document[]> {
+    return memStorage.getDocuments(userId);
+  }
+
+  async getAllDocuments(): Promise<Document[]> {
+    return memStorage.getAllDocuments();
+  }
+
+  async getDocument(id: string): Promise<Document | undefined> {
+    return memStorage.getDocument(id);
+  }
+
+  async createDocument(document: InsertDocument): Promise<Document> {
+    return memStorage.createDocument(document);
+  }
+
+  async updateDocument(id: string, updates: Partial<Document>): Promise<void> {
+    return memStorage.updateDocument(id, updates);
+  }
+
+  async getSecurityEvents(userId?: string, limit?: number): Promise<SecurityEvent[]> {
+    return memStorage.getSecurityEvents(userId, limit);
+  }
+
+  async createSecurityEvent(event: InsertSecurityEvent): Promise<SecurityEvent> {
+    return memStorage.createSecurityEvent(event);
+  }
+
+  // Delegate all other methods to MemStorage for now
+  // This allows the system to work while we gradually migrate methods to database
+  [key: string]: any;
+}
+
+// Create instances
+const memStorage = new MemStorage();
+const dbStorage = new DbStorage();
+
+// Delegate all non-implemented methods in DbStorage to MemStorage
+const handler = {
+  get(target: any, prop: any) {
+    if (prop in target) {
+      return target[prop];
+    }
+    if (prop in memStorage) {
+      return memStorage[prop].bind(memStorage);
+    }
+    return undefined;
+  }
+};
+
+// Create a proxy that automatically delegates missing methods to MemStorage
+const proxiedDbStorage = new Proxy(dbStorage, handler);
+
+export const storage = proxiedDbStorage as IStorage;
 export { IStorage };

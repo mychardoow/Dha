@@ -69,44 +69,25 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       });
     }
 
-    // SECURITY: Mock admin bypass ONLY allowed in development/preview mode
-    // CRITICAL: This bypass is completely disabled in production to prevent authentication vulnerabilities
-    if ((decoded.id === 'mock-admin-001' || decoded.id === 'admin-1') && !configService.isProduction()) {
-      console.warn(`[SECURITY] Using mock admin bypass for development - ID: ${decoded.id}`);
-      req.user = {
-        id: decoded.id,
-        username: decoded.username || 'admin',
-        email: decoded.email || 'admin@dha.gov.za',
-        role: decoded.role || 'admin'
-      } as AuthenticatedUser;
-      return next();
-    }
-
+    // SECURITY: All authentication must go through real user verification
+    // No mock bypasses allowed - production-ready authentication only
+    
     // Try to fetch user from storage
     const user = await storage.getUser(decoded.id);
-    if (user && user.isActive) {
-      req.user = {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role
-      } as AuthenticatedUser;
-    } else if (!configService.isProduction()) {
-      // In development mode, allow token-based authentication if user not in DB
-      req.user = {
-        id: decoded.id,
-        username: decoded.username || 'unknown',
-        email: decoded.email || 'unknown@example.com',
-        role: decoded.role || 'user'
-      } as AuthenticatedUser;
-    } else {
+    if (!user || !user.isActive) {
       return res.status(401).json({ 
         error: "User not found or inactive", 
-        message: "User account is not active" 
+        message: "User account is not active or does not exist" 
       });
     }
 
-    req.user = req.user as AuthenticatedUser;
+    // Set authenticated user
+    req.user = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    } as AuthenticatedUser;
 
     // Log authentication event
     const authenticatedUser = req.user as AuthenticatedUser;

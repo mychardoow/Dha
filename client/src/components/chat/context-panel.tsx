@@ -145,19 +145,19 @@ export default function ContextPanel({
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Active Users</span>
               <span className="text-foreground font-medium" data-testid="text-active-users">
-                1,247
+                {context.biometric?.activeUsers || 0}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Success Rate</span>
               <span className="text-green-400 font-medium" data-testid="text-success-rate">
-                99.7%
+                {context.biometric?.successRate || '0'}%
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Failed Attempts</span>
               <span className="text-red-400 font-medium" data-testid="text-failed-attempts">
-                23
+                {context.biometric?.failedAttempts || 0}
               </span>
             </div>
             <Progress value={99.7} className="h-2 mt-3" data-testid="progress-biometric-success" />

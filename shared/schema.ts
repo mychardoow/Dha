@@ -152,6 +152,12 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
   isActive: boolean("is_active").notNull().default(true),
+  
+  // Account lockout fields for brute force protection
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
+  lastFailedAttempt: timestamp("last_failed_attempt"),
+  
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -1182,12 +1188,20 @@ export const documentVerifications = pgTable("document_verifications", {
   verifiedAt: timestamp("verified_at").notNull().default(sql`now()`),
 });
 
+// Password strength validation
+const passwordStrengthSchema = z.string()
+  .min(8, "Password must be at least 8 characters long")
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+    "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
   role: true,
+}).extend({
+  password: passwordStrengthSchema, // Override with strength validation
 });
 
 export const insertConversationSchema = createInsertSchema(conversations).pick({
@@ -1836,6 +1850,37 @@ export const updateUserSchema = z.object({
   email: z.string().email().optional(),
   role: z.enum(["user", "admin"]).optional(),
   isActive: z.boolean().optional(),
+});
+
+// User profile update schema
+export const userProfileUpdateSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters").max(50).optional(),
+  email: z.string().email("Invalid email format").optional(),
+});
+
+// Change password schema
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: passwordStrengthSchema,
+  confirmPassword: z.string().min(1, "Password confirmation is required")
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+// Password reset request schema
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email("Invalid email format"),
+});
+
+// Password reset schema
+export const passwordResetSchema = z.object({
+  token: z.string().min(1, "Reset token is required"),
+  newPassword: passwordStrengthSchema,
+  confirmPassword: z.string().min(1, "Password confirmation is required")
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 // Document verification schema for admin endpoints
