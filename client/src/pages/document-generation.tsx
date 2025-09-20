@@ -163,8 +163,8 @@ export default function UnifiedDocumentGenerationPage() {
   });
 
   // State management
-  const [selectedDocumentType, setSelectedDocumentType] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedDocumentType, setSelectedDocumentType] = useState<string | undefined>(undefined);
+  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [isPreviewMode, setIsPreviewMode] = useState(true);
   const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -516,7 +516,7 @@ export default function UnifiedDocumentGenerationPage() {
                   {/* Category Filter */}
                   <div className="mb-4">
                     <Label className="text-xs font-medium">Filter by Category</Label>
-                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <Select value={selectedCategory} onValueChange={(v) => setSelectedCategory(v || undefined)}>
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="All categories" />
                       </SelectTrigger>
