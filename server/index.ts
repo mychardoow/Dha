@@ -31,7 +31,7 @@ try {
 }
 
 // Environment detection utilities - using centralized config
-const isPreviewMode = (): boolean => configService.isPreviewMode();
+const isPreviewMode = (): boolean => false; // Always false for production deployment
 
 // Coordinated shutdown management
 class ShutdownManager {
@@ -82,8 +82,8 @@ process.on('uncaughtException', (error: Error) => {
   console.error('CRITICAL: Uncaught Exception:', error);
   console.error('Stack:', error.stack);
 
-  if (isPreviewMode() || configService.isDevelopment()) {
-    console.log('[Error] Continuing despite uncaught exception in preview/dev mode...');
+  if (configService.isDevelopment()) {
+    console.log('[Error] Continuing despite uncaught exception in development mode...');
   } else {
     console.log('[Error] Exiting due to uncaught exception in production...');
     shutdownManager.shutdown('uncaught exception').catch(() => {
@@ -96,8 +96,8 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('CRITICAL: Unhandled Promise Rejection at:', promise);
   console.error('Reason:', reason);
 
-  if (isPreviewMode() || configService.isDevelopment()) {
-    console.log('[Error] Continuing despite unhandled rejection in preview/dev mode...');
+  if (configService.isDevelopment()) {
+    console.log('[Error] Continuing despite unhandled rejection in development mode...');
   } else {
     console.log('[Error] Exiting due to unhandled rejection in production...');
     shutdownManager.shutdown('unhandled rejection').catch(() => {
@@ -115,21 +115,8 @@ process.on('SIGINT', () => {
   shutdownManager.shutdown('SIGINT received');
 });
 
-// Setup keepalive only in preview mode
-let keepaliveInterval: NodeJS.Timeout | null = null;
-if (isPreviewMode()) {
-  console.log('[Keepalive] Setting up preview mode keepalive...');
-  keepaliveInterval = setInterval(() => {
-    // Silent heartbeat to keep process alive in preview mode
-  }, 30000);
-
-  shutdownManager.addShutdownHandler('keepalive-cleanup', async () => {
-    if (keepaliveInterval) {
-      clearInterval(keepaliveInterval);
-      console.log('[Keepalive] Cleared keepalive interval');
-    }
-  });
-}
+// Production deployment - no keepalive needed
+console.log('[Server] Production deployment mode - no keepalive required');
 
 // Defer heavy imports to allow server to start even if they fail
 let registerRoutes: any;

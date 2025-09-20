@@ -14,7 +14,7 @@ import { z } from 'zod';
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
-const isPreviewMode = Boolean(process.env.REPL_ID);
+const isPreviewMode = false; // Removed Replit restriction
 
 // Configuration schema with strict validation
 const configSchema = z.object({
@@ -103,14 +103,12 @@ class ConfigurationService {
       };
 
       // CRITICAL: In production, ensure critical secrets are present
-      if (isProduction && !isPreviewMode) {
+      if (isProduction) {
         this.validateProductionSecrets(rawConfig);
-      } else if (isProduction && isPreviewMode) {
-        console.log('[Config] Preview mode detected - relaxing production validation');
       }
 
       // Apply secure development defaults ONLY if needed and NOT in production
-      if ((isDevelopment || isPreviewMode) && !isProduction) {
+      if (isDevelopment && !isProduction) {
         rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
         rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
       }
@@ -257,7 +255,7 @@ class ConfigurationService {
   }
 
   public isPreviewMode(): boolean {
-    return Boolean(this.getConfig().REPL_ID);
+    return false; // Always false for production deployment
   }
 
   /**

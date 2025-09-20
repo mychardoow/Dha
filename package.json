@@ -8,7 +8,11 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "generate-keys": "node -e \"const crypto = require('crypto'); console.log('=== COPY THESE TO YOUR SECRETS ==='); console.log('JWT_SECRET=' + crypto.randomBytes(64).toString('hex')); console.log('SESSION_SECRET=' + crypto.randomBytes(32).toString('hex')); console.log('ENCRYPTION_KEY=' + crypto.randomBytes(32).toString('hex')); console.log('VITE_ENCRYPTION_KEY=' + crypto.randomBytes(32).toString('hex')); console.log('MASTER_ENCRYPTION_KEY=' + crypto.randomBytes(64).toString('hex')); console.log('QUANTUM_ENCRYPTION_KEY=' + crypto.randomBytes(64).toString('hex')); console.log('BIOMETRIC_ENCRYPTION_KEY=' + crypto.randomBytes(32).toString('hex')); console.log('DOCUMENT_SIGNING_KEY=' + crypto.randomBytes(32).toString('hex'));\"",
+    "deploy:prepare": "chmod +x deploy.sh && ./deploy.sh",
+    "audit:security": "npm audit --audit-level=moderate",
+    "test:prod": "NODE_ENV=production npm test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.3",
