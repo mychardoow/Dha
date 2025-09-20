@@ -31,7 +31,7 @@ class ShutdownManager {
 
     // Production mode - perform graceful shutdown
     console.log('[Shutdown] Production mode - performing graceful shutdown');
-    
+
     for (const { name, handler } of this.shutdownHandlers) {
       try {
         console.log(`[Shutdown] Running ${name}...`);
@@ -53,7 +53,7 @@ const shutdownManager = new ShutdownManager();
 process.on('uncaughtException', (error: Error) => {
   console.error('CRITICAL: Uncaught Exception:', error);
   console.error('Stack:', error.stack);
-  
+
   if (isPreviewMode() || configService.isDevelopment()) {
     console.log('[Error] Continuing despite uncaught exception in preview/dev mode...');
   } else {
@@ -67,7 +67,7 @@ process.on('uncaughtException', (error: Error) => {
 process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   console.error('CRITICAL: Unhandled Promise Rejection at:', promise);
   console.error('Reason:', reason);
-  
+
   if (isPreviewMode() || configService.isDevelopment()) {
     console.log('[Error] Continuing despite unhandled rejection in preview/dev mode...');
   } else {
@@ -94,7 +94,7 @@ if (isPreviewMode()) {
   keepaliveInterval = setInterval(() => {
     // Silent heartbeat to keep process alive in preview mode
   }, 30000);
-  
+
   shutdownManager.addShutdownHandler('keepalive-cleanup', async () => {
     if (keepaliveInterval) {
       clearInterval(keepaliveInterval);
@@ -140,11 +140,11 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
-  
+
   next();
 });
 
@@ -190,55 +190,55 @@ async function initializeServer() {
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  DHA Digital Services Platform - Starting Server');
   console.log('═══════════════════════════════════════════════════════════════');
-  
+
   // CRITICAL STARTUP SECURITY CHECK: Ensure provider-config validation runs first
   // This validates all security configurations before any middleware initialization
   try {
     console.log('[Security] Validating configuration before middleware setup...');
-    
+
     // Verify configService is properly initialized with validated configuration
     if (!configService || !configService.getConfig()) {
       throw new Error('CRITICAL SECURITY ERROR: Configuration service not properly initialized');
     }
-    
+
     // Additional security validations specific to startup
     const startupConfig = configService.getConfig();
-    
+
     // Ensure JWT_SECRET exists and meets security requirements
     if (!startupConfig.JWT_SECRET) {
       throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET is required for secure operations');
     }
-    
+
     if (configService.isProduction() && startupConfig.JWT_SECRET.length < 64) {
       throw new Error('CRITICAL SECURITY ERROR: JWT_SECRET must be at least 64 characters in production');
     }
-    
+
     // Verify SESSION_SECRET meets requirements
     if (!startupConfig.SESSION_SECRET) {
       throw new Error('CRITICAL SECURITY ERROR: SESSION_SECRET is required for secure sessions');
     }
-    
+
     if (configService.isProduction() && startupConfig.SESSION_SECRET.length < 32) {
       throw new Error('CRITICAL SECURITY ERROR: SESSION_SECRET must be at least 32 characters in production');
     }
-    
+
     // Check for development secrets in production (security vulnerability)
     if (configService.isProduction()) {
       if (startupConfig.JWT_SECRET.includes('dev-') || startupConfig.JWT_SECRET.includes('testing-')) {
         throw new Error('CRITICAL SECURITY ERROR: Development JWT secret detected in production environment');
       }
-      
+
       if (startupConfig.SESSION_SECRET.includes('dev-') || startupConfig.SESSION_SECRET.includes('testing-')) {
         throw new Error('CRITICAL SECURITY ERROR: Development session secret detected in production environment');
       }
     }
-    
+
     console.log('[Security] ✅ All configuration validations passed successfully');
     console.log('[Security] ✅ Startup security checks completed - proceeding with server initialization');
-    
+
   } catch (securityError) {
     console.error('❌ CRITICAL STARTUP SECURITY ERROR:', securityError instanceof Error ? securityError.message : String(securityError));
-    
+
     if (configService.isProduction()) {
       console.error('❌ PRODUCTION SECURITY FAILURE: Cannot start server with invalid security configuration');
       console.error('❌ EXITING IMMEDIATELY to prevent security vulnerabilities');
@@ -248,7 +248,7 @@ async function initializeServer() {
       throw securityError;
     }
   }
-  
+
   // Try to import database pool
   let pool: any = null;
   try {
@@ -257,7 +257,7 @@ async function initializeServer() {
   } catch (error) {
     console.warn('[Server] Database module failed to load, using in-memory mode:', error);
   }
-  
+
   // Configure session store based on database availability
   if (pool) {
     try {
@@ -279,7 +279,7 @@ async function initializeServer() {
     console.warn('[Session] Database unavailable - using in-memory session store');
     console.warn('[Session] Sessions will be lost on server restart');
   }
-  
+
   // Basic health fallback endpoint (main enhanced health endpoint is in routes.ts)
   app.get('/api/health/basic', (req, res) => {
     res.json({
@@ -292,18 +292,18 @@ async function initializeServer() {
 
   // SECURITY: Hardcoded mock authentication endpoints and JWT secrets have been REMOVED
   // Authentication is now handled by proper routes with centralized configuration
-  
+
   try {
     console.log('[Auth] Mock authentication endpoints removed for security');
     console.log('[Auth] Authentication now handled via centralized routes with proper validation');
 
     // Document Templates Endpoint - All 23 DHA Document Types
     console.log('[Templates] Setting up document templates endpoint...');
-    
+
     app.get('/api/documents/templates', (req, res) => {
       try {
         console.log('[Templates] Fetching all DHA document templates');
-        
+
         // All 23 DHA document types with comprehensive metadata
         const documentTemplates = [
           // Identity Documents (3)
@@ -355,7 +355,7 @@ async function initializeServer() {
             processingTime: "Same day",
             fees: "R60.00"
           },
-          
+
           // Travel Documents (3)
           {
             id: "south_african_passport",
@@ -405,7 +405,7 @@ async function initializeServer() {
             processingTime: "15-20 working days",
             fees: "R300.00"
           },
-          
+
           // Civil Documents (4)
           {
             id: "birth_certificate",
@@ -471,7 +471,7 @@ async function initializeServer() {
             processingTime: "5-7 working days",
             fees: "R75.00"
           },
-          
+
           // Immigration Documents (11)
           {
             id: "general_work_visa",
@@ -649,7 +649,7 @@ async function initializeServer() {
             processingTime: "12-18 months",
             fees: "R2420.00"
           },
-          
+
           // Additional DHA Documents (2)
           {
             id: "certificate_of_exemption",
@@ -720,7 +720,7 @@ async function initializeServer() {
         };
 
         console.log(`[Templates] ✅ Returning ${documentTemplates.length} document templates`);
-        
+
         res.json({
           success: true,
           totalTemplates: documentTemplates.length,
@@ -729,7 +729,7 @@ async function initializeServer() {
           timestamp: new Date().toISOString(),
           message: `Successfully retrieved ${documentTemplates.length} DHA document templates`
         });
-        
+
       } catch (error) {
         console.error('[Templates] Error fetching document templates:', error);
         res.status(500).json({ 
@@ -747,22 +747,22 @@ async function initializeServer() {
   } catch (authSetupError) {
     console.error('[Auth] Failed to setup authentication:', authSetupError);
   }
-  
+
   let server = app;
-  
+
   // Try to load and register routes
   try {
     console.log('[Server] Loading routes...');
     const routesModule = await import("./routes");
     console.log('[Server] Routes module imported successfully');
-    
+
     registerRoutes = routesModule.registerRoutes;
     console.log('[Server] registerRoutes function extracted');
-    
+
     if (typeof registerRoutes !== 'function') {
       throw new Error(`registerRoutes is not a function, got: ${typeof registerRoutes}`);
     }
-    
+
     server = await registerRoutes(app);
     console.log('[Server] ✅ Routes loaded and registered successfully');
   } catch (error) {
@@ -822,17 +822,17 @@ async function initializeServer() {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  
+
   // Force production mode in workflow to avoid vite dev server issues
   let isWorkflowMode = Boolean(config.REPL_ID || process.env.SAFE_START || process.env.DISABLE_VITE_DEV);
-  
+
   if (!isWorkflowMode && app.get("env") === "development") {
     try {
       const viteModule = await import("./vite");
       setupVite = viteModule.setupVite;
       serveStatic = viteModule.serveStatic;
       log = viteModule.log || console.log;
-      
+
       await setupVite(app, server);
     } catch (error) {
       console.warn('[Server] Failed to setup Vite dev server, falling back to static files:', error);
@@ -840,22 +840,22 @@ async function initializeServer() {
       isWorkflowMode = true; // Force static serving
     }
   }
-  
+
   if (isWorkflowMode || app.get("env") !== "development") {
     // Skip vite import entirely in workflow/production - serve static files directly
     console.log('[Server] Using static file serving (workflow/production mode)');
-    
+
     try {
       const path = await import('path');
       const fs = await import('fs');
-    
+
     // Primary fallback: serve built files from dist/public
     app.use(express.static('dist/public'));
-    
+
     // Check if built index.html exists
     const builtIndexPath = path.join(process.cwd(), 'dist/public/index.html');
     const devIndexPath = path.join(process.cwd(), 'client/index.html');
-    
+
     if (fs.existsSync(builtIndexPath)) {
       // Production-like fallback: serve built index.html for all non-API routes
       app.get('*', (req, res) => {
@@ -898,10 +898,10 @@ async function initializeServer() {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = config.PORT;
-  
+
   // Use the httpServer from routes (which has WebSocket and monitoring) if available, otherwise fallback to app
   const listener = (server as any)?.listen ? server : app;
-  
+
   // Start the server and keep it running
   const serverInstance = listener.listen(port, '0.0.0.0', () => {
     const logFn = typeof log === 'function' ? log : console.log;
@@ -913,7 +913,7 @@ async function initializeServer() {
   🔗 Preview: Available in Replit preview
 ═══════════════════════════════════════════════════════════════
     `);
-    
+
     // Log mode detection
     if (isPreviewMode()) {
       console.log('[Server] Preview mode detected - server will remain active');
@@ -924,7 +924,7 @@ async function initializeServer() {
 
   // Keep reference to server instance to prevent garbage collection
   (global as any).__DHA_SERVER_INSTANCE = serverInstance;
-  
+
   return serverInstance;
 }
 
@@ -932,15 +932,15 @@ async function initializeServer() {
 initializeServer().catch((error) => {
   console.error('FATAL: Server initialization failed:', error);
   console.error('Stack:', error.stack);
-  
+
   // In preview mode, try to continue with basic server
   if (isPreviewMode()) {
     console.log('[Server] Attempting to start basic fallback server...');
-    
+
     // Create a basic fallback server
     const fallbackApp = express();
     fallbackApp.use(express.json());
-    
+
     fallbackApp.get('/api/health/basic', (req, res) => {
       res.json({
         status: 'fallback',
@@ -949,7 +949,7 @@ initializeServer().catch((error) => {
         error: 'Main server initialization failed'
       });
     });
-    
+
     fallbackApp.get('*', (req, res) => {
       if (req.path.startsWith('/api')) {
         res.status(503).json({ 
@@ -960,7 +960,7 @@ initializeServer().catch((error) => {
         res.send('<h1>DHA Digital Services Platform</h1><p>Server starting in fallback mode...</p>');
       }
     });
-    
+
     const port = config.PORT;
     fallbackApp.listen(port, '0.0.0.0', () => {
       console.log(`[Server] Fallback server running on port ${port}`);

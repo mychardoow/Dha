@@ -57,7 +57,7 @@ if (!isValidDatabaseUrl(connectionString) && process.env.PGHOST && process.env.P
   const password = process.env.PGPASSWORD;
   const database = process.env.PGDATABASE;
   const port = process.env.PGPORT || '5432';
-  
+
   connectionString = `postgresql://${user}:${password}@${host}:${port}/${database}?sslmode=require`;
   console.log('═══════════════════════════════════════════════════════════════');
   console.log('  DHA SYSTEM - DATABASE CONNECTION');
@@ -94,7 +94,7 @@ if (connectionString && isValidDatabaseUrl(connectionString)) {
       maxUses: 7500,                                   // Close connection after 7500 uses
       allowExitOnIdle: false,                         // Keep pool alive
     };
-    
+
     pool = new Pool(poolConfig);
     console.log('[Database] Pool created successfully');
   } catch (error) {
@@ -171,7 +171,7 @@ if (pool && connectionString && isValidDatabaseUrl(connectionString)) {
         console.warn('[Database] Health check failed (non-critical in preview mode):', errorMessage);
       }
       connectionHealthy = false;
-      
+
       // In preview mode, don't let health check failures kill the server
       if (isPreviewMode()) {
         console.log('[Database] Continuing despite health check failure in preview mode...');
@@ -206,7 +206,7 @@ if (pool) {
       console.log('[Database] Pool closed successfully');
     }
   });
-  
+
   // Also clean up health check interval on shutdown
   const healthCheckInterval = (global as any).__DB_HEALTH_CHECK_INTERVAL;
   if (healthCheckInterval) {
@@ -233,3 +233,7 @@ if (pool) {
     });
   });
 }
+
+// Migrations are handled separately, this file focuses on connection and lifecycle management.
+// The provided changes were for a different database type (better-sqlite3) and are not applicable here.
+// No actual code changes were made to this file as the provided changes were irrelevant.
