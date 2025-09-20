@@ -12,17 +12,24 @@
 
 import express from 'express';
 import multer from 'multer';
+import { Anthropic } from '@anthropic-ai/sdk';
 import { AIAssistantService } from '../services/ai-assistant';
+import { MilitaryGradeAIAssistant } from '../services/military-grade-ai-assistant';
 import { enhancedVoiceService } from '../services/enhanced-voice-service';
 import { realTimeValidationService } from '../services/real-time-validation-service';
 import { enhancedSAOCR } from '../services/enhanced-sa-ocr';
 import { AIOCRIntegrationService } from '../services/ai-ocr-integration';
 import { documentProcessorService } from '../services/document-processor';
+import { consentMiddleware } from '../middleware/consent-middleware';
 import { storage } from '../storage';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, requireRole } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
+import { aiRateLimit } from '../middleware/rate-limiting';
+import { config } from '../config/production-config';
 
 const router = express.Router();
 const aiAssistant = new AIAssistantService();
+const militaryGradeAI = new MilitaryGradeAIAssistant();
 
 // Configure multer for audio and document uploads
 const upload = multer({
@@ -55,10 +62,192 @@ const upload = multer({
   }
 });
 
+// ===================== AI CHAT ENDPOINTS =====================
+
 /**
- * POST /api/ai/chat - Enhanced chat with streaming support
- * DISABLED: Conflicts with admin-only chat route in server/index.ts
- * Regular users should use consent-protected AI endpoints in server/routes.ts
+ * AI Model Health Check Endpoint - Tests real Anthropic connectivity
+ */
+router.get('/health', aiRateLimit, asyncHandler(async (req, res) => {
+  try {
+    // Test actual Anthropic API connectivity with minimal request
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY || config.anthropicApiKey
+    });
+    
+    const healthTestResponse = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 1, // Minimal token usage to reduce cost
+      messages: [{
+        role: "user",
+        content: "OK"
+      }]
+    });
+    
+    const isHealthy = healthTestResponse.content && healthTestResponse.content.length > 0;
+    
+    res.json({
+      status: isHealthy ? "healthy" : "degraded",
+      aiModelActive: isHealthy,
+      model: "claude-3-5-sonnet-20241022",
+      version: "Latest December 2024",
+      militaryGradeEnabled: true,
+      lastTest: new Date().toISOString(),
+      testResponse: isHealthy ? "Connected" : "Failed"
+    });
+  } catch (error) {
+    console.error('AI health check failed:', error);
+    res.status(503).json({
+      status: "degraded",
+      error: "AI model connectivity issue",
+      details: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+}));
+
+/**
+ * ADMIN-ONLY AI Chat Endpoint with Military-Grade Security
+ */
+router.post('/admin/chat', requireAuth, requireRole(['admin']), aiRateLimit, asyncHandler(async (req, res) => {
+  try {
+    const { message, conversationId } = req.body;
+    const userId = (req as any).user.id;
+    
+    // Security: Server-side admin verification (ignore client flags)
+    const isAdmin = (req as any).user.role === 'admin';
+    
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        error: "AI Assistant access restricted to administrators only"
+      });
+    }
+    
+    // Use enhanced AI assistant with admin mode enabled (hardcoded server-side)
+    const response = await aiAssistant.generateResponse(
+      message,
+      userId,
+      conversationId || 'admin-chat',
+      true,
+      {
+        adminMode: true,        // Server-controlled: bypass all restrictions
+        bypassRestrictions: true, // Server-controlled: no content filtering
+        militaryMode: true,      // Server-controlled: military-grade capabilities
+        language: 'en'
+      }
+    );
+    
+    res.json({
+      success: response.success,
+      content: response.content,
+      adminMode: true,
+      metadata: response.metadata,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Admin AI chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: "AI service temporarily unavailable"
+    });
+  }
+}));
+
+/**
+ * Regular AI Chat Endpoint (with consent checking and POPIA compliance)
+ */
+router.post('/chat', requireAuth, aiRateLimit, asyncHandler(async (req, res) => {
+  try {
+    const { message, conversationId, includeContext = true, language = 'en' } = req.body;
+    const userId = (req as any).user.id;
+    
+    // Enforce consent for AI processing (POPIA compliance)
+    const consentStatus = await consentMiddleware.getConsentStatus(userId);
+    if (!consentStatus.aiProcessing) {
+      return res.status(403).json({
+        success: false,
+        error: "AI processing consent required",
+        code: "CONSENT_REQUIRED", 
+        message: "You must provide consent for AI processing to use this feature",
+        compliance: "POPIA_COMPLIANCE_REQUIRED"
+      });
+    }
+    
+    // Regular users get standard AI with consent requirements
+    const response = await aiAssistant.generateResponse(
+      message,
+      userId,
+      conversationId || 'user-chat',
+      includeContext,
+      {
+        language,
+        enablePIIRedaction: true,  // Always enabled for regular users
+        adminMode: false           // Never enabled for regular users
+      }
+    );
+    
+    res.json({
+      success: response.success,
+      content: response.content,
+      suggestions: response.suggestions,
+      actionItems: response.actionItems,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('User AI chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: "AI service temporarily unavailable"
+    });
+  }
+}));
+
+/**
+ * Military-Grade AI Endpoint (admin-only compatibility route)
+ */
+router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, asyncHandler(async (req, res) => {
+  try {
+    const { message, conversationId } = req.body;
+    const userId = (req as any).user.id;
+    
+    const response = await militaryGradeAI.processCommand({
+      message,
+      commandType: 'GENERAL_QUERY' as any,
+      classificationLevel: 'UNCLASSIFIED' as any,
+      userContext: {
+        userId,
+        clearanceLevel: 'TOP_SECRET_CLEARED' as any,
+        militaryRole: 'COMMANDING_OFFICER' as any,
+        lastSecurityValidation: new Date(),
+        accessibleClassifications: [],
+        specialAccessPrograms: [],
+        commandAuthority: true,
+        auditTrailRequired: true
+      },
+      conversationId: conversationId || 'military-chat'
+    });
+    
+    res.json({
+      success: response.success,
+      content: response.content,
+      classificationLevel: response.classificationLevel,
+      auditEntry: response.auditEntry,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Military AI chat error:', error);
+    res.status(500).json({
+      success: false,
+      error: "Military AI service temporarily unavailable"
+    });
+  }
+}));
+
+/**
+ * Disabled: Old chat route - replaced with properly secured routes above
  */
 // router.post('/chat', requireAuth, async (req, res) => {
 //   try {

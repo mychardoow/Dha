@@ -1,4 +1,14 @@
 import { Anthropic } from "@anthropic-ai/sdk";
+
+// LATEST AI MODEL CONFIGURATION - Updated December 2024
+const AI_MODEL_CONFIG = {
+  CLAUDE_3_5_SONNET: "claude-3-5-sonnet-20241022", // Latest Claude 3.5 Sonnet
+  CLAUDE_3_HAIKU: "claude-3-haiku-20240307", // Latest Claude 3 Haiku
+  CLAUDE_3_OPUS: "claude-3-opus-20240229" // Latest Claude 3 Opus
+};
+
+// Use latest Sonnet model for optimal performance
+const CURRENT_AI_MODEL = AI_MODEL_CONFIG.CLAUDE_3_5_SONNET;
 import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -7,7 +17,7 @@ import { documentProcessorService } from "./document-processor";
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedVoiceService } from "./enhanced-voice-service";
 import { realTimeValidationService } from "./real-time-validation-service";
-import { productionGovernmentApi } from "./production-government-api";
+import { productionGovernmentAPI } from "./production-government-api";
 import { configService, config } from "../middleware/provider-config";
 
 // SECURITY: Anthropic API key now managed by centralized configuration service
@@ -214,7 +224,7 @@ export class AIAssistantService {
       ];
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022", // Latest Claude 3.5 Sonnet model
+        model: CURRENT_AI_MODEL, // Latest Claude 3.5 Sonnet model
         max_tokens: 2000,
         temperature: 0.7,
         system: systemPrompt,
@@ -259,7 +269,7 @@ export class AIAssistantService {
         actionItems,
         language: options.language,
         metadata: {
-          model: "claude-3-5-sonnet-20241022",
+          model: CURRENT_AI_MODEL,
           contextUsed: context,
           timestamp: new Date(),
           piiRedactionApplied: enablePIIRedaction,
@@ -374,7 +384,7 @@ export class AIAssistantService {
       ];
 
       const stream = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 2000,
         temperature: 0.7,
         system: systemPrompt,
@@ -415,7 +425,7 @@ export class AIAssistantService {
         content: fullContent,
         language: options.language,
         metadata: {
-          model: "claude-3-5-sonnet-20241022",
+          model: CURRENT_AI_MODEL,
           contextUsed: context,
           timestamp: new Date(),
           streamed: true,
@@ -612,7 +622,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 20,
         temperature: 0.3,
         system: "Generate a concise, descriptive title (max 5 words) for a conversation that starts with the following message. Focus on the main topic or request. Respond only with the title, no quotes or extra text.",
@@ -646,7 +656,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
         system: `You are a professional translator for the South African Department of Home Affairs. Translate the following text to ${targetLanguage}. If source language is 'auto', detect it first. Preserve any technical terms, document names, and official terminology. Respond in JSON format: {"translatedText": "...", "detectedLanguage": "..."}`,
@@ -695,7 +705,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 1500,
         temperature: 0.2,
         system: `You are an expert document analyzer for the South African Department of Home Affairs. Analyze the following ${documentType} document and extract key fields, validate information, check completeness, and provide suggestions. Respond in JSON format with: extractedFields, validationIssues (array), completeness (0-100), suggestions (array).`,
@@ -740,7 +750,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
         system: `You are helping users fill out DHA forms. Based on the form type "${formType}" and user input, generate appropriate responses and suggest field values. Be accurate and follow South African government standards. Respond in JSON format with: response (helpful text), filledFields (object with form field suggestions).`,
@@ -780,7 +790,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.5,
         system: "Extract 2-3 relevant follow-up suggestions based on the conversation. Return as JSON array.",
@@ -808,7 +818,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.3,
         system: "Extract actionable items from the response. Return as JSON with field 'actions' as array.",
@@ -861,7 +871,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.2,
         system: `Analyze the provided ${dataType} data for anomalies, unusual patterns, or potential security issues. Return JSON with: anomalies (array of detected issues), severity (array matching anomalies: low/medium/high/critical), recommendations (array of actions).`,
@@ -901,7 +911,7 @@ Answer the user's question based on the current system state and your expertise.
       }
 
       const response = await anthropic.messages.create({
-        model: "claude-3-5-sonnet-20241022",
+        model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
         system: "You are a security analyst. Analyze the provided security data and return insights, recommendations, and risk level assessment. Respond with JSON in this format: { 'insights': string[], 'recommendations': string[], 'riskLevel': 'low'|'medium'|'high'|'critical' }",
