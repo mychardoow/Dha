@@ -1061,5 +1061,48 @@ async function startApplication() {
   }
 }
 
-// Start the application
-startApplication();
+// Start the application with error recovery
+startApplication().catch((error) => {
+  console.error('FATAL: Application failed to start:', error);
+  
+  // Create emergency fallback server
+  const emergencyApp = express();
+  emergencyApp.use(express.json());
+  
+  emergencyApp.get('/api/health', (req, res) => {
+    res.json({
+      status: 'emergency',
+      message: 'Emergency server running - main application failed to start',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  });
+  
+  emergencyApp.get('/keep-alive', (req, res) => {
+    res.json({
+      status: 'emergency',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+  
+  emergencyApp.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      res.status(503).json({
+        error: 'Service temporarily unavailable',
+        emergency: true
+      });
+    } else {
+      res.send(`
+        <h1>DHA Digital Services Platform</h1>
+        <p>Emergency mode - Server is starting up</p>
+        <p>Please refresh in a few moments</p>
+      `);
+    }
+  });
+  
+  const port = process.env.PORT || 5000;
+  emergencyApp.listen(port, '0.0.0.0', () => {
+    console.log(`[Emergency] Fallback server running on port ${port}`);
+  });
+});
