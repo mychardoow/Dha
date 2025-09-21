@@ -316,10 +316,12 @@ export class Web3IntegrationService {
     try {
       const feeData = await this.provider.getFeeData();
       
+      const baseGasPrice = feeData.gasPrice || 0n;
+      
       return {
-        slow: ethers.formatUnits(feeData.gasPrice || 0, 'gwei'),
-        standard: ethers.formatUnits((feeData.gasPrice || 0) * 110n / 100n, 'gwei'),
-        fast: ethers.formatUnits((feeData.gasPrice || 0) * 120n / 100n, 'gwei'),
+        slow: ethers.formatUnits(baseGasPrice, 'gwei'),
+        standard: ethers.formatUnits(baseGasPrice * 110n / 100n, 'gwei'),
+        fast: ethers.formatUnits(baseGasPrice * 120n / 100n, 'gwei'),
         unit: 'gwei'
       };
     } catch (error) {
