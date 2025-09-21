@@ -1826,7 +1826,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message,
         'assistant', // Default to assistant mode for admin chat
         user?.email,
-        [] // No attachments in admin chat for now
+        [], // No attachments in admin chat for now
+        true // Enable API access for admin
       );
       
       // Add admin metadata
