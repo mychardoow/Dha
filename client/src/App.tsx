@@ -13,6 +13,7 @@ import DocumentServices from "./pages/DocumentServices";
 import PDFTestPage from "./pages/pdf-test";
 import DocumentVerificationPage from "./pages/verify";
 import NotFoundPage from "./pages/not-found";
+import SystemStatus from "./pages/system-status";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
 import AIChatAssistant from "./components/AIChatAssistant";
@@ -104,6 +105,9 @@ function App() {
               <AuthGuard>
                 <DebugDashboard />
               </AuthGuard>
+            </Route>
+            <Route path="/system-status">
+              <SystemStatus />
             </Route>
             
             {/* Admin Routes - Protected with code splitting */}
