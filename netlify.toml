@@ -1,11 +1,12 @@
 [build]
   publish = "dist/public"
-  command = "npm run build"
+  command = "npm ci && npm run build"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--production=false"
   NODE_ENV = "production"
+  GENERATE_SOURCEMAP = "false"
   
   # Security Configuration
   JWT_SECRET = "${JWT_SECRET}"
