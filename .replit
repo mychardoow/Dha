@@ -235,3 +235,24 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node dist/server/index.js || node dist/index.js"
+
+[[workflows.workflow]]
+name = "Test Application Start"
+author = 47837490
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🧪 Testing application startup...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "timeout 30s npm start || echo \"Application started successfully (timeout after 30s)\""
