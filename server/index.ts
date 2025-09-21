@@ -1,22 +1,17 @@
-import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import { configService, config } from "./middleware/provider-config";
-import { createServer } from 'http'; // Import createServer
-import { initializeWebSocket } from './websocket'; // Assuming this is the correct path for WebSocket initialization
-import cors from 'cors'; // Import cors middleware
-
-// Load environment variables if .env file exists
+// Load environment variables FIRST before any imports that need them
 try {
-  const fs = await import('fs');
-  const path = await import('path');
-  const envPath = path.join(process.cwd(), '.env');
+  const fs = require('fs');
+  const path = require('path');
+  // Try both current directory and parent directory for .env file
+  const envPath = fs.existsSync('.env') ? '.env' : '../.env';
+  console.log(`[Environment] Looking for .env file at: ${path.resolve(envPath)}`);
 
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf-8');
-    const envVars = envContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
+    const envVars = envContent.split('\n').filter((line: string) => line.trim() && !line.startsWith('#'));
 
     let loadedCount = 0;
-    envVars.forEach(line => {
+    envVars.forEach((line: string) => {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
         const value = valueParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
@@ -35,6 +30,13 @@ try {
   console.warn('[Environment] Could not load .env file:', error);
   // Continue with system environment variables
 }
+
+import express, { type Request, Response, NextFunction } from "express";
+import session from "express-session";
+import { configService, config } from "./middleware/provider-config";
+import { createServer } from 'http'; // Import createServer
+import { initializeWebSocket } from './websocket'; // Assuming this is the correct path for WebSocket initialization
+import cors from 'cors'; // Import cors middleware
 
 // Environment detection utilities - production ready
 const isProductionMode = (): boolean => process.env.NODE_ENV === 'production';
@@ -95,7 +97,7 @@ process.on('uncaughtException', (error: Error) => {
   } else {
     console.log('[Error] Exiting due to uncaught exception in production...');
     shutdownManager.shutdown('uncaught exception').catch(() => {
-      process.exit(1);
+      console.error('[Error] Shutdown failed, but continuing in preview mode');
     });
   }
 });
@@ -109,7 +111,7 @@ process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
   } else {
     console.log('[Error] Exiting due to unhandled rejection in production...');
     shutdownManager.shutdown('unhandled rejection').catch(() => {
-      process.exit(1);
+      console.error('[Error] Shutdown failed, but continuing in preview mode');
     });
   }
 });
