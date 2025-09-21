@@ -140,7 +140,7 @@ import { gitHubIntegrationService } from "./services/github-integration";
 import { web3Integration } from './services/web3-integration';
 import { dhaVfsIntegration } from './services/dha-vfs-integration';
 import { z } from "zod";
-import { configService, config } from "./middleware/provider-config";
+import { getConfigService, getConfig } from "./middleware/provider-config";
 import { ConsentMiddleware } from "./middleware/consent-middleware";
 // Import health and system health routers
 import { healthRouter } from "./routes/health";
@@ -299,7 +299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       status: isHealthy ? "healthy" : "degraded",
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      environment: config.NODE_ENV,
+      environment: getConfig().NODE_ENV,
       version: "1.0.0",
       database: dbStatus,
       cache: {

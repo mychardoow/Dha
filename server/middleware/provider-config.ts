@@ -14,7 +14,7 @@ import { z } from 'zod';
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
 const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
-const isPreviewMode = false; // Removed Replit restriction
+const isPreviewMode = (): boolean => process.env.PREVIEW_MODE === 'true';
 
 // Configuration schema with strict validation
 const configSchema = z.object({
@@ -259,7 +259,7 @@ class ConfigurationService {
     console.log('═══════════════════════════════════════════════════════════════');
     console.log(`Environment: ${this.config.NODE_ENV}`);
     console.log(`Port: ${this.config.PORT}`);
-    console.log(`Preview Mode: ${isPreviewMode ? 'Yes' : 'No'}`);
+    console.log(`Preview Mode: ${isPreviewMode() ? 'Yes' : 'No'}`);
     console.log(`Session Secret: ${this.config.SESSION_SECRET ? '✓ Configured' : '✗ Missing'}`);
     console.log(`JWT Secret: ${this.config.JWT_SECRET ? '✓ Configured' : '✗ Missing'}`);
     console.log(`Database URL: ${this.config.DATABASE_URL ? '✓ Configured' : '✗ Not configured'}`);
@@ -318,7 +318,7 @@ class ConfigurationService {
   }
 
   public isPreviewMode(): boolean {
-    return false; // Always false for production deployment
+    return process.env.PREVIEW_MODE === 'true';
   }
 
   /**
@@ -359,7 +359,7 @@ class ConfigurationService {
 
   // Database URL handling and fallback
   private getDefaultDatabaseUrl(): string {
-    if (this.isDevelopment() || isPreviewMode) {
+    if (this.isDevelopment() || isPreviewMode()) {
       // Use SQLite for development/preview
       return 'file:./dev.db';
     }
@@ -378,11 +378,31 @@ class ConfigurationService {
   }
 }
 
-// Create and validate singleton instance
-export const configService = ConfigurationService.initialize();
+// Singleton instance holders
+let configServiceInstance: ConfigurationService | null = null;
 
-// Export the validated configuration for direct access
-export const config = configService.getConfig();
+// Lazy initialization function
+export const initializeConfig = (): ConfigurationService => {
+  if (!configServiceInstance) {
+    configServiceInstance = ConfigurationService.initialize();
+  }
+  return configServiceInstance;
+};
+
+// Safe getters that initialize if needed
+export const getConfigService = (): ConfigurationService => {
+  if (!configServiceInstance) {
+    return initializeConfig();
+  }
+  return configServiceInstance;
+};
+
+export const getConfig = () => {
+  return getConfigService().getConfig();
+};
+
+// Note: Removed immediate initialization exports to prevent module-level validation
+// Use initializeConfig() or getConfigService() instead
 
 // Export types for external use
 export type { Config };

@@ -7,7 +7,7 @@ import { adminNotificationService } from "./services/admin-notification-service"
 import jwt from "jsonwebtoken";
 import { errorTrackingService } from "./services/error-tracking";
 import { privacyProtectionService } from "./services/privacy-protection";
-import { configService, config } from "./middleware/provider-config";
+import { getConfigService, getConfig } from "./middleware/provider-config";
 import { LRUCache } from 'lru-cache';
 
 export interface AuthenticatedSocket {
@@ -24,7 +24,7 @@ export class WebSocketService {
   constructor(server: Server) {
     this.io = new SocketIOServer(server, {
       cors: {
-        origin: configService.getCorsOrigins(),
+        origin: getConfigService().getCorsOrigins(),
         methods: ["GET", "POST"],
         credentials: true
       },
@@ -41,11 +41,11 @@ export class WebSocketService {
    * CRITICAL: Must match provider-config 64+ character requirement for government-grade security
    */
   private validateJWTSecret(): string | null {
-    const value = config.JWT_SECRET;
+    const value = getConfig().JWT_SECRET;
 
     if (!value) {
       const errorMessage = 'CRITICAL SECURITY ERROR: JWT_SECRET environment variable is required for WebSocket authentication';
-      if (configService.isProduction()) {
+      if (getConfigService().isProduction()) {
         console.error(errorMessage);
         return null;
       }

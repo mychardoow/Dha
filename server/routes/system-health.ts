@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { configService } from '../middleware/provider-config';
+import { getConfigService } from '../middleware/provider-config';
 
 const router = Router();
 
@@ -77,7 +77,7 @@ function checkEncryption() {
 }
 
 function checkAuthentication() {
-  return configService ? 'healthy' : 'error';
+  return getConfigService() ? 'healthy' : 'error';
 }
 
 function checkDocumentGeneration() {
