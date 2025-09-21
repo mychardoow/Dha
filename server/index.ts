@@ -3,6 +3,7 @@ import session from "express-session";
 import { configService, config } from "./middleware/provider-config";
 import { createServer } from 'http'; // Import createServer
 import { initializeWebSocket } from './websocket'; // Assuming this is the correct path for WebSocket initialization
+import cors from 'cors'; // Import cors middleware
 
 // Load environment variables if .env file exists
 try {
@@ -38,6 +39,7 @@ try {
 // Environment detection utilities - production ready
 const isProductionMode = (): boolean => process.env.NODE_ENV === 'production';
 const isDevelopmentMode = (): boolean => process.env.NODE_ENV === 'development';
+const isPreviewMode = (): boolean => process.env.NODE_ENV === 'preview'; // Assuming a 'preview' mode for Replit
 
 // Coordinated shutdown management
 class ShutdownManager {
@@ -124,16 +126,16 @@ process.on('SIGINT', () => {
 // Production deployment - configure for high availability
 if (isProductionMode()) {
   console.log('[Server] Production mode - configuring high availability');
-  
+
   // Production-specific configurations
   process.env.NODE_OPTIONS = '--max-old-space-size=2048';
-  
+
   // Graceful shutdown handling
   process.on('SIGTERM', () => {
     console.log('[Server] SIGTERM received, starting graceful shutdown');
     process.exit(0);
   });
-  
+
   process.on('SIGINT', () => {
     console.log('[Server] SIGINT received, starting graceful shutdown');
     process.exit(0);
@@ -186,6 +188,14 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production'
+    ? [process.env.CLIENT_URL || 'https://official-raipie-officialraipie.replit.app']
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
