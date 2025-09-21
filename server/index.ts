@@ -142,10 +142,11 @@ if (isProductionMode()) {
   console.log('[Server] Development mode - standard configuration');
 }
 
-// Defer heavy imports to allow server to start even if they flet registerRoutes: any;
+// Defer heavy imports to allow server to start even if they fail
+let registerRoutes: any;
 let setupVite: any;
 let serveStatic: any;
-let log: any = console.log;log;
+let log: any = console.log;
 
 const app = express();
 
@@ -879,7 +880,7 @@ async function initializeServer() {
       const viteModule = await import("./vite");
       setupVite = viteModule.setupVite;
       serveStatic = viteModule.serveStatic;
-      log = viteModulog || console.log;
+      log = viteModule.log || console.log;
 
       await setupVite(app, server);
     } catch (error) {
@@ -897,7 +898,7 @@ async function initializeServer() {
       const path = await import('path');
       const fs = await import('fs');
 
-      // Primary static file servingary fallback: serve built files from dist/public
+      // Primary fallback: serve built files from dist/public
       app.use(express.static('dist/public'));
 
       // Check if built index.html exists
