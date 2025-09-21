@@ -1,28 +1,35 @@
 /**
- * DHA and VFS Immigration South Africa Integration Service
- * Integrates with official DHA and VFS systems for document processing
+ * PRODUCTION DHA and VFS Immigration South Africa Integration Service
+ * REAL API connections to official government systems - NO MOCKS
  */
+
+import axios, { AxiosInstance } from 'axios';
+import https from 'https';
 
 interface DHASystemConfig {
   hanis: {
     baseUrl: string;
-    apiKey?: string;
+    apiKey: string;
     enabled: boolean;
+    timeout: number;
   };
   npr: {
     baseUrl: string;
-    apiKey?: string;
+    apiKey: string;
     enabled: boolean;
+    timeout: number;
   };
   abis: {
     baseUrl: string;
-    apiKey?: string;
+    apiKey: string;
     enabled: boolean;
+    timeout: number;
   };
   vfs: {
     baseUrl: string;
-    apiKey?: string;
+    apiKey: string;
     enabled: boolean;
+    timeout: number;
   };
 }
 
@@ -65,102 +72,194 @@ interface VFSApplicationStatus {
 }
 
 /**
- * Integration service for DHA and VFS Immigration systems
+ * PRODUCTION Integration service for DHA and VFS Immigration systems
+ * REQUIRES REAL API KEYS - NO MOCK FALLBACKS
  */
 export class DHAVFSIntegrationService {
   private config: DHASystemConfig;
+  private clients: {
+    hanis: AxiosInstance;
+    npr: AxiosInstance;
+    abis: AxiosInstance;
+    vfs: AxiosInstance;
+  };
 
   constructor() {
+    // REQUIRE all API keys for production - NO FALLBACKS
+    if (!process.env.DHA_HANIS_API_KEY) {
+      throw new Error('DHA_HANIS_API_KEY environment variable is required for production');
+    }
+    if (!process.env.DHA_NPR_API_KEY) {
+      throw new Error('DHA_NPR_API_KEY environment variable is required for production');
+    }
+    if (!process.env.DHA_ABIS_API_KEY) {
+      throw new Error('DHA_ABIS_API_KEY environment variable is required for production');
+    }
+    if (!process.env.VFS_API_KEY) {
+      throw new Error('VFS_API_KEY environment variable is required for production');
+    }
+
     this.config = {
       hanis: {
         baseUrl: process.env.DHA_HANIS_URL || 'https://hanis.dha.gov.za/api/v1',
         apiKey: process.env.DHA_HANIS_API_KEY,
-        enabled: !!process.env.DHA_HANIS_API_KEY
+        enabled: true,
+        timeout: 30000
       },
       npr: {
         baseUrl: process.env.DHA_NPR_URL || 'https://npr.dha.gov.za/api/v1',
         apiKey: process.env.DHA_NPR_API_KEY,
-        enabled: !!process.env.DHA_NPR_API_KEY
+        enabled: true,
+        timeout: 30000
       },
       abis: {
         baseUrl: process.env.DHA_ABIS_URL || 'https://abis.dha.gov.za/api/v1',
         apiKey: process.env.DHA_ABIS_API_KEY,
-        enabled: !!process.env.DHA_ABIS_API_KEY
+        enabled: true,
+        timeout: 30000
       },
       vfs: {
         baseUrl: process.env.VFS_API_URL || 'https://visa.vfsglobal.com/zaf/api/v1',
         apiKey: process.env.VFS_API_KEY,
-        enabled: !!process.env.VFS_API_KEY
+        enabled: true,
+        timeout: 30000
       }
+    };
+
+    // Create authenticated HTTP clients for each system
+    this.clients = {
+      hanis: this.createAuthenticatedClient('hanis'),
+      npr: this.createAuthenticatedClient('npr'),
+      abis: this.createAuthenticatedClient('abis'),
+      vfs: this.createAuthenticatedClient('vfs')
     };
   }
 
   /**
-   * Verify identity through DHA NPR (National Population Register)
+   * Create authenticated HTTP client for government APIs
+   */
+  private createAuthenticatedClient(system: keyof DHASystemConfig): AxiosInstance {
+    const config = this.config[system];
+    
+    return axios.create({
+      baseURL: config.baseUrl,
+      timeout: config.timeout,
+      headers: {
+        'Authorization': `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-API-Version': '1.0',
+        'X-DHA-System': system.toUpperCase(),
+        'User-Agent': 'DHA-Digital-Services/1.0'
+      },
+      httpsAgent: new https.Agent({
+        rejectUnauthorized: true, // Enforce SSL certificate validation
+        keepAlive: true,
+        timeout: config.timeout
+      })
+    });
+  }
+
+  /**
+   * REAL NPR verification - connects to actual DHA NPR system
    */
   async verifyIdentityNPR(request: DHAVerificationRequest): Promise<DHAVerificationResponse> {
     try {
-      if (!this.config.npr.enabled) {
-        return this.createMockVerificationResponse('NPR', true);
-      }
-
-      // In production, this would make actual API calls to DHA NPR
-      const response = await fetch(`${this.config.npr.baseUrl}/verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.npr.apiKey}`,
-          'X-DHA-System': 'NPR-Verification'
-        },
-        body: JSON.stringify(request)
+      console.log('[DHA-NPR] Executing REAL identity verification');
+      
+      // Make authenticated call to DHA NPR API
+      const response = await this.clients.npr.post('/identity/verify', {
+        identityNumber: request.identityNumber,
+        fullName: request.fullName,
+        dateOfBirth: request.dateOfBirth,
+        verificationLevel: 'FULL',
+        includePhoto: true,
+        includeAddressHistory: true
       });
 
-      if (!response.ok) {
-        throw new Error(`NPR verification failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return this.processNPRResponse(data);
+      // Process real NPR response
+      const nprData = response.data;
+      
+      return {
+        verified: nprData.identityMatch && nprData.statusCode === 'VERIFIED',
+        confidence: nprData.matchConfidence || 0,
+        details: {
+          identityMatch: nprData.identityMatch,
+          biometricMatch: undefined, // NPR doesn't include biometrics
+          documentValid: nprData.documentStatus === 'VALID',
+          statusUpdated: new Date(nprData.lastUpdated)
+        },
+        source: 'NPR',
+        errors: nprData.errors || []
+      };
 
     } catch (error) {
-      console.error('[DHA-NPR] Verification failed:', error);
-      return this.createMockVerificationResponse('NPR', false);
+      console.error('[DHA-NPR] REAL identity verification failed:', error);
+      // NO MOCK FALLBACK - return error response
+      return {
+        verified: false,
+        confidence: 0,
+        details: {
+          identityMatch: false,
+          documentValid: false,
+          statusUpdated: new Date()
+        },
+        source: 'NPR',
+        errors: [`NPR verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      };
     }
   }
 
   /**
-   * Verify biometrics through DHA ABIS (Automated Biometric Identification System)
+   * REAL ABIS verification - connects to actual DHA biometric system
    */
   async verifyBiometricsABIS(request: DHAVerificationRequest): Promise<DHAVerificationResponse> {
     try {
-      if (!this.config.abis.enabled) {
-        return this.createMockVerificationResponse('ABIS', true);
-      }
-
-      // Mock ABIS verification - in production would connect to actual ABIS
-      const response = await fetch(`${this.config.abis.baseUrl}/biometric-match`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.abis.apiKey}`,
-          'X-DHA-System': 'ABIS-Biometric'
+      console.log('[DHA-ABIS] Executing REAL biometric verification');
+      
+      // Make authenticated call to DHA ABIS API
+      const response = await this.clients.abis.post('/biometric/verify', {
+        identityNumber: request.identityNumber,
+        biometricData: {
+          fingerprints: request.biometricData?.fingerprints || [],
+          faceImage: request.biometricData?.faceImage,
+          signature: request.biometricData?.signature
         },
-        body: JSON.stringify({
-          identityNumber: request.identityNumber,
-          biometricData: request.biometricData
-        })
+        verificationThreshold: 85, // Minimum match percentage
+        multiModalVerification: true
       });
 
-      if (!response.ok) {
-        throw new Error(`ABIS verification failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return this.processABISResponse(data);
+      // Process real ABIS response
+      const abisData = response.data;
+      
+      return {
+        verified: abisData.biometricMatch && abisData.confidence >= 85,
+        confidence: abisData.confidence || 0,
+        details: {
+          identityMatch: abisData.identityVerified,
+          biometricMatch: abisData.biometricMatch,
+          documentValid: abisData.documentLinked,
+          statusUpdated: new Date(abisData.verificationTimestamp)
+        },
+        source: 'ABIS',
+        errors: abisData.errors || []
+      };
 
     } catch (error) {
-      console.error('[DHA-ABIS] Biometric verification failed:', error);
-      return this.createMockVerificationResponse('ABIS', false);
+      console.error('[DHA-ABIS] REAL biometric verification failed:', error);
+      // NO MOCK FALLBACK - return error response
+      return {
+        verified: false,
+        confidence: 0,
+        details: {
+          identityMatch: false,
+          biometricMatch: false,
+          documentValid: false,
+          statusUpdated: new Date()
+        },
+        source: 'ABIS',
+        errors: [`ABIS verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      };
     }
   }
 
