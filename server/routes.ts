@@ -1819,8 +1819,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Admin override logging
       console.log(`[ADMIN UNLIMITED] ${user?.email}: ${message.substring(0, 100)}...`);
       
-      // Set admin mode for unlimited access
-      aiAssistantService.setAdminMode('uncensored', user?.email);
+      // Set admin mode for unlimited access with proper role verification
+      const userContext = {
+        email: user?.email,
+        role: (user as any)?.role || 'user',
+        verified: true // This route already has admin role verification middleware
+      };
+      aiAssistantService.setAdminMode('uncensored', userContext);
       
       const response = await aiAssistantService.processAIRequest(
         message,

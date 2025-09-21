@@ -39,7 +39,7 @@ import type {
   PermanentResidencePermitData,
   CertificateOfExemptionData,
   CertificateOfSouthAfricanCitizenshipData
-} from "@shared/schema";
+} from "../../shared/schema";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 

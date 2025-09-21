@@ -68,7 +68,7 @@ import type {
   PermanentResidencePermitData,
   CertificateOfExemptionData,
   CertificateOfSouthAfricanCitizenshipData
-} from '@shared/schema';
+} from '../../shared/schema';
 
 // Re-export all document types for convenience
 export { 
