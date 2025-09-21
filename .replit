@@ -158,7 +158,7 @@ task = "shell.exec"
 args = "echo \"✅ System validation complete - ready for Replit deployment!\""
 
 [[workflows.workflow]]
-name = "Complete System Validation"
+name = "Complete System Validation2"
 author = 47817466
 mode = "sequential"
 
