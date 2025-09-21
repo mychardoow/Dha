@@ -349,6 +349,15 @@ async function initializeServer() {
     });
   });
 
+  // Keep-alive endpoint for free tier
+  app.get('/keep-alive', (req, res) => {
+    res.json({
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // SECURITY: Hardcoded mock authentication endpoints and JWT secrets have been REMOVED
   // Authentication is now handled by proper routes with centralized configuration
 
