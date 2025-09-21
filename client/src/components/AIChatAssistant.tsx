@@ -69,8 +69,150 @@ export default function AIChatAssistant({
   const [isExpanded, setIsExpanded] = useState(!embedded);
   const [showSettings, setShowSettings] = useState(false);
   const [autoTranslate, setAutoTranslate] = useState(false);
+  const [aiMode, setAiMode] = useState<'assistant' | 'agent' | 'bot'>('assistant');
+  const [adminMode, setAdminMode] = useState<'standard' | 'uncensored'>('standard');
+  const [attachments, setAttachments] = useState<any[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Military-grade AI chat mutation
+  const chatMutation = useMutation({
+    mutationFn: async ({ message, mode, attachments }: { message: string; mode: string; attachments: any[] }) => {
+      const response = await apiRequest('/api/ai/chat', {
+        method: 'POST',
+        body: { message, mode, attachments }
+      });
+      return response;
+    }
+  });
+
+  // Admin mode toggle mutation  
+  const adminModeMutation = useMutation({
+    mutationFn: async (mode: string) => {
+      return apiRequest('/api/ai/admin/mode', {
+        method: 'POST', 
+        body: { mode }
+      });
+    }
+  });
+
+  // File upload mutation
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      return response.json();
+    }
+  });
+
+  // Handle file upload
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    uploadMutation.mutate(file, {
+      onSuccess: (data) => {
+        setAttachments(prev => [...prev, data.file]);
+        toast({
+          title: "File uploaded and analyzed",
+          description: `${file.name} processed successfully`
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Upload failed", 
+          description: "Failed to upload file",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
+  // Handle admin mode toggle (Raeesa osman admin only)
+  const handleAdminModeToggle = (mode: 'standard' | 'uncensored') => {
+    if (!isAdmin) return;
+    
+    adminModeMutation.mutate(mode, {
+      onSuccess: () => {
+        setAdminMode(mode);
+        toast({
+          title: "Admin mode updated",
+          description: `AI mode set to ${mode}`
+        });
+      },
+      onError: () => {
+        toast({
+          title: "Access denied",
+          description: "Unauthorized admin access",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
+  // Send message with AI mode
+  const sendMessage = async () => {
+    if (!input.trim() && attachments.length === 0) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: input,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInput("");
+
+    // Add loading message
+    const loadingMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "assistant", 
+      content: "",
+      timestamp: new Date(),
+      isLoading: true
+    };
+    setMessages(prev => [...prev, loadingMessage]);
+
+    try {
+      const response = await chatMutation.mutateAsync({
+        message: input,
+        mode: aiMode,
+        attachments
+      });
+
+      setMessages(prev => prev.map(msg => 
+        msg.id === loadingMessage.id
+          ? {
+              ...msg,
+              content: response.content || "AI response received",
+              isLoading: false,
+              suggestions: response.suggestions
+            }
+          : msg
+      ));
+
+      // Clear attachments after sending
+      setAttachments([]);
+
+    } catch (error) {
+      setMessages(prev => prev.map(msg =>
+        msg.id === loadingMessage.id
+          ? {
+              ...msg,
+              content: "Failed to get AI response. Please try again.",
+              isLoading: false
+            }
+          : msg
+      ));
+    }
+  };
 
   // Generate or retrieve stable conversation ID for the session
   const conversationIdRef = useRef<string>(
