@@ -29,7 +29,7 @@ import { intelligentAlertingService } from "./services/intelligent-alerting-serv
 import { geoIPValidationMiddleware, strictGeoIPValidation } from "./middleware/geo-ip-validation";
 import { auditMiddleware, tamperEvidentAuditService } from "./middleware/tamper-evident-audit";
 import { privacyProtectionService } from "./services/privacy-protection";
-import monitoringRoutes from "./routes/monitoring";
+import { default as monitoringRoutes } from "./routes/monitoring";
 import { monitoringOrchestrator } from "./services/monitoring-orchestrator";
 import { webSocketMonitoringService } from "./services/websocket-monitoring";
 import { 
@@ -97,7 +97,7 @@ import {
   aiDocumentAnalysisRequestSchema,
   aiOcrProcessingRequestSchema,
   aiAutoFillRequestSchema
-} from "@shared/schema";
+} from "../shared/schema";
 import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
 import { dhaMRZParser } from "./services/dha-mrz-parser";
 import { dhaPKDAdapter } from "./services/dha-pkd-adapter";
@@ -144,7 +144,7 @@ const enhancedSAOCRService = new EnhancedSAOCRService();
 
 // Import unified document generation system
 import { documentTemplateRegistry } from "./services/document-template-registry";
-import { documentGenerationRequestSchema, documentTypeSchemas } from "@shared/schema";
+import { documentGenerationRequestSchema, documentTypeSchemas } from "../shared/schema";
 import { dataGovernanceService } from "./services/data-governance";
 // Import AI Assistant routes
 import aiAssistantRoutes from "./routes/ai-assistant";
@@ -1774,6 +1774,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Session update error:", error);
       res.status(500).json({ error: "Session update failed" });
+    }
+  });
+
+  // MILITARY-GRADE AI CHAT SYSTEM - 3 modes: assistant/agent/bot
+  app.post('/api/ai/chat', authLimiter, authenticate, async (req: Request, res: Response) => {
+    try {
+      const { message, mode = 'assistant', attachments = [] } = req.body;
+      const user = (req as any).user;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+      
+      const response = await aiAssistantService.processAIRequest(
+        message, 
+        mode as any, 
+        user?.email, 
+        attachments
+      );
+      
+      // Log admin uncensored mode usage
+      if (user?.email === 'raeesa.osman@admin' && mode === 'assistant') {
+        console.log(`[ADMIN] Uncensored AI access by ${user.email}: ${message.substring(0, 100)}...`);
+      }
+      
+      res.json(response);
+    } catch (error) {
+      console.error('[AI Chat] Error:', error);
+      res.status(500).json({ error: 'AI processing failed' });
+    }
+  });
+
+  // Admin-only endpoint to toggle uncensored mode (Raeesa osman admin only)
+  app.post('/api/ai/admin/mode', authenticate, requireRole(['admin', 'super_admin']), async (req: Request, res: Response) => {
+    try {
+      const { mode } = req.body;
+      const user = (req as any).user;
+      
+      const success = aiAssistantService.setAdminMode(mode, user?.email);
+      
+      if (success) {
+        res.json({ success: true, mode, message: 'Admin mode updated' });
+      } else {
+        res.status(403).json({ error: 'Unauthorized admin access' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to update admin mode' });
+    }
+  });
+
+  // File upload with AI processing and OCR
+  app.post('/api/upload', authenticate, uploadLimiter, documentUpload.single('file'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const file = req.file;
+      const user = (req as any).user;
+      
+      // Process file with AI for OCR and analysis
+      const fileData = file.buffer.toString('base64');
+      const analysis = await aiAssistantService.processAIRequest(
+        'Analyze this uploaded file and extract all relevant information for DHA processing.',
+        'agent',
+        user?.email,
+        [{ type: file.mimetype, data: fileData, filename: file.originalname }]
+      );
+      
+      // Store file info for chat attachment
+      const fileInfo = {
+        id: crypto.randomUUID(),
+        filename: file.originalname,
+        mimetype: file.mimetype,
+        size: file.size,
+        analysis: analysis.content,
+        uploadedAt: new Date().toISOString(),
+        userId: user?.id
+      };
+      
+      res.json({
+        success: true,
+        file: fileInfo,
+        analysis: analysis.content,
+        message: 'File uploaded and analyzed successfully'
+      });
+    } catch (error) {
+      console.error('[Upload] Error:', error);
+      res.status(500).json({ error: 'File upload failed' });
     }
   });
 

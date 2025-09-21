@@ -1006,14 +1006,27 @@ async function startApplication() {
     const { autoRecoveryService } = await import('./services/auto-recovery');
     const { optimizedCacheService } = await import('./services/optimized-cache');
 
-    nanosecondMonitoringService.startMonitoring();
-    console.log('[Startup] Nanosecond monitoring started.');
+    // Start services with proper error handling
+    try {
+      if (nanosecondMonitoringService && typeof nanosecondMonitoringService.startMonitoring === 'function') {
+        nanosecondMonitoringService.startMonitoring();
+        console.log('[Startup] Nanosecond monitoring started.');
+      }
+    } catch (e) { console.log('[Startup] Nanosecond monitoring service not available'); }
 
-    await autoRecoveryService.initialize();
-    console.log('[Startup] Auto-recovery service initialized.');
+    try {
+      if (autoRecoveryService && typeof autoRecoveryService.initialize === 'function') {
+        await autoRecoveryService.initialize();
+        console.log('[Startup] Auto-recovery service initialized.');
+      }
+    } catch (e) { console.log('[Startup] Auto-recovery service not available'); }
 
-    optimizedCacheService.initialize();
-    console.log('[Startup] Cache service initialized.');
+    try {
+      if (optimizedCacheService && typeof optimizedCacheService.initialize === 'function') {
+        optimizedCacheService.initialize();
+        console.log('[Startup] Cache service initialized.');
+      }
+    } catch (e) { console.log('[Startup] Cache service not available'); }
 
     // Now, initialize the server with all its middleware and routes
     await initializeServer();
@@ -1101,7 +1114,7 @@ startApplication().catch((error) => {
     }
   });
   
-  const port = process.env.PORT || 5000;
+  const port = parseInt(process.env.PORT || '5000', 10);
   emergencyApp.listen(port, '0.0.0.0', () => {
     console.log(`[Emergency] Fallback server running on port ${port}`);
   });

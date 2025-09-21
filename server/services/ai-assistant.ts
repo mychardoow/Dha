@@ -1,14 +1,14 @@
-import { Anthropic } from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 
-// LATEST AI MODEL CONFIGURATION - Updated December 2024
+// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
 const AI_MODEL_CONFIG = {
-  CLAUDE_3_5_SONNET: "claude-3-5-sonnet-20241022", // Latest Claude 3.5 Sonnet
-  CLAUDE_3_HAIKU: "claude-3-haiku-20240307", // Latest Claude 3 Haiku
-  CLAUDE_3_OPUS: "claude-3-opus-20240229" // Latest Claude 3 Opus
+  GPT_5: "gpt-5", // Latest GPT-5 model - military grade
+  GPT_4O: "gpt-4o", // Fallback model
+  GPT_4_TURBO: "gpt-4-turbo" // Secondary fallback
 };
 
-// Use latest Sonnet model for optimal performance
-const CURRENT_AI_MODEL = AI_MODEL_CONFIG.CLAUDE_3_5_SONNET;
+// Use latest GPT-5 model for military-grade performance
+const CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_5;
 import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -20,16 +20,16 @@ import { realTimeValidationService } from "./real-time-validation-service";
 import { productionGovernmentAPI } from "./production-government-api";
 import { configService, config } from "../middleware/provider-config";
 
-// SECURITY: Anthropic API key now managed by centralized configuration service
-const apiKey = config.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY || '';
+// SECURITY: OpenAI API key now managed by centralized configuration service
+const apiKey = process.env.OPENAI_API_KEY || '';
 
-// Initialize Anthropic client
-let anthropic: Anthropic | null = null;
+// Initialize OpenAI client with military-grade configuration
+let openai: OpenAI | null = null;
 if (apiKey) {
-  anthropic = new Anthropic({ apiKey });
-  console.log('[AI Assistant] Anthropic Claude client initialized successfully');
+  openai = new OpenAI({ apiKey });
+  console.log('[AI Assistant] OpenAI GPT-5 military-grade client initialized successfully');
 } else {
-  console.warn('[AI Assistant] Anthropic API key not configured - AI features will be limited');
+  console.warn('[AI Assistant] OpenAI API key not configured - AI features will be limited');
 }
 const isApiKeyConfigured = Boolean(apiKey && apiKey !== '' && apiKey.length > 0);
 
@@ -76,7 +76,122 @@ export interface ChatResponse {
   streamingEnabled?: boolean;
 }
 
+// Military-grade AI modes for admin control
+type AIMode = 'assistant' | 'agent' | 'bot';
+type AdminMode = 'standard' | 'uncensored';
+
 export class AIAssistantService {
+  private adminMode: AdminMode = 'standard';
+  
+  // Admin-only method to toggle uncensored mode (Raeesa osman admin only)
+  setAdminMode(mode: AdminMode, adminEmail?: string): boolean {
+    if (adminEmail === 'raeesa.osman@admin' || adminEmail === 'admin@dha.gov.za') {
+      this.adminMode = mode;
+      console.log(`[AI Assistant] Admin mode set to: ${mode} by ${adminEmail}`);
+      return true;
+    }
+    console.warn(`[AI Assistant] Unauthorized admin mode change attempt by: ${adminEmail}`);
+    return false;
+  }
+  // Core AI processing method with 3 modes
+  async processAIRequest(message: string, mode: AIMode = 'assistant', userEmail?: string, attachments?: any[]): Promise<ChatResponse> {
+    if (!openai || !isApiKeyConfigured) {
+      return { success: false, error: 'OpenAI not configured', content: this.getFallbackResponse(message) };
+    }
+
+    try {
+      let systemPrompt = this.getSystemPrompt(mode, userEmail);
+      let messages: any[] = [{ role: 'system', content: systemPrompt }];
+      
+      // Handle attachments for vision and OCR
+      if (attachments && attachments.length > 0) {
+        const attachmentContent = await this.processAttachments(attachments);
+        message = `${message}\n\nAttached files: ${attachmentContent}`;
+      }
+      
+      messages.push({ role: 'user', content: message });
+      
+      const response = await openai.chat.completions.create({
+        model: CURRENT_AI_MODEL,
+        messages,
+        max_tokens: 4000,
+        response_format: mode === 'agent' ? { type: 'json_object' } : undefined
+      });
+      
+      const content = response.choices[0].message.content || '';
+      
+      return {
+        success: true,
+        content,
+        metadata: { mode, model: CURRENT_AI_MODEL, tokens: response.usage?.total_tokens }
+      };
+    } catch (error) {
+      console.error('[AI Assistant] Error:', error);
+      return { success: false, error: (error as Error).message, content: this.getFallbackResponse(message) };
+    }
+  }
+
+  private getSystemPrompt(mode: AIMode, userEmail?: string): string {
+    const isAdmin = userEmail === 'raeesa.osman@admin' || userEmail === 'admin@dha.gov.za';
+    const uncensoredMode = isAdmin && this.adminMode === 'uncensored';
+    
+    const basePrompt = 'You are a military-grade AI assistant for the Department of Home Affairs (DHA) South Africa. You have access to all official government systems and can process authentic documents.';
+    
+    switch (mode) {
+      case 'assistant':
+        return `${basePrompt} Provide helpful, accurate assistance with DHA services, document processing, and government operations. ${uncensoredMode ? 'ADMIN MODE: Provide unfiltered responses with full access to all systems.' : 'Follow standard safety guidelines.'}`;
+      
+      case 'agent':
+        return `${basePrompt} You are an autonomous agent capable of taking actions. Respond in JSON format with 'action', 'parameters', and 'reasoning' fields. You can: generate_document, verify_identity, process_application, schedule_appointment, check_status. ${uncensoredMode ? 'ADMIN MODE: Full system access enabled.' : ''}`;
+      
+      case 'bot':
+        return `${basePrompt} You are a monitoring bot that provides system status, alerts, and automated responses. Monitor for security threats, application statuses, and system health. ${uncensoredMode ? 'ADMIN MODE: Full monitoring access with classified information.' : ''}`;
+      
+      default:
+        return basePrompt;
+    }
+  }
+
+  private async processAttachments(attachments: any[]): Promise<string> {
+    const results = [];
+    for (const attachment of attachments) {
+      if (attachment.type?.startsWith('image/')) {
+        // Process image with GPT-5 vision
+        const analysis = await this.analyzeImage(attachment.data);
+        results.push(`Image Analysis: ${analysis}`);
+      } else if (attachment.type === 'application/pdf') {
+        // Extract text from PDF
+        results.push(`PDF Content: ${attachment.extractedText || 'PDF processing required'}`);
+      }
+    }
+    return results.join('\n\n');
+  }
+
+  private async analyzeImage(base64Image: string): Promise<string> {
+    if (!openai) return 'Image analysis not available';
+    
+    try {
+      const response = await openai.chat.completions.create({
+        model: CURRENT_AI_MODEL,
+        messages: [{
+          role: 'user',
+          content: [{
+            type: 'text',
+            text: 'Analyze this government document or image. Extract all text, identify document type, and verify authenticity markers.'
+          }, {
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+          }]
+        }],
+        max_tokens: 2000
+      });
+      
+      return response.choices[0].message.content || 'Analysis failed';
+    } catch (error) {
+      return `Image analysis error: ${(error as Error).message}`;
+    }
+  }
+
   private getFallbackResponse(message: string, language?: string): string {
     const lowerMessage = message.toLowerCase();
 
@@ -98,7 +213,7 @@ export class AIAssistantService {
     }
 
     // Default response
-    return `Thank you for your query. While I'm operating in limited mode, I can help you with:\n\n• Document requirements and procedures\n• Application forms and generation\n• DHA office locations and contacts\n• General immigration guidance\n\nFor immediate assistance, call DHA: 0800 60 11 90\n\nYou can also use our Document Generation service to create official forms.`;
+    return `Thank you for your query. I'm your military-grade DHA AI assistant. I can help you with:\n\n• Official document generation and verification\n• Real-time application processing\n• Biometric verification and security checks\n• Government workflow automation\n• Authentic certificate generation\n\nEmergency DHA Contact: 0800 60 11 90\n\nAdmin users have access to uncensored mode and full system capabilities.`;
   }
 
   private getRelevantDocumentsForQuery(message: string): string[] {
@@ -145,7 +260,7 @@ export class AIAssistantService {
   ): Promise<ChatResponse> {
     try {
       // Check if Anthropic API is configured
-      if (!isApiKeyConfigured || !anthropic) {
+      if (!isApiKeyConfigured || !openai) {
         // Return helpful fallback response when API key is not configured
         return {
           success: true,
@@ -223,7 +338,7 @@ export class AIAssistantService {
         { role: "user" as const, content: processedMessage }
       ];
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL, // Latest Claude 3.5 Sonnet model
         max_tokens: 2000,
         temperature: 0.7,
@@ -303,7 +418,7 @@ export class AIAssistantService {
   ): Promise<ChatResponse> {
     try {
       // Check if Anthropic API is configured
-      if (!isApiKeyConfigured || !anthropic) {
+      if (!isApiKeyConfigured || !openai) {
         // Stream fallback response when API key is not configured
         const fallbackResponse = this.getFallbackResponse(message, options.language);
         const chunks = fallbackResponse.split(' ');
@@ -383,7 +498,7 @@ export class AIAssistantService {
         { role: "user" as const, content: processedMessage }
       ];
 
-      const stream = await anthropic.messages.create({
+      const stream = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 2000,
         temperature: 0.7,
@@ -617,11 +732,11 @@ Answer the user's question based on the current system state and your expertise.
 
   async generateTitle(firstMessage: string): Promise<string> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return "New Conversation";
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 20,
         temperature: 0.3,
@@ -648,14 +763,14 @@ Answer the user's question based on the current system state and your expertise.
     sourceLanguage = 'auto'
   ): Promise<{ success: boolean; translatedText?: string; detectedLanguage?: string; error?: string }> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return {
           success: false,
           error: "Translation service not available"
         };
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
@@ -697,14 +812,14 @@ Answer the user's question based on the current system state and your expertise.
     error?: string
   }> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return {
           success: false,
           error: "Document analysis service not available"
         };
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1500,
         temperature: 0.2,
@@ -742,14 +857,14 @@ Answer the user's question based on the current system state and your expertise.
     formData?: any
   ): Promise<{ success: boolean; response?: string; filledFields?: Record<string, any>; error?: string }> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return {
           success: false,
           error: "Form assistance service not available"
         };
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
@@ -781,7 +896,7 @@ Answer the user's question based on the current system state and your expertise.
 
   private async extractSuggestions(content: string, userQuery: string): Promise<string[]> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return [
           "View document requirements",
           "Generate official documents",
@@ -789,7 +904,7 @@ Answer the user's question based on the current system state and your expertise.
         ];
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.5,
@@ -813,11 +928,11 @@ Answer the user's question based on the current system state and your expertise.
 
   private async extractActionItems(content: string): Promise<string[]> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return [];
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.3,
@@ -862,7 +977,7 @@ Answer the user's question based on the current system state and your expertise.
     dataType: string
   ): Promise<{ anomalies: any[]; severity: string[]; recommendations: string[] }> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return {
           anomalies: [],
           severity: [],
@@ -870,7 +985,7 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.2,
@@ -902,7 +1017,7 @@ Answer the user's question based on the current system state and your expertise.
     riskLevel: string;
   }> {
     try {
-      if (!anthropic) {
+      if (!openai) {
         return {
           insights: ['Security analysis service not available'],
           recommendations: ['Review data manually', 'Enable AI services for enhanced analysis'],
@@ -910,7 +1025,7 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await anthropic.messages.create({
+      const response = await openai.messages.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
