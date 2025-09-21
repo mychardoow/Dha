@@ -3183,23 +3183,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       );
 
-      // Log PDF generation
-      await auditTrailService.logUserAction(
-        'GENERATE_PDF',
-        'success',
-        {
-          userId: (req.user as any).id,
-          entityType: 'BIRTH_CERTIFICATE',
-          entityId: validatedData.registrationNumber,
-          actionDetails: { 
-            documentType: 'birth_certificate',
-            securityLevel: 'STANDARD',
-            usedFacade: true
-          },
-          ipAddress: req.ip || '',
-          userAgent: req.get('User-Agent') || ''
-        }
-      );
+      // Log PDF generation with enhanced error handling
+      try {
+        await auditTrailService.logUserAction(
+          'GENERATE_PDF',
+          'success',
+          {
+            userId: (req.user as any).id,
+            entityType: 'BIRTH_CERTIFICATE',
+            entityId: validatedData.registrationNumber,
+            actionDetails: { 
+              documentType: 'birth_certificate',
+              securityLevel: 'STANDARD',
+              usedFacade: true,
+              timestamp: new Date().toISOString()
+            },
+            ipAddress: req.ip || '',
+            userAgent: req.get('User-Agent') || ''
+          }
+        );
+      } catch (auditError) {
+        console.error('Audit trail logging failed:', auditError);
+        // Continue execution despite audit failure
+      }
     } catch (error) {
       console.error('Birth certificate PDF generation error:', error);
 
@@ -3677,6 +3683,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount monitoring routes
   app.use("/api/monitoring", monitoringRoutes);
+
+  // Real-time monitoring endpoints
+  app.get("/api/monitoring/real-time/metrics", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { realTimeMonitoring } = await import('./services/real-time-monitoring');
+      const hours = parseInt(req.query.hours as string) || 1;
+      const metrics = realTimeMonitoring.getMetricsHistory(hours);
+      
+      res.json({
+        success: true,
+        metrics,
+        latest: realTimeMonitoring.getLatestMetrics(),
+        systemHealth: realTimeMonitoring.getSystemHealth()
+      });
+    } catch (error) {
+      console.error('Get real-time metrics error:', error);
+      res.status(500).json({ error: 'Failed to get real-time metrics' });
+    }
+  }));
+
+  app.get("/api/monitoring/real-time/alerts", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { realTimeMonitoring } = await import('./services/real-time-monitoring');
+      const activeOnly = req.query.active === 'true';
+      const alerts = activeOnly ? realTimeMonitoring.getActiveAlerts() : realTimeMonitoring.getAllAlerts();
+      
+      res.json({
+        success: true,
+        alerts,
+        activeCount: realTimeMonitoring.getActiveAlerts().length
+      });
+    } catch (error) {
+      console.error('Get alerts error:', error);
+      res.status(500).json({ error: 'Failed to get alerts' });
+    }
+  }));
+
+  app.post("/api/monitoring/real-time/alerts/:id/resolve", authenticate, requireRole(['admin']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { realTimeMonitoring } = await import('./services/real-time-monitoring');
+      const { id } = req.params;
+      const resolved = realTimeMonitoring.resolveAlert(id);
+      
+      if (resolved) {
+        res.json({ success: true, message: 'Alert resolved' });
+      } else {
+        res.status(404).json({ error: 'Alert not found' });
+      }
+    } catch (error) {
+      console.error('Resolve alert error:', error);
+      res.status(500).json({ error: 'Failed to resolve alert' });
+    }
+  }));
+
+  app.put("/api/monitoring/real-time/thresholds", authenticate, requireRole(['admin']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { realTimeMonitoring } = await import('./services/real-time-monitoring');
+      const thresholds = req.body;
+      realTimeMonitoring.updateThresholds(thresholds);
+      
+      res.json({ success: true, message: 'Thresholds updated' });
+    } catch (error) {
+      console.error('Update thresholds error:', error);
+      res.status(500).json({ error: 'Failed to update thresholds' });
+    }
+  }));
 
   // =================== END AUTONOMOUS MONITORING ROUTES =====================
 

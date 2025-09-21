@@ -192,7 +192,7 @@ How can I assist you today?`,
           errorData = { error: 'Failed to parse server response' };
         }
         
-        // FIXED: Handle authentication errors explicitly
+        // Handle authentication errors explicitly
         if (response.status === 401) {
           toast({
             title: "Authentication Required",
@@ -201,8 +201,9 @@ How can I assist you today?`,
           });
           setIsLoading(false);
           setIsStreaming(false);
-          // Redirect to login page
-          window.location.href = "/login";
+          // Use proper navigation instead of window.location
+          const currentPath = window.location.pathname;
+          window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
           return;
         }
         

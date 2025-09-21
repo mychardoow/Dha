@@ -15,8 +15,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { io, Socket } from "socket.io-client";
 import { format, formatDistanceToNow } from "date-fns";
-import { 
-  Bug, AlertTriangle, AlertCircle, Info, CheckCircle, 
+import {
+  Bug, AlertTriangle, AlertCircle, Info, CheckCircle,
   RefreshCw, Search, Filter, Trash2, Activity, Cpu,
   HardDrive, Clock, TrendingUp, TrendingDown, Server
 } from "lucide-react";
@@ -88,11 +88,11 @@ export function DebugDashboard() {
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const queryClient = useQueryClient();
-  
+
   // Check if user is admin
   const userRole = localStorage.getItem("userRole");
   const isAdmin = userRole === "admin";
-  
+
   // If not admin, show access denied
   if (!isAdmin) {
     return (
@@ -130,7 +130,7 @@ export function DebugDashboard() {
       if (filterSeverity !== "all") params.append("severity", filterSeverity);
       if (filterType !== "all") params.append("errorType", filterType);
       params.append("limit", "100");
-      
+
       const response = await apiRequest(`/api/debug/errors?${params}`, 'GET');
       return response as unknown as ErrorLog[];
     }
@@ -175,7 +175,7 @@ export function DebugDashboard() {
     let reconnectTimeout: NodeJS.Timeout | null = null;
     const maxReconnectAttempts = 10;
     const baseReconnectDelay = 1000; // 1 second
-    
+
     const createSocketConnection = () => {
       const newSocket = io({
         path: "/ws",
@@ -202,7 +202,7 @@ export function DebugDashboard() {
       newSocket.on("disconnect", (reason: string) => {
         console.log("WebSocket disconnected:", reason);
         setConnectionStatus('disconnected');
-        
+
         // Handle token expiration
         if (reason === "io server disconnect") {
           // Server forced disconnect, might be due to auth failure
@@ -218,12 +218,12 @@ export function DebugDashboard() {
       newSocket.on("connect_error", (error: Error) => {
         console.error("WebSocket connection error:", error);
         setConnectionStatus('error');
-        
+
         // Implement exponential backoff for reconnection
         if (reconnectAttempts < maxReconnectAttempts) {
           const delay = Math.min(baseReconnectDelay * Math.pow(2, reconnectAttempts), 30000);
           setReconnectAttempts(prev => prev + 1);
-          
+
           reconnectTimeout = setTimeout(() => {
             console.log(`Attempting reconnection (${reconnectAttempts + 1}/${maxReconnectAttempts})...`);
             newSocket.connect();
@@ -253,7 +253,7 @@ export function DebugDashboard() {
 
       setSocket(newSocket);
       setConnectionStatus('connecting');
-      
+
       return newSocket;
     };
 
@@ -270,14 +270,14 @@ export function DebugDashboard() {
   // Filter errors
   const filteredErrors = useMemo(() => {
     let filtered = [...errors, ...realtimeErrors];
-    
+
     if (searchTerm) {
-      filtered = filtered.filter(error => 
+      filtered = filtered.filter(error =>
         error.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
         error.errorType.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-    
+
     // Remove duplicates
     const uniqueErrors = Array.from(new Map(filtered.map(e => [e.id, e])).values());
     return uniqueErrors.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -286,7 +286,7 @@ export function DebugDashboard() {
   // Prepare chart data
   const errorChartData = useMemo(() => {
     if (!metrics?.errors) return [];
-    
+
     return Object.entries(metrics.errors.byType).map(([type, count]) => ({
       name: type,
       value: count
@@ -295,7 +295,7 @@ export function DebugDashboard() {
 
   const performanceChartData = useMemo(() => {
     if (!metrics?.performance) return [];
-    
+
     return Object.entries(metrics.performance)
       .slice(0, 10)
       .map(([endpoint, stats]) => ({
@@ -414,7 +414,7 @@ export function DebugDashboard() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="w-[150px]">
                   <Label>Severity</Label>
                   <Select value={filterSeverity} onValueChange={setFilterSeverity}>
@@ -430,7 +430,7 @@ export function DebugDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="w-[150px]">
                   <Label>Type</Label>
                   <Select value={filterType} onValueChange={setFilterType}>
@@ -448,7 +448,7 @@ export function DebugDashboard() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="w-[150px]">
                   <Label>Time Range</Label>
                   <Select value={timeRange.toString()} onValueChange={(v) => setTimeRange(Number(v))}>
@@ -485,8 +485,8 @@ export function DebugDashboard() {
                         <div
                           key={error.id}
                           className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                            selectedError?.id === error.id 
-                              ? "bg-accent border-accent" 
+                            selectedError?.id === error.id
+                              ? "bg-accent border-accent"
                               : "border-glass-border hover:bg-accent/50"
                           }`}
                           onClick={() => setSelectedError(error)}
@@ -495,12 +495,17 @@ export function DebugDashboard() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <Badge 
-                                  variant="outline" 
-                                  className={`${severityColors[error.severity as keyof typeof severityColors]} text-white`}
+                                <Badge
+                                  variant={
+                                    error.severity === "critical" ? "destructive" :
+                                    error.severity === "high" ? "destructive" :
+                                    error.severity === "medium" ? "default" : "secondary"
+                                  }
+                                  className={
+                                    error.severity === "critical" ? "animate-pulse" : ""
+                                  }
                                 >
-                                  {severityIcons[error.severity as keyof typeof severityIcons]}
-                                  <span className="ml-1">{error.severity}</span>
+                                  {error.severity?.toUpperCase() || "UNKNOWN"}
                                 </Badge>
                                 <Badge variant="secondary">{error.errorType}</Badge>
                                 {error.isResolved && (
@@ -542,9 +547,9 @@ export function DebugDashboard() {
                       <Label>Message</Label>
                       <p className="mt-1 text-sm">{selectedError.message}</p>
                     </div>
-                    
+
                     <Separator />
-                    
+
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <Label>Type</Label>
@@ -575,7 +580,7 @@ export function DebugDashboard() {
                         </div>
                       )}
                     </div>
-                    
+
                     {selectedError.stack && (
                       <>
                         <Separator />
@@ -587,7 +592,7 @@ export function DebugDashboard() {
                         </div>
                       </>
                     )}
-                    
+
                     {selectedError.context && (
                       <>
                         <Separator />
@@ -601,7 +606,7 @@ export function DebugDashboard() {
                         </div>
                       </>
                     )}
-                    
+
                     {!selectedError.isResolved && (
                       <>
                         <Separator />
@@ -615,7 +620,7 @@ export function DebugDashboard() {
                         </Button>
                       </>
                     )}
-                    
+
                     {selectedError.isResolved && selectedError.resolvedAt && (
                       <Alert>
                         <CheckCircle className="h-4 w-4" />
@@ -680,7 +685,7 @@ export function DebugDashboard() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, value, percent }) => 
+                        label={({ name, value, percent }) =>
                           `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
                         }
                         outerRadius={80}
@@ -715,11 +720,11 @@ export function DebugDashboard() {
                     </div>
                     <span className="font-bold">{metrics?.errors.critical || 0}</span>
                   </div>
-                  <Progress 
-                    value={(metrics?.errors.critical || 0) / (metrics?.errors.total || 1) * 100} 
+                  <Progress
+                    value={(metrics?.errors.critical || 0) / (metrics?.errors.total || 1) * 100}
                     className="h-2"
                   />
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${severityColors.high}`} />
@@ -727,11 +732,11 @@ export function DebugDashboard() {
                     </div>
                     <span className="font-bold">{metrics?.errors.high || 0}</span>
                   </div>
-                  <Progress 
-                    value={(metrics?.errors.high || 0) / (metrics?.errors.total || 1) * 100} 
+                  <Progress
+                    value={(metrics?.errors.high || 0) / (metrics?.errors.total || 1) * 100}
                     className="h-2"
                   />
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${severityColors.medium}`} />
@@ -739,11 +744,11 @@ export function DebugDashboard() {
                     </div>
                     <span className="font-bold">{metrics?.errors.medium || 0}</span>
                   </div>
-                  <Progress 
-                    value={(metrics?.errors.medium || 0) / (metrics?.errors.total || 1) * 100} 
+                  <Progress
+                    value={(metrics?.errors.medium || 0) / (metrics?.errors.total || 1) * 100}
                     className="h-2"
                   />
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className={`w-3 h-3 rounded-full ${severityColors.low}`} />
@@ -751,8 +756,8 @@ export function DebugDashboard() {
                     </div>
                     <span className="font-bold">{metrics?.errors.low || 0}</span>
                   </div>
-                  <Progress 
-                    value={(metrics?.errors.low || 0) / (metrics?.errors.total || 1) * 100} 
+                  <Progress
+                    value={(metrics?.errors.low || 0) / (metrics?.errors.total || 1) * 100}
                     className="h-2"
                   />
                 </div>

@@ -14,20 +14,25 @@ try {
     const envContent = fs.readFileSync(envPath, 'utf-8');
     const envVars = envContent.split('\n').filter(line => line.trim() && !line.startsWith('#'));
 
+    let loadedCount = 0;
     envVars.forEach(line => {
       const [key, ...valueParts] = line.split('=');
       if (key && valueParts.length > 0) {
-        const value = valueParts.join('=').trim();
+        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
         if (!process.env[key]) {
           process.env[key] = value;
+          loadedCount++;
         }
       }
     });
 
-    console.log('[Environment] Loaded environment variables from .env file');
+    console.log(`[Environment] Loaded ${loadedCount} environment variables from .env file`);
+  } else {
+    console.log('[Environment] No .env file found, using system environment variables');
   }
 } catch (error) {
   console.warn('[Environment] Could not load .env file:', error);
+  // Continue with system environment variables
 }
 
 // Environment detection utilities - production ready
