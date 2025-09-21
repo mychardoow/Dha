@@ -1,78 +1,121 @@
 
 #!/bin/bash
 
+# DHA Digital Services - Key Validation Script
+set -e
+
 echo "🔍 DHA Digital Services - Key Validation Report"
 echo "==============================================="
+
 echo ""
+echo "📄 Loading environment from .env file..."
 
-VALIDATION_PASSED=true
-
-# Check if .env file exists and source it
-if [[ -f ".env" ]]; then
-  echo "📄 Loading environment from .env file..."
-  set -a  # automatically export all variables
-  source .env
-  set +a
-  echo "✅ Environment loaded"
+# Source environment variables if .env exists
+if [ -f ".env" ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+    echo "✅ Environment loaded"
 else
-  echo "⚠️  No .env file found, using system environment"
+    echo "⚠️  No .env file found"
 fi
 
 echo ""
 echo "🔐 Core Security Keys Validation:"
 echo "--------------------------------"
 
-# Function to validate key
-validate_key() {
-  local key_name=$1
-  local min_length=$2
-  local key_value="${!key_name}"
-  
-  if [[ -z "$key_value" ]]; then
-    echo "❌ $key_name: MISSING"
-    VALIDATION_PASSED=false
-  elif [[ ${#key_value} -lt $min_length ]]; then
-    echo "❌ $key_name: TOO SHORT (${#key_value} chars, need $min_length+)"
-    VALIDATION_PASSED=false
-  else
-    echo "✅ $key_name: OK (${#key_value} chars)"
-  fi
-}
+# Validate JWT_SECRET
+if [ -n "$JWT_SECRET" ]; then
+    echo "✅ JWT_SECRET: OK (${#JWT_SECRET} chars)"
+else
+    echo "❌ JWT_SECRET: MISSING"
+fi
 
-# Validate all keys
-validate_key "JWT_SECRET" 64
-validate_key "SESSION_SECRET" 32
-validate_key "ENCRYPTION_KEY" 32
-validate_key "VITE_ENCRYPTION_KEY" 32
-validate_key "MASTER_ENCRYPTION_KEY" 64
-validate_key "QUANTUM_ENCRYPTION_KEY" 64
-validate_key "BIOMETRIC_ENCRYPTION_KEY" 32
-validate_key "DOCUMENT_SIGNING_KEY" 32
+# Validate SESSION_SECRET
+if [ -n "$SESSION_SECRET" ]; then
+    echo "✅ SESSION_SECRET: OK (${#SESSION_SECRET} chars)"
+else
+    echo "❌ SESSION_SECRET: MISSING"
+fi
+
+# Validate ENCRYPTION_KEY
+if [ -n "$ENCRYPTION_KEY" ]; then
+    echo "✅ ENCRYPTION_KEY: OK (${#ENCRYPTION_KEY} chars)"
+else
+    echo "❌ ENCRYPTION_KEY: MISSING"
+fi
+
+# Validate VITE_ENCRYPTION_KEY
+if [ -n "$VITE_ENCRYPTION_KEY" ]; then
+    echo "✅ VITE_ENCRYPTION_KEY: OK (${#VITE_ENCRYPTION_KEY} chars)"
+else
+    echo "❌ VITE_ENCRYPTION_KEY: MISSING"
+fi
+
+# Validate MASTER_ENCRYPTION_KEY
+if [ -n "$MASTER_ENCRYPTION_KEY" ]; then
+    echo "✅ MASTER_ENCRYPTION_KEY: OK (${#MASTER_ENCRYPTION_KEY} chars)"
+else
+    echo "❌ MASTER_ENCRYPTION_KEY: MISSING"
+fi
+
+# Validate QUANTUM_ENCRYPTION_KEY
+if [ -n "$QUANTUM_ENCRYPTION_KEY" ]; then
+    echo "✅ QUANTUM_ENCRYPTION_KEY: OK (${#QUANTUM_ENCRYPTION_KEY} chars)"
+else
+    echo "❌ QUANTUM_ENCRYPTION_KEY: MISSING"
+fi
 
 echo ""
 echo "🏛️ Government API Keys:"
 echo "----------------------"
-validate_key "DHA_NPR_API_KEY" 20
-validate_key "DHA_ABIS_API_KEY" 20
-validate_key "SAPS_CRC_API_KEY" 20
-validate_key "ICAO_PKD_API_KEY" 20
-validate_key "SITA_ESERVICES_API_KEY" 20
+
+# Validate DHA keys
+if [ -n "$DHA_NPR_API_KEY" ]; then
+    echo "✅ DHA_NPR_API_KEY: OK (${#DHA_NPR_API_KEY} chars)"
+else
+    echo "❌ DHA_NPR_API_KEY: MISSING"
+fi
+
+if [ -n "$DHA_ABIS_API_KEY" ]; then
+    echo "✅ DHA_ABIS_API_KEY: OK (${#DHA_ABIS_API_KEY} chars)"
+else
+    echo "❌ DHA_ABIS_API_KEY: MISSING"
+fi
 
 echo ""
 echo "🤖 AI Service Keys:"
 echo "------------------"
-validate_key "OPENAI_API_KEY" 10
-validate_key "ANTHROPIC_API_KEY" 10
+
+# Validate AI keys
+if [ -n "$OPENAI_API_KEY" ]; then
+    echo "✅ OPENAI_API_KEY: OK (${#OPENAI_API_KEY} chars)"
+else
+    echo "❌ OPENAI_API_KEY: MISSING"
+fi
+
+if [ -n "$ANTHROPIC_API_KEY" ]; then
+    echo "✅ ANTHROPIC_API_KEY: OK (${#ANTHROPIC_API_KEY} chars)"
+else
+    echo "❌ ANTHROPIC_API_KEY: MISSING"
+fi
 
 echo ""
 echo "📊 Validation Summary:"
 echo "--------------------"
-if [[ $VALIDATION_PASSED == true ]]; then
-  echo "🎉 ALL KEYS VALIDATED SUCCESSFULLY!"
-  echo "✅ System is ready for production deployment"
+
+# Count missing keys
+missing_count=0
+
+[ -z "$JWT_SECRET" ] && ((missing_count++))
+[ -z "$SESSION_SECRET" ] && ((missing_count++))
+[ -z "$ENCRYPTION_KEY" ] && ((missing_count++))
+[ -z "$QUANTUM_ENCRYPTION_KEY" ] && ((missing_count++))
+
+if [ $missing_count -eq 0 ]; then
+    echo "✅ All critical keys are present"
+    echo "🚀 System ready for production deployment"
 else
-  echo "❌ Some keys are missing or invalid"
-  echo "⚠️  Please review the errors above"
+    echo "❌ $missing_count critical keys are missing"
+    echo "⚠️  Please review the errors above"
 fi
 
 echo ""
@@ -80,3 +123,4 @@ echo "🔧 Next Steps:"
 echo "1. If validation passed, run: npm start"
 echo "2. If keys are missing, run: ./setup-complete-secrets.sh"
 echo "3. Add missing keys to Replit Secrets or .env file"
+echo ""

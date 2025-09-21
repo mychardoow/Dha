@@ -15,9 +15,7 @@ export default defineConfig({
     sourcemap: false,
     target: "esnext",
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, "client/index.html"),
-      },
+      input: path.resolve(__dirname, "client/index.html"),
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
