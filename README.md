@@ -1,3 +1,146 @@
+
+# DHA Digital Services Platform
+
+A comprehensive government digital services platform built for the Department of Home Affairs, South Africa.
+
+## 🚀 Features
+
+- **Document Generation**: Generate 21+ types of official documents
+- **AI Assistant**: Government-grade AI assistance
+- **Biometric Authentication**: Advanced security features
+- **Real-time Monitoring**: Comprehensive system monitoring
+- **Government APIs**: Integration with DHA, SAPS, ICAO services
+- **Quantum Encryption**: Military-grade security
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React 18, TypeScript, Tailwind CSS, Radix UI
+- **Backend**: Node.js, Express, TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI**: OpenAI GPT-4, Anthropic Claude
+- **PDF Generation**: jsPDF, PDF-lib, PDFKit
+- **Authentication**: JWT, Passport.js
+- **Real-time**: WebSocket, Socket.io
+
+## 📋 Prerequisites
+
+- Node.js 20+
+- PostgreSQL database
+- Government API keys (DHA, SAPS, ICAO)
+- AI service API keys (OpenAI, Anthropic)
+
+## 🔧 Local Development
+
+1. **Clone the repository**:
+   ```bash
+   git clone [your-repo-url]
+   cd dha-digital-services
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. **Generate security keys**:
+   ```bash
+   npm run generate-keys
+   ```
+
+5. **Start development server**:
+   ```bash
+   npm run dev
+   ```
+
+## 🚀 Deployment
+
+### Netlify Deployment
+
+1. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+
+2. **Deploy to Netlify**:
+   - Connect your GitHub repository to Netlify
+   - Build command: `npm run build`
+   - Publish directory: `dist/public`
+   - Functions directory: `netlify/functions`
+
+3. **Configure environment variables** in Netlify dashboard:
+   - All required secrets from `.env.example`
+   - Database connection string
+   - API keys for government services
+
+### Manual Build
+
+```bash
+npm run build
+```
+
+## 🔐 Environment Variables
+
+Required environment variables (see `.env.example`):
+
+- `JWT_SECRET`: JWT signing secret (64+ chars)
+- `SESSION_SECRET`: Session secret (32+ chars)
+- `DATABASE_URL`: PostgreSQL connection string
+- `OPENAI_API_KEY`: OpenAI API key
+- `DHA_NPR_API_KEY`: DHA NPR service key
+- `SAPS_CRC_API_KEY`: SAPS CRC service key
+- And more...
+
+## 📚 API Documentation
+
+- **Health Check**: `GET /api/health`
+- **Authentication**: `POST /api/auth/login`
+- **Document Generation**: `POST /api/documents/generate`
+- **AI Assistant**: `POST /api/ai/chat`
+- **Verification**: `POST /api/verify`
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run security tests
+npm run test:security
+
+# Run integration tests
+npm run test:integration
+```
+
+## 🔒 Security Features
+
+- JWT authentication with secure sessions
+- Rate limiting and DDoS protection
+- Input validation and sanitization
+- Encrypted data storage
+- Audit logging
+- Biometric authentication support
+- Quantum encryption capabilities
+
+## 📄 License
+
+Government of South Africa - Department of Home Affairs
+
+## 🤝 Contributing
+
+This is a government project. Contributions are restricted to authorized personnel only.
+
+## 📞 Support
+
+For technical support, contact the DHA Digital Services team.
+
 # DHA Digital Services Platform
 
 A comprehensive South African Department of Home Affairs digital services platform providing document generation, verification, and AI assistance for all 23 official DHA document types.
