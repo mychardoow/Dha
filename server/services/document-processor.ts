@@ -5,7 +5,13 @@ import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";
-import sharp from "sharp";
+// import sharp from "sharp"; // Temporarily disabled for deployment  
+let sharp: any = null;
+try {
+  sharp = require("sharp");
+} catch (error) {
+  console.warn("[DocumentProcessor] Sharp not available - image processing disabled");
+}
 import { createWorker } from "tesseract.js";
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
