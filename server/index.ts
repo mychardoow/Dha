@@ -152,22 +152,7 @@ let log: any = console.log;
 
 const app = express();
 
-// SECURITY: Session config using centralized configuration service
-const sessionConfig: any = {
-  secret: config.SESSION_SECRET, // Centrally managed, validated secret
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: configService.isProduction(),
-    httpOnly: true,
-    maxAge: config.SESSION_MAX_AGE,
-    sameSite: 'strict' as const
-  },
-  name: 'dha_session',
-};
-
-// Apply session middleware
-app.use(session(sessionConfig));
+// Session will be configured after security validation
 
 // Configure CORS using centralized configuration
 const corsOrigins = configService.getCorsOrigins();
@@ -294,9 +279,38 @@ async function initializeServer() {
       process.exit(1);
     } else {
       console.warn('⚠️  DEVELOPMENT WARNING: Security configuration issues detected, but continuing in development mode');
-      throw securityError;
+      console.warn('⚠️  Setting up fallback secrets for development...');
+      
+      // Provide fallback secrets for development
+      if (!process.env.JWT_SECRET) {
+        process.env.JWT_SECRET = require('crypto').randomBytes(32).toString('hex');
+        console.log('✅ JWT_SECRET fallback generated');
+      }
+      if (!process.env.SESSION_SECRET) {
+        process.env.SESSION_SECRET = require('crypto').randomBytes(32).toString('hex');
+        console.log('✅ SESSION_SECRET fallback generated');
+      }
     }
   }
+
+  // Now configure session middleware with validated/fallback secrets
+  console.log('[Session] Configuring session middleware with validated secrets...');
+  const sessionConfig: any = {
+    secret: process.env.SESSION_SECRET || config.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: configService.isProduction(),
+      httpOnly: true,
+      maxAge: config.SESSION_MAX_AGE,
+      sameSite: 'strict' as const
+    },
+    name: 'dha_session',
+  };
+
+  // Apply session middleware now that it's properly configured
+  app.use(session(sessionConfig));
+  console.log('[Session] ✅ Session middleware configured and applied');
 
   // Try to import database pool with better error handling
   let pool: any = null;
