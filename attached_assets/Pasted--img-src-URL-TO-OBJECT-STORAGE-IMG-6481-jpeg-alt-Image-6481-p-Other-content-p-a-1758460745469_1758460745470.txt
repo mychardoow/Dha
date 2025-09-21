@@ -1,0 +1,153 @@
+  <img src="URL_TO_OBJECT_STORAGE/IMG_6481.jpeg" alt="Image 6481" />
+  <p>Other content...</p>
+`;
+
+await uploadImage('attached_assets/IMG_6484_1758457468436.jpeg', 'IMG_6484.jpeg');
+await uploadImage('attached_assets/IMG_6481_1758457468436.jpeg', 'IMG_6481.jpeg');
+await uploadImage('attached_assets/IMG_6616_1758457468436.jpeg', 'IMG_6616.jpeg');
+// Repeat for other images as necessary
+
+import { Client } from 'replit.object_storage'; // make sure to import Replit Object Storage
+
+// Initialize the client
+const client = new Client();
+
+async function uploadImage(imagePath: string, imageName: string): Promise<void> {
+  try {
+    // Read the image file as binary
+    const imageBuffer = await fs.readFile(imagePath);
+    
+    // Upload the image to the default bucket
+    await client.upload(imageName, imageBuffer);
+    console.log(`${imageName} uploaded successfully.`);
+  } catch (error) {
+    console.error(`Error uploading ${imageName}:`, error);
+  }
+} async function processImageWithOCR(filePath) {
+  const imageBuffer = await readImageFile(filePath);
+  
+  if (imageBuffer) {
+    // Call your OCR processing function with the image buffer
+    const ocrResult = await performEnhancedOCR(imageBuffer, options);
+    console.log('OCR Result:', ocrResult);
+  }
+}
+
+// Example usage
+processImageWithOCR('attached_assets/IMG_6484_1758457468436.jpeg'); import * as fs from 'fs/promises';
+
+// Function to read image files as binary
+async function readImageFile(filePath) {
+  try {
+    const imageBuffer = await fs.readFile(filePath);
+    console.log('Image read successfully');
+    return imageBuffer;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+  }
+}
+
+// Usage example
+readImageFile('path_to_your_image.jpeg'); import * as fs from 'fs';
+
+// Example function to read image files as binary
+async function readImageFile(filePath) {
+  try {
+    const imageBuffer = await fs.promises.readFile(filePath);
+    // Now you can process the image buffer as needed
+    console.log('Image read successfully', imageBuffer);
+    return imageBuffer;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+  }
+}
+
+// Usage
+readImageFile('attached_assets/IMG_6467_1758457558338.jpeg'); import * as fs from 'fs/promises';
+
+// Function to read an image file as binary
+async function readImageFile(filePath) {
+  try {
+    // Read the file as a binary buffer
+    const imageBuffer = await fs.readFile(filePath);
+    console.log('Image read successfully:', filePath);
+    return imageBuffer;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+  }
+}
+
+// Usage example
+readImageFile('attached_assets/IMG_6485_1758457512768.jpeg'); import * as fs from 'fs/promises';
+
+// Function to read image files as binary
+async function readImageFile(filePath) {
+  try {
+    const imageBuffer = await fs.readFile(filePath);
+    console.log('Image read successfully:', imageBuffer);
+    return imageBuffer;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+  }
+}
+
+// Usage
+readImageFile('attached_assets/IMG_6612_1758457489706.jpeg');
+
+import * as fs from 'fs/promises';
+
+// Example function to read image files as binary
+async function readImageFile(filePath) {
+  try {
+    const imageBuffer = await fs.readFile(filePath);
+    // Now you can process the image buffer as needed
+    console.log('Image read successfully');
+    return imageBuffer;
+  } catch (error) {
+    console.error(`Error reading file ${filePath}:`, error);
+  }
+}
+
+// Usage
+readImageFile('attached_assets/IMG_6484_1758457468436.jpeg'); async generateRadiologicalReportPDF(data: RadiologicalReportData): Promise<Buffer> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ /* ...options... */ });
+
+      // Existing code to handle PDF data accumulation
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      this.addPDFKitWatermark(doc);
+      this.addMultiLayerSecurity(doc, 'RAD', `RAD/${data.reportNumber}`);
+      this.addGovernmentHeader(doc, "Radiological Report");
+      
+      // Add legalisation information
+      this.addLegalisationInfo(doc);
+
+      // Other PDF generation content...
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+} /**
+ * Add legalisation information section to the PDF
+ */
+private addLegalisationInfo(doc: PDFDocument): void {
+  doc.fontSize(12)
+     .text("Legalisation of Documents", { underline: true });
+
+  doc.moveDown();
+  
+  doc.text("Understanding the process is essential. This comprehensive guide aims to demystify document legalisation in South Africa, providing you with the necessary information to streamline the procedure and save valuable time.");
+
+  doc.moveDown();
+  
+  doc.text("What is meant by the legalisation of a document?");
+  doc.moveDown();
+  
+  doc.text("In essence, legalisation generally relates to ensuring a public document is verified, usually for usage in another country. For example, a public document, like a SAPS Police Clearance, needs to be legalised.");
+}
