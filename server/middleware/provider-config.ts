@@ -407,3 +407,7 @@ export const getConfig = () => {
 // Export types for external use
 export type { Config };
 export { ConfigurationService };
+
+// Export the lazy-initialized configService and config
+export const configService = getConfigService();
+export const config = getConfig();
