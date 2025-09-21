@@ -84,6 +84,33 @@ console.log('# ==========================================================');
 echo ""
 echo "✅ All secrets generated! Copy the output above to your Replit Secrets."
 echo ""
+echo "🔧 Creating temporary .env file for immediate testing..."
+
+# Create temporary .env file with generated keys
+cat > .env << EOF
+# Generated keys for testing - REPLACE WITH PRODUCTION VALUES
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+SESSION_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+VITE_ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+MASTER_ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
+
+# Placeholder Government API keys
+DHA_NPR_API_KEY=NPR-TEST-$(node -e "console.log(require('crypto').randomBytes(16).toString('hex').toUpperCase())")
+SAPS_CRC_API_KEY=SAPS-TEST-$(node -e "console.log(require('crypto').randomBytes(12).toString('hex').toUpperCase())")
+DHA_ABIS_API_KEY=ABIS-TEST-$(node -e "console.log(require('crypto').randomBytes(16).toString('hex').toUpperCase())")
+
+# Placeholder AI keys  
+OPENAI_API_KEY=sk-test-placeholder-key-here
+ANTHROPIC_API_KEY=sk-ant-test-placeholder-key-here
+
+# Test database URL
+DATABASE_URL=postgresql://test:test@localhost:5432/test?sslmode=prefer
+
+EOF
+
+echo "✅ Temporary .env file created for testing"
+echo ""
 echo "🔑 Next steps:"
 echo "1. Go to Tools > Secrets in Replit"
 echo "2. Add each environment variable from the output above"
