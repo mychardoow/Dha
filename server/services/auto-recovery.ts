@@ -110,6 +110,13 @@ export class AutoRecoveryService {
     this.setupAutoOptimization();
   }
 
+  /**
+   * Initialize the auto recovery service
+   */
+  async initialize(): Promise<void> {
+    console.log('[AutoRecovery] Auto recovery service initialized');
+  }
+
   private initializeRecoveryMechanisms(): void {
     // Configure retry policies for different operation types
     this.retryConfigs.set('database', {

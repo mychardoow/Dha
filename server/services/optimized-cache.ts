@@ -54,6 +54,13 @@ export class OptimizedCacheService {
     this.startCacheOptimization();
   }
 
+  /**
+   * Initialize the cache service
+   */
+  async initialize(): Promise<void> {
+    console.log('[OptimizedCache] Cache service initialized');
+  }
+
   private initializeCaches(): void {
     // Main memory cache with LRU eviction
     this.memoryCache = new LRU<string, CachedItem>({

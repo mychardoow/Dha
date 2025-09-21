@@ -22,7 +22,8 @@
       "@/lib/*": ["./client/src/lib/*"],
       "@/hooks/*": ["./client/src/hooks/*"],
       "@/services/*": ["./client/src/services/*"],
-      "@/types/*": ["./server/types/*"]
+      "@/types/*": ["./server/types/*"],
+      "@shared/*": ["./shared/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

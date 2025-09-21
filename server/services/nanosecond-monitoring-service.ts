@@ -122,6 +122,13 @@ export class NanosecondMonitoringService extends EventEmitter {
   }
 
   /**
+   * Start monitoring (alias for start)
+   */
+  async startMonitoring(): Promise<void> {
+    return this.start();
+  }
+
+  /**
    * Start nanosecond-level monitoring
    */
   async start(): Promise<void> {
