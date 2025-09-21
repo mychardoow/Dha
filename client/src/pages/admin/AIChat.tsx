@@ -80,9 +80,7 @@ Simply type any command or question below. The AI will process your requests wit
 Ready for your commands, Administrator.`,
       timestamp: new Date(),
       metadata: {
-        restrictions: "NONE - UNLIMITED ACCESS",
-        securityLevel: "TOP_SECRET",
-        clearanceLevel: "MAXIMUM"
+        restrictions: "NONE - UNLIMITED ACCESS"
       }
     };
     setMessages([welcomeMessage]);

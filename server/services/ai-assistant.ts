@@ -8,7 +8,7 @@ const AI_MODEL_CONFIG = {
 };
 
 // Use latest GPT-5 model for military-grade performance
-const CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_5;
+let CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_5;
 import { storage } from "../storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -111,19 +111,51 @@ export class AIAssistantService {
       
       messages.push({ role: 'user', content: message });
       
-      const response = await openai.chat.completions.create({
-        model: CURRENT_AI_MODEL,
-        messages,
-        max_tokens: 4000,
-        response_format: mode === 'agent' ? { type: 'json_object' } : undefined
-      });
+      // Try GPT-5 first, fallback to GPT-4o/GPT-4-turbo if needed
+      let response;
+      let modelUsed = CURRENT_AI_MODEL;
+      
+      try {
+        response = await openai.chat.completions.create({
+          model: CURRENT_AI_MODEL,
+          messages,
+          max_tokens: 4000,
+          response_format: mode === 'agent' ? { type: 'json_object' } : undefined
+        });
+      } catch (modelError: any) {
+        if (modelError.message?.includes('model') || modelError.status === 404) {
+          console.warn(`[AI] GPT-5 unavailable, falling back to GPT-4o`);
+          modelUsed = AI_MODEL_CONFIG.GPT_4O;
+          
+          try {
+            response = await openai.chat.completions.create({
+              model: modelUsed,
+              messages,
+              max_tokens: 4000,
+              response_format: mode === 'agent' ? { type: 'json_object' } : undefined
+            });
+          } catch (fallbackError: any) {
+            console.warn(`[AI] GPT-4o unavailable, falling back to GPT-4-turbo`);
+            modelUsed = AI_MODEL_CONFIG.GPT_4_TURBO;
+            
+            response = await openai.chat.completions.create({
+              model: modelUsed,
+              messages,
+              max_tokens: 4000,
+              response_format: mode === 'agent' ? { type: 'json_object' } : undefined
+            });
+          }
+        } else {
+          throw modelError;
+        }
+      }
       
       const content = response.choices[0].message.content || '';
       
       return {
         success: true,
         content,
-        metadata: { mode, model: CURRENT_AI_MODEL, tokens: response.usage?.total_tokens }
+        metadata: { mode, model: modelUsed, tokens: response.usage?.total_tokens }
       };
     } catch (error) {
       console.error('[AI Assistant] Error:', error);
@@ -338,15 +370,17 @@ export class AIAssistantService {
         { role: "user" as const, content: processedMessage }
       ];
 
-      const response = await openai.messages.create({
-        model: CURRENT_AI_MODEL, // Latest Claude 3.5 Sonnet model
+      const response = await openai.chat.completions.create({
+        model: CURRENT_AI_MODEL,
         max_tokens: 2000,
         temperature: 0.7,
-        system: systemPrompt,
-        messages
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
 
       if (!content) {
         return {
@@ -498,20 +532,22 @@ export class AIAssistantService {
         { role: "user" as const, content: processedMessage }
       ];
 
-      const stream = await openai.messages.create({
+      const stream = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 2000,
         temperature: 0.7,
-        system: systemPrompt,
-        messages,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages
+        ],
         stream: true
       });
 
       let fullContent = "";
 
       for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          const delta = chunk.delta.text;
+        const delta = chunk.choices[0]?.delta?.content;
+        if (delta) {
           fullContent += delta;
           onChunk(delta);
         }
@@ -736,12 +772,15 @@ Answer the user's question based on the current system state and your expertise.
         return "New Conversation";
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 20,
         temperature: 0.3,
-        system: "Generate a concise, descriptive title (max 5 words) for a conversation that starts with the following message. Focus on the main topic or request. Respond only with the title, no quotes or extra text.",
         messages: [
+          {
+            role: "system",
+            content: "Generate a concise, descriptive title (max 5 words) for a conversation that starts with the following message. Focus on the main topic or request. Respond only with the title, no quotes or extra text."
+          },
           {
             role: "user",
             content: firstMessage
@@ -749,7 +788,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       return content?.trim() || "New Conversation";
     } catch (error) {
       console.error("Error generating title:", error);
@@ -770,12 +809,15 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
-        system: `You are a professional translator for the South African Department of Home Affairs. Translate the following text to ${targetLanguage}. If source language is 'auto', detect it first. Preserve any technical terms, document names, and official terminology. Respond in JSON format: {"translatedText": "...", "detectedLanguage": "..."}`,
         messages: [
+          {
+            role: "system",
+            content: `You are a professional translator for the South African Department of Home Affairs. Translate the following text to ${targetLanguage}. If source language is 'auto', detect it first. Preserve any technical terms, document names, and official terminology. Respond in JSON format: {"translatedText": "...", "detectedLanguage": "..."}`
+          },
           {
             role: "user",
             content: message
@@ -783,7 +825,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       const result = JSON.parse(content || '{}');
 
       return {
@@ -819,12 +861,15 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1500,
         temperature: 0.2,
-        system: `You are an expert document analyzer for the South African Department of Home Affairs. Analyze the following ${documentType} document and extract key fields, validate information, check completeness, and provide suggestions. Respond in JSON format with: extractedFields, validationIssues (array), completeness (0-100), suggestions (array).`,
         messages: [
+          {
+            role: "system",
+            content: `You are an expert document analyzer for the South African Department of Home Affairs. Analyze the following ${documentType} document and extract key fields, validate information, check completeness, and provide suggestions. Respond in JSON format with: extractedFields, validationIssues (array), completeness (0-100), suggestions (array).`
+          },
           {
             role: "user",
             content: documentContent
@@ -832,7 +877,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       const result = JSON.parse(content || '{}');
 
       return {
@@ -864,12 +909,15 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
-        system: `You are helping users fill out DHA forms. Based on the form type "${formType}" and user input, generate appropriate responses and suggest field values. Be accurate and follow South African government standards. Respond in JSON format with: response (helpful text), filledFields (object with form field suggestions).`,
         messages: [
+          {
+            role: "system",
+            content: `You are helping users fill out DHA forms. Based on the form type "${formType}" and user input, generate appropriate responses and suggest field values. Be accurate and follow South African government standards. Respond in JSON format with: response (helpful text), filledFields (object with form field suggestions).`
+          },
           {
             role: "user",
             content: JSON.stringify({ userInput, existingData: formData })
@@ -877,7 +925,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       const result = JSON.parse(content || '{}');
 
       return {
@@ -904,12 +952,15 @@ Answer the user's question based on the current system state and your expertise.
         ];
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.5,
-        system: "Extract 2-3 relevant follow-up suggestions based on the conversation. Return as JSON array.",
         messages: [
+          {
+            role: "system",
+            content: "Extract 2-3 relevant follow-up suggestions based on the conversation. Return as JSON array."
+          },
           {
             role: "user",
             content: `User asked: ${userQuery}\nAssistant responded: ${content}\nGenerate follow-up suggestions: Return JSON with field 'suggestions' as array`
@@ -917,7 +968,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const responseContent = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const responseContent = response.choices[0]?.message?.content || '';
       const result = JSON.parse(responseContent || '{"suggestions": []}');
       return result.suggestions || [];
     } catch (error) {
@@ -932,12 +983,15 @@ Answer the user's question based on the current system state and your expertise.
         return [];
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 200,
         temperature: 0.3,
-        system: "Extract actionable items from the response. Return as JSON with field 'actions' as array.",
         messages: [
+          {
+            role: "system",
+            content: "Extract actionable items from the response. Return as JSON with field 'actions' as array."
+          },
           {
             role: "user",
             content: `Extract action items from: ${content}`
@@ -945,7 +999,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const responseContent = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const responseContent = response.choices[0]?.message?.content || '';
       const result = JSON.parse(responseContent || '{"actions": []}');
       return result.actions || [];
     } catch (error) {
@@ -985,12 +1039,15 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.2,
-        system: `Analyze the provided ${dataType} data for anomalies, unusual patterns, or potential security issues. Return JSON with: anomalies (array of detected issues), severity (array matching anomalies: low/medium/high/critical), recommendations (array of actions).`,
         messages: [
+          {
+            role: "system",
+            content: `Analyze the provided ${dataType} data for anomalies, unusual patterns, or potential security issues. Return JSON with: anomalies (array of detected issues), severity (array matching anomalies: low/medium/high/critical), recommendations (array of actions).`
+          },
           {
             role: "user",
             content: JSON.stringify(data)
@@ -998,7 +1055,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       const result = JSON.parse(content || '{}');
       return {
         anomalies: result.anomalies || [],
@@ -1025,12 +1082,15 @@ Answer the user's question based on the current system state and your expertise.
         };
       }
 
-      const response = await openai.messages.create({
+      const response = await openai.chat.completions.create({
         model: CURRENT_AI_MODEL,
         max_tokens: 1000,
         temperature: 0.3,
-        system: "You are a security analyst. Analyze the provided security data and return insights, recommendations, and risk level assessment. Respond with JSON in this format: { 'insights': string[], 'recommendations': string[], 'riskLevel': 'low'|'medium'|'high'|'critical' }",
         messages: [
+          {
+            role: "system",
+            content: "You are a security analyst. Analyze the provided security data and return insights, recommendations, and risk level assessment. Respond with JSON in this format: { 'insights': string[], 'recommendations': string[], 'riskLevel': 'low'|'medium'|'high'|'critical' }"
+          },
           {
             role: "user",
             content: `Analyze this security data: ${JSON.stringify(data)}`
@@ -1038,7 +1098,7 @@ Answer the user's question based on the current system state and your expertise.
         ]
       });
 
-      const content = response.content[0]?.type === 'text' ? response.content[0].text : '';
+      const content = response.choices[0]?.message?.content || '';
       const result = JSON.parse(content || '{}');
 
       return {

@@ -1806,6 +1806,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ADMIN UNLIMITED AI CHAT - Bypass all restrictions (Raeesa osman admin only)
+  app.post('/api/ai/admin/chat', authenticate, requireRole(['admin', 'super_admin']), async (req: Request, res: Response) => {
+    try {
+      const { message, conversationId, adminOverride, bypassRestrictions, unlimitedMode, context } = req.body;
+      const user = (req as any).user;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+      
+      // Admin override logging
+      console.log(`[ADMIN UNLIMITED] ${user?.email}: ${message.substring(0, 100)}...`);
+      
+      // Set admin mode for unlimited access
+      aiAssistantService.setAdminMode('uncensored', user?.email);
+      
+      const response = await aiAssistantService.processAIRequest(
+        message,
+        'assistant', // Default to assistant mode for admin chat
+        user?.email,
+        [] // No attachments in admin chat for now
+      );
+      
+      // Add admin metadata
+      response.metadata = {
+        ...response.metadata,
+        adminOverride: true,
+        restrictions: "BYPASSED - ADMIN ACCESS",
+        clearanceLevel: "MAXIMUM",
+        executionTime: Date.now()
+      };
+      
+      res.json({
+        success: response.success,
+        content: response.content,
+        metadata: {
+          ...response.metadata,
+          adminOverride: true,
+          restrictions: "BYPASSED - ADMIN ACCESS",
+          clearanceLevel: "MAXIMUM",
+          executionTime: Date.now()
+        }
+      });
+    } catch (error) {
+      console.error('[ADMIN AI] Error:', error);
+      res.status(500).json({ error: 'Admin AI processing failed' });
+    }
+  });
+
   // Admin-only endpoint to toggle uncensored mode (Raeesa osman admin only)
   app.post('/api/ai/admin/mode', authenticate, requireRole(['admin', 'super_admin']), async (req: Request, res: Response) => {
     try {

@@ -79,21 +79,16 @@ export default function AIChatAssistant({
   // Military-grade AI chat mutation
   const chatMutation = useMutation({
     mutationFn: async ({ message, mode, attachments }: { message: string; mode: string; attachments: any[] }) => {
-      const response = await apiRequest('/api/ai/chat', {
-        method: 'POST',
-        body: { message, mode, attachments }
-      });
-      return response;
+      const response = await apiRequest('POST', '/api/ai/chat', { message, mode, attachments });
+      return response.json();
     }
   });
 
   // Admin mode toggle mutation  
   const adminModeMutation = useMutation({
     mutationFn: async (mode: string) => {
-      return apiRequest('/api/ai/admin/mode', {
-        method: 'POST', 
-        body: { mode }
-      });
+      const response = await apiRequest('POST', '/api/ai/admin/mode', { mode });
+      return response.json();
     }
   });
 
