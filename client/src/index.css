@@ -852,3 +852,119 @@ body {
   color: #721C24;
   border: 1px solid #F5C6CB;
 }
+
+/* Enhanced Web3 and Mobile Responsiveness */
+.blockchain-verified {
+  border: 2px solid var(--sa-green);
+  background: rgba(0, 119, 73, 0.1);
+  animation: verified-pulse 2s ease-in-out infinite;
+}
+
+.blockchain-pending {
+  border: 2px solid var(--sa-yellow);
+  background: rgba(252, 181, 20, 0.1);
+  animation: pending-pulse 1.5s ease-in-out infinite;
+}
+
+.blockchain-failed {
+  border: 2px solid var(--sa-red);
+  background: rgba(222, 56, 49, 0.1);
+}
+
+@keyframes verified-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 119, 73, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(0, 119, 73, 0); }
+}
+
+@keyframes pending-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(252, 181, 20, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(252, 181, 20, 0); }
+}
+
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+  .mobile-enhanced {
+    padding: 0.75rem;
+    margin: 0.5rem;
+  }
+  
+  .mobile-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .mobile-button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 1rem;
+    padding: 0.875rem 1rem;
+  }
+  
+  .mobile-form {
+    padding: 1rem;
+  }
+  
+  .mobile-header {
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .mobile-card-stack {
+    margin: 0.5rem 0;
+  }
+  
+  .mobile-nav-safe {
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* DHA VFS Integration Styles */
+.vfs-status {
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--sa-green);
+  background: rgba(0, 119, 73, 0.05);
+}
+
+.vfs-status.under-review {
+  border-left-color: var(--sa-yellow);
+  background: rgba(252, 181, 20, 0.05);
+}
+
+.vfs-status.approved {
+  border-left-color: var(--sa-green);
+  background: rgba(0, 119, 73, 0.05);
+}
+
+.vfs-status.rejected {
+  border-left-color: var(--sa-red);
+  background: rgba(222, 56, 49, 0.05);
+}
+
+/* Web3 Wallet Styles */
+.wallet-connected {
+  background: linear-gradient(135deg, var(--sa-green) 0%, #005432 100%);
+  color: white;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.wallet-disconnected {
+  background: var(--muted);
+  color: var(--muted-foreground);
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+/* Enhanced Government Glass Effect */
+.government-glass {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 119, 73, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 119, 73, 0.1);
+}

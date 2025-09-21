@@ -128,6 +128,8 @@ import { cyberDefenseSystem } from "./services/cyber-defense";
 import { militaryDocumentService } from "./services/military-documents";
 import { secureCommunicationsService } from "./services/secure-comms";
 import { gitHubIntegrationService } from "./services/github-integration";
+import { web3Integration } from './services/web3-integration';
+import { dhaVfsIntegration } from './services/dha-vfs-integration';
 import { z } from "zod";
 import { configService, config } from "./middleware/provider-config";
 import { ConsentMiddleware } from "./middleware/consent-middleware";
@@ -3795,6 +3797,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // =================== END UNIFIED DHA DOCUMENT GENERATION API ===================
+
+  // ===================== WEB3 BLOCKCHAIN INTEGRATION API =====================
+
+  // Verify document on blockchain
+  app.post("/api/web3/verify-document", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { documentId, documentHash } = req.body;
+      
+      if (!documentId || !documentHash) {
+        return res.status(400).json({ error: 'Document ID and hash are required' });
+      }
+
+      const verification = await web3Integration.verifyDocumentOnBlockchain(documentId, documentHash);
+      
+      res.json({
+        success: true,
+        ...verification
+      });
+    } catch (error) {
+      console.error('Web3 verification error:', error);
+      res.status(500).json({ error: 'Failed to verify document on blockchain' });
+    }
+  }));
+
+  // Anchor document to blockchain
+  app.post("/api/web3/anchor-document", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { documentId, documentHash } = req.body;
+      
+      if (!documentId || !documentHash) {
+        return res.status(400).json({ error: 'Document ID and hash are required' });
+      }
+
+      const anchoring = await web3Integration.anchorDocumentToBlockchain(documentId, documentHash);
+      
+      res.json({
+        success: true,
+        ...anchoring
+      });
+    } catch (error) {
+      console.error('Web3 anchoring error:', error);
+      res.status(500).json({ error: 'Failed to anchor document to blockchain' });
+    }
+  }));
+
+  // Get supported blockchain networks
+  app.get("/api/web3/networks", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const networks = web3Integration.getSupportedNetworks();
+      const isEnabled = web3Integration.isBlockchainEnabled();
+      
+      res.json({
+        success: true,
+        networks,
+        enabled: isEnabled
+      });
+    } catch (error) {
+      console.error('Web3 networks error:', error);
+      res.status(500).json({ error: 'Failed to get blockchain networks' });
+    }
+  }));
+
+  // Generate blockchain signature
+  app.post("/api/web3/generate-signature", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { documentHash, signerAddress } = req.body;
+      
+      if (!documentHash || !signerAddress) {
+        return res.status(400).json({ error: 'Document hash and signer address are required' });
+      }
+
+      const signature = await web3Integration.generateBlockchainSignature(documentHash, signerAddress);
+      
+      res.json({
+        success: true,
+        ...signature
+      });
+    } catch (error) {
+      console.error('Web3 signature error:', error);
+      res.status(500).json({ error: 'Failed to generate blockchain signature' });
+    }
+  }));
+
+  // ===================== DHA VFS INTEGRATION API =====================
+
+  // Verify identity through DHA NPR
+  app.post("/api/dha-vfs/verify-identity", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const verificationRequest = req.body;
+      const result = await dhaVfsIntegration.verifyIdentityNPR(verificationRequest);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('DHA NPR verification error:', error);
+      res.status(500).json({ error: 'Failed to verify identity through NPR' });
+    }
+  }));
+
+  // Verify biometrics through DHA ABIS
+  app.post("/api/dha-vfs/verify-biometrics", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const verificationRequest = req.body;
+      const result = await dhaVfsIntegration.verifyBiometricsABIS(verificationRequest);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('DHA ABIS verification error:', error);
+      res.status(500).json({ error: 'Failed to verify biometrics through ABIS' });
+    }
+  }));
+
+  // Verify document through DHA HANIS
+  app.post("/api/dha-vfs/verify-document", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { documentNumber, documentType } = req.body;
+      
+      if (!documentNumber || !documentType) {
+        return res.status(400).json({ error: 'Document number and type are required' });
+      }
+
+      const result = await dhaVfsIntegration.verifyDocumentHANIS(documentNumber, documentType);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('DHA HANIS verification error:', error);
+      res.status(500).json({ error: 'Failed to verify document through HANIS' });
+    }
+  }));
+
+  // Check VFS application status
+  app.get("/api/dha-vfs/application-status/:applicationNumber", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { applicationNumber } = req.params;
+      const status = await dhaVfsIntegration.checkVFSApplicationStatus(applicationNumber);
+      
+      res.json({
+        success: true,
+        ...status
+      });
+    } catch (error) {
+      console.error('VFS status check error:', error);
+      res.status(500).json({ error: 'Failed to check VFS application status' });
+    }
+  }));
+
+  // Submit VFS application
+  app.post("/api/dha-vfs/submit-application", authenticate, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const applicationData = req.body;
+      const result = await dhaVfsIntegration.submitVFSApplication(applicationData);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error) {
+      console.error('VFS submission error:', error);
+      res.status(500).json({ error: 'Failed to submit VFS application' });
+    }
+  }));
+
+  // Get DHA VFS system status
+  app.get("/api/dha-vfs/system-status", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const status = dhaVfsIntegration.getSystemStatus();
+      
+      res.json({
+        success: true,
+        systems: status
+      });
+    } catch (error) {
+      console.error('DHA VFS system status error:', error);
+      res.status(500).json({ error: 'Failed to get system status' });
+    }
+  }));
 
   // =================== END SECURITY MONITORING API ROUTES ===================
 
