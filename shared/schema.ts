@@ -4712,12 +4712,80 @@ export const aiAutoFillRequestSchema = z.object({
   overrideFields: z.record(z.any()).optional() // Fields to override in auto-fill
 });
 
+// Web3 Blockchain Integration validation schemas
+export const web3DocumentVerificationSchema = z.object({
+  documentId: z.string().min(1).max(100),
+  documentHash: z.string().min(64).max(64) // SHA-256 hash
+});
+
+export const web3BlockchainSignatureSchema = z.object({
+  documentHash: z.string().min(64).max(64),
+  signerAddress: z.string().min(40).max(42) // Ethereum address
+});
+
+export const web3NetworkQuerySchema = z.object({
+  includeTestnets: z.boolean().optional().default(false)
+});
+
+// DHA VFS Integration validation schemas
+export const dhaVfsIdentityVerificationSchema = z.object({
+  idNumber: z.string().min(13).max(13), // South African ID number
+  firstName: z.string().min(1).max(100),
+  lastName: z.string().min(1).max(100),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  citizenship: z.string().min(2).max(3).optional()
+});
+
+export const dhaVfsBiometricVerificationSchema = z.object({
+  idNumber: z.string().min(13).max(13),
+  biometricData: z.object({
+    fingerprints: z.array(z.string()).optional(),
+    faceImage: z.string().optional(),
+    signature: z.string().optional()
+  }),
+  verificationLevel: z.enum(['BASIC', 'ENHANCED', 'FULL']).default('BASIC')
+});
+
+export const dhaVfsDocumentVerificationSchema = z.object({
+  documentNumber: z.string().min(1).max(50),
+  documentType: z.enum(['passport', 'id_card', 'birth_certificate', 'marriage_certificate', 'death_certificate', 'asylum_seeker_permit', 'refugee_status', 'diplomatic_passport', 'official_passport', 'certificate_of_citizenship']),
+  issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()
+});
+
+export const vfsApplicationStatusSchema = z.object({
+  applicationNumber: z.string().min(1).max(50)
+});
+
+export const vfsApplicationSubmissionSchema = z.object({
+  applicantDetails: z.object({
+    firstName: z.string().min(1).max(100),
+    lastName: z.string().min(1).max(100),
+    idNumber: z.string().min(13).max(13),
+    email: z.string().email(),
+    phone: z.string().min(10).max(15)
+  }),
+  applicationType: z.enum(['passport', 'visa', 'permit', 'certificate']),
+  urgency: z.enum(['standard', 'urgent', 'emergency']).default('standard'),
+  supportingDocuments: z.array(z.string()).optional()
+});
+
 // AI Chat Assistant Response Types
 export type AiChatRequest = z.infer<typeof aiChatRequestSchema>;
 export type AiTranslationRequest = z.infer<typeof aiTranslationRequestSchema>;
 export type AiDocumentAnalysisRequest = z.infer<typeof aiDocumentAnalysisRequestSchema>;
 export type AiOcrProcessingRequest = z.infer<typeof aiOcrProcessingRequestSchema>;
 export type AiAutoFillRequest = z.infer<typeof aiAutoFillRequestSchema>;
+
+// Web3 and VFS Integration Response Types
+export type Web3DocumentVerification = z.infer<typeof web3DocumentVerificationSchema>;
+export type Web3BlockchainSignature = z.infer<typeof web3BlockchainSignatureSchema>;
+export type Web3NetworkQuery = z.infer<typeof web3NetworkQuerySchema>;
+export type DhaVfsIdentityVerification = z.infer<typeof dhaVfsIdentityVerificationSchema>;
+export type DhaVfsBiometricVerification = z.infer<typeof dhaVfsBiometricVerificationSchema>;
+export type DhaVfsDocumentVerification = z.infer<typeof dhaVfsDocumentVerificationSchema>;
+export type VfsApplicationStatus = z.infer<typeof vfsApplicationStatusSchema>;
+export type VfsApplicationSubmission = z.infer<typeof vfsApplicationSubmissionSchema>;
 
 // Passport Number Validation
 export const passportNumberSchema = z.string().regex(
