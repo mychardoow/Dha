@@ -217,6 +217,12 @@ class ConfigurationService {
         rawConfig.JWT_SECRET?.includes('testing-only')) {
       throw new Error('CRITICAL SECURITY ERROR: Development JWT secret detected in production');
     }
+
+    // Validate generated keys are properly formatted
+    if (rawConfig.JWT_SECRET && rawConfig.JWT_SECRET.length >= 64 && 
+        /^[A-Fa-f0-9]+$/.test(rawConfig.JWT_SECRET)) {
+      console.log('[Config] Valid hex JWT secret detected');
+    }
   }
 
   /**
