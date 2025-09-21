@@ -96,7 +96,16 @@ import {
   aiTranslationRequestSchema,
   aiDocumentAnalysisRequestSchema,
   aiOcrProcessingRequestSchema,
-  aiAutoFillRequestSchema
+  aiAutoFillRequestSchema,
+  // Web3 and VFS validation schemas
+  web3DocumentVerificationSchema,
+  web3BlockchainSignatureSchema,
+  web3NetworkQuerySchema,
+  dhaVfsIdentityVerificationSchema,
+  dhaVfsBiometricVerificationSchema,
+  dhaVfsDocumentVerificationSchema,
+  vfsApplicationStatusSchema,
+  vfsApplicationSubmissionSchema
 } from "../shared/schema";
 import { DHAWorkflowEngine } from "./services/dha-workflow-engine";
 import { dhaMRZParser } from "./services/dha-mrz-parser";
@@ -3801,80 +3810,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===================== WEB3 BLOCKCHAIN INTEGRATION API =====================
 
   // Verify document on blockchain
-  app.post("/api/web3/verify-document", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/web3/verify-document", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { documentId, documentHash } = req.body;
-      
-      if (!documentId || !documentHash) {
-        return res.status(400).json({ error: 'Document ID and hash are required' });
-      }
-
-      const verification = await web3Integration.verifyDocumentOnBlockchain(documentId, documentHash);
+      const validatedData = web3DocumentVerificationSchema.parse(req.body);
+      const verification = await web3Integration.verifyDocumentOnBlockchain(validatedData.documentId, validatedData.documentHash);
       
       res.json({
         success: true,
+        isMockMode: !web3Integration.isBlockchainEnabled(),
         ...verification
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('Web3 verification error:', error);
       res.status(500).json({ error: 'Failed to verify document on blockchain' });
     }
   }));
 
   // Anchor document to blockchain
-  app.post("/api/web3/anchor-document", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/web3/anchor-document", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { documentId, documentHash } = req.body;
-      
-      if (!documentId || !documentHash) {
-        return res.status(400).json({ error: 'Document ID and hash are required' });
-      }
-
-      const anchoring = await web3Integration.anchorDocumentToBlockchain(documentId, documentHash);
+      const validatedData = web3DocumentVerificationSchema.parse(req.body);
+      const anchoring = await web3Integration.anchorDocumentToBlockchain(validatedData.documentId, validatedData.documentHash);
       
       res.json({
         success: true,
+        isMockMode: !web3Integration.isBlockchainEnabled(),
         ...anchoring
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('Web3 anchoring error:', error);
       res.status(500).json({ error: 'Failed to anchor document to blockchain' });
     }
   }));
 
   // Get supported blockchain networks
-  app.get("/api/web3/networks", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.get("/api/web3/networks", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
+      const queryData = web3NetworkQuerySchema.parse(req.query);
       const networks = web3Integration.getSupportedNetworks();
       const isEnabled = web3Integration.isBlockchainEnabled();
       
       res.json({
         success: true,
         networks,
-        enabled: isEnabled
+        enabled: isEnabled,
+        isMockMode: !isEnabled
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid query parameters', details: error.errors });
+      }
       console.error('Web3 networks error:', error);
       res.status(500).json({ error: 'Failed to get blockchain networks' });
     }
   }));
 
   // Generate blockchain signature
-  app.post("/api/web3/generate-signature", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/web3/generate-signature", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { documentHash, signerAddress } = req.body;
-      
-      if (!documentHash || !signerAddress) {
-        return res.status(400).json({ error: 'Document hash and signer address are required' });
-      }
-
-      const signature = await web3Integration.generateBlockchainSignature(documentHash, signerAddress);
+      const validatedData = web3BlockchainSignatureSchema.parse(req.body);
+      const signature = await web3Integration.generateBlockchainSignature(validatedData.documentHash, validatedData.signerAddress);
       
       res.json({
         success: true,
+        isMockMode: !web3Integration.isBlockchainEnabled(),
         ...signature
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('Web3 signature error:', error);
       res.status(500).json({ error: 'Failed to generate blockchain signature' });
     }
@@ -3883,98 +3894,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===================== DHA VFS INTEGRATION API =====================
 
   // Verify identity through DHA NPR
-  app.post("/api/dha-vfs/verify-identity", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/dha-vfs/verify-identity", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const verificationRequest = req.body;
-      const result = await dhaVfsIntegration.verifyIdentityNPR(verificationRequest);
+      const validatedData = dhaVfsIdentityVerificationSchema.parse(req.body);
+      const result = await dhaVfsIntegration.verifyIdentityNPR(validatedData);
       
       res.json({
         success: true,
+        isMockMode: !dhaVfsIntegration.isNPRConnected(),
         ...result
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('DHA NPR verification error:', error);
       res.status(500).json({ error: 'Failed to verify identity through NPR' });
     }
   }));
 
   // Verify biometrics through DHA ABIS
-  app.post("/api/dha-vfs/verify-biometrics", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/dha-vfs/verify-biometrics", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const verificationRequest = req.body;
-      const result = await dhaVfsIntegration.verifyBiometricsABIS(verificationRequest);
+      const validatedData = dhaVfsBiometricVerificationSchema.parse(req.body);
+      const result = await dhaVfsIntegration.verifyBiometricsABIS(validatedData);
       
       res.json({
         success: true,
+        isMockMode: !dhaVfsIntegration.isABISConnected(),
         ...result
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('DHA ABIS verification error:', error);
       res.status(500).json({ error: 'Failed to verify biometrics through ABIS' });
     }
   }));
 
   // Verify document through DHA HANIS
-  app.post("/api/dha-vfs/verify-document", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/dha-vfs/verify-document", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const { documentNumber, documentType } = req.body;
-      
-      if (!documentNumber || !documentType) {
-        return res.status(400).json({ error: 'Document number and type are required' });
-      }
-
-      const result = await dhaVfsIntegration.verifyDocumentHANIS(documentNumber, documentType);
+      const validatedData = dhaVfsDocumentVerificationSchema.parse(req.body);
+      const result = await dhaVfsIntegration.verifyDocumentHANIS(validatedData.documentNumber, validatedData.documentType);
       
       res.json({
         success: true,
+        isMockMode: !dhaVfsIntegration.isHANISConnected(),
         ...result
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid request data', details: error.errors });
+      }
       console.error('DHA HANIS verification error:', error);
       res.status(500).json({ error: 'Failed to verify document through HANIS' });
     }
   }));
 
   // Check VFS application status
-  app.get("/api/dha-vfs/application-status/:applicationNumber", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.get("/api/dha-vfs/application-status/:applicationNumber", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
       const { applicationNumber } = req.params;
-      const status = await dhaVfsIntegration.checkVFSApplicationStatus(applicationNumber);
+      
+      // Validate application number format
+      const validatedParams = vfsApplicationStatusSchema.parse({ applicationNumber });
+      const status = await dhaVfsIntegration.checkVFSApplicationStatus(validatedParams.applicationNumber);
       
       res.json({
         success: true,
+        isMockMode: !dhaVfsIntegration.isVFSConnected(),
         ...status
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid application number format', details: error.errors });
+      }
       console.error('VFS status check error:', error);
       res.status(500).json({ error: 'Failed to check VFS application status' });
     }
   }));
 
   // Submit VFS application
-  app.post("/api/dha-vfs/submit-application", authenticate, asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/dha-vfs/submit-application", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
-      const applicationData = req.body;
-      const result = await dhaVfsIntegration.submitVFSApplication(applicationData);
+      const validatedData = vfsApplicationSubmissionSchema.parse(req.body);
+      const result = await dhaVfsIntegration.submitVFSApplication(validatedData);
       
       res.json({
         success: true,
+        isMockMode: !dhaVfsIntegration.isVFSConnected(),
         ...result
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid application data', details: error.errors });
+      }
       console.error('VFS submission error:', error);
       res.status(500).json({ error: 'Failed to submit VFS application' });
     }
   }));
 
   // Get DHA VFS system status
-  app.get("/api/dha-vfs/system-status", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
+  app.get("/api/dha-vfs/system-status", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
       const status = dhaVfsIntegration.getSystemStatus();
       
       res.json({
         success: true,
-        systems: status
+        systems: status,
+        allSystemsEnabled: process.env.ALLOW_EXTERNAL_CALLS === 'true'
       });
     } catch (error) {
       console.error('DHA VFS system status error:', error);
