@@ -82,6 +82,9 @@ import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
 export interface IStorage {
+  // Storage readiness validation
+  validateStorageReadiness(): Promise<StorageReadinessReport>;
+  
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
