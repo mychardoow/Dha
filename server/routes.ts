@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       success: true,
       riskScore: result.riskScore,
       riskLevel: result.riskLevel,
-      factors: result.riskFactors || [],
+      factors: (result as any).riskFactors || [],
       timestamp: new Date().toISOString()
     });
   }));
