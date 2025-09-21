@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 echo "🧪 DHA Digital Services - Final System Tests"
@@ -18,10 +17,10 @@ FAILED_TESTS=0
 run_test() {
     local test_name="$1"
     local test_command="$2"
-    
+
     echo -e "\n${BLUE}[TEST]${NC} Running: $test_name"
     TOTAL_TESTS=$((TOTAL_TESTS + 1))
-    
+
     if eval "$test_command"; then
         echo -e "${GREEN}[PASS]${NC} $test_name"
         PASSED_TESTS=$((PASSED_TESTS + 1))

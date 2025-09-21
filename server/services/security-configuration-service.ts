@@ -73,7 +73,7 @@ export class SecurityConfigurationService {
   private determineSecurityLevel(): SecurityLevel {
     const nodeEnv = process.env.NODE_ENV?.toLowerCase();
     const governmentMode = process.env.GOVERNMENT_MODE === 'true';
-    
+
     if (governmentMode || nodeEnv === 'production') {
       return SecurityLevel.GOVERNMENT;
     } else if (nodeEnv === 'staging') {
@@ -93,8 +93,8 @@ export class SecurityConfigurationService {
         name: 'JWT_SECRET',
         required: true,
         minLength: 64,
-        pattern: /^[A-Za-z0-9+/]{64,}={0,2}$/,
-        description: 'JWT signing secret (base64, 64+ chars)',
+        pattern: /^[A-Fa-f0-9]{64,}$|^[A-Za-z0-9+/]{64,}={0,2}$/,
+        description: 'JWT signing secret (hex or base64, 64+ chars)',
         sensitive: true
       },
       {
@@ -313,7 +313,7 @@ export class SecurityConfigurationService {
     // Check required secrets
     for (const requirement of this.requiredSecrets) {
       const value = process.env[requirement.name];
-      
+
       if (!value) {
         result.missingSecrets.push(requirement.name);
         result.errors.push(`Missing required secret: ${requirement.name} - ${requirement.description}`);
@@ -367,7 +367,7 @@ export class SecurityConfigurationService {
    */
   private async validateJWTSecurity(result: EnvironmentValidationResult): Promise<void> {
     const jwtSecret = process.env.JWT_SECRET;
-    
+
     if (!jwtSecret) {
       return; // Already handled in required secrets
     }
@@ -458,7 +458,7 @@ export class SecurityConfigurationService {
         // Check for expiration (simplified check)
         const base64Cert = certPem.replace(/-----.*?-----|\s/g, '');
         const binaryData = Buffer.from(base64Cert, 'base64');
-        
+
         // This is a simplified check - in production you'd use a proper X.509 parser
         if (binaryData.length < 100) {
           result.warnings.push(`${certVar} appears to be unusually small - please verify certificate integrity`);
@@ -542,7 +542,7 @@ export class SecurityConfigurationService {
 
     try {
       const url = new URL(databaseUrl);
-      
+
       // Check for SSL requirement
       if (this.securityLevel === SecurityLevel.GOVERNMENT) {
         const sslParam = url.searchParams.get('sslmode') || url.searchParams.get('ssl');
@@ -570,7 +570,7 @@ export class SecurityConfigurationService {
    */
   generateSecureSecret(length: number = 64, format: 'base64' | 'hex' | 'raw' = 'base64'): string {
     const randomBytes = crypto.randomBytes(length);
-    
+
     switch (format) {
       case 'base64':
         return randomBytes.toString('base64');
@@ -594,22 +594,22 @@ export class SecurityConfigurationService {
 
     // Generate new secret
     const newSecret = this.generateSecureSecret(64, 'base64');
-    
+
     // Create backup of old secret
     const oldSecret = process.env[secretName];
     let backupCreated = false;
-    
+
     if (oldSecret && config.backupCount > 0) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const backupKey = `${secretName}_BACKUP_${timestamp}`;
-      
+
       // In production, this would be stored in secure key management system
       console.log(`[Security Config] Created backup for ${secretName}: ${backupKey}`);
       backupCreated = true;
     }
 
     console.log(`[Security Config] Rotated secret: ${secretName}`);
-    
+
     return { newSecret, backupCreated };
   }
 
@@ -618,10 +618,10 @@ export class SecurityConfigurationService {
    */
   async checkSecretRotationNeeded(): Promise<{ secretName: string; daysUntilExpiry: number }[]> {
     const rotationNeeded: { secretName: string; daysUntilExpiry: number }[] = [];
-    
+
     // This would check against a secure timestamp store in production
     // For now, return empty array as a placeholder
-    
+
     return rotationNeeded;
   }
 
@@ -637,7 +637,7 @@ export class SecurityConfigurationService {
   } {
     const configuredCount = this.requiredSecrets.filter(req => !!process.env[req.name]).length;
     const totalRequired = this.requiredSecrets.length;
-    
+
     let complianceStatus: 'compliant' | 'partial' | 'non-compliant' = 'non-compliant';
     if (configuredCount === totalRequired) {
       complianceStatus = 'compliant';
