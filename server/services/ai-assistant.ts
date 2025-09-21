@@ -69,6 +69,7 @@ export interface ChatResponse {
     confidence: number;
     suggestions: string[];
   };
+  documentGeneration?: any;
   contextualHelp?: {
     relevantDocuments: string[];
     processingSteps: string[];
