@@ -10,6 +10,7 @@
  */
 
 import { z } from 'zod';
+import crypto from 'crypto';
 
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
@@ -230,7 +231,7 @@ class ConfigurationService {
    * These are only used in development/preview mode when secrets are not provided
    */
   private generateSecureDevelopmentSecret(type: 'session' | 'jwt' | 'encryption' | 'master-encryption' | 'quantum-encryption'): string {
-    const crypto = require('crypto');
+    // crypto already imported at top of file
     const timestamp = Date.now().toString();
     const randomBytes = crypto.randomBytes(32).toString('hex');
 
