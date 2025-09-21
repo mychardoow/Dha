@@ -16,7 +16,7 @@ import cors from 'cors'; // Import cors middleware
 // Environment detection utilities - production ready
 const isProductionMode = (): boolean => process.env.NODE_ENV === 'production';
 const isDevelopmentMode = (): boolean => process.env.NODE_ENV === 'development';
-const isPreviewMode = (): boolean => process.env.NODE_ENV === 'preview'; // Assuming a 'preview' mode for Replit
+// Remove - use configService.isPreviewMode() instead
 
 // Coordinated shutdown management
 class ShutdownManager {
@@ -37,7 +37,7 @@ class ShutdownManager {
     console.log(`[Shutdown] Initiated: ${reason}`);
 
     // In preview mode, don't actually shut down - just log and return
-    if (isPreviewMode()) {
+    if (configService.isPreviewMode()) {
       console.log('[Shutdown] Preview mode detected - maintaining server instead of shutting down');
       return;
     }
@@ -235,15 +235,16 @@ async function initializeServer() {
   } catch (securityError) {
     console.error('❌ CRITICAL STARTUP SECURITY ERROR:', securityError instanceof Error ? securityError.message : String(securityError));
 
-    // Never exit completely - always provide fallback server even in production preview
+    // Fail fast in production - never continue with invalid configuration
     if (configService.isProduction()) {
-      console.error('❌ PRODUCTION SECURITY FAILURE: Invalid security configuration detected');
-      console.error('❌ Starting emergency fallback server instead of exiting');
+      console.error('❌ PRODUCTION SECURITY FAILURE: Cannot start with invalid security configuration');
+      console.error('❌ EXITING APPLICATION TO PREVENT SECURITY VULNERABILITIES');
+      throw securityError; // Let the application exit completely
     } else {
       console.warn('⚠️  DEVELOPMENT WARNING: Security configuration issues detected, but continuing in development mode');
       console.warn('⚠️  Setting up fallback secrets for development...');
       
-      // Provide fallback secrets for development
+      // Provide fallback secrets only in development
       if (!process.env.JWT_SECRET) {
         process.env.JWT_SECRET = require('crypto').randomBytes(32).toString('hex');
         console.log('✅ JWT_SECRET fallback generated');
@@ -962,7 +963,7 @@ async function initializeServer() {
     `);
 
     // Log mode detection
-    if (isPreviewMode()) {
+    if (configService.isPreviewMode()) {
       console.log('[Server] Preview mode detected - server will remain active');
     } else {
       console.log('[Server] Production mode - server will honor shutdown signals');
@@ -1014,7 +1015,7 @@ async function startApplication() {
     console.error('Stack:', (error as Error).stack);
 
     // In preview mode, try to continue with basic server
-    if (isPreviewMode()) {
+    if (configService.isPreviewMode()) {
       console.log('[Server] Attempting to start basic fallback server due to startup failure...');
 
       // Create a basic fallback server

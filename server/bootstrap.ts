@@ -59,10 +59,10 @@ export const loadEnvironmentVariables = (): void => {
       console.log('[Bootstrap] Set NODE_ENV to development (default)');
     }
     
-    // Set PREVIEW flag for demo/free-tier features
+    // Set PREVIEW flag only in development by default
     if (!process.env.PREVIEW_MODE) {
-      process.env.PREVIEW_MODE = 'true';
-      console.log('[Bootstrap] Set PREVIEW_MODE for demo features');
+      process.env.PREVIEW_MODE = process.env.NODE_ENV === 'development' ? 'true' : 'false';
+      console.log(`[Bootstrap] Set PREVIEW_MODE to ${process.env.PREVIEW_MODE} (default for ${process.env.NODE_ENV})`);
     }
     
   } catch (error) {
