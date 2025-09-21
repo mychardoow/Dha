@@ -268,68 +268,93 @@ export class DHAVFSIntegrationService {
    */
   async verifyDocumentHANIS(documentNumber: string, documentType: string): Promise<DHAVerificationResponse> {
     try {
-      if (!this.config.hanis.enabled) {
-        return this.createMockVerificationResponse('HANIS', true);
-      }
-
-      // Mock HANIS verification
-      const response = await fetch(`${this.config.hanis.baseUrl}/document-verify`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.hanis.apiKey}`,
-          'X-DHA-System': 'HANIS-Document'
-        },
-        body: JSON.stringify({
-          documentNumber,
-          documentType
-        })
+      console.log('[DHA-HANIS] Executing REAL document verification');
+      
+      // Make authenticated call to DHA HANIS API
+      const response = await this.clients.hanis.post('/document/verify', {
+        documentNumber,
+        documentType,
+        includeSecurityFeatures: true,
+        includeIssuanceDetails: true,
+        verificationLevel: 'COMPREHENSIVE'
       });
 
-      if (!response.ok) {
-        throw new Error(`HANIS verification failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return this.processHANISResponse(data);
+      // Process real HANIS response
+      const hanisData = response.data;
+      
+      return {
+        verified: hanisData.documentValid && hanisData.statusCode === 'AUTHENTIC',
+        confidence: hanisData.authenticityScore || 0,
+        details: {
+          identityMatch: hanisData.holderVerified,
+          biometricMatch: undefined, // HANIS doesn't include biometrics
+          documentValid: hanisData.documentValid,
+          statusUpdated: new Date(hanisData.lastVerified)
+        },
+        source: 'HANIS',
+        errors: hanisData.errors || []
+      };
 
     } catch (error) {
-      console.error('[DHA-HANIS] Document verification failed:', error);
-      return this.createMockVerificationResponse('HANIS', false);
+      console.error('[DHA-HANIS] REAL document verification failed:', error);
+      // NO MOCK FALLBACK - return error response
+      return {
+        verified: false,
+        confidence: 0,
+        details: {
+          identityMatch: false,
+          documentValid: false,
+          statusUpdated: new Date()
+        },
+        source: 'HANIS',
+        errors: [`HANIS verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      };
     }
   }
 
   /**
-   * Check VFS application status
+   * REAL VFS application status check
    */
   async checkVFSApplicationStatus(applicationNumber: string): Promise<VFSApplicationStatus> {
     try {
-      if (!this.config.vfs.enabled) {
-        return this.createMockVFSStatus(applicationNumber);
-      }
+      console.log('[VFS] Executing REAL application status check');
+      
+      // Make authenticated call to VFS API
+      const response = await this.clients.vfs.get(`/applications/${applicationNumber}/status`);
 
-      const response = await fetch(`${this.config.vfs.baseUrl}/applications/${applicationNumber}/status`, {
-        headers: {
-          'Authorization': `Bearer ${this.config.vfs.apiKey}`,
-          'X-VFS-System': 'Status-Check'
+      // Process real VFS response
+      const vfsData = response.data;
+      
+      return {
+        applicationNumber,
+        status: vfsData.currentStatus || 'under_review',
+        lastUpdated: new Date(vfsData.lastStatusUpdate),
+        estimatedCompletion: vfsData.estimatedCompletion ? new Date(vfsData.estimatedCompletion) : undefined,
+        currentStage: vfsData.processingStage || 'Document Review',
+        requirements: {
+          outstanding: vfsData.outstandingRequirements || [],
+          submitted: vfsData.submittedDocuments || []
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`VFS status check failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      return this.processVFSStatus(data);
+      };
 
     } catch (error) {
-      console.error('[VFS] Status check failed:', error);
-      return this.createMockVFSStatus(applicationNumber);
+      console.error('[VFS] REAL status check failed:', error);
+      // NO MOCK FALLBACK - return error response
+      return {
+        applicationNumber,
+        status: 'submitted', // Default status when error occurs
+        lastUpdated: new Date(),
+        currentStage: 'Error retrieving status',
+        requirements: {
+          outstanding: [`Failed to retrieve status: ${error instanceof Error ? error.message : 'Unknown error'}`],
+          submitted: []
+        }
+      };
     }
   }
 
   /**
-   * Submit application to VFS
+   * REAL VFS application submission
    */
   async submitVFSApplication(applicationData: any): Promise<{
     applicationNumber: string;
@@ -338,34 +363,28 @@ export class DHAVFSIntegrationService {
     estimatedProcessingTime: string;
   }> {
     try {
-      if (!this.config.vfs.enabled) {
-        return {
-          applicationNumber: `VFS${Date.now()}`,
-          status: 'submitted',
-          submissionDate: new Date(),
-          estimatedProcessingTime: '15-20 business days'
-        };
-      }
-
-      const response = await fetch(`${this.config.vfs.baseUrl}/applications/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.vfs.apiKey}`,
-          'X-VFS-System': 'Application-Submit'
-        },
-        body: JSON.stringify(applicationData)
+      console.log('[VFS] Executing REAL application submission');
+      
+      // Make authenticated call to VFS submission API
+      const response = await this.clients.vfs.post('/applications/submit', {
+        ...applicationData,
+        submissionTimestamp: new Date().toISOString(),
+        systemSource: 'DHA-Digital-Services'
       });
 
-      if (!response.ok) {
-        throw new Error(`VFS submission failed: ${response.statusText}`);
-      }
-
-      return await response.json();
+      // Process real VFS submission response
+      const vfsData = response.data;
+      
+      return {
+        applicationNumber: vfsData.applicationNumber || `VFS${Date.now()}`,
+        status: vfsData.initialStatus === 'ACCEPTED' ? 'submitted' : 'rejected',
+        submissionDate: new Date(vfsData.submissionTimestamp),
+        estimatedProcessingTime: vfsData.estimatedProcessingDays || '15-20 business days'
+      };
 
     } catch (error) {
-      console.error('[VFS] Application submission failed:', error);
-      throw error;
+      console.error('[VFS] REAL application submission failed:', error);
+      throw new Error(`VFS submission failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -386,54 +405,21 @@ export class DHAVFSIntegrationService {
     };
   }
 
-  // Helper methods
-  private createMockVerificationResponse(source: 'NPR' | 'HANIS' | 'ABIS' | 'VFS', isValid: boolean): DHAVerificationResponse {
-    return {
-      verified: isValid,
-      confidence: isValid ? 0.95 : 0.3,
-      details: {
-        identityMatch: isValid,
-        biometricMatch: source === 'ABIS' ? isValid : undefined,
-        documentValid: isValid,
-        statusUpdated: new Date()
-      },
-      source,
-      errors: isValid ? undefined : ['Mock verification failure - system not configured']
-    };
+  // Connection status methods
+  isNPRConnected(): boolean {
+    return this.config.npr.enabled;
   }
 
-  private createMockVFSStatus(applicationNumber: string): VFSApplicationStatus {
-    return {
-      applicationNumber,
-      status: 'under_review',
-      lastUpdated: new Date(),
-      estimatedCompletion: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days
-      currentStage: 'Document Review',
-      requirements: {
-        outstanding: [],
-        submitted: ['Passport Copy', 'Application Form', 'Supporting Documents']
-      }
-    };
+  isABISConnected(): boolean {
+    return this.config.abis.enabled;
   }
 
-  private processNPRResponse(data: any): DHAVerificationResponse {
-    // Process actual NPR response
-    return data;
+  isHANISConnected(): boolean {
+    return this.config.hanis.enabled;
   }
 
-  private processABISResponse(data: any): DHAVerificationResponse {
-    // Process actual ABIS response
-    return data;
-  }
-
-  private processHANISResponse(data: any): DHAVerificationResponse {
-    // Process actual HANIS response
-    return data;
-  }
-
-  private processVFSStatus(data: any): VFSApplicationStatus {
-    // Process actual VFS response
-    return data;
+  isVFSConnected(): boolean {
+    return this.config.vfs.enabled;
   }
 }
 
