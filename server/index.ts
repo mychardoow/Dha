@@ -1,39 +1,14 @@
-// Load environment variables FIRST before any imports that need them
-try {
-  const fs = require('fs');
-  const path = require('path');
-  // Try both current directory and parent directory for .env file
-  const envPath = fs.existsSync('.env') ? '.env' : '../.env';
-  console.log(`[Environment] Looking for .env file at: ${path.resolve(envPath)}`);
-
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    const envVars = envContent.split('\n').filter((line: string) => line.trim() && !line.startsWith('#'));
-
-    let loadedCount = 0;
-    envVars.forEach((line: string) => {
-      const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, ''); // Remove quotes
-        if (!process.env[key]) {
-          process.env[key] = value;
-          loadedCount++;
-        }
-      }
-    });
-
-    console.log(`[Environment] Loaded ${loadedCount} environment variables from .env file`);
-  } else {
-    console.log('[Environment] No .env file found, using system environment variables');
-  }
-} catch (error) {
-  console.warn('[Environment] Could not load .env file:', error);
-  // Continue with system environment variables
-}
+// Bootstrap environment loading BEFORE any other imports
+import { initialize as bootstrapInitialize } from './bootstrap';
+bootstrapInitialize();
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { configService, config } from "./middleware/provider-config";
+import { initializeConfig } from "./middleware/provider-config";
+
+// Initialize config AFTER environment is loaded
+const configService = initializeConfig();
+const config = configService.getConfig();
 import { createServer } from 'http'; // Import createServer
 import { initializeWebSocket } from './websocket'; // Assuming this is the correct path for WebSocket initialization
 import cors from 'cors'; // Import cors middleware

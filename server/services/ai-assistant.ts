@@ -18,7 +18,7 @@ import { privacyProtectionService } from "./privacy-protection";
 import { enhancedVoiceService } from "./enhanced-voice-service";
 import { realTimeValidationService } from "./real-time-validation-service";
 import { productionGovernmentAPI } from "./production-government-api";
-import { configService, config } from "../middleware/provider-config";
+import { getConfigService, getConfig } from "../middleware/provider-config";
 import { dhaWebsiteService } from "./dha-website-integration";
 import { DocumentPdfFacade } from "./document-pdf-facade";
 

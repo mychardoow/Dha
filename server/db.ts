@@ -2,7 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
-import { configService, config } from './middleware/provider-config';
+import { getConfigService, getConfig } from './middleware/provider-config';
 
 // Environment detection utility - using centralized config
 const isPreviewMode = (): boolean => false; // Always false for production
@@ -35,7 +35,7 @@ neonConfig.webSocketConstructor = ws;
 
 // SECURITY: DATABASE_URL now managed by centralized configuration service
 let databaseUrlError: string | null = null;
-let connectionString: string | undefined = config.DATABASE_URL;
+let connectionString: string | undefined = getConfig().DATABASE_URL;
 
 // Validate DATABASE_URL format
 function isValidDatabaseUrl(url: string | undefined): boolean {
