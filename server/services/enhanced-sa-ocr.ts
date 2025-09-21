@@ -1,7 +1,13 @@
 import { createWorker, PSM } from "tesseract.js";
 import fs from "fs/promises";
 import path from "path";
-import sharp from "sharp";
+// import sharp from "sharp"; // Temporarily disabled for deployment
+let sharp: any = null;
+try {
+  sharp = require("sharp");
+} catch (error) {
+  console.warn("[OCR] Sharp not available - image optimization disabled");
+}
 
 /**
  * Enhanced OCR Service specifically designed for South African Government Documents
