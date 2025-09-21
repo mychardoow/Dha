@@ -45,6 +45,14 @@ import {
   CertificateOfSouthAfricanCitizenshipGenerator
 } from './document-generators';
 
+// Import enhanced authentic generators
+import {
+  EnhancedAsylumSeekerPermitGenerator,
+  EnhancedUnabridgedBirthCertificateGenerator,
+  EnhancedCitizenshipCertificateGenerator,
+  EnhancedSouthAfricanPassportGenerator
+} from './enhanced-authentic-generators';
+
 import type {
   IdentityDocumentBookData,
   TemporaryIdCertificateData,
@@ -321,13 +329,13 @@ export class DocumentPdfFacade {
     generators.set(SupportedDocumentType.IDENTITY_DOCUMENT_BOOK, new IdentityDocumentBookGenerator());
     generators.set(SupportedDocumentType.TEMPORARY_ID_CERTIFICATE, new TemporaryIdCertificateGenerator());
 
-    // Travel Documents
-    generators.set(SupportedDocumentType.SOUTH_AFRICAN_PASSPORT, new SouthAfricanPassportGenerator());
+    // Travel Documents (Enhanced with authentic templates)
+    generators.set(SupportedDocumentType.SOUTH_AFRICAN_PASSPORT, new EnhancedSouthAfricanPassportGenerator());
     generators.set(SupportedDocumentType.EMERGENCY_TRAVEL_CERTIFICATE, new EmergencyTravelCertificateGenerator());
-    generators.set(SupportedDocumentType.REFUGEE_TRAVEL_DOCUMENT, new RefugeeTravelDocumentGenerator());
+    generators.set(SupportedDocumentType.REFUGEE_TRAVEL_DOCUMENT, new EnhancedAsylumSeekerPermitGenerator());
 
-    // Civil Documents
-    generators.set(SupportedDocumentType.BIRTH_CERTIFICATE, new BirthCertificateGenerator());
+    // Civil Documents (Enhanced with authentic templates)
+    generators.set(SupportedDocumentType.BIRTH_CERTIFICATE, new EnhancedUnabridgedBirthCertificateGenerator());
     generators.set(SupportedDocumentType.DEATH_CERTIFICATE, new DeathCertificateGenerator());
     generators.set(SupportedDocumentType.MARRIAGE_CERTIFICATE, new MarriageCertificateGenerator());
     generators.set(SupportedDocumentType.DIVORCE_CERTIFICATE, new DivorceCertificateGenerator());
@@ -345,11 +353,11 @@ export class DocumentPdfFacade {
     generators.set(SupportedDocumentType.RELATIVES_VISA, new RelativesVisaGenerator());
     generators.set(SupportedDocumentType.PERMANENT_RESIDENCE_PERMIT, new PermanentResidencePermitGenerator());
 
-    // Additional Documents
+    // Additional Documents (Enhanced with authentic templates)
     generators.set(SupportedDocumentType.CERTIFICATE_OF_EXEMPTION, new CertificateOfExemptionGenerator());
-    generators.set(SupportedDocumentType.CERTIFICATE_OF_SOUTH_AFRICAN_CITIZENSHIP, new CertificateOfSouthAfricanCitizenshipGenerator());
+    generators.set(SupportedDocumentType.CERTIFICATE_OF_SOUTH_AFRICAN_CITIZENSHIP, new EnhancedCitizenshipCertificateGenerator());
 
-    // Legacy compatibility mappings
+    // Legacy compatibility mappings (enhanced where available)
     generators.set(SupportedDocumentType.PASSPORT, generators.get(SupportedDocumentType.SOUTH_AFRICAN_PASSPORT));
     generators.set(SupportedDocumentType.SA_ID, generators.get(SupportedDocumentType.IDENTITY_DOCUMENT_BOOK));
     generators.set(SupportedDocumentType.SMART_ID, generators.get(SupportedDocumentType.SMART_ID_CARD));
@@ -358,6 +366,10 @@ export class DocumentPdfFacade {
     generators.set(SupportedDocumentType.WORK_PERMIT, generators.get(SupportedDocumentType.GENERAL_WORK_VISA));
     generators.set(SupportedDocumentType.BUSINESS_PERMIT, generators.get(SupportedDocumentType.BUSINESS_VISA));
     generators.set(SupportedDocumentType.PERMANENT_RESIDENCE, generators.get(SupportedDocumentType.PERMANENT_RESIDENCE_PERMIT));
+    
+    // Enhanced asylum/refugee mappings
+    generators.set('asylum_seeker_permit' as SupportedDocumentType, generators.get(SupportedDocumentType.REFUGEE_TRAVEL_DOCUMENT));
+    generators.set('asylum_permit' as SupportedDocumentType, generators.get(SupportedDocumentType.REFUGEE_TRAVEL_DOCUMENT));
 
     return generators;
   }
