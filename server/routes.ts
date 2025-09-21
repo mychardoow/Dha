@@ -484,7 +484,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       success: true,
       riskScore: result.riskScore,
       riskLevel: result.riskLevel,
-      factors: result.factors,
+      factors: result.riskFactors || [],
       timestamp: new Date().toISOString()
     });
   }));
@@ -882,7 +882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: {
           id: user.id,
           username: user.username,
-          email: user.email,
+          email: (user as any).email || 'unknown',
           role: user.role
         }
       });
@@ -992,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventType: "login_successful",
         severity: "low",
         details: { 
-          email: user.email,
+          email: (user as any).email || 'unknown',
           fraudRiskScore: fraudAnalysis.riskScore 
         },
         ipAddress: req.ip,
@@ -1005,7 +1005,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: {
           id: user.id,
           username: user.username,
-          email: user.email,
+          email: (user as any).email || 'unknown',
           role: user.role
         },
         fraudAnalysis: {
@@ -1078,7 +1078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         severity: "low",
         details: { 
           updatedFields: Object.keys(validatedData),
-          email: user.email 
+          email: (user as any).email || 'unknown' 
         },
         ipAddress: req.ip,
         userAgent: req.get("User-Agent") || ""
