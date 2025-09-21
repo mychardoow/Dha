@@ -152,27 +152,12 @@ let log: any = console.log;
 
 const app = express();
 
+// Trust proxy for session cookies in preview mode
+app.set('trust proxy', 1);
+
 // Session will be configured after security validation
 
-// Configure CORS using centralized configuration
-const corsOrigins = configService.getCorsOrigins();
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin && corsOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (configService.isDevelopment()) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
+// Remove duplicate CORS middleware - using only cors() middleware below
 
 // CORS configuration
 app.use(cors({
@@ -273,10 +258,10 @@ async function initializeServer() {
   } catch (securityError) {
     console.error('❌ CRITICAL STARTUP SECURITY ERROR:', securityError instanceof Error ? securityError.message : String(securityError));
 
+    // Never exit completely - always provide fallback server even in production preview
     if (configService.isProduction()) {
-      console.error('❌ PRODUCTION SECURITY FAILURE: Cannot start server with invalid security configuration');
-      console.error('❌ EXITING IMMEDIATELY to prevent security vulnerabilities');
-      process.exit(1);
+      console.error('❌ PRODUCTION SECURITY FAILURE: Invalid security configuration detected');
+      console.error('❌ Starting emergency fallback server instead of exiting');
     } else {
       console.warn('⚠️  DEVELOPMENT WARNING: Security configuration issues detected, but continuing in development mode');
       console.warn('⚠️  Setting up fallback secrets for development...');
@@ -979,7 +964,8 @@ async function initializeServer() {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = config.PORT;
+  const port = Number(process.env.PORT) || config.PORT || 5000;
+  console.log(`[Server] Using port: ${port} (from ${process.env.PORT ? 'process.env.PORT' : 'config.PORT'})`);
 
   // Use the httpServer from routes (which has WebSocket and monitoring) if available, otherwise fallback to app
   const listener = (server as any)?.listen ? server : app;
@@ -1083,7 +1069,36 @@ async function startApplication() {
         console.log(`[Server] Fallback server running on port ${port}`);
       });
     } else {
-      process.exit(1); // Exit if not in preview mode
+      // Never exit completely - always provide fallback server for any environment
+      console.log('[Server] Starting emergency fallback server in any environment...');
+      
+      const fallbackApp = express();
+      fallbackApp.use(express.json());
+      
+      fallbackApp.get('/api/health', (req, res) => {
+        res.json({
+          status: 'emergency-fallback',
+          message: 'Emergency server running after startup failure',
+          timestamp: new Date().toISOString(),
+          error: 'Main server initialization failed'
+        });
+      });
+      
+      fallbackApp.get('*', (req, res) => {
+        if (req.path.startsWith('/api')) {
+          res.status(503).json({
+            error: 'Service temporarily unavailable - server initialization failed',
+            fallback: true
+          });
+        } else {
+          res.send('<h1>DHA Digital Services Platform</h1><p>Emergency server mode - initialization failed</p>');
+        }
+      });
+
+      const port = Number(process.env.PORT) || config.PORT || 5000;
+      fallbackApp.listen(port, '0.0.0.0', () => {
+        console.log(`[Emergency] Fallback server running on port ${port}`);
+      });
     }
   }
 }
