@@ -131,6 +131,10 @@ import { gitHubIntegrationService } from "./services/github-integration";
 import { z } from "zod";
 import { configService, config } from "./middleware/provider-config";
 import { ConsentMiddleware } from "./middleware/consent-middleware";
+// Import health and system health routers
+import { healthRouter } from "./routes/health";
+import { monitoringRouter } from "./routes/monitoring";
+import { systemHealthRouter } from "./routes/system-health";
 
 // Initialize consent middleware
 const consentMiddleware = new ConsentMiddleware();
@@ -330,11 +334,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user consent status
   app.get("/api/consent/status", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
-    
+
     try {
       // Get actual consent status from ConsentMiddleware
       const consentStatus = await consentMiddleware.getConsentStatus(userId);
-      
+
       res.json({
         success: true,
         userId: userId,
@@ -365,13 +369,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/consent/give", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { consentTypes } = req.body;
-    
+
     await consentMiddleware.recordConsent(userId, 'aiProcessing', req, {
       legalBasis: 'consent',
       dataProcessingPurpose: 'AI analysis and processing',
       retentionPeriod: '7 years as per DHA requirements'
     });
-    
+
     res.json({
       success: true,
       message: "Consent recorded successfully",
@@ -384,14 +388,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Document verification endpoint
   app.post("/api/documents/verify", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const { documentId, documentData } = req.body;
-    
+
     const result = await verificationService.verifyDocument({ 
       verificationCode: documentId, 
       verificationMethod: 'manual_entry', 
       ipAddress: req.ip || 'unknown', 
       userAgent: req.get('User-Agent') || 'unknown'
     });
-    
+
     res.json({
       success: true,
       verification: result,
@@ -413,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       validateExtractedData: true,
       enhanceImageQuality: true
     } as any);
-    
+
     res.json({
       success: true,
       extractedData: result,
@@ -425,13 +429,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/biometric/register", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { type, template } = req.body;
-    
+
     const result = await biometricService.registerBiometric({
       userId,
       type,
       template
     });
-    
+
     res.json({
       success: result.success,
       error: result.error,
@@ -443,9 +447,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/biometric/verify", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { type, template } = req.body;
-    
+
     const result = await biometricService.verifyBiometric(template, type, userId);
-    
+
     res.json({
       success: result.success,
       confidence: result.confidence,
@@ -457,14 +461,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/fraud/analyze", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { transactionData } = req.body;
-    
+
     const result = await fraudDetectionService.analyzeUserBehavior({
       userId,
       ipAddress: req.ip || 'unknown',
       userAgent: req.get('User-Agent') || 'unknown',
       sessionData: transactionData
     });
-    
+
     res.json({
       success: true,
       riskScore: result.riskScore,
@@ -477,9 +481,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Quantum encryption endpoint
   app.post("/api/quantum/encrypt", authenticate, asyncHandler(async (req: Request, res: Response) => {
     const { data } = req.body;
-    
+
     const result = await quantumEncryptionService.encryptData(data);
-    
+
     res.json({
       success: result.success,
       encryptedData: result.encryptedData,
@@ -491,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Government API integration endpoints
   app.post("/api/government/npr/verify", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
     const { idNumber, fullName, dateOfBirth } = req.body;
-    
+
     const result = await dhaNPRAdapter.verifyPerson({
       applicantId: crypto.randomUUID(),
       applicationId: crypto.randomUUID(),
@@ -501,7 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       dateOfBirth: new Date(dateOfBirth),
       verificationMethod: 'id_number'
     });
-    
+
     res.json({
       success: result.success,
       verification: result,
@@ -511,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/government/saps/check", authenticate, requireRole(['admin', 'officer']), asyncHandler(async (req: Request, res: Response) => {
     const { idNumber, fullName, dateOfBirth, purposeOfCheck } = req.body;
-    
+
     const result = await dhaSAPSAdapter.performCriminalRecordCheck({
       applicantId: crypto.randomUUID(),
       applicationId: crypto.randomUUID(),
@@ -523,7 +527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       consentGiven: true,
       requestedBy: (req as any).user.id
     });
-    
+
     res.json({
       success: result.success,
       clearanceStatus: result.clearanceStatus,
@@ -2899,59 +2903,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Document verification endpoint (public)
+  // Document verification endpoint for PDFs
   app.get("/api/verify/:verificationCode", geoIPValidationMiddleware, verificationRateLimit, auditMiddleware('verification', 'verify_document'), async (req: Request, res: Response) => {
     try {
       const { verificationCode } = req.params;
+      const verification = await verificationService.verifyDocument({ verificationCode: verificationCode, verificationMethod: 'manual_entry', ipAddress: req.ip, userAgent: req.get('User-Agent') });
 
-      // Validate using Zod schema (adjust length for compatibility)
-      const validationResult = publicVerificationSchema.safeParse({ verificationCode: verificationCode?.slice(0, 12) });
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          error: "Invalid verification code format",
-          details: validationResult.error.issues 
+      if (verification && verification.isValid) {
+        res.json({
+          valid: true,
+          documentType: verification.documentType,
+          documentNumber: verification.documentNumber,
+          issuedDate: verification.issuedDate,
+          verificationDate: new Date().toISOString(),
+          securityFeatures: verification.securityFeatures
+        });
+      } else {
+        res.status(404).json({
+          valid: false,
+          error: 'Document not found or verification code invalid'
         });
       }
-
-      // Allow both 12 and 32 character codes for compatibility
-      if (!verificationCode || (verificationCode.length !== 32 && verificationCode.length !== 12)) {
-        return res.status(400).json({ error: "Invalid verification code format" });
-      }
-
-      const verificationResult = await documentGenerator.verifyDocument(verificationCode);
-
-      if (!verificationResult.isValid) {
-        return res.status(404).json({ error: verificationResult.error || "Document not found or invalid" });
-      }
-
-      // Log public verification with POPIA compliance
-      await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
-        eventType: "document_verified",
-        severity: "low",
-        details: { 
-          verificationCode, 
-          documentType: verificationResult.type,
-          documentId: verificationResult.document?.id
-        },
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent") || ""
-      }) as any);
-
-      res.json({
-        isValid: true,
-        type: verificationResult.type,
-        document: {
-          title: verificationResult.document?.title,
-          description: verificationResult.document?.description,
-          issuedAt: verificationResult.document?.issuedAt,
-          expiresAt: verificationResult.document?.expiresAt,
-          status: verificationResult.document?.status
-        }
-      });
-
     } catch (error) {
-      console.error("Document verification error:", error);
-      res.status(500).json({ error: "Verification failed" });
+      console.error('Document verification error:', error);
+      res.status(500).json({ error: 'Verification service error' });
     }
   });
 
@@ -3682,7 +3657,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===================== AUTONOMOUS MONITORING ROUTES =====================
 
   // Mount monitoring routes
-  app.use("/api/monitoring", monitoringRoutes);
+  app.use("/api/monitoring", monitoringRouter);
+  // Register system health routes
+  app.use("/api/system", systemHealthRouter);
 
   // Real-time monitoring endpoints
   app.get("/api/monitoring/real-time/metrics", authenticate, asyncHandler(async (req: Request, res: Response) => {
@@ -3690,7 +3667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realTimeMonitoring } = await import('./services/real-time-monitoring');
       const hours = parseInt(req.query.hours as string) || 1;
       const metrics = realTimeMonitoring.getMetricsHistory(hours);
-      
+
       res.json({
         success: true,
         metrics,
@@ -3708,7 +3685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realTimeMonitoring } = await import('./services/real-time-monitoring');
       const activeOnly = req.query.active === 'true';
       const alerts = activeOnly ? realTimeMonitoring.getActiveAlerts() : realTimeMonitoring.getAllAlerts();
-      
+
       res.json({
         success: true,
         alerts,
@@ -3725,7 +3702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realTimeMonitoring } = await import('./services/real-time-monitoring');
       const { id } = req.params;
       const resolved = realTimeMonitoring.resolveAlert(id);
-      
+
       if (resolved) {
         res.json({ success: true, message: 'Alert resolved' });
       } else {
@@ -3742,7 +3719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { realTimeMonitoring } = await import('./services/real-time-monitoring');
       const thresholds = req.body;
       realTimeMonitoring.updateThresholds(thresholds);
-      
+
       res.json({ success: true, message: 'Thresholds updated' });
     } catch (error) {
       console.error('Update thresholds error:', error);
