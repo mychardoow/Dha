@@ -6,7 +6,7 @@
  * real-time optimization capabilities.
  * 
  * Features:
- * - Microsecond-interval monitoring (1000 checks/second)
+ * - Optimized monitoring (1 check/second in production)
  * - Automatic code cleanup and cache management
  * - Unused file detection and removal
  * - Real-time workflow correction and optimization
@@ -99,7 +99,7 @@ export class NanosecondMonitoringService extends EventEmitter {
   private dependencyManager: DependencyManager;
 
   // Microsecond interval monitoring (1000 times per second)
-  private readonly MONITORING_INTERVAL_MS = 1; // 1 millisecond
+  private readonly MONITORING_INTERVAL_MS = 5000; // 5 seconds - optimized for production
   private readonly NANOSECOND_PRECISION = true;
   private readonly MAX_METRICS_BUFFER = 10000; // Store last 10 seconds of data
   private readonly CLEANUP_INTERVAL = 5000; // 5 seconds
