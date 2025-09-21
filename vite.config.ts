@@ -7,38 +7,43 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client/src"),
+      "@shared": path.resolve(__dirname, "./shared"),
     },
   },
   build: {
-    outDir: "dist/public",
-    assetsDir: "assets",
-    sourcemap: false,
-    target: "esnext",
+    outDir: "dist",
+    sourcemap: true,
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, "client/index.html"),
-      },
+      external: [
+        'fsevents',
+        'chokidar',
+        'esbuild',
+        'rollup'
+      ],
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
-          charts: ['chart.js', 'react-chartjs-2', 'recharts'],
-          pdf: ['jspdf', 'pdf-lib', 'pdfkit'],
-          crypto: ['crypto-js', 'node-forge'],
-          ai: ['openai', '@anthropic-ai/sdk']
-        },
-        chunkSizeWarningLimit: 1000
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+        }
       }
     },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    }
   },
   server: {
-    port: 5000,
     host: "0.0.0.0",
+    port: 5000,
     proxy: {
       "/api": {
-        target: "http://0.0.0.0:5000",
+        target: "http://localhost:3000",
         changeOrigin: true,
       },
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+    exclude: ['fsevents']
+  }
 });

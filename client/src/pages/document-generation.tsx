@@ -33,8 +33,8 @@ import {
 } from "lucide-react";
 
 // Import unified schemas from shared
-import { 
-  documentGenerationRequestSchema, 
+import {
+  documentGenerationRequestSchema,
   documentTypeSchemas,
   type DocumentGenerationRequest,
   type SmartIdCardData,
@@ -60,7 +60,7 @@ import {
   type PermanentResidencePermitData,
   type CertificateOfExemptionData,
   type CertificateOfSouthAfricanCitizenshipData
-} from "@shared/schema";
+} from "../../../shared/schema";
 
 // Document type definitions
 interface DocumentTypeInfo {
@@ -150,12 +150,12 @@ interface TemplatesResponse {
 
 export default function UnifiedDocumentGenerationPage() {
   const { toast } = useToast();
-  
+
   // Fetch document templates from API
-  const { 
-    data: templatesData, 
-    isLoading: isLoadingTemplates, 
-    error: templatesError 
+  const {
+    data: templatesData,
+    isLoading: isLoadingTemplates,
+    error: templatesError
   } = useQuery<TemplatesResponse>({
     queryKey: ['/api/documents/templates'],
     retry: 3,
@@ -171,14 +171,14 @@ export default function UnifiedDocumentGenerationPage() {
   const [passportFile, setPassportFile] = useState<File | null>(null);
   const [extractedData, setExtractedData] = useState<any>(null);
   const [isExtracting, setIsExtracting] = useState(false);
-  
+
   // Dynamic form state
   const [formData, setFormData] = useState<any>({});
-  
+
   // Helper functions to work with fetched data
   const getDocumentTemplates = () => templatesData?.templates || [];
   const getCategories = () => templatesData?.categories || {};
-  
+
   // Don't render the page until data is loaded to prevent SelectItem errors
   if (isLoadingTemplates) {
     return (
@@ -273,30 +273,30 @@ export default function UnifiedDocumentGenerationPage() {
   // Auto-fill form from OCR data
   const autoFillFormFromOCR = (ocrData: any) => {
     if (!ocrData) return;
-    
+
     const updatedFormData = { ...formData };
-    
+
     // Map OCR data to form fields based on document type
     if (ocrData.fullName) {
       updatedFormData.fullName = ocrData.fullName;
       updatedFormData.childFullName = ocrData.fullName;
       updatedFormData.holderFullName = ocrData.fullName;
     }
-    
+
     if (ocrData.dateOfBirth) {
       updatedFormData.dateOfBirth = ocrData.dateOfBirth;
     }
-    
+
     if (ocrData.nationality) {
       updatedFormData.nationality = ocrData.nationality;
       updatedFormData.holderNationality = ocrData.nationality;
     }
-    
+
     if (ocrData.passportNumber) {
       updatedFormData.passportNumber = ocrData.passportNumber;
       updatedFormData.holderPassportNumber = ocrData.passportNumber;
     }
-    
+
     setFormData(updatedFormData);
   };
 
@@ -434,8 +434,8 @@ export default function UnifiedDocumentGenerationPage() {
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Unable to fetch document types from the server.
               </p>
-              <Button 
-                onClick={() => window.location.reload()} 
+              <Button
+                onClick={() => window.location.reload()}
                 className="bg-green-600 hover:bg-green-700"
                 data-testid="button-reload-templates"
               >
@@ -466,7 +466,7 @@ export default function UnifiedDocumentGenerationPage() {
               </p>
             </div>
           </div>
-          
+
           {/* Statistics Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {Object.entries(getCategories()).filter(([key, category]) => key && key !== "" && key.trim() !== "" && category?.name).map(([key, category]) => {
@@ -538,13 +538,13 @@ export default function UnifiedDocumentGenerationPage() {
                       .map((docInfo) => {
                         const IconComponent = getIconComponent(docInfo.icon);
                         const isSelected = selectedDocumentType === docInfo.type;
-                        
+
                         return (
-                          <Card 
+                          <Card
                             key={docInfo.type}
                             className={`p-3 cursor-pointer transition-all hover:shadow-md ${
-                              isSelected 
-                                ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20' 
+                              isSelected
+                                ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-900/20'
                                 : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                             }`}
                             onClick={() => {
@@ -677,7 +677,7 @@ export default function UnifiedDocumentGenerationPage() {
                           </div>
                         </div>
                       </div>
-                      
+
                       {extractPassportDataMutation.isPending && (
                         <div className="text-center py-4">
                           <div className="inline-flex items-center gap-2">
@@ -686,7 +686,7 @@ export default function UnifiedDocumentGenerationPage() {
                           </div>
                         </div>
                       )}
-                      
+
                       {extractedData && (
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                           <h4 className="font-medium text-green-900 mb-2">Extracted Data</h4>
@@ -750,7 +750,7 @@ export default function UnifiedDocumentGenerationPage() {
                         </div>
                       )}
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       onClick={() => handleGenerateDocument(true)}
@@ -759,7 +759,7 @@ export default function UnifiedDocumentGenerationPage() {
                     >
                       <Download className="h-4 w-4" />
                     </Button>
-                    
+
                     <Button
                       variant="outline"
                       onClick={() => setIsPreviewMode(!isPreviewMode)}
@@ -768,7 +768,7 @@ export default function UnifiedDocumentGenerationPage() {
                       {isPreviewMode ? <Lock className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                   </div>
-                  
+
                   {!selectedDocInfo?.isImplemented && (
                     <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                       <div className="flex items-center gap-2 text-orange-800">
@@ -806,7 +806,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
     return (
       <div className="text-center py-8">
         <Clock className="h-8 w-8 text-orange-500 mx-auto mb-3" />
-        <p className="text-gray-600">Form will be available when document type is implemented</p>
+        <p className="text-gray-600">Form fields for this document type will be available soon</p>
       </div>
     );
   }
@@ -1011,7 +1011,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Parents Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1057,7 +1057,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Registration Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1275,7 +1275,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
       return (
         <div className="space-y-6">
           {renderPersonalFields()}
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Visa Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1390,7 +1390,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Certificate Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1416,7 +1416,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Exemption Details</h3>
             <div>
@@ -1453,7 +1453,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Exempted Person Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1499,7 +1499,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Authority</h3>
             <div>
@@ -1515,7 +1515,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
           </div>
         </div>
       );
-      
+
     case 'certificate_of_south_african_citizenship':
       return (
         <div className="space-y-6">
@@ -1564,7 +1564,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Certificate Text</h3>
             <div>
@@ -1580,7 +1580,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
             </div>
             <div>
               <Label htmlFor="citizenshipType">Citizenship Type *</Label>
-              <Select 
+              <Select
                 value={formData.citizenshipType || undefined}
                 onValueChange={(value) => onUpdateField('citizenshipType', value)}
                 data-testid="select-citizenshipType"
@@ -1596,7 +1596,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </Select>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Holder Details</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1642,7 +1642,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
               <div>
                 <Label htmlFor="holderGender">Gender</Label>
-                <Select 
+                <Select
                   value={formData.holderGender || undefined}
                   onValueChange={(value) => onUpdateField('holderGender', value)}
                   data-testid="select-holderGender"
@@ -1668,7 +1668,7 @@ function DynamicDocumentForm({ documentType, formData, onUpdateField, isImplemen
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <h3 className="font-medium text-gray-900 border-b pb-2">Ministerial Authorization</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1778,7 +1778,7 @@ function GenerationResultDisplay({ result }: GenerationResultDisplayProps) {
             View Document
           </Button>
         )}
-        
+
         {result.verificationCode && (
           <Button
             variant="outline"
