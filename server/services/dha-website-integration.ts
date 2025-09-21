@@ -285,7 +285,7 @@ export class DHAWebsiteIntegrationService {
     return forms.length > 0 ? forms : ['Check DHA website for current forms'];
   }
 
-  private extractOfficeDetails($: cheerio.CheerioAPI, element: cheerio.Element): DHAOfficeInfo | null {
+  private extractOfficeDetails($: cheerio.CheerioAPI, element: any): DHAOfficeInfo | null {
     const $elem = $(element);
     const name = $elem.find('.office-name, h3, h4').first().text().trim();
     

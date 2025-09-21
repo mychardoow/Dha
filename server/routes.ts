@@ -133,7 +133,7 @@ import { configService, config } from "./middleware/provider-config";
 import { ConsentMiddleware } from "./middleware/consent-middleware";
 // Import health and system health routers
 import { healthRouter } from "./routes/health";
-import { monitoringRouter } from "./routes/monitoring";
+import monitoringRouter from "./routes/monitoring";
 import { systemHealthRouter } from "./routes/system-health";
 
 // Initialize consent middleware
