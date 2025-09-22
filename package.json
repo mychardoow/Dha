@@ -9,7 +9,7 @@
     "dev:client": "vite",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "tsc server/index.ts --outDir dist --moduleResolution node --target es2020 --module commonjs || tsx build server/index.ts --outDir=dist",
+    "build:server": "npx tsx build server/index.ts --outDir=dist || npx tsc --build",
     "start": "NODE_ENV=production node dist/server/index.js || node dist/index.js",
     "start:production": "NODE_ENV=production node dist/index.js",
     "test": "jest",

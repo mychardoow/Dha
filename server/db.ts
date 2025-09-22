@@ -4,6 +4,9 @@ import * as schema from '../shared/schema';
 import fs from 'fs';
 import path from 'path';
 
+// Export the pool alias for compatibility
+export const pool = null;
+
 // Ensure data directory exists
 const dataDir = path.join(process.cwd(), 'data');
 if (!fs.existsSync(dataDir)) {

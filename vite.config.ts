@@ -2,8 +2,30 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 
+// Optional plugins - only import if available
+let vitePluginCartographer: any = null;
+let vitePluginRuntimeErrorModal: any = null;
+
+try {
+  const cartographer = await import("@replit/vite-plugin-cartographer");
+  vitePluginCartographer = cartographer.vitePluginCartographer;
+} catch (e) {
+  console.log("Cartographer plugin not available");
+}
+
+try {
+  const errorModal = await import("@replit/vite-plugin-runtime-error-modal");
+  vitePluginRuntimeErrorModal = errorModal.vitePluginRuntimeErrorModal;
+} catch (e) {
+  console.log("Runtime error modal plugin not available");
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    vitePluginCartographer ? vitePluginCartographer() : null,
+    vitePluginRuntimeErrorModal ? vitePluginRuntimeErrorModal() : null,
+  ].filter(Boolean), // Filter out null values if plugins are not loaded
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./client/src"),
