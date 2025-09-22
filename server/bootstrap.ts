@@ -1,86 +1,84 @@
-/**
- * DHA Digital Services - Bootstrap Entry Point
- * 
- * This module handles proper environment loading and configuration
- * initialization before starting the server. This ensures all
- * environment variables are loaded before any validation occurs.
- */
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import fs from 'fs';
+import path from 'path';
 
-/**
- * Load environment variables from .env file
- * This must happen BEFORE any other imports that depend on env vars
- */
-export const loadEnvironmentVariables = (): void => {
+export function initialize(): void {
+  console.log('[Bootstrap] Initializing environment and configuration...');
+
   try {
-    // Try both current directory and parent directory for .env file
-    const possiblePaths = ['.env', '../.env', join(process.cwd(), '.env')];
-    let envPath: string | null = null;
+    // Load environment variables from .env file if it exists
+    const envPath = path.join(process.cwd(), '.env');
     
-    for (const path of possiblePaths) {
-      if (existsSync(path)) {
-        envPath = path;
-        break;
-      }
-    }
-
-    if (!envPath) {
-      console.log('[Bootstrap] No .env file found, using system environment variables');
-      return;
-    }
-
-    console.log(`[Bootstrap] Loading environment variables from: ${envPath}`);
-    
-    const envContent = readFileSync(envPath, 'utf-8');
-    const envVars = envContent
-      .split('\n')
-      .filter((line: string) => line.trim() && !line.startsWith('#'))
-      .filter(line => line.includes('='));
-
-    let loadedCount = 0;
-    envVars.forEach((line: string) => {
-      const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        const value = valueParts.join('=').trim().replace(/^["']|["']$/g, '');
-        if (!process.env[key]) {
-          process.env[key] = value;
-          loadedCount++;
+    if (fs.existsSync(envPath)) {
+      console.log('[Bootstrap] Loading .env file...');
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      
+      envContent.split('\n').forEach(line => {
+        const trimmedLine = line.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#')) {
+          const [key, ...valueParts] = trimmedLine.split('=');
+          if (key && valueParts.length > 0) {
+            const value = valueParts.join('=').replace(/^["']|["']$/g, '');
+            if (!process.env[key]) {
+              process.env[key] = value;
+            }
+          }
         }
-      }
-    });
+      });
+      
+      console.log('[Bootstrap] ✅ Environment variables loaded from .env file');
+    } else {
+      console.log('[Bootstrap] No .env file found, using system environment variables');
+    }
 
-    console.log(`[Bootstrap] Loaded ${loadedCount} environment variables from .env file`);
-    
-    // Set NODE_ENV default only if not already set (preserve production setting)
+    // Set default NODE_ENV if not specified
     if (!process.env.NODE_ENV) {
-      process.env.NODE_ENV = 'development';
-      console.log('[Bootstrap] Set NODE_ENV to development (default)');
+      process.env.NODE_ENV = 'production';
+      console.log('[Bootstrap] Set NODE_ENV to production (default)');
     }
-    
-    // Set PREVIEW flag only in development by default
-    if (!process.env.PREVIEW_MODE) {
-      process.env.PREVIEW_MODE = process.env.NODE_ENV === 'development' ? 'true' : 'false';
-      console.log(`[Bootstrap] Set PREVIEW_MODE to ${process.env.PREVIEW_MODE} (default for ${process.env.NODE_ENV})`);
-    }
-    
-  } catch (error) {
-    console.warn('[Bootstrap] Could not load .env file:', error);
-    // Continue with system environment variables
-  }
-};
 
-/**
- * Initialize the bootstrap process
- */
-export const initialize = (): void => {
-  console.log('🚀 [Bootstrap] Starting DHA Digital Services initialization...');
-  
-  // Load environment variables first
-  loadEnvironmentVariables();
-  
-  console.log('✅ [Bootstrap] Environment variables loaded successfully');
-  console.log(`🌍 [Bootstrap] Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔌 [Bootstrap] Port: ${process.env.PORT || 5000}`);
-};
+    // Validate critical environment variables
+    const requiredVars = ['JWT_SECRET', 'SESSION_SECRET', 'ENCRYPTION_KEY'];
+    const missingVars = requiredVars.filter(varName => !process.env[varName]);
+
+    if (missingVars.length > 0) {
+      console.warn(`[Bootstrap] Missing environment variables: ${missingVars.join(', ')}`);
+      
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[Bootstrap] ❌ Critical environment variables missing in production');
+        throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+      } else {
+        console.log('[Bootstrap] Generating fallback values for development...');
+        const crypto = require('crypto');
+        
+        if (!process.env.JWT_SECRET) {
+          process.env.JWT_SECRET = crypto.randomBytes(64).toString('hex');
+        }
+        if (!process.env.SESSION_SECRET) {
+          process.env.SESSION_SECRET = crypto.randomBytes(32).toString('hex');
+        }
+        if (!process.env.ENCRYPTION_KEY) {
+          process.env.ENCRYPTION_KEY = crypto.randomBytes(32).toString('hex');
+        }
+        
+        console.log('[Bootstrap] ✅ Fallback environment variables generated');
+      }
+    }
+
+    // Set default values for other important variables
+    if (!process.env.PORT) {
+      process.env.PORT = '5000';
+    }
+
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = '';
+      console.log('[Bootstrap] No DATABASE_URL set - will use in-memory mode');
+    }
+
+    console.log('[Bootstrap] ✅ Bootstrap initialization completed successfully');
+
+  } catch (error) {
+    console.error('[Bootstrap] ❌ Bootstrap initialization failed:', error);
+    throw error;
+  }
+}

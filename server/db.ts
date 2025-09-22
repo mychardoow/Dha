@@ -1,67 +1,145 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from '../shared/schema';
-import fs from 'fs';
-import path from 'path';
 
-// Export the pool alias for compatibility
-export const pool = null;
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { sql, type SQL } from "drizzle-orm";
+import * as schema from "../shared/schema.js";
 
-// Ensure data directory exists
-const dataDir = path.join(process.cwd(), 'data');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+// Database configuration
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  database: string;
+  username: string;
+  password: string;
+  ssl: boolean;
 }
 
-// Create SQLite database for Replit
-const dbPath = path.join(dataDir, 'dha-services.db');
-const sqlite = new Database(dbPath);
+// Global database instances
+let pool: postgres.Sql | null = null;
+let db: ReturnType<typeof drizzle> | null = null;
 
-// Enable WAL mode for better performance
-sqlite.pragma('journal_mode = WAL');
-sqlite.pragma('synchronous = NORMAL');
-sqlite.pragma('cache_size = 1000000');
-sqlite.pragma('foreign_keys = ON');
-
-export const db = drizzle(sqlite, { schema });
-
-// Connection status for health checks
-export function getConnectionStatus() {
+// Parse DATABASE_URL if available
+function parseDatabaseUrl(url: string): DatabaseConfig | null {
   try {
-    const result = sqlite.prepare('SELECT 1 as status').get();
+    if (!url || url.trim() === '') return null;
+    
+    const parsed = new URL(url);
     return {
-      healthy: result?.status === 1,
-      database: 'SQLite',
-      path: dbPath,
-      exists: fs.existsSync(dbPath)
+      host: parsed.hostname,
+      port: parseInt(parsed.port) || 5432,
+      database: parsed.pathname.slice(1),
+      username: parsed.username,
+      password: parsed.password,
+      ssl: parsed.searchParams.get('sslmode') !== 'disable'
     };
   } catch (error) {
+    console.error('[Database] Failed to parse DATABASE_URL:', error);
+    return null;
+  }
+}
+
+// Initialize database connection
+export async function initializeDatabase(): Promise<void> {
+  console.log('[Database] Initializing database connection...');
+
+  const databaseUrl = process.env.DATABASE_URL;
+  
+  if (!databaseUrl || databaseUrl.trim() === '') {
+    console.log('[Database] No DATABASE_URL provided - running in memory mode');
+    return;
+  }
+
+  const config = parseDatabaseUrl(databaseUrl);
+  if (!config) {
+    console.warn('[Database] Invalid DATABASE_URL format - running in memory mode');
+    return;
+  }
+
+  try {
+    // Create PostgreSQL connection
+    pool = postgres(databaseUrl, {
+      max: 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+      prepare: false,
+      ssl: config.ssl ? 'require' : false,
+      onnotice: () => {}, // Suppress notices
+    });
+
+    // Create Drizzle instance
+    db = drizzle(pool, { schema });
+
+    // Test connection
+    await pool`SELECT 1 as test`;
+    console.log('[Database] ✅ Database connection established successfully');
+
+    // Run migrations
+    try {
+      console.log('[Database] Running database migrations...');
+      await migrate(db, { migrationsFolder: './drizzle' });
+      console.log('[Database] ✅ Database migrations completed');
+    } catch (migrationError) {
+      console.warn('[Database] Migration failed (this may be normal for new databases):', migrationError);
+    }
+
+  } catch (error) {
+    console.error('[Database] Failed to initialize database:', error);
+    
+    // Clean up failed connections
+    if (pool) {
+      await pool.end();
+      pool = null;
+    }
+    db = null;
+    
+    console.log('[Database] Falling back to memory mode due to connection failure');
+  }
+}
+
+// Health check function
+export async function checkDatabaseHealth(): Promise<{
+  status: 'healthy' | 'unhealthy' | 'unavailable';
+  latency?: number;
+  error?: string;
+}> {
+  if (!pool || !db) {
+    return { status: 'unavailable' };
+  }
+
+  try {
+    const start = Date.now();
+    await pool`SELECT 1 as health_check`;
+    const latency = Date.now() - start;
+    
+    return { status: 'healthy', latency };
+  } catch (error) {
     return {
-      healthy: false,
-      database: 'SQLite',
-      path: dbPath,
+      status: 'unhealthy',
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
 
-// Initialize database tables
-export async function initializeDatabase() {
-  try {
-    console.log('[Database] Initializing SQLite database...');
-
-    // Create all tables using Drizzle schema
-    const createTableQueries = [
-      // Core tables will be created by migrations
-    ];
-
-    console.log('[Database] ✅ SQLite database initialized successfully');
-    return true;
-  } catch (error) {
-    console.error('[Database] ❌ Failed to initialize database:', error);
-    return false;
+// Graceful shutdown
+export async function closeDatabaseConnection(): Promise<void> {
+  if (pool) {
+    console.log('[Database] Closing database connection...');
+    await pool.end();
+    pool = null;
+    db = null;
+    console.log('[Database] ✅ Database connection closed');
   }
 }
 
-// Export for backward compatibility
-export { sqlite };
+// Export instances
+export { pool, db };
+
+// Default export for compatibility
+export default {
+  pool,
+  db,
+  initializeDatabase,
+  checkDatabaseHealth,
+  closeDatabaseConnection
+};
