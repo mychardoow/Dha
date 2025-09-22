@@ -1,45 +1,50 @@
-import { Server as SocketIOServer } from "socket.io";
-import { Server } from "http";
-import { storage } from "./storage";
-import { aiAssistantService } from "./services/ai-assistant";
-import { notificationService } from "./services/notification-service";
-import { adminNotificationService } from "./services/admin-notification-service";
-import jwt from "jsonwebtoken";
-import { errorTrackingService } from "./services/error-tracking";
-import { privacyProtectionService } from "./services/privacy-protection";
-import { getConfigService, getConfig } from "./middleware/provider-config";
-import { LRUCache } from 'lru-cache';
+import { Server as SocketIOServer } from 'socket.io';
+import { type Server as HTTPServer } from 'http';
+import jwt from 'jsonwebtoken';
+import { LRUCache } from 'lru-cache'; // Keep this import from the original file if it's used elsewhere or might be needed.
+import { storage } from "./storage"; // Keep imports that are still necessary
+import { aiAssistantService } from "./services/ai-assistant"; // Keep imports that are still necessary
+import { notificationService } from "./services/notification-service"; // Keep imports that are still necessary
+import { adminNotificationService } from "./services/admin-notification-service"; // Keep imports that are still necessary
+import { errorTrackingService } from "./services/error-tracking"; // Keep imports that are still necessary
+import { privacyProtectionService } from "./services/privacy-protection"; // Keep imports that are still necessary
+import { getConfigService, getConfig } from "./middleware/provider-config"; // Keep imports that are still necessary
 
-// Optional imports with fallbacks
+
+// Optional imports with fallbacks - keeping them as per original structure
 let enhancedMonitoringService: any = null;
 let webSocketSubscriptionService: any = null;
 
-try {
-  const monitoring = await import("./services/enhanced-monitoring-service");
-  enhancedMonitoringService = monitoring.enhancedMonitoringService;
-} catch (e) {
-  console.log("Enhanced monitoring service not available");
+// Function to initialize optional services - keeping this structure
+async function initializeOptionalServices() {
+  try {
+    const monitoring = await import("./services/enhanced-monitoring-service");
+    enhancedMonitoringService = monitoring.enhancedMonitoringService;
+  } catch (e) {
+    console.log("Enhanced monitoring service not available");
+  }
+
+  try {
+    const wsService = await import("./services/websocket-subscription-service");
+    webSocketSubscriptionService = wsService.webSocketSubscriptionService;
+  } catch (e) {
+    console.log("WebSocket subscription service not available");
+  }
 }
 
-try {
-  const wsService = await import("./services/websocket-subscription-service");
-  webSocketSubscriptionService = wsService.webSocketSubscriptionService;
-} catch (e) {
-  console.log("WebSocket subscription service not available");
-}
 
-export interface AuthenticatedSocket {
-  id: string;
-  userId: string;
-  username: string;
-  role: string;
+let io: SocketIOServer | null = null;
+
+export interface AuthenticatedSocket extends Socket {
+  userId?: string;
+  userRole?: string;
 }
 
 export class WebSocketService {
   private io: SocketIOServer;
   private authenticatedSockets = new Map<string, AuthenticatedSocket>();
 
-  constructor(server: Server) {
+  constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
       cors: {
         origin: getConfigService().getCorsOrigins(),
@@ -132,7 +137,7 @@ export class WebSocketService {
   }
 
   private setupEventHandlers() {
-    this.io.on("connection", (socket) => {
+    this.io.on("connection", (socket: any) => { // Changed socket type to any to match edited snippet's usage
       const authSocket = this.authenticatedSockets.get(socket.id);
 
       if (!authSocket) {
@@ -146,10 +151,10 @@ export class WebSocketService {
       socket.join(`role:${authSocket.role}`);
 
       // Handle chat message streaming
-      socket.on("chat:stream", async (data: { 
-        message: string; 
-        conversationId: string; 
-        includeContext?: boolean; 
+      socket.on("chat:stream", async (data: {
+        message: string;
+        conversationId: string;
+        includeContext?: boolean;
       }) => {
         try {
           // Verify conversation ownership
@@ -192,9 +197,9 @@ export class WebSocketService {
               metadata: response.metadata
             });
 
-            socket.emit("chat:streamComplete", { 
+            socket.emit("chat:streamComplete", {
               message: aiMessage,
-              metadata: response.metadata 
+              metadata: response.metadata
             });
           } else {
             socket.emit("chat:streamError", { error: response.error });
@@ -202,8 +207,8 @@ export class WebSocketService {
 
         } catch (error) {
           console.error("Chat streaming error:", error);
-          socket.emit("chat:streamError", { 
-            error: "Failed to process message" 
+          socket.emit("chat:streamError", {
+            error: "Failed to process message"
           });
         }
       });
@@ -229,10 +234,10 @@ export class WebSocketService {
           }
 
           // Trigger the same streaming process as regular messages
-          socket.emit("chat:stream", { 
-            message, 
+          socket.emit("chat:stream", {
+            message,
             conversationId: data.conversationId,
-            includeContext: true 
+            includeContext: true
           });
 
         } catch (error) {
@@ -250,6 +255,7 @@ export class WebSocketService {
             return;
           }
 
+          // Import dynamically for specific handlers to keep main imports clean
           const { monitoringService } = await import("./services/monitoring");
           const { quantumEncryptionService } = await import("./services/quantum-encryption");
 
@@ -257,7 +263,7 @@ export class WebSocketService {
             monitoringService.getSystemHealth(),
             monitoringService.getSecurityMetrics(),
             quantumEncryptionService.getSystemStatus(),
-            storage.getFraudAlerts(authSocket.userId, false)
+            storage.getFraudAlerts(authSocket.userId, false) // Assuming this is the correct way to get alerts for context
           ]);
 
           // Sanitize sensitive system data before sending
@@ -360,18 +366,18 @@ export class WebSocketService {
 
           // Enhanced deny-by-default security for sensitive alert types
           const highPrivilegeAlerts = ['fraud_alert', 'incident_update', 'system_status'];
-          const hasHighPrivilegeRequest = validatedData.eventTypes.some(type => 
+          const hasHighPrivilegeRequest = validatedData.eventTypes.some(type =>
             highPrivilegeAlerts.includes(type)
           );
 
           if (hasHighPrivilegeRequest && !['admin', 'security_officer'].includes(authSocket.role)) {
-            socket.emit("security:subscriptionError", { 
+            socket.emit("security:subscriptionError", {
               error: "Insufficient permissions for sensitive security alerts",
               requiredRole: "admin or security_officer"
             });
 
             // Log unauthorized subscription attempt
-            await storage.createSecurityEvent({
+            await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
               userId: authSocket.userId,
               eventType: "unauthorized_alert_subscription_attempt",
               severity: "medium",
@@ -382,16 +388,16 @@ export class WebSocketService {
               },
               ipAddress: socket.handshake.address,
               userAgent: socket.handshake.headers["user-agent"] as string
-            });
+            }) as any);
             return;
           }
 
           // Users can only subscribe to their own alerts unless they're admin/security_officer
           if (validatedData.userId && validatedData.userId !== authSocket.userId) {
             if (!['admin', 'security_officer'].includes(authSocket.role)) {
-              socket.emit("security:subscriptionError", { 
+              socket.emit("security:subscriptionError", {
                 error: "Cannot subscribe to other users' alerts",
-                scope: "own_alerts_only" 
+                scope: "own_alerts_only"
               });
               return;
             }
@@ -410,8 +416,8 @@ export class WebSocketService {
 
           // Join appropriate channels with scoped permissions
           scopedEventTypes.forEach(eventType => {
-            const channelSuffix = validatedData.userId && ['admin', 'security_officer'].includes(authSocket.role) 
-              ? `:${validatedData.userId}` 
+            const channelSuffix = validatedData.userId && ['admin', 'security_officer'].includes(authSocket.role)
+              ? `:${validatedData.userId}`
               : '';
             socket.join(`security:${eventType}${channelSuffix}`);
           });
@@ -424,8 +430,8 @@ export class WebSocketService {
             socket.join(severityChannel);
           }
 
-          socket.emit("security:subscribed", { 
-            eventTypes: validatedData.eventTypes, 
+          socket.emit("security:subscribed", {
+            eventTypes: validatedData.eventTypes,
             severity: validatedData.severity,
             userId: validatedData.userId,
             scope: ['admin', 'security_officer'].includes(authSocket.role) ? 'global' : 'user_only'
@@ -497,9 +503,9 @@ export class WebSocketService {
             await adminNotificationService.resolveAlert(data.alertId, authSocket.userId, data.resolution);
             socket.emit("admin:alertResolved", { alertId: data.alertId });
             // Broadcast to other admins
-            socket.to("admin:notifications").emit("admin:alertResolved", { 
-              alertId: data.alertId, 
-              resolvedBy: authSocket.userId 
+            socket.to("admin:notifications").emit("admin:alertResolved", {
+              alertId: data.alertId,
+              resolvedBy: authSocket.userId
             });
           } catch (error) {
             console.error("Resolve alert error:", error);
@@ -548,7 +554,9 @@ export class WebSocketService {
         // Get system metrics
         socket.on("admin:getSystemMetrics", async () => {
           try {
+            // Import dynamically for specific handlers
             const { monitoringService } = await import("./services/monitoring");
+
             const [systemHealth, securityMetrics, errorStats] = await Promise.all([
               monitoringService.getSystemHealth(),
               monitoringService.getSecurityMetrics(),
@@ -579,10 +587,10 @@ export class WebSocketService {
           // Send current status
           const latestStatus = await storage.getLatestStatusUpdate(data.entityType, data.entityId);
           if (latestStatus) {
-            socket.emit("status:current", { 
-              entityType: data.entityType, 
+            socket.emit("status:current", {
+              entityType: data.entityType,
               entityId: data.entityId,
-              status: latestStatus 
+              status: latestStatus
             });
           }
 
@@ -644,10 +652,10 @@ export class WebSocketService {
       });
 
       // Send chat message
-      socket.on("chat:sendMessage", async (data: { 
-        sessionId: string; 
-        content: string; 
-        messageType?: string 
+      socket.on("chat:sendMessage", async (data: {
+        sessionId: string;
+        content: string;
+        messageType?: string
       }) => {
         try {
           const session = await storage.getChatSession(data.sessionId);
@@ -708,9 +716,9 @@ export class WebSocketService {
           }
 
           socket.join(`document:${data.documentId}`);
-          socket.emit("document:subscribed", { 
+          socket.emit("document:subscribed", {
             documentId: data.documentId,
-            status: document.processingStatus 
+            status: document.processingStatus
           });
         } catch (error) {
           console.error("Subscribe document error:", error);
@@ -738,7 +746,7 @@ export class WebSocketService {
         }
       });
 
-      socket.on("disconnect", async () => {
+      socket.on("disconnect", async (reason) => { // Explicitly typed 'reason'
         console.log(`User ${privacyProtectionService.anonymizeUsername(authSocket.username)} disconnected`);
 
         await storage.createSecurityEvent(privacyProtectionService.anonymizeSecurityEvent({
@@ -810,9 +818,10 @@ export class WebSocketService {
 
 let websocketService: WebSocketService | null = null;
 
-export function initializeWebSocket(server: Server): WebSocketService {
+export function initializeWebSocket(server: HTTPServer): WebSocketService {
   if (!websocketService) {
     websocketService = new WebSocketService(server);
+    initializeOptionalServices(); // Call the function to initialize optional services
   }
   return websocketService;
 }
@@ -820,3 +829,5 @@ export function initializeWebSocket(server: Server): WebSocketService {
 export function getWebSocketService(): WebSocketService | null {
   return websocketService;
 }
+
+export { io }; // Export io instance
