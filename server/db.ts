@@ -1,6 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import WebSocket from "ws";
 import * as schema from "@shared/schema";
 import { getConfigService, getConfig } from './middleware/provider-config';
 
@@ -31,7 +31,7 @@ class DatabaseShutdownManager {
 
 const dbShutdownManager = new DatabaseShutdownManager();
 
-neonConfig.webSocketConstructor = ws;
+neonConfig.webSocketConstructor = WebSocket;
 
 // SECURITY: DATABASE_URL now managed by centralized configuration service
 let databaseUrlError: string | null = null;

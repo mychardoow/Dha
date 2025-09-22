@@ -306,7 +306,7 @@ export class ErrorTrackingService extends EventEmitter {
         errorType,
         message: truncatedMessage,
         stack: truncatedStack,
-        severity,
+        severity: severity as "low" | "medium" | "high" | "critical",
         userId: context.userId,
         requestUrl: context.requestUrl,
         requestMethod: context.requestMethod,

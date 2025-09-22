@@ -388,7 +388,8 @@ export class EnhancedErrorDetectionService extends EventEmitter {
       const timeWindow = Date.now() - this.PATTERN_WINDOW;
       
       for (const error of recentErrors) {
-        if (error.createdAt.getTime() > timeWindow) {
+        const errorTimestamp = error.timestamp || new Date();
+        if (errorTimestamp.getTime() > timeWindow) {
           const key = error.errorType || 'unknown';
           if (!this.recentErrors.has(key)) {
             this.recentErrors.set(key, []);
