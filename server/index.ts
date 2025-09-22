@@ -243,7 +243,7 @@ async function initializeServer() {
     } else {
       console.warn('⚠️  DEVELOPMENT WARNING: Security configuration issues detected, but continuing in development mode');
       console.warn('⚠️  Setting up fallback secrets for development...');
-      
+
       // Provide fallback secrets only in development
       if (!process.env.JWT_SECRET) {
         process.env.JWT_SECRET = require('crypto').randomBytes(32).toString('hex');
@@ -942,14 +942,17 @@ async function initializeServer() {
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = Number(process.env.PORT) || config.PORT || 5000;
-  console.log(`[Server] Using port: ${port} (from ${process.env.PORT ? 'process.env.PORT' : 'config.PORT'})`);
+  const port = parseInt(process.env.PORT || "5000");
+
+  // Initialize database on startup
+  import { initializeDatabase } from './db';
+  initializeDatabase().catch(console.error);
 
   // Use the httpServer from routes (which has WebSocket and monitoring) if available, otherwise fallback to app
   const listener = (server as any)?.listen ? server : app;
 
   // Start the server and keep it running
-  const serverInstance = listener.listen(port, '0.0.0.0', () => {
+  const serverInstance = listener.listen(port, "0.0.0.0", () => {
     const logFn = typeof log === 'function' ? log : console.log;
     logFn(`
 ═══════════════════════════════════════════════════════════════
@@ -1049,10 +1052,10 @@ async function startApplication() {
     } else {
       // Never exit completely - always provide fallback server for any environment
       console.log('[Server] Starting emergency fallback server in any environment...');
-      
+
       const fallbackApp = express();
       fallbackApp.use(express.json());
-      
+
       fallbackApp.get('/api/health', (req, res) => {
         res.json({
           status: 'emergency-fallback',
@@ -1061,7 +1064,7 @@ async function startApplication() {
           error: 'Main server initialization failed'
         });
       });
-      
+
       fallbackApp.get('*', (req, res) => {
         if (req.path.startsWith('/api')) {
           res.status(503).json({
@@ -1084,11 +1087,11 @@ async function startApplication() {
 // Start the application with error recovery
 startApplication().catch((error) => {
   console.error('FATAL: Application failed to start:', error);
-  
+
   // Create emergency fallback server
   const emergencyApp = express();
   emergencyApp.use(express.json());
-  
+
   emergencyApp.get('/api/health', (req, res) => {
     res.json({
       status: 'emergency',
@@ -1097,7 +1100,7 @@ startApplication().catch((error) => {
       error: error.message
     });
   });
-  
+
   emergencyApp.get('/keep-alive', (req, res) => {
     res.json({
       status: 'emergency',
@@ -1105,7 +1108,7 @@ startApplication().catch((error) => {
       uptime: process.uptime()
     });
   });
-  
+
   emergencyApp.get('*', (req, res) => {
     if (req.path.startsWith('/api')) {
       res.status(503).json({
@@ -1120,8 +1123,8 @@ startApplication().catch((error) => {
       `);
     }
   });
-  
-  const port = parseInt(process.env.PORT || '5000', 10);
+
+  const port = parseInt(process.env.PORT || "5000");
   emergencyApp.listen(port, '0.0.0.0', () => {
     console.log(`[Emergency] Fallback server running on port ${port}`);
   });

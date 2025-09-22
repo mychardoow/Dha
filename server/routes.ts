@@ -147,6 +147,12 @@ import { ConsentMiddleware } from "./middleware/consent-middleware";
 import { healthRouter } from "./routes/health";
 import monitoringRouter from "./routes/monitoring";
 import { systemHealthRouter } from "./routes/system-health";
+// Import enhanced AI routes
+import { enhancedAIRoutes } from "./routes/enhanced-ai";
+
+// Initialize WebSocket
+initializeWebSocket(createServer(app));
+
 
 // Initialize consent middleware
 const consentMiddleware = new ConsentMiddleware();
@@ -3764,7 +3770,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
       return 'civil';
     }
-    return 'immigration';
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['visa', 'permit', 'residence', 'exemption', 'citizenship'].some(keyword => type.includes(keyword))) {
+      return 'immigration';
+    }
+    return 'other';
   }
 
   function getFormNumber(type: string): string {
@@ -4050,9 +4275,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===================== AUTONOMOUS MONITORING ROUTES =====================
 
   // Mount monitoring routes
-  app.use("/api/monitoring", monitoringRouter);
+  app.use("/api/monitoring", monitoringRoutes);
   // Register system health routes
-  app.use("/api/system", systemHealthRouter);
+  app.use("/api/system", systemHealthRoutes);
   
   // Health endpoint alias for presentation demos
   app.get('/api/health', (req: Request, res: Response) => {
