@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
+import BiometricInitialSetup from "@/components/BiometricInitialSetup";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -52,15 +53,36 @@ function AdminLoadingFallback() {
 function App() {
   const [showAIChat, setShowAIChat] = useState(false);
   const isMobile = useIsMobile();
-  
+  const [isBiometricSetupComplete, setIsBiometricSetupComplete] = useState(false);
+
+  useEffect(() => {
+    // Check if biometric setup has already been completed
+    const setupComplete = localStorage.getItem("biometricSetupComplete");
+    if (setupComplete === "true") {
+      setIsBiometricSetupComplete(true);
+    }
+  }, []);
+
+  const handleBiometricSetupSuccess = () => {
+    localStorage.setItem("biometricSetupComplete", "true");
+    setIsBiometricSetupComplete(true);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ErrorBoundary>
           <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
           <Switch>
+            {/* Biometric Setup Route */}
+            {!isBiometricSetupComplete && (
+              <Route path="/biometric-setup">
+                <BiometricInitialSetup onSetupComplete={handleBiometricSetupSuccess} />
+              </Route>
+            )}
+
             <Route path="/login" component={Login} />
-            
+
             {/* Protected Routes */}
             <Route path="/">
               <AuthGuard>
@@ -115,7 +137,7 @@ function App() {
             <Route path="/system-status">
               <SystemStatus />
             </Route>
-            
+
             {/* Admin Routes - Protected with code splitting */}
             <Route path="/admin/dashboard">
               <AuthGuard>
@@ -198,11 +220,11 @@ function App() {
                 </AdminGuard>
               </AuthGuard>
             </Route>
-            
+
             <Route component={NotFoundPage} />
           </Switch>
         </div>
-        
+
         {/* Floating AI Chat Assistant */}
         {showAIChat && (
           <AIChatAssistant
@@ -210,7 +232,7 @@ function App() {
             onMinimize={() => setShowAIChat(false)}
           />
         )}
-        
+
         {/* Floating AI Chat Button */}
         {!showAIChat && (
           <Button
@@ -221,10 +243,10 @@ function App() {
             <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
           </Button>
         )}
-        
+
         {/* Mobile Bottom Navigation */}
         {isMobile && <MobileBottomNav className="pb-safe" />}
-        
+
         <Toaster />
         </ErrorBoundary>
       </AuthProvider>

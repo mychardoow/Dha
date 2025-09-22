@@ -270,6 +270,125 @@ export class BiometricService {
       createdAt: profile.createdAt
     }));
   }
+
+  async registerUltraAdminBiometric(data: {
+    userId: string;
+    type: "face";
+    ultraEncryptedTemplate: string;
+    quality: number;
+    isUltraAdmin: boolean;
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      // Check if user is already registered as ultra admin
+      const existing = await storage.getUltraAdminProfile(data.userId);
+      if (existing) {
+        return {
+          success: false,
+          error: "Ultra admin already registered"
+        };
+      }
+
+      // Create ultra admin biometric profile
+      await storage.createUltraAdminProfile({
+        userId: data.userId,
+        type: data.type,
+        ultraEncryptedTemplate: data.ultraEncryptedTemplate,
+        quality: data.quality,
+        isUltraAdmin: true,
+        registeredAt: new Date().toISOString()
+      });
+
+      // Log ultra admin registration
+      await storage.createSecurityEvent({
+        userId: data.userId,
+        eventType: "ultra_admin_biometric_registered",
+        severity: "low",
+        details: {
+          biometricType: data.type,
+          quality: data.quality,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      return { success: true };
+
+    } catch (error) {
+      console.error("Ultra admin biometric registration error:", error);
+      return {
+        success: false,
+        error: "Failed to register ultra admin biometric"
+      };
+    }
+  }
+
+  async verifyUltraAdmin(
+    userId: string,
+    template: string
+  ): Promise<{
+    success: boolean;
+    confidence: number;
+    isUltraAdmin?: boolean;
+    error?: string;
+  }> {
+    try {
+      const ultraProfile = await storage.getUltraAdminProfile(userId);
+      
+      if (!ultraProfile) {
+        return {
+          success: false,
+          confidence: 0,
+          error: "No ultra admin profile found"
+        };
+      }
+
+      // Decrypt and verify ultra admin template
+      const ULTRA_ADMIN_SECRET = process.env.ULTRA_ADMIN_SECRET || 'ultra-admin-quantum-key-2025';
+      
+      try {
+        const decryptedData = CryptoJS.AES.decrypt(ultraProfile.ultraEncryptedTemplate, ULTRA_ADMIN_SECRET);
+        const templateData = JSON.parse(decryptedData.toString(CryptoJS.enc.Utf8));
+        
+        const matchScore = this.compareTemplates(template, templateData.template, 'face');
+        
+        const success = matchScore >= 90; // High threshold for ultra admin
+        
+        if (success) {
+          await storage.createSecurityEvent({
+            userId,
+            eventType: "ultra_admin_verification_success",
+            severity: "low",
+            details: {
+              confidence: matchScore,
+              timestamp: new Date().toISOString()
+            }
+          });
+        }
+
+        return {
+          success,
+          confidence: matchScore,
+          isUltraAdmin: success,
+          error: success ? undefined : "Ultra admin verification failed"
+        };
+
+      } catch (decryptError) {
+        console.error("Ultra admin template decryption error:", decryptError);
+        return {
+          success: false,
+          confidence: 0,
+          error: "Template decryption failed"
+        };
+      }
+
+    } catch (error) {
+      console.error("Ultra admin verification error:", error);
+      return {
+        success: false,
+        confidence: 0,
+        error: "Ultra admin verification system error"
+      };
+    }
+  }
 }
 
 export const biometricService = new BiometricService();

@@ -1,8 +1,8 @@
-import { 
-  type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage, 
-  type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert, 
-  type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog, 
-  type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, type Certificate, type InsertCertificate, 
+import {
+  type User, type InsertUser, type Conversation, type InsertConversation, type Message, type InsertMessage,
+  type Document, type InsertDocument, type SecurityEvent, type InsertSecurityEvent, type FraudAlert, type InsertFraudAlert,
+  type SystemMetric, type InsertSystemMetric, type QuantumKey, type InsertQuantumKey, type ErrorLog, type InsertErrorLog,
+  type BiometricProfile, type InsertBiometricProfile, type ApiKey, type InsertApiKey, type Certificate, type InsertCertificate,
   type Permit, type InsertPermit, type DocumentTemplate, type InsertDocumentTemplate,
   type BirthCertificate, type InsertBirthCertificate, type MarriageCertificate, type InsertMarriageCertificate,
   type Passport, type InsertPassport, type DeathCertificate, type InsertDeathCertificate,
@@ -11,14 +11,14 @@ import {
   type DhaApplicant, type InsertDhaApplicant, type DhaApplication, type InsertDhaApplication,
   type DhaVerification, type InsertDhaVerification, type DhaAuditEvent, type InsertDhaAuditEvent,
   type DhaConsentRecord, type InsertDhaConsentRecord, type DhaBackgroundCheck, type InsertDhaBackgroundCheck,
-  
+
   // CRITICAL SECURITY AND WORKFLOW TYPES
   type EncryptedArtifact, type InsertEncryptedArtifact,
   type WorkflowStage, type InsertWorkflowStage,
   type WorkflowTransition, type InsertWorkflowTransition,
   type DocumentWorkflowInstance, type InsertDocumentWorkflowInstance,
   type WorkflowStageExecution, type InsertWorkflowStageExecution,
-  
+
   type NotificationEvent, type InsertNotificationEvent, type UserNotificationPreferences, type InsertUserNotificationPreferences,
   type StatusUpdate, type InsertStatusUpdate, type WebSocketSession, type InsertWebSocketSession,
   type ChatSession, type InsertChatSession, type ChatMessage, type InsertChatMessage,
@@ -30,21 +30,21 @@ import {
   type DocumentDelivery, type InsertDocumentDelivery,
   type DhaOffice, type InsertDhaOffice,
   type AmsCertificate, type InsertAmsCertificate, type PermitStatusChange, type InsertPermitStatusChange,
-  type DocumentVerificationStatus, type InsertDocumentVerificationStatus, 
+  type DocumentVerificationStatus, type InsertDocumentVerificationStatus,
   // AI Assistant types
   type AiDocumentSession, type InsertAiDocumentSession,
   type DocumentAutoFillTemplate, type InsertDocumentAutoFillTemplate,
   type OcrFieldDefinition, type InsertOcrFieldDefinition,
   type AiKnowledgeBase, type InsertAiKnowledgeBase,
   type AiConversationAnalytics, type InsertAiConversationAnalytics,
-  
+
   // Comprehensive Document Verification System types
   type BatchVerificationRequest, type InsertBatchVerificationRequest,
   type BatchVerificationItem, type InsertBatchVerificationItem,
   type ApiVerificationAccess, type InsertApiVerificationAccess,
   type RealtimeVerificationSession, type InsertRealtimeVerificationSession,
   type GovDatabaseValidation, type InsertGovDatabaseValidation,
-  
+
   // Autonomous Monitoring Bot types
   type AutonomousOperation, type InsertAutonomousOperation,
   type SystemHealthSnapshot, type InsertSystemHealthSnapshot,
@@ -54,27 +54,29 @@ import {
   type Incident, type InsertIncident,
   type GovernmentComplianceAudit, type InsertGovernmentComplianceAudit,
   type PerformanceBaseline, type InsertPerformanceBaseline,
-  users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs, 
+  users, conversations, messages, documents, securityEvents, fraudAlerts, systemMetrics, quantumKeys, errorLogs,
   biometricProfiles, apiKeys, certificates, permits, documentTemplates, birthCertificates, marriageCertificates,
   passports, deathCertificates, workPermits, permanentVisas, idCards,
   documentVerifications,
   dhaApplicants, dhaApplications, dhaVerifications, dhaAuditEvents, dhaConsentRecords, dhaBackgroundChecks,
-  
+
   // CRITICAL SECURITY AND WORKFLOW TABLES
   encryptedArtifacts, workflowStages, workflowTransitions, documentWorkflowInstances, workflowStageExecutions,
-  
+
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
   auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
   refugeeDocuments, diplomaticPassports, documentDelivery, dhaOffices,
-  amsCertificates, permitStatusChanges, documentVerificationStatus,
+  amsCertificates, permitStatusChanges, documentVerificationStatusMap, documentVerificationHistoryMap, documentVerificationRecordsMap,
   // AI Assistant tables
   aiDocumentSessions, documentAutoFillTemplates, ocrFieldDefinitions, aiKnowledgeBase, aiConversationAnalytics,
   // Comprehensive Document Verification System tables
-  documentVerificationRecords, documentVerificationHistory, batchVerificationRequests,
+  batchVerificationRequests,
   batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations,
   // Autonomous Monitoring Bot tables
   autonomousOperations, systemHealthSnapshots, circuitBreakerStates, maintenanceTasks,
-  alertRules, incidents, governmentComplianceAudit, performanceBaselines
+  alertRules, incidents, governmentComplianceAudits, performanceBaselines,
+  // Ultra Admin Biometric Profile Table
+  ultraAdminProfiles
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -84,7 +86,7 @@ import bcrypt from "bcrypt";
 export interface IStorage {
   // Storage readiness validation
   validateStorageReadiness(): Promise<StorageReadinessReport>;
-  
+
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -162,6 +164,17 @@ export interface IStorage {
   getBiometricProfile(userId: string, type: string): Promise<BiometricProfile | undefined>;
   getBiometricProfiles(userId: string): Promise<BiometricProfile[]>;
   createBiometricProfile(profile: InsertBiometricProfile): Promise<BiometricProfile>;
+
+  // Ultra Admin Biometric Profile methods
+  createUltraAdminProfile(profile: {
+    userId: string;
+    type: string;
+    ultraEncryptedTemplate: string;
+    quality: number;
+    isUltraAdmin: boolean;
+    registeredAt: string;
+  }): Promise<any>; // Type for ultraAdminProfile is missing, so using 'any'
+  getUltraAdminProfile(userId: string): Promise<any | null>; // Type for ultraAdminProfile is missing
 
   // API key methods
   getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
@@ -346,7 +359,7 @@ export interface IStorage {
   updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void>;
 
   // ===================== CRITICAL SECURITY AND WORKFLOW METHODS =====================
-  
+
   // Encrypted Artifacts methods (SECURITY CRITICAL)
   getEncryptedArtifact(id: string): Promise<EncryptedArtifact | undefined>;
   getEncryptedArtifacts(filters?: {
@@ -359,19 +372,19 @@ export interface IStorage {
   updateEncryptedArtifact(id: string, updates: Partial<EncryptedArtifact>): Promise<void>;
   deleteEncryptedArtifact(id: string): Promise<void>;
   incrementArtifactAccessCount(id: string, accessedBy: string): Promise<void>;
-  
+
   // Workflow Stages methods (8-STAGE DHA PROCESS)
   getWorkflowStages(): Promise<WorkflowStage[]>;
   getWorkflowStage(id: string): Promise<WorkflowStage | undefined>;
   getWorkflowStageByCode(stageCode: string): Promise<WorkflowStage | undefined>;
   createWorkflowStage(stage: InsertWorkflowStage): Promise<WorkflowStage>;
   updateWorkflowStage(id: string, updates: Partial<WorkflowStage>): Promise<void>;
-  
+
   // Workflow Transitions methods
   getWorkflowTransitions(fromStageId?: string): Promise<WorkflowTransition[]>;
   getValidTransitions(fromStageId: string): Promise<WorkflowTransition[]>;
   createWorkflowTransition(transition: InsertWorkflowTransition): Promise<WorkflowTransition>;
-  
+
   // Document Workflow Instances methods
   getDocumentWorkflowInstance(id: string): Promise<DocumentWorkflowInstance | undefined>;
   getDocumentWorkflowInstances(filters?: {
@@ -384,7 +397,7 @@ export interface IStorage {
   createDocumentWorkflowInstance(instance: InsertDocumentWorkflowInstance): Promise<DocumentWorkflowInstance>;
   updateDocumentWorkflowInstance(id: string, updates: Partial<DocumentWorkflowInstance>): Promise<void>;
   advanceWorkflowToStage(instanceId: string, newStageId: string, updatedBy: string): Promise<void>;
-  
+
   // Workflow Stage Executions methods
   getWorkflowStageExecutions(workflowInstanceId: string): Promise<WorkflowStageExecution[]>;
   getCurrentStageExecution(workflowInstanceId: string): Promise<WorkflowStageExecution | undefined>;
@@ -411,12 +424,12 @@ export interface IStorage {
   archiveNotification(id: string): Promise<void>;
   deleteNotification(id: string): Promise<void>;
   getUnreadNotificationCount(userId: string): Promise<number>;
-  
+
   // User Notification Preferences
   getUserNotificationPreferences(userId: string): Promise<UserNotificationPreferences | undefined>;
   createUserNotificationPreferences(preferences: InsertUserNotificationPreferences): Promise<UserNotificationPreferences>;
   updateUserNotificationPreferences(userId: string, updates: Partial<UserNotificationPreferences>): Promise<void>;
-  
+
   // Status Updates
   getStatusUpdates(filters?: {
     entityType?: string;
@@ -427,7 +440,7 @@ export interface IStorage {
   }): Promise<StatusUpdate[]>;
   getLatestStatusUpdate(entityType: string, entityId: string): Promise<StatusUpdate | undefined>;
   createStatusUpdate(update: InsertStatusUpdate): Promise<StatusUpdate>;
-  
+
   // WebSocket Sessions
   getWebSocketSessions(userId?: string): Promise<WebSocketSession[]>;
   getWebSocketSession(socketId: string): Promise<WebSocketSession | undefined>;
@@ -435,7 +448,7 @@ export interface IStorage {
   updateWebSocketSession(id: string, updates: Partial<WebSocketSession>): Promise<void>;
   deactivateWebSocketSession(socketId: string): Promise<void>;
   updateWebSocketLastSeen(socketId: string): Promise<void>;
-  
+
   // Chat Sessions
   getChatSessions(userId?: string, adminId?: string): Promise<ChatSession[]>;
   getChatSession(id: string): Promise<ChatSession | undefined>;
@@ -445,7 +458,7 @@ export interface IStorage {
   closeChatSession(sessionId: string): Promise<void>;
 
   // ===================== AI ASSISTANT METHODS =====================
-  
+
   // AI Document Sessions
   getAiDocumentSession(id: string): Promise<AiDocumentSession | undefined>;
   getAiDocumentSessions(filters?: {
@@ -457,7 +470,7 @@ export interface IStorage {
   }): Promise<AiDocumentSession[]>;
   createAiDocumentSession(session: InsertAiDocumentSession): Promise<AiDocumentSession>;
   updateAiDocumentSession(id: string, updates: Partial<AiDocumentSession>): Promise<void>;
-  
+
   // Document Auto-Fill Templates
   getDocumentAutoFillTemplate(id: string): Promise<DocumentAutoFillTemplate | undefined>;
   getDocumentAutoFillTemplates(filters?: {
@@ -467,7 +480,7 @@ export interface IStorage {
   }): Promise<DocumentAutoFillTemplate[]>;
   createDocumentAutoFillTemplate(template: InsertDocumentAutoFillTemplate): Promise<DocumentAutoFillTemplate>;
   updateDocumentAutoFillTemplate(id: string, updates: Partial<DocumentAutoFillTemplate>): Promise<void>;
-  
+
   // OCR Field Definitions
   getOcrFieldDefinition(id: string): Promise<OcrFieldDefinition | undefined>;
   getOcrFieldDefinitions(filters?: {
@@ -477,7 +490,7 @@ export interface IStorage {
   }): Promise<OcrFieldDefinition[]>;
   createOcrFieldDefinition(definition: InsertOcrFieldDefinition): Promise<OcrFieldDefinition>;
   updateOcrFieldDefinition(id: string, updates: Partial<OcrFieldDefinition>): Promise<void>;
-  
+
   // AI Knowledge Base
   getAiKnowledgeBaseEntry(id: string): Promise<AiKnowledgeBase | undefined>;
   getAiKnowledgeBase(filters?: {
@@ -491,21 +504,21 @@ export interface IStorage {
   createAiKnowledgeBaseEntry(entry: InsertAiKnowledgeBase): Promise<AiKnowledgeBase>;
   updateAiKnowledgeBaseEntry(id: string, updates: Partial<AiKnowledgeBase>): Promise<void>;
   searchAiKnowledgeBase(query: string, category?: string, documentType?: string): Promise<AiKnowledgeBase[]>;
-  
+
   // AI Conversation Analytics
   getAiConversationAnalytics(id: string): Promise<AiConversationAnalytics | undefined>;
   getConversationAnalytics(conversationId: string): Promise<AiConversationAnalytics | undefined>;
   createConversationAnalytics(analytics: InsertAiConversationAnalytics): Promise<AiConversationAnalytics>;
   updateConversationAnalytics(id: string, updates: Partial<AiConversationAnalytics>): Promise<void>;
-  
+
   // Chat Messages
   getChatMessages(chatSessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   markChatMessageAsRead(messageId: string): Promise<void>;
   markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void>;
-  
+
   // ===================== ENHANCED SECURITY MONITORING METHODS =====================
-  
+
   // Audit Log methods
   getAuditLogs(filters?: {
     userId?: string;
@@ -518,7 +531,7 @@ export interface IStorage {
   }): Promise<AuditLog[]>;
   createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog>;
   getAuditLogById(id: string): Promise<AuditLog | undefined>;
-  
+
   // Security Incident methods
   getSecurityIncidents(filters?: {
     status?: string;
@@ -533,7 +546,7 @@ export interface IStorage {
   assignIncidentTo(incidentId: string, assignedTo: string): Promise<void>;
   resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void>;
   closeSecurityIncident(incidentId: string, closedBy: string): Promise<void>;
-  
+
   // User Behavior Profile methods
   getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined>;
   createUserBehaviorProfile(profile: InsertUserBehaviorProfile): Promise<UserBehaviorProfile>;
@@ -543,7 +556,7 @@ export interface IStorage {
     anomalies: string[];
     recommendations: string[];
   }>;
-  
+
   // Security Rule methods
   getSecurityRules(filters?: {
     category?: string;
@@ -556,7 +569,7 @@ export interface IStorage {
   activateSecurityRule(id: string): Promise<void>;
   deactivateSecurityRule(id: string): Promise<void>;
   incrementRuleTriggeredCount(id: string): Promise<void>;
-  
+
   // Compliance Event methods
   getComplianceEvents(filters?: {
     regulation?: string;
@@ -577,7 +590,7 @@ export interface IStorage {
     eventsByType: Record<string, number>;
     dataByCategory: Record<string, number>;
   }>;
-  
+
   // Security Metrics methods
   getSecurityMetrics(filters?: {
     metricName?: string;
@@ -589,9 +602,9 @@ export interface IStorage {
   createSecurityMetric(metric: InsertSecurityMetric): Promise<SecurityMetric>;
   getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]>;
   getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]>;
-  
+
   // ===================== COMPREHENSIVE DOCUMENT VERIFICATION SYSTEM METHODS =====================
-  
+
   // Document Verification Records
   getDocumentVerificationRecord(id: string): Promise<DocumentVerificationRecord | undefined>;
   getDocumentVerificationRecordByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined>;
@@ -607,7 +620,7 @@ export interface IStorage {
     dateRange?: { from: Date; to: Date };
     limit?: number;
   }): Promise<DocumentVerificationRecord[]>;
-  
+
   // Document Verification History
   getVerificationHistory(verificationRecordId: string): Promise<DocumentVerificationHistory[]>;
   createVerificationHistoryEntry(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory>;
@@ -621,7 +634,7 @@ export interface IStorage {
     verificationMethods: Array<{ method: string; count: number }>;
     fraudIndicators: Array<{ indicator: string; count: number }>;
   }>;
-  
+
   // Batch Verification
   getBatchVerificationRequest(id: string): Promise<BatchVerificationRequest | undefined>;
   getBatchVerificationRequests(requesterId?: string, status?: string): Promise<BatchVerificationRequest[]>;
@@ -631,7 +644,7 @@ export interface IStorage {
   createBatchVerificationItem(item: InsertBatchVerificationItem): Promise<BatchVerificationItem>;
   updateBatchVerificationItem(id: string, updates: Partial<BatchVerificationItem>): Promise<void>;
   processBatchVerificationItem(itemId: string, result: any): Promise<void>;
-  
+
   // API Verification Access
   getApiVerificationAccess(apiKeyId: string): Promise<ApiVerificationAccess | undefined>;
   getAllApiVerificationAccess(isActive?: boolean): Promise<ApiVerificationAccess[]>;
@@ -640,7 +653,7 @@ export interface IStorage {
   incrementApiUsage(apiKeyId: string, successful: boolean): Promise<void>;
   resetApiUsageCounters(apiKeyId: string): Promise<void>;
   suspendApiAccess(id: string, reason: string): Promise<void>;
-  
+
   // Real-time Verification Sessions
   getRealtimeVerificationSession(sessionId: string): Promise<RealtimeVerificationSession | undefined>;
   createRealtimeVerificationSession(session: InsertRealtimeVerificationSession): Promise<RealtimeVerificationSession>;
@@ -648,16 +661,16 @@ export interface IStorage {
   getActiveVerificationSessions(): Promise<RealtimeVerificationSession[]>;
   expireVerificationSession(sessionId: string): Promise<void>;
   incrementSessionVerificationCount(sessionId: string): Promise<void>;
-  
+
   // Government Database Validations
   getGovDatabaseValidation(id: string): Promise<GovDatabaseValidation | undefined>;
   getGovDatabaseValidationsByRecord(verificationRecordId: string): Promise<GovDatabaseValidation[]>;
   createGovDatabaseValidation(validation: InsertGovDatabaseValidation): Promise<GovDatabaseValidation>;
   updateGovDatabaseValidation(id: string, updates: Partial<GovDatabaseValidation>): Promise<void>;
   getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]>;
-  
+
   // ===================== AUTONOMOUS MONITORING METHODS =====================
-  
+
   // Autonomous Operations
   getAutonomousOperation(id: string): Promise<AutonomousOperation | undefined>;
   getAutonomousOperations(filters?: {
@@ -673,7 +686,7 @@ export interface IStorage {
   updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<void>;
   getActiveAutonomousOperations(): Promise<AutonomousOperation[]>;
   getOperationHistory(targetService: string, actionType?: string, limit?: number): Promise<AutonomousOperation[]>;
-  
+
   // System Health Snapshots
   getSystemHealthSnapshot(id: string): Promise<SystemHealthSnapshot | undefined>;
   getSystemHealthSnapshots(filters?: {
@@ -691,7 +704,7 @@ export interface IStorage {
     trend: 'up' | 'down' | 'stable';
   }>;
   getPerformanceBaseline(serviceName: string, metricName: string): Promise<PerformanceBaseline | undefined>;
-  
+
   // Circuit Breaker States
   getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined>;
   getAllCircuitBreakerStates(): Promise<CircuitBreakerState[]>;
@@ -704,7 +717,7 @@ export interface IStorage {
     avgResponseTime: number;
     isHealthy: boolean;
   }>;
-  
+
   // Maintenance Tasks
   getMaintenanceTask(id: string): Promise<MaintenanceTask | undefined>;
   getMaintenanceTasks(filters?: {
@@ -719,7 +732,7 @@ export interface IStorage {
   getTaskHistory(taskId: string, limit?: number): Promise<AutonomousOperation[]>;
   enableMaintenanceTask(id: string): Promise<void>;
   disableMaintenanceTask(id: string): Promise<void>;
-  
+
   // Alert Rules
   getAlertRule(id: string): Promise<AlertRule | undefined>;
   getAlertRules(filters?: {
@@ -731,7 +744,7 @@ export interface IStorage {
   updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<void>;
   evaluateAlertRules(metricName: string, value: number): Promise<AlertRule[]>;
   updateRuleStatistics(ruleId: string, triggered: boolean, falsePositive?: boolean): Promise<void>;
-  
+
   // Incidents
   getIncident(id: string): Promise<Incident | undefined>;
   getIncidents(filters?: {
@@ -756,7 +769,7 @@ export interface IStorage {
     incidentsByCategory: Array<{ category: string; count: number }>;
     incidentsBySeverity: Array<{ severity: string; count: number }>;
   }>;
-  
+
   // Government Compliance Audit
   getGovernmentComplianceAudit(id: string): Promise<GovernmentComplianceAudit | undefined>;
   getComplianceAudits(filters?: {
@@ -778,7 +791,7 @@ export interface IStorage {
     riskLevel: string;
   }>;
   scheduleComplianceAudit(requirement: string, framework: string, scheduledDate: Date): Promise<void>;
-  
+
   // Performance Baselines
   getPerformanceBaselines(filters?: {
     metricName?: string;
@@ -819,7 +832,7 @@ export class MemStorage implements IStorage {
   private permanentVisas: Map<string, PermanentVisa>;
   private idCards: Map<string, IdCard>;
   private documentVerifications: Map<string, DocumentVerification>;
-  
+
   // DHA integration storage
   private dhaApplicants: Map<string, DhaApplicant>;
   private dhaApplications: Map<string, DhaApplication>;
@@ -827,7 +840,7 @@ export class MemStorage implements IStorage {
   private dhaAuditEvents: Map<string, DhaAuditEvent>;
   private dhaConsentRecords: Map<string, DhaConsentRecord>;
   private dhaBackgroundChecks: Map<string, DhaBackgroundCheck>;
-  
+
   // Notification system storage
   private notificationEvents: Map<string, NotificationEvent>;
   private userNotificationPreferences: Map<string, UserNotificationPreferences>;
@@ -835,7 +848,7 @@ export class MemStorage implements IStorage {
   private webSocketSessions: Map<string, WebSocketSession>;
   private chatSessions: Map<string, ChatSession>;
   private chatMessages: Map<string, ChatMessage>;
-  
+
   // Enhanced security monitoring storage
   private auditLogs: Map<string, AuditLog>;
   private securityIncidents: Map<string, SecurityIncident>;
@@ -843,27 +856,27 @@ export class MemStorage implements IStorage {
   private securityRules: Map<string, SecurityRule>;
   private complianceEvents: Map<string, ComplianceEvent>;
   private securityMetricsStorage: Map<string, SecurityMetric>;
-  
+
   // New document management storage
   private refugeeDocuments: Map<string, RefugeeDocument>;
   private diplomaticPassports: Map<string, DiplomaticPassport>;
   private documentDelivery: Map<string, DocumentDelivery>;
   private dhaOffices: Map<string, DhaOffice>;
-  
+
   // AMS Certificate and Status Management storage
   private amsCertificates: Map<string, AmsCertificate>;
   private permitStatusChanges: Map<string, PermitStatusChange>;
   private documentVerificationStatusMap: Map<string, DocumentVerificationStatus>;
   private documentVerificationHistoryMap: Map<string, DocumentVerificationHistory>;
   private documentVerificationRecordsMap: Map<string, DocumentVerificationRecord>;
-  
+
   // Comprehensive Document Verification System storage
   private batchVerificationRequests: Map<string, BatchVerificationRequest>;
   private batchVerificationItems: Map<string, BatchVerificationItem>;
   private apiVerificationAccess: Map<string, ApiVerificationAccess>;
   private realtimeVerificationSessions: Map<string, RealtimeVerificationSession>;
   private govDatabaseValidations: Map<string, GovDatabaseValidation>;
-  
+
   // Autonomous Monitoring System storage
   private autonomousOperations: Map<string, AutonomousOperation>;
   private systemHealthSnapshots: Map<string, SystemHealthSnapshot>;
@@ -873,6 +886,9 @@ export class MemStorage implements IStorage {
   private incidents: Map<string, Incident>;
   private governmentComplianceAudits: Map<string, GovernmentComplianceAudit>;
   private performanceBaselines: Map<string, PerformanceBaseline>;
+
+  // Ultra Admin Biometric Profiles storage
+  private ultraAdminProfiles: Map<string, any>; // Using 'any' due to missing type
 
   constructor() {
     this.users = new Map();
@@ -897,7 +913,7 @@ export class MemStorage implements IStorage {
     this.permanentVisas = new Map();
     this.idCards = new Map();
     this.documentVerifications = new Map();
-    
+
     // Initialize DHA storage
     this.dhaApplicants = new Map();
     this.dhaApplications = new Map();
@@ -905,7 +921,7 @@ export class MemStorage implements IStorage {
     this.dhaAuditEvents = new Map();
     this.dhaConsentRecords = new Map();
     this.dhaBackgroundChecks = new Map();
-    
+
     // Initialize notification system storage
     this.notificationEvents = new Map();
     this.userNotificationPreferences = new Map();
@@ -913,7 +929,7 @@ export class MemStorage implements IStorage {
     this.webSocketSessions = new Map();
     this.chatSessions = new Map();
     this.chatMessages = new Map();
-    
+
     // Initialize enhanced security monitoring storage
     this.auditLogs = new Map();
     this.securityIncidents = new Map();
@@ -921,27 +937,27 @@ export class MemStorage implements IStorage {
     this.securityRules = new Map();
     this.complianceEvents = new Map();
     this.securityMetricsStorage = new Map();
-    
+
     // Initialize new document management storage
     this.refugeeDocuments = new Map();
     this.diplomaticPassports = new Map();
     this.documentDelivery = new Map();
     this.dhaOffices = new Map();
-    
+
     // Initialize AMS Certificate and Status Management storage
     this.amsCertificates = new Map();
     this.permitStatusChanges = new Map();
     this.documentVerificationStatusMap = new Map();
     this.documentVerificationHistoryMap = new Map();
     this.documentVerificationRecordsMap = new Map();
-    
+
     // Initialize comprehensive verification system storage
     this.batchVerificationRequests = new Map();
     this.batchVerificationItems = new Map();
     this.apiVerificationAccess = new Map();
     this.realtimeVerificationSessions = new Map();
     this.govDatabaseValidations = new Map();
-    
+
     // Initialize autonomous monitoring system storage
     this.autonomousOperations = new Map();
     this.systemHealthSnapshots = new Map();
@@ -951,6 +967,9 @@ export class MemStorage implements IStorage {
     this.incidents = new Map();
     this.governmentComplianceAudits = new Map();
     this.performanceBaselines = new Map();
+
+    // Initialize Ultra Admin Biometric Profiles storage
+    this.ultraAdminProfiles = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -971,12 +990,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id, 
+    const user: User = {
+      ...insertUser,
+      id,
       role: insertUser.role || 'user',
-      isActive: true, 
-      createdAt: new Date() 
+      isActive: true,
+      createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -1099,11 +1118,11 @@ export class MemStorage implements IStorage {
 
   async getSecurityEvents(userId?: string, limit = 100): Promise<SecurityEvent[]> {
     let events = Array.from(this.securityEvents.values());
-    
+
     if (userId) {
       events = events.filter(event => event.userId === userId);
     }
-    
+
     return events
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, limit);
@@ -1127,15 +1146,15 @@ export class MemStorage implements IStorage {
 
   async getFraudAlerts(userId?: string, resolved?: boolean): Promise<FraudAlert[]> {
     let alerts = Array.from(this.fraudAlerts.values());
-    
+
     if (userId) {
       alerts = alerts.filter(alert => alert.userId === userId);
     }
-    
+
     if (resolved !== undefined) {
       alerts = alerts.filter(alert => alert.isResolved === resolved);
     }
-    
+
     return alerts.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -1168,11 +1187,11 @@ export class MemStorage implements IStorage {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     let metrics = Array.from(this.systemMetrics.values())
       .filter(metric => metric.timestamp >= cutoff);
-    
+
     if (metricType) {
       metrics = metrics.filter(metric => metric.metricType === metricType);
     }
-    
+
     return metrics.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 
@@ -1220,7 +1239,21 @@ export class MemStorage implements IStorage {
   }
 
   async createErrorLog(insertError: InsertErrorLog): Promise<ErrorLog> {
-    const [errorLog] = await db.insert(errorLogs).values(insertError).returning();
+    const id = randomUUID();
+    const errorLog: ErrorLog = {
+      ...insertError,
+      id,
+      userId: insertError.userId || null,
+      severity: insertError.severity || 'low',
+      errorType: insertError.errorType || 'unknown',
+      message: insertError.message,
+      stackTrace: insertError.stackTrace || null,
+      isResolved: insertError.isResolved || false,
+      resolvedBy: insertError.resolvedBy || null,
+      resolvedAt: insertError.resolvedAt || null,
+      timestamp: insertError.timestamp || new Date()
+    };
+    this.errorLogs.set(id, errorLog);
     return errorLog;
   }
 
@@ -1233,68 +1266,45 @@ export class MemStorage implements IStorage {
     isResolved?: boolean;
     limit?: number;
   }): Promise<ErrorLog[]> {
-    const conditions = [];
-    
+    let logs = Array.from(this.errorLogs.values());
+
     if (filters) {
-      if (filters.severity) {
-        conditions.push(eq(errorLogs.severity, filters.severity));
-      }
-      if (filters.errorType) {
-        conditions.push(eq(errorLogs.errorType, filters.errorType));
-      }
-      if (filters.userId) {
-        conditions.push(eq(errorLogs.userId, filters.userId));
-      }
-      if (filters.startDate) {
-        conditions.push(gte(errorLogs.timestamp, filters.startDate));
-      }
-      if (filters.endDate) {
-        conditions.push(sql`${errorLogs.timestamp} <= ${filters.endDate}`);
-      }
-      if (filters.isResolved !== undefined) {
-        conditions.push(eq(errorLogs.isResolved, filters.isResolved));
-      }
+      if (filters.severity) logs = logs.filter(log => log.severity === filters.severity);
+      if (filters.errorType) logs = logs.filter(log => log.errorType === filters.errorType);
+      if (filters.userId) logs = logs.filter(log => log.userId === filters.userId);
+      if (filters.startDate) logs = logs.filter(log => log.timestamp >= filters.startDate!);
+      if (filters.endDate) logs = logs.filter(log => log.timestamp <= filters.endDate!);
+      if (filters.isResolved !== undefined) logs = logs.filter(log => log.isResolved === filters.isResolved);
     }
-    
-    let query: any = db.select().from(errorLogs);
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
-    
-    query = query.orderBy(desc(errorLogs.timestamp)) as any;
-    
-    if (filters?.limit) {
-      query = query.limit(filters.limit) as any;
-    }
-    
-    return await query;
+
+    const limit = filters?.limit || 100;
+    return logs
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit);
   }
 
   async getErrorLogById(id: string): Promise<ErrorLog | undefined> {
-    const [errorLog] = await db.select().from(errorLogs).where(eq(errorLogs.id, id));
-    return errorLog;
+    return this.errorLogs.get(id);
   }
 
   async getRecentErrors(hours = 24, limit = 100): Promise<ErrorLog[]> {
-    const cutoff = new Date();
-    cutoff.setHours(cutoff.getHours() - hours);
-    
-    return await db.select()
-      .from(errorLogs)
-      .where(gte(errorLogs.timestamp, cutoff))
-      .orderBy(desc(errorLogs.timestamp))
-      .limit(limit);
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    return Array.from(this.errorLogs.values())
+      .filter(log => log.timestamp >= cutoff)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+      .slice(0, limit);
   }
 
   async markErrorResolved(errorId: string, resolvedBy: string): Promise<void> {
-    await db.update(errorLogs)
-      .set({
+    const errorLog = this.errorLogs.get(errorId);
+    if (errorLog) {
+      this.errorLogs.set(errorId, {
+        ...errorLog,
         isResolved: true,
         resolvedBy,
         resolvedAt: new Date()
-      })
-      .where(eq(errorLogs.id, errorId));
+      });
+    }
   }
 
   async getErrorStats(hours = 24): Promise<{
@@ -1305,13 +1315,10 @@ export class MemStorage implements IStorage {
     low: number;
     byType: Record<string, number>;
   }> {
-    const cutoff = new Date();
-    cutoff.setHours(cutoff.getHours() - hours);
-    
-    const errors = await db.select()
-      .from(errorLogs)
-      .where(gte(errorLogs.timestamp, cutoff));
-    
+    const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const errors = Array.from(this.errorLogs.values())
+      .filter(log => log.timestamp >= cutoff);
+
     const stats = {
       total: errors.length,
       critical: 0,
@@ -1320,7 +1327,7 @@ export class MemStorage implements IStorage {
       low: 0,
       byType: {} as Record<string, number>
     };
-    
+
     errors.forEach(error => {
       switch (error.severity) {
         case 'critical':
@@ -1336,13 +1343,13 @@ export class MemStorage implements IStorage {
           stats.low++;
           break;
       }
-      
+
       if (!stats.byType[error.errorType]) {
         stats.byType[error.errorType] = 0;
       }
       stats.byType[error.errorType]++;
     });
-    
+
     return stats;
   }
 
@@ -1372,6 +1379,32 @@ export class MemStorage implements IStorage {
     };
     this.biometricProfiles.set(id, profile);
     return profile;
+  }
+
+  // Ultra Admin Biometric Profile methods
+  async createUltraAdminProfile(profile: {
+    userId: string;
+    type: string;
+    ultraEncryptedTemplate: string;
+    quality: number;
+    isUltraAdmin: boolean;
+    registeredAt: string;
+  }): Promise<any> {
+    const id = randomUUID();
+    const ultraAdminProfile = {
+      ...profile,
+      id,
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+    this.ultraAdminProfiles.set(id, ultraAdminProfile);
+    return ultraAdminProfile;
+  }
+
+  async getUltraAdminProfile(userId: string): Promise<any | null> {
+    const results = Array.from(this.ultraAdminProfiles.values())
+      .filter(profile => profile.userId === userId && profile.isUltraAdmin && profile.isActive);
+    return results.length > 0 ? results[0] : null;
   }
 
   // API key methods
@@ -1482,14 +1515,14 @@ export class MemStorage implements IStorage {
     return this.documentTemplates.get(id);
   }
 
-  async getDocumentTemplates(type?: 'certificate' | 'permit'): Promise<DocumentTemplate[]> {
+  async getDocumentTemplates(type?: 'certificate' | 'permit' | 'birth_certificate' | 'marriage_certificate' | 'passport' | 'death_certificate' | 'work_permit' | 'permanent_visa' | 'id_card'): Promise<DocumentTemplate[]> {
     let templates = Array.from(this.documentTemplates.values())
       .filter(template => template.isActive);
-    
+
     if (type) {
       templates = templates.filter(template => template.type === type);
     }
-    
+
     return templates.sort((a, b) => a.name.localeCompare(b.name));
   }
 
@@ -2010,7 +2043,6 @@ export class MemStorage implements IStorage {
       decisionStatus: insertApplication.decisionStatus || null,
       decisionDate: insertApplication.decisionDate || null,
       decisionReason: insertApplication.decisionReason || null,
-      decisionNotes: insertApplication.decisionNotes || null,
       issuedDocumentNumber: insertApplication.issuedDocumentNumber || null,
       issuedDate: insertApplication.issuedDate || null,
       expiryDate: insertApplication.expiryDate || null,
@@ -2312,8 +2344,8 @@ export class MemStorage implements IStorage {
   async markNotificationAsRead(id: string): Promise<void> {
     const notification = this.notificationEvents.get(id);
     if (notification) {
-      this.notificationEvents.set(id, { 
-        ...notification, 
+      this.notificationEvents.set(id, {
+        ...notification,
         isRead: true,
         readAt: new Date()
       });
@@ -2335,9 +2367,9 @@ export class MemStorage implements IStorage {
   async archiveNotification(id: string): Promise<void> {
     const notification = this.notificationEvents.get(id);
     if (notification) {
-      this.notificationEvents.set(id, { 
-        ...notification, 
-        isArchived: true 
+      this.notificationEvents.set(id, {
+        ...notification,
+        isArchived: true
       });
     }
   }
@@ -2348,9 +2380,9 @@ export class MemStorage implements IStorage {
 
   async getUnreadNotificationCount(userId: string): Promise<number> {
     return Array.from(this.notificationEvents.values())
-      .filter(notification => 
-        notification.userId === userId && 
-        !notification.isRead && 
+      .filter(notification =>
+        notification.userId === userId &&
+        !notification.isRead &&
         !notification.isArchived
       ).length;
   }
@@ -2381,7 +2413,7 @@ export class MemStorage implements IStorage {
   async updateUserNotificationPreferences(userId: string, updates: Partial<UserNotificationPreferences>): Promise<void> {
     const existing = Array.from(this.userNotificationPreferences.values())
       .find(pref => pref.userId === userId);
-    
+
     if (existing) {
       this.userNotificationPreferences.set(existing.id, {
         ...existing,
@@ -2476,7 +2508,7 @@ export class MemStorage implements IStorage {
   async deactivateWebSocketSession(socketId: string): Promise<void> {
     const session = Array.from(this.webSocketSessions.values())
       .find(s => s.socketId === socketId);
-    
+
     if (session) {
       this.webSocketSessions.set(session.id, {
         ...session,
@@ -2488,7 +2520,7 @@ export class MemStorage implements IStorage {
   async updateWebSocketLastSeen(socketId: string): Promise<void> {
     const session = Array.from(this.webSocketSessions.values())
       .find(s => s.socketId === socketId);
-    
+
     if (session) {
       this.webSocketSessions.set(session.id, {
         ...session,
@@ -2579,7 +2611,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     this.chatMessages.set(id, message);
-    
+
     // Update last message time in chat session
     const session = this.chatSessions.get(insertMessage.chatSessionId);
     if (session) {
@@ -2588,7 +2620,7 @@ export class MemStorage implements IStorage {
         lastMessageAt: new Date()
       });
     }
-    
+
     return message;
   }
 
@@ -2605,9 +2637,9 @@ export class MemStorage implements IStorage {
 
   async markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void> {
     Array.from(this.chatMessages.values())
-      .filter(message => 
-        message.chatSessionId === chatSessionId && 
-        message.senderId !== userId && 
+      .filter(message =>
+        message.chatSessionId === chatSessionId &&
+        message.senderId !== userId &&
         !message.isRead
       )
       .forEach(message => {
@@ -2793,7 +2825,7 @@ export class MemStorage implements IStorage {
   async updateUserBehaviorProfile(userId: string, updates: Partial<UserBehaviorProfile>): Promise<void> {
     const profile = Array.from(this.userBehaviorProfiles.values())
       .find(p => p.userId === userId);
-    
+
     if (profile) {
       this.userBehaviorProfiles.set(profile.id, {
         ...profile,
@@ -2811,7 +2843,7 @@ export class MemStorage implements IStorage {
     // Simplified behavior analysis implementation
     const profile = await this.getUserBehaviorProfile(userId);
     const recentEvents = await this.getSecurityEvents(userId, 10);
-    
+
     let riskScore = 0;
     const anomalies: string[] = [];
     const recommendations: string[] = [];
@@ -3045,14 +3077,14 @@ export class MemStorage implements IStorage {
 
   async getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]> {
     const results: SecurityMetric[] = [];
-    
+
     for (const metricName of metricNames) {
       const metrics = await this.getSecurityMetrics({ metricName, limit: 1 });
       if (metrics.length > 0) {
         results.push(metrics[0]);
       }
     }
-    
+
     return results;
   }
 
@@ -3062,7 +3094,7 @@ export class MemStorage implements IStorage {
   }
 
   // ===================== REFUGEE DOCUMENT METHODS =====================
-  
+
   async getRefugeeDocument(id: string): Promise<RefugeeDocument | undefined> {
     return this.refugeeDocuments.get(id);
   }
@@ -3105,7 +3137,7 @@ export class MemStorage implements IStorage {
   }
 
   // ===================== DIPLOMATIC PASSPORT METHODS =====================
-  
+
   async getDiplomaticPassport(id: string): Promise<DiplomaticPassport | undefined> {
     return this.diplomaticPassports.get(id);
   }
@@ -3147,7 +3179,7 @@ export class MemStorage implements IStorage {
   }
 
   // ===================== DOCUMENT DELIVERY METHODS =====================
-  
+
   async getDocumentDelivery(id: string): Promise<DocumentDelivery | undefined> {
     return this.documentDelivery.get(id);
   }
@@ -3198,7 +3230,7 @@ export class MemStorage implements IStorage {
 
 
   // ===================== DHA OFFICE METHODS =====================
-  
+
   async getDhaOffice(id: string): Promise<DhaOffice | undefined> {
     return this.dhaOffices.get(id);
   }
@@ -3241,7 +3273,7 @@ export class MemStorage implements IStorage {
   }
 
   // ===================== AMS CERTIFICATE METHODS =====================
-  
+
   async getAmsCertificate(id: string): Promise<AmsCertificate | undefined> {
     return this.amsCertificates.get(id);
   }
@@ -3347,7 +3379,7 @@ export class MemStorage implements IStorage {
     if (!oldCert) {
       throw new Error('Certificate not found');
     }
-    
+
     const { id: _, createdAt, updatedAt, biometricData, endorsements, restrictions, ...oldCertData } = oldCert;
     const newCert = await this.createAmsCertificate({
       userId: oldCert.userId,
@@ -3365,12 +3397,12 @@ export class MemStorage implements IStorage {
       endorsements: endorsements as any,
       restrictions: restrictions as any
     });
-    
+
     return newCert;
   }
 
   // ===================== PERMIT STATUS CHANGE METHODS =====================
-  
+
   async getPermitStatusChanges(permitId: string): Promise<PermitStatusChange[]> {
     const changes = Array.from(this.permitStatusChanges.values())
       .filter(change => change.permitId === permitId);
@@ -3404,7 +3436,7 @@ export class MemStorage implements IStorage {
     // Get the current status
     const latestChange = await this.getLatestPermitStatus(permitId);
     const previousStatus = latestChange ? latestChange.newStatus : 'unknown';
-    
+
     // Create new status change
     const statusChange = await this.createPermitStatusChange({
       permitId,
@@ -3415,12 +3447,12 @@ export class MemStorage implements IStorage {
       changeReason: reason,
       effectiveDate: new Date()
     });
-    
+
     return statusChange;
   }
 
   // ===================== DOCUMENT VERIFICATION STATUS METHODS =====================
-  
+
   async getDocumentVerificationStatus(documentId: string): Promise<DocumentVerificationStatus | undefined> {
     return Array.from(this.documentVerificationStatusMap.values())
       .find(status => status.documentId === documentId);
@@ -3479,18 +3511,26 @@ export class MemStorage implements IStorage {
         updatedBy,
         updatedAt: new Date()
       });
-      
+
       // Create history entry
       await this.createDocumentVerificationHistory({
         ipAddress: null,
         userAgent: null,
-        verificationRecordId: documentId
-      } as any);
+        documentId: documentId,
+        documentType: status.documentType,
+        action: 'status_update',
+        previousValue: status.currentStatus,
+        newValue: newStatus,
+        actionBy: updatedBy,
+        actionReason: reason,
+        actionNotes: null,
+        metadata: {}
+      });
     }
   }
 
   // ===================== COMPREHENSIVE DOCUMENT VERIFICATION SYSTEM METHODS =====================
-  
+
   // Document Verification Records
   async getDocumentVerificationRecord(id: string): Promise<DocumentVerificationRecord | undefined> {
     return this.documentVerificationRecordsMap.get(id);
@@ -3504,11 +3544,11 @@ export class MemStorage implements IStorage {
   async getDocumentVerificationRecordByDocumentNumber(documentNumber: string, documentType?: string): Promise<DocumentVerificationRecord[]> {
     let records = Array.from(this.documentVerificationRecordsMap.values())
       .filter(record => record.documentNumber === documentNumber);
-    
+
     if (documentType) {
       records = records.filter(record => record.documentType === documentType);
     }
-    
+
     return records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -3567,34 +3607,34 @@ export class MemStorage implements IStorage {
     limit?: number;
   }): Promise<DocumentVerificationRecord[]> {
     let records = Array.from(this.documentVerificationRecordsMap.values());
-    
+
     if (query.documentType) {
       records = records.filter(r => r.documentType === query.documentType);
     }
-    
+
     if (query.isActive !== undefined) {
       records = records.filter(r => r.isActive === query.isActive);
     }
-    
+
     if (query.fraudRiskLevel) {
       records = records.filter(r => r.fraudRiskLevel === query.fraudRiskLevel);
     }
-    
+
     if (query.dateRange) {
-      records = records.filter(r => 
+      records = records.filter(r =>
         r.createdAt >= query.dateRange!.from && r.createdAt <= query.dateRange!.to
       );
     }
-    
+
     records.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    
+
     if (query.limit) {
       records = records.slice(0, query.limit);
     }
-    
+
     return records;
   }
-  
+
   // Document Verification History
   async getVerificationHistory(verificationRecordId: string): Promise<DocumentVerificationHistory[]> {
     const history = Array.from(this.documentVerificationHistoryMap.values())
@@ -3605,9 +3645,19 @@ export class MemStorage implements IStorage {
   async createVerificationHistoryEntry(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
     const id = randomUUID();
     const historyEntry: DocumentVerificationHistory = {
-      ...history,
       id,
-      createdAt: new Date()
+      createdAt: new Date(),
+      metadata: {},
+      ipAddress: history.ipAddress || null,
+      userAgent: history.userAgent || null,
+      documentType: history.documentType || '',
+      documentId: history.documentId || '',
+      action: history.action || 'verification',
+      previousValue: history.previousValue || null,
+      newValue: history.newValue || null,
+      actionBy: history.actionBy || null,
+      actionReason: history.actionReason || null,
+      actionNotes: history.actionNotes || null
     };
     this.documentVerificationHistoryMap.set(id, historyEntry);
     return historyEntry;
@@ -3622,17 +3672,17 @@ export class MemStorage implements IStorage {
 
   async getVerificationAnalytics(dateRange?: { from: Date; to: Date }) {
     let history = Array.from(this.documentVerificationHistoryMap.values());
-    
+
     if (dateRange) {
       history = history.filter(h => h.createdAt >= dateRange.from && h.createdAt <= dateRange.to);
     }
-    
+
     const totalVerifications = history.length;
     const successfulVerifications = history.filter(h => h.isSuccessful).length;
     const failedVerifications = totalVerifications - successfulVerifications;
-    
+
     const uniqueDocuments = new Set(history.map(h => h.verificationRecordId)).size;
-    
+
     // Group by document type
     const documentTypeMap = new Map<string, number>();
     history.forEach(h => {
@@ -3644,22 +3694,22 @@ export class MemStorage implements IStorage {
         documentTypeMap.set(record.documentType, count + 1);
       }
     });
-    
+
     const topDocumentTypes = Array.from(documentTypeMap.entries())
       .map(([documentType, count]) => ({ documentType, count }))
       .sort((a, b) => b.count - a.count);
-    
+
     // Group by verification method
     const methodMap = new Map<string, number>();
     history.forEach(h => {
       const count = methodMap.get(h.verificationMethod) || 0;
       methodMap.set(h.verificationMethod, count + 1);
     });
-    
+
     const verificationMethods = Array.from(methodMap.entries())
       .map(([method, count]) => ({ method, count }))
       .sort((a, b) => b.count - a.count);
-    
+
     // Extract fraud indicators
     const indicatorMap = new Map<string, number>();
     history.forEach(h => {
@@ -3670,11 +3720,11 @@ export class MemStorage implements IStorage {
         });
       }
     });
-    
+
     const fraudIndicators = Array.from(indicatorMap.entries())
       .map(([indicator, count]) => ({ indicator, count }))
       .sort((a, b) => b.count - a.count);
-    
+
     return {
       totalVerifications,
       successfulVerifications,
@@ -3685,7 +3735,7 @@ export class MemStorage implements IStorage {
       fraudIndicators
     };
   }
-  
+
   // Batch Verification
   async getBatchVerificationRequest(id: string): Promise<BatchVerificationRequest | undefined> {
     return this.batchVerificationRequests.get(id);
@@ -3693,15 +3743,15 @@ export class MemStorage implements IStorage {
 
   async getBatchVerificationRequests(requesterId?: string, status?: string): Promise<BatchVerificationRequest[]> {
     let requests = Array.from(this.batchVerificationRequests.values());
-    
+
     if (requesterId) {
       requests = requests.filter(r => r.requesterId === requesterId);
     }
-    
+
     if (status) {
       requests = requests.filter(r => r.status === status);
     }
-    
+
     return requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -3776,7 +3826,7 @@ export class MemStorage implements IStorage {
       });
     }
   }
-  
+
   // API Verification Access
   async getApiVerificationAccess(apiKeyId: string): Promise<ApiVerificationAccess | undefined> {
     return Array.from(this.apiVerificationAccess.values())
@@ -3785,11 +3835,11 @@ export class MemStorage implements IStorage {
 
   async getAllApiVerificationAccess(isActive?: boolean): Promise<ApiVerificationAccess[]> {
     let accesses = Array.from(this.apiVerificationAccess.values());
-    
+
     if (isActive !== undefined) {
       accesses = accesses.filter(a => a.isActive === isActive);
     }
-    
+
     return accesses.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -3852,7 +3902,7 @@ export class MemStorage implements IStorage {
       suspensionReason: reason
     });
   }
-  
+
   // Real-time Verification Sessions
   async getRealtimeVerificationSession(sessionId: string): Promise<RealtimeVerificationSession | undefined> {
     return Array.from(this.realtimeVerificationSessions.values())
@@ -3908,7 +3958,7 @@ export class MemStorage implements IStorage {
       });
     }
   }
-  
+
   // Government Database Validations
   async getGovDatabaseValidation(id: string): Promise<GovDatabaseValidation | undefined> {
     return this.govDatabaseValidations.get(id);
@@ -3945,18 +3995,18 @@ export class MemStorage implements IStorage {
   async getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]> {
     let validations = Array.from(this.govDatabaseValidations.values())
       .filter(v => v.validationType === validationType);
-    
+
     if (dateRange) {
-      validations = validations.filter(v => 
+      validations = validations.filter(v =>
         v.requestTimestamp >= dateRange.from && v.requestTimestamp <= dateRange.to
       );
     }
-    
+
     return validations.sort((a, b) => b.requestTimestamp.getTime() - a.requestTimestamp.getTime());
   }
-  
+
   // ===================== AUTONOMOUS MONITORING METHODS =====================
-  
+
   // Autonomous Operations
   async getAutonomousOperation(id: string): Promise<AutonomousOperation | undefined> {
     return this.autonomousOperations.get(id);
@@ -3972,7 +4022,7 @@ export class MemStorage implements IStorage {
     limit?: number;
   }): Promise<AutonomousOperation[]> {
     let operations = Array.from(this.autonomousOperations.values());
-    
+
     if (filters) {
       if (filters.actionType) operations = operations.filter(op => op.actionType === filters.actionType);
       if (filters.targetService) operations = operations.filter(op => op.targetService === filters.targetService);
@@ -3981,7 +4031,7 @@ export class MemStorage implements IStorage {
       if (filters.startDate) operations = operations.filter(op => op.startedAt >= filters.startDate!);
       if (filters.endDate) operations = operations.filter(op => op.startedAt <= filters.endDate!);
     }
-    
+
     operations.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
     return filters?.limit ? operations.slice(0, filters.limit) : operations;
   }
@@ -4020,11 +4070,11 @@ export class MemStorage implements IStorage {
   async getOperationHistory(targetService: string, actionType?: string, limit?: number): Promise<AutonomousOperation[]> {
     let operations = Array.from(this.autonomousOperations.values())
       .filter(op => op.targetService === targetService);
-    
+
     if (actionType) {
       operations = operations.filter(op => op.actionType === actionType);
     }
-    
+
     operations.sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
     return limit ? operations.slice(0, limit) : operations;
   }
@@ -4041,13 +4091,13 @@ export class MemStorage implements IStorage {
     limit?: number;
   }): Promise<SystemHealthSnapshot[]> {
     let snapshots = Array.from(this.systemHealthSnapshots.values());
-    
+
     if (filters) {
       if (filters.startDate) snapshots = snapshots.filter(s => s.timestamp >= filters.startDate!);
       if (filters.endDate) snapshots = snapshots.filter(s => s.timestamp <= filters.endDate!);
       if (filters.threatLevel) snapshots = snapshots.filter(s => s.threatLevel === filters.threatLevel);
     }
-    
+
     snapshots.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     return filters?.limit ? snapshots.slice(0, filters.limit) : snapshots;
   }
@@ -4066,7 +4116,7 @@ export class MemStorage implements IStorage {
 
   async getLatestSystemHealth(): Promise<SystemHealthSnapshot | undefined> {
     const snapshots = Array.from(this.systemHealthSnapshots.values());
-    return snapshots.length > 0 ? 
+    return snapshots.length > 0 ?
       snapshots.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0] : undefined;
   }
 
@@ -4080,11 +4130,11 @@ export class MemStorage implements IStorage {
     const snapshots = Array.from(this.systemHealthSnapshots.values())
       .filter(s => s.timestamp >= cutoffTime)
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
-    
+
     const timestamps = snapshots.map(s => s.timestamp);
     const values = snapshots.map(s => (s.resourceMetrics as any)[metricName] || 0);
     const average = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
-    
+
     // Simple trend calculation
     let trend: 'up' | 'down' | 'stable' = 'stable';
     if (values.length >= 2) {
@@ -4095,7 +4145,7 @@ export class MemStorage implements IStorage {
         trend = diff > 0 ? 'up' : 'down';
       }
     }
-    
+
     return { timestamps, values, average, trend };
   }
 
@@ -4161,10 +4211,10 @@ export class MemStorage implements IStorage {
     if (!state) {
       return { state: 'unknown', successRate: 0, avgResponseTime: 0, isHealthy: false };
     }
-    
+
     const totalRequests = state.successCount + state.failureCount;
     const successRate = totalRequests > 0 ? (state.successCount / totalRequests) * 100 : 0;
-    
+
     return {
       state: state.state,
       successRate,
@@ -4185,14 +4235,14 @@ export class MemStorage implements IStorage {
     nextRunTime?: Date;
   }): Promise<MaintenanceTask[]> {
     let tasks = Array.from(this.maintenanceTasks.values());
-    
+
     if (filters) {
       if (filters.taskType) tasks = tasks.filter(t => t.taskType === filters.taskType);
       if (filters.isEnabled !== undefined) tasks = tasks.filter(t => t.isEnabled === filters.isEnabled);
       if (filters.status) tasks = tasks.filter(t => t.status === filters.status);
       if (filters.nextRunTime) tasks = tasks.filter(t => t.nextRunTime <= filters.nextRunTime!);
     }
-    
+
     return tasks.sort((a, b) => a.taskName.localeCompare(b.taskName));
   }
 
@@ -4230,7 +4280,7 @@ export class MemStorage implements IStorage {
     const operations = Array.from(this.autonomousOperations.values())
       .filter(op => op.actionParameters && (op.actionParameters as any).taskId === taskId)
       .sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
-    
+
     return limit ? operations.slice(0, limit) : operations;
   }
 
@@ -4253,13 +4303,13 @@ export class MemStorage implements IStorage {
     severity?: string;
   }): Promise<AlertRule[]> {
     let rules = Array.from(this.alertRules.values());
-    
+
     if (filters) {
       if (filters.category) rules = rules.filter(r => r.category === filters.category);
       if (filters.isEnabled !== undefined) rules = rules.filter(r => r.isEnabled === filters.isEnabled);
       if (filters.severity) rules = rules.filter(r => r.severity === filters.severity);
     }
-    
+
     return rules.sort((a, b) => a.ruleName.localeCompare(b.ruleName));
   }
 
@@ -4289,9 +4339,9 @@ export class MemStorage implements IStorage {
   async evaluateAlertRules(metricName: string, value: number): Promise<AlertRule[]> {
     const rules = Array.from(this.alertRules.values())
       .filter(rule => rule.isEnabled && rule.metricName === metricName);
-    
+
     const triggeredRules: AlertRule[] = [];
-    
+
     for (const rule of rules) {
       let triggered = false;
       switch (rule.operator) {
@@ -4308,13 +4358,13 @@ export class MemStorage implements IStorage {
           triggered = value !== rule.threshold;
           break;
       }
-      
+
       if (triggered) {
         triggeredRules.push(rule);
         await this.updateRuleStatistics(rule.id, true);
       }
     }
-    
+
     return triggeredRules;
   }
 
@@ -4324,19 +4374,19 @@ export class MemStorage implements IStorage {
       const updates: Partial<AlertRule> = {
         lastTriggeredAt: triggered ? new Date() : rule.lastTriggeredAt
       };
-      
+
       if (triggered) {
         updates.triggerCount = rule.triggerCount + 1;
       }
-      
+
       if (falsePositive) {
         updates.falsePositiveCount = rule.falsePositiveCount + 1;
       }
-      
+
       if (rule.triggerCount > 0) {
         updates.accuracy = ((rule.triggerCount - rule.falsePositiveCount) / rule.triggerCount) * 100;
       }
-      
+
       await this.updateAlertRule(ruleId, updates);
     }
   }
@@ -4356,7 +4406,7 @@ export class MemStorage implements IStorage {
     limit?: number;
   }): Promise<Incident[]> {
     let incidents = Array.from(this.incidents.values());
-    
+
     if (filters) {
       if (filters.status) incidents = incidents.filter(i => i.status === filters.status);
       if (filters.severity) incidents = incidents.filter(i => i.severity === filters.severity);
@@ -4365,7 +4415,7 @@ export class MemStorage implements IStorage {
       if (filters.startDate) incidents = incidents.filter(i => i.createdAt >= filters.startDate!);
       if (filters.endDate) incidents = incidents.filter(i => i.createdAt <= filters.endDate!);
     }
-    
+
     incidents.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     return filters?.limit ? incidents.slice(0, filters.limit) : incidents;
   }
@@ -4396,19 +4446,19 @@ export class MemStorage implements IStorage {
   }
 
   async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
-    await this.updateIncident(id, { 
-      status: 'resolved', 
-      resolution, 
-      resolvedBy, 
-      resolvedAt: new Date() 
+    await this.updateIncident(id, {
+      status: 'resolved',
+      resolution,
+      resolvedBy,
+      resolvedAt: new Date()
     });
   }
 
   async closeIncident(id: string, closedBy: string): Promise<void> {
-    await this.updateIncident(id, { 
-      status: 'closed', 
-      closedBy, 
-      closedAt: new Date() 
+    await this.updateIncident(id, {
+      status: 'closed',
+      closedBy,
+      closedAt: new Date()
     });
   }
 
@@ -4422,7 +4472,7 @@ export class MemStorage implements IStorage {
   }> {
     const now = new Date();
     let cutoffTime: Date;
-    
+
     switch (timeframe) {
       case 'day':
         cutoffTime = new Date(now.getTime() - (24 * 60 * 60 * 1000));
@@ -4434,27 +4484,27 @@ export class MemStorage implements IStorage {
         cutoffTime = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
         break;
     }
-    
+
     const incidents = Array.from(this.incidents.values())
       .filter(incident => incident.createdAt >= cutoffTime);
-    
+
     const totalIncidents = incidents.length;
     const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'assigned').length;
     const resolvedIncidents = incidents.filter(i => i.status === 'resolved' || i.status === 'closed').length;
-    
+
     const resolvedWithTime = incidents.filter(i => i.resolvedAt);
-    const averageResolutionTime = resolvedWithTime.length > 0 
-      ? resolvedWithTime.reduce((sum, i) => sum + (i.resolvedAt!.getTime() - i.createdAt.getTime()), 0) / resolvedWithTime.length 
+    const averageResolutionTime = resolvedWithTime.length > 0
+      ? resolvedWithTime.reduce((sum, i) => sum + (i.resolvedAt!.getTime() - i.createdAt.getTime()), 0) / resolvedWithTime.length
       : 0;
-    
+
     const categoryMap = new Map<string, number>();
     const severityMap = new Map<string, number>();
-    
+
     incidents.forEach(incident => {
       categoryMap.set(incident.category, (categoryMap.get(incident.category) || 0) + 1);
       severityMap.set(incident.severity, (severityMap.get(incident.severity) || 0) + 1);
     });
-    
+
     return {
       totalIncidents,
       openIncidents,
@@ -4480,7 +4530,7 @@ export class MemStorage implements IStorage {
     limit?: number;
   }): Promise<GovernmentComplianceAudit[]> {
     let audits = Array.from(this.governmentComplianceAudits.values());
-    
+
     if (filters) {
       if (filters.complianceRequirement) audits = audits.filter(a => a.complianceRequirement === filters.complianceRequirement);
       if (filters.regulatoryFramework) audits = audits.filter(a => a.regulatoryFramework === filters.regulatoryFramework);
@@ -4489,7 +4539,7 @@ export class MemStorage implements IStorage {
       if (filters.startDate) audits = audits.filter(a => a.scheduledDate >= filters.startDate!);
       if (filters.endDate) audits = audits.filter(a => a.scheduledDate <= filters.endDate!);
     }
-    
+
     audits.sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime());
     return filters?.limit ? audits.slice(0, filters.limit) : audits;
   }
@@ -4524,9 +4574,9 @@ export class MemStorage implements IStorage {
     const audits = Array.from(this.governmentComplianceAudits.values())
       .filter(audit => audit.complianceRequirement === requirementType)
       .sort((a, b) => b.scheduledDate.getTime() - a.scheduledDate.getTime());
-    
+
     const lastAudit = audits[0];
-    
+
     if (!lastAudit) {
       return {
         overallStatus: 'non_compliant',
@@ -4536,11 +4586,11 @@ export class MemStorage implements IStorage {
         riskLevel: 'high'
       };
     }
-    
+
     const violations = audits.filter(a => a.complianceStatus === 'non_compliant').length;
     const compliantCount = audits.filter(a => a.complianceStatus === 'compliant').length;
     const totalCount = audits.length;
-    
+
     let overallStatus: 'compliant' | 'non_compliant' | 'partial';
     if (compliantCount === totalCount) {
       overallStatus = 'compliant';
@@ -4549,9 +4599,9 @@ export class MemStorage implements IStorage {
     } else {
       overallStatus = 'partial';
     }
-    
+
     const riskLevel = violations > 5 ? 'high' : violations > 2 ? 'medium' : 'low';
-    
+
     return {
       overallStatus,
       lastAuditDate: lastAudit.scheduledDate,
@@ -4583,13 +4633,13 @@ export class MemStorage implements IStorage {
     lastCalculated?: Date;
   }): Promise<PerformanceBaseline[]> {
     let baselines = Array.from(this.performanceBaselines.values());
-    
+
     if (filters) {
       if (filters.metricName) baselines = baselines.filter(b => b.metricName === filters.metricName);
       if (filters.serviceName) baselines = baselines.filter(b => b.serviceName === filters.serviceName);
       if (filters.lastCalculated) baselines = baselines.filter(b => b.lastCalculatedAt >= filters.lastCalculated!);
     }
-    
+
     return baselines.sort((a, b) => b.lastCalculatedAt.getTime() - a.lastCalculatedAt.getTime());
   }
 
@@ -4617,24 +4667,24 @@ export class MemStorage implements IStorage {
     if (dataPoints.length === 0) {
       throw new Error('Cannot calculate baseline with no data points');
     }
-    
+
     const sum = dataPoints.reduce((a, b) => a + b, 0);
     const mean = sum / dataPoints.length;
-    
+
     // Calculate standard deviation
     const variance = dataPoints.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / dataPoints.length;
     const standardDeviation = Math.sqrt(variance);
-    
+
     const min = Math.min(...dataPoints);
     const max = Math.max(...dataPoints);
-    
+
     // Calculate percentiles
     const sortedData = [...dataPoints].sort((a, b) => a - b);
     const p50 = sortedData[Math.floor(sortedData.length * 0.5)];
     const p90 = sortedData[Math.floor(sortedData.length * 0.9)];
     const p95 = sortedData[Math.floor(sortedData.length * 0.95)];
     const p99 = sortedData[Math.floor(sortedData.length * 0.99)];
-    
+
     return await this.createPerformanceBaseline({
       serviceName,
       metricName,
@@ -4667,7 +4717,7 @@ export class MemStorage implements IStorage {
     baseline: number;
   }> {
     const baseline = await this.getPerformanceBaseline(serviceName, metricName);
-    
+
     if (!baseline) {
       return {
         isAnomaly: false,
@@ -4676,17 +4726,17 @@ export class MemStorage implements IStorage {
         baseline: 0
       };
     }
-    
+
     const deviationScore = Math.abs(currentValue - baseline.baselineValue) / baseline.standardDeviation;
     const isAnomaly = deviationScore > 2; // 2 standard deviations
-    
+
     let severity: 'low' | 'medium' | 'high' = 'low';
     if (deviationScore > 4) {
       severity = 'high';
     } else if (deviationScore > 3) {
       severity = 'medium';
     }
-    
+
     return {
       isAnomaly,
       severity,
@@ -4694,9 +4744,9 @@ export class MemStorage implements IStorage {
       baseline: baseline.baselineValue
     };
   }
-  
+
   // ===================== DOCUMENT VERIFICATION HISTORY METHODS =====================
-  
+
   async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
     const history = Array.from(this.documentVerificationHistoryMap.values())
       .filter(entry => entry.documentId === documentId);
@@ -4709,16 +4759,16 @@ export class MemStorage implements IStorage {
       id,
       createdAt: new Date(),
       metadata: {},
-      ipAddress: (history as any).ipAddress || null,
-      userAgent: (history as any).userAgent || null,
-      documentType: '',
-      documentId: '',
-      action: 'verification',
-      previousValue: null,
-      newValue: null,
-      actionBy: null,
-      actionReason: null,
-      actionNotes: null
+      ipAddress: history.ipAddress || null,
+      userAgent: history.userAgent || null,
+      documentType: history.documentType || '',
+      documentId: history.documentId || '',
+      action: history.action || 'verification',
+      previousValue: history.previousValue || null,
+      newValue: history.newValue || null,
+      actionBy: history.actionBy || null,
+      actionReason: history.actionReason || null,
+      actionNotes: history.actionNotes || null
     };
     this.documentVerificationHistoryMap.set(id, historyEntry);
     return historyEntry;
@@ -4736,13 +4786,13 @@ export class MemStorage implements IStorage {
 // Database-backed storage implementation
 export class DbStorage implements IStorage {
   // ===================== USER METHODS =====================
-  
+
   async getUser(id: string): Promise<User | undefined> {
     if (!db) {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.getUser(id);
     }
-    
+
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user;
@@ -4757,7 +4807,7 @@ export class DbStorage implements IStorage {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.getUserByUsername(username);
     }
-    
+
     try {
       const [user] = await db.select().from(users).where(eq(users.username, username));
       return user;
@@ -4772,7 +4822,7 @@ export class DbStorage implements IStorage {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.getUserByEmail(email);
     }
-    
+
     try {
       const [user] = await db.select().from(users).where(eq(users.email, email));
       return user;
@@ -4787,20 +4837,20 @@ export class DbStorage implements IStorage {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.createUser(insertUser);
     }
-    
+
     try {
       // Ensure password is hashed
-      const hashedPassword = insertUser.password.startsWith('$2b$') 
-        ? insertUser.password 
+      const hashedPassword = insertUser.password.startsWith('$2b$')
+        ? insertUser.password
         : await bcrypt.hash(insertUser.password, 12);
-      
+
       const [newUser] = await db.insert(users).values({
         ...insertUser,
         password: hashedPassword,
         role: insertUser.role || 'user',
         isActive: true
       }).returning();
-      
+
       return newUser;
     } catch (error) {
       console.error('[DbStorage] Error creating user:', error);
@@ -4813,13 +4863,13 @@ export class DbStorage implements IStorage {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.updateUser(id, updates);
     }
-    
+
     try {
       // If password is being updated, hash it
       if (updates.password && !updates.password.startsWith('$2b$')) {
         updates.password = await bcrypt.hash(updates.password, 12);
       }
-      
+
       await db.update(users)
         .set(updates)
         .where(eq(users.id, id));
@@ -4834,7 +4884,7 @@ export class DbStorage implements IStorage {
       console.warn('[DbStorage] Database not available, falling back to memory storage');
       return memStorage.getAllUsers();
     }
-    
+
     try {
       const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
       return allUsers;
@@ -4845,7 +4895,7 @@ export class DbStorage implements IStorage {
   }
 
   // ===================== DATABASE-BACKED ACCOUNT LOCKOUT METHODS =====================
-  
+
   /**
    * Records a failed login attempt and implements account lockout for brute force protection
    * Uses database fields for persistent lockout state across server restarts
@@ -4861,7 +4911,7 @@ export class DbStorage implements IStorage {
       const user = await db.select().from(users)
         .where(or(eq(users.email, identifier), eq(users.username, identifier)))
         .limit(1);
-      
+
       if (user.length === 0) {
         console.warn(`[DbStorage] User not found for identifier: ${identifier}`);
         return;
@@ -4869,13 +4919,13 @@ export class DbStorage implements IStorage {
 
       const currentUser = user[0];
       const newFailedAttempts = (currentUser.failedAttempts || 0) + 1;
-      
+
       // Lock account after 5 failed attempts for 15 minutes
       const updates: Partial<User> = {
         failedAttempts: newFailedAttempts,
         lastFailedAttempt: now
       };
-      
+
       if (newFailedAttempts >= 5) {
         updates.lockedUntil = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes
       }
@@ -4904,24 +4954,24 @@ export class DbStorage implements IStorage {
       const user = await db.select().from(users)
         .where(or(eq(users.email, identifier), eq(users.username, identifier)))
         .limit(1);
-      
+
       if (user.length === 0) {
         return { locked: false, failedAttempts: 0 };
       }
 
       const currentUser = user[0];
       const now = new Date();
-      
+
       // Check if lockout has expired and clear it
       if (currentUser.lockedUntil && now > currentUser.lockedUntil) {
         await db.update(users)
-          .set({ 
-            failedAttempts: 0, 
+          .set({
+            failedAttempts: 0,
             lockedUntil: null,
-            lastFailedAttempt: null 
+            lastFailedAttempt: null
           })
           .where(eq(users.id, currentUser.id));
-          
+
         return { locked: false, failedAttempts: 0 };
       }
 
@@ -4930,7 +4980,7 @@ export class DbStorage implements IStorage {
         lockedUntil: currentUser.lockedUntil || undefined,
         failedAttempts: currentUser.failedAttempts || 0
       };
-      
+
     } catch (error) {
       console.error('[DbStorage] Error checking account lockout:', error);
       // Fail safe: if we can't check lockout, assume not locked to prevent denial of service
@@ -4951,19 +5001,19 @@ export class DbStorage implements IStorage {
       const user = await db.select().from(users)
         .where(or(eq(users.email, identifier), eq(users.username, identifier)))
         .limit(1);
-      
+
       if (user.length === 0) {
         return;
       }
 
       await db.update(users)
-        .set({ 
-          failedAttempts: 0, 
+        .set({
+          failedAttempts: 0,
           lockedUntil: null,
-          lastFailedAttempt: null 
+          lastFailedAttempt: null
         })
         .where(eq(users.id, user[0].id));
-        
+
     } catch (error) {
       console.error('[DbStorage] Error clearing failed login attempts:', error);
       throw new Error('Failed to clear failed login attempts');
@@ -5027,9 +5077,1418 @@ export class DbStorage implements IStorage {
     return memStorage.createSecurityEvent(event);
   }
 
-  // Delegate all other methods to MemStorage for now
-  // This allows the system to work while we gradually migrate methods to database
-  [key: string]: any;
+  // Delegate other methods to MemStorage
+  async getBiometricProfiles(userId: string): Promise<BiometricProfile[]> {
+    return await db.select().from(biometricProfiles).where(eq(biometricProfiles.userId, userId));
+  }
+
+  async createUltraAdminProfile(profile: {
+    userId: string;
+    type: string;
+    ultraEncryptedTemplate: string;
+    quality: number;
+    isUltraAdmin: boolean;
+    registeredAt: string;
+  }): Promise<any> {
+    return await db.insert(ultraAdminProfiles).values({
+      ...profile,
+      createdAt: new Date().toISOString(),
+      isActive: true
+    });
+  }
+
+  async getUltraAdminProfile(userId: string): Promise<any | null> {
+    const results = await db.select().from(ultraAdminProfiles).where(eq(ultraAdminProfiles.userId, userId));
+    return results[0] || null;
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
+    return memStorage.getApiKeyByHash(keyHash);
+  }
+
+  async getAllApiKeys(): Promise<ApiKey[]> {
+    return memStorage.getAllApiKeys();
+  }
+
+  async updateApiKeyLastUsed(keyId: string): Promise<void> {
+    return memStorage.updateApiKeyLastUsed(keyId);
+  }
+
+  async getCertificate(id: string): Promise<Certificate | undefined> {
+    return memStorage.getCertificate(id);
+  }
+
+  async getCertificates(userId: string): Promise<Certificate[]> {
+    return memStorage.getCertificates(userId);
+  }
+
+  async getCertificateByVerificationCode(verificationCode: string): Promise<Certificate | undefined> {
+    return memStorage.getCertificateByVerificationCode(verificationCode);
+  }
+
+  async createCertificate(certificate: InsertCertificate): Promise<Certificate> {
+    return memStorage.createCertificate(certificate);
+  }
+
+  async updateCertificate(id: string, updates: Partial<Certificate>): Promise<void> {
+    return memStorage.updateCertificate(id, updates);
+  }
+
+  async getPermit(id: string): Promise<Permit | undefined> {
+    return memStorage.getPermit(id);
+  }
+
+  async getPermits(userId: string): Promise<Permit[]> {
+    return memStorage.getPermits(userId);
+  }
+
+  async getPermitByVerificationCode(verificationCode: string): Promise<Permit | undefined> {
+    return memStorage.getPermitByVerificationCode(verificationCode);
+  }
+
+  async createPermit(permit: InsertPermit): Promise<Permit> {
+    return memStorage.createPermit(permit);
+  }
+
+  async updatePermit(id: string, updates: Partial<Permit>): Promise<void> {
+    return memStorage.updatePermit(id, updates);
+  }
+
+  async getDocumentTemplate(id: string): Promise<DocumentTemplate | undefined> {
+    return memStorage.getDocumentTemplate(id);
+  }
+
+  async getDocumentTemplates(type?: 'certificate' | 'permit'): Promise<DocumentTemplate[]> {
+    return memStorage.getDocumentTemplates(type);
+  }
+
+  async createDocumentTemplate(template: InsertDocumentTemplate): Promise<DocumentTemplate> {
+    return memStorage.createDocumentTemplate(template);
+  }
+
+  async updateDocumentTemplate(id: string, updates: Partial<DocumentTemplate>): Promise<void> {
+    return memStorage.updateDocumentTemplate(id, updates);
+  }
+
+  async getBirthCertificate(id: string): Promise<BirthCertificate | undefined> {
+    return memStorage.getBirthCertificate(id);
+  }
+
+  async getBirthCertificates(userId: string): Promise<BirthCertificate[]> {
+    return memStorage.getBirthCertificates(userId);
+  }
+
+  async getBirthCertificateByVerificationCode(verificationCode: string): Promise<BirthCertificate | undefined> {
+    return memStorage.getBirthCertificateByVerificationCode(verificationCode);
+  }
+
+  async createBirthCertificate(certificate: InsertBirthCertificate): Promise<BirthCertificate> {
+    return memStorage.createBirthCertificate(certificate);
+  }
+
+  async updateBirthCertificate(id: string, updates: Partial<BirthCertificate>): Promise<void> {
+    return memStorage.updateBirthCertificate(id, updates);
+  }
+
+  async getMarriageCertificate(id: string): Promise<MarriageCertificate | undefined> {
+    return memStorage.getMarriageCertificate(id);
+  }
+
+  async getMarriageCertificates(userId: string): Promise<MarriageCertificate[]> {
+    return memStorage.getMarriageCertificates(userId);
+  }
+
+  async getMarriageCertificateByVerificationCode(verificationCode: string): Promise<MarriageCertificate | undefined> {
+    return memStorage.getMarriageCertificateByVerificationCode(verificationCode);
+  }
+
+  async createMarriageCertificate(certificate: InsertMarriageCertificate): Promise<MarriageCertificate> {
+    return memStorage.createMarriageCertificate(certificate);
+  }
+
+  async updateMarriageCertificate(id: string, updates: Partial<MarriageCertificate>): Promise<void> {
+    return memStorage.updateMarriageCertificate(id, updates);
+  }
+
+  async getPassport(id: string): Promise<Passport | undefined> {
+    return memStorage.getPassport(id);
+  }
+
+  async getPassports(userId: string): Promise<Passport[]> {
+    return memStorage.getPassports(userId);
+  }
+
+  async getPassportByVerificationCode(verificationCode: string): Promise<Passport | undefined> {
+    return memStorage.getPassportByVerificationCode(verificationCode);
+  }
+
+  async createPassport(passport: InsertPassport): Promise<Passport> {
+    return memStorage.createPassport(passport);
+  }
+
+  async updatePassport(id: string, updates: Partial<Passport>): Promise<void> {
+    return memStorage.updatePassport(id, updates);
+  }
+
+  async getDeathCertificate(id: string): Promise<DeathCertificate | undefined> {
+    return memStorage.getDeathCertificate(id);
+  }
+
+  async getDeathCertificates(userId: string): Promise<DeathCertificate[]> {
+    return memStorage.getDeathCertificates(userId);
+  }
+
+  async getDeathCertificateByVerificationCode(verificationCode: string): Promise<DeathCertificate | undefined> {
+    return memStorage.getDeathCertificateByVerificationCode(verificationCode);
+  }
+
+  async createDeathCertificate(certificate: InsertDeathCertificate): Promise<DeathCertificate> {
+    return memStorage.createDeathCertificate(certificate);
+  }
+
+  async updateDeathCertificate(id: string, updates: Partial<DeathCertificate>): Promise<void> {
+    return memStorage.updateDeathCertificate(id, updates);
+  }
+
+  async getWorkPermit(id: string): Promise<WorkPermit | undefined> {
+    return memStorage.getWorkPermit(id);
+  }
+
+  async getWorkPermits(userId: string): Promise<WorkPermit[]> {
+    return memStorage.getWorkPermits(userId);
+  }
+
+  async getWorkPermitByVerificationCode(verificationCode: string): Promise<WorkPermit | undefined> {
+    return memStorage.getWorkPermitByVerificationCode(verificationCode);
+  }
+
+  async createWorkPermit(permit: InsertWorkPermit): Promise<WorkPermit> {
+    return memStorage.createWorkPermit(permit);
+  }
+
+  async updateWorkPermit(id: string, updates: Partial<WorkPermit>): Promise<void> {
+    return memStorage.updateWorkPermit(id, updates);
+  }
+
+  async getPermanentVisa(id: string): Promise<PermanentVisa | undefined> {
+    return memStorage.getPermanentVisa(id);
+  }
+
+  async getPermanentVisas(userId: string): Promise<PermanentVisa[]> {
+    return memStorage.getPermanentVisas(userId);
+  }
+
+  async getPermanentVisaByVerificationCode(verificationCode: string): Promise<PermanentVisa | undefined> {
+    return memStorage.getPermanentVisaByVerificationCode(verificationCode);
+  }
+
+  async createPermanentVisa(visa: InsertPermanentVisa): Promise<PermanentVisa> {
+    return memStorage.createPermanentVisa(visa);
+  }
+
+  async updatePermanentVisa(id: string, updates: Partial<PermanentVisa>): Promise<void> {
+    return memStorage.updatePermanentVisa(id, updates);
+  }
+
+  async getIdCard(id: string): Promise<IdCard | undefined> {
+    return memStorage.getIdCard(id);
+  }
+
+  async getIdCards(userId: string): Promise<IdCard[]> {
+    return memStorage.getIdCards(userId);
+  }
+
+  async getIdCardByVerificationCode(verificationCode: string): Promise<IdCard | undefined> {
+    return memStorage.getIdCardByVerificationCode(verificationCode);
+  }
+
+  async createIdCard(idCard: InsertIdCard): Promise<IdCard> {
+    return memStorage.createIdCard(idCard);
+  }
+
+  async updateIdCard(id: string, updates: Partial<IdCard>): Promise<void> {
+    return memStorage.updateIdCard(id, updates);
+  }
+
+  async getDocumentVerification(id: string): Promise<DocumentVerification | undefined> {
+    return memStorage.getDocumentVerification(id);
+  }
+
+  async getDocumentVerifications(documentType?: string, documentId?: string): Promise<DocumentVerification[]> {
+    return memStorage.getDocumentVerifications(documentType, documentId);
+  }
+
+  async createDocumentVerification(verification: InsertDocumentVerification): Promise<DocumentVerification> {
+    return memStorage.createDocumentVerification(verification);
+  }
+
+  async createDocumentVerificationRecord(record: InsertDocumentVerificationRecord): Promise<DocumentVerificationRecord> {
+    return memStorage.createDocumentVerificationRecord(record);
+  }
+
+  async getDocumentVerificationByCode(verificationCode: string): Promise<DocumentVerificationRecord | undefined> {
+    return memStorage.getDocumentVerificationByCode(verificationCode);
+  }
+
+  async getDocumentVerificationById(id: string): Promise<DocumentVerificationRecord | undefined> {
+    return memStorage.getDocumentVerificationById(id);
+  }
+
+  async updateDocumentVerificationRecord(id: string, updates: Partial<DocumentVerificationRecord>): Promise<void> {
+    return memStorage.updateDocumentVerificationRecord(id, updates);
+  }
+
+  async logDocumentVerification(log: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    return memStorage.logDocumentVerification(log);
+  }
+
+  async getDhaApplicant(id: string): Promise<DhaApplicant | undefined> {
+    return memStorage.getDhaApplicant(id);
+  }
+
+  async getDhaApplicants(userId: string): Promise<DhaApplicant[]> {
+    return memStorage.getDhaApplicants(userId);
+  }
+
+  async createDhaApplicant(applicant: InsertDhaApplicant): Promise<DhaApplicant> {
+    return memStorage.createDhaApplicant(applicant);
+  }
+
+  async updateDhaApplicant(id: string, updates: Partial<DhaApplicant>): Promise<void> {
+    return memStorage.updateDhaApplicant(id, updates);
+  }
+
+  async getDhaApplication(id: string): Promise<DhaApplication | undefined> {
+    return memStorage.getDhaApplication(id);
+  }
+
+  async getDhaApplications(applicantId?: string, userId?: string): Promise<DhaApplication[]> {
+    return memStorage.getDhaApplications(applicantId, userId);
+  }
+
+  async createDhaApplication(application: InsertDhaApplication): Promise<DhaApplication> {
+    return memStorage.createDhaApplication(application);
+  }
+
+  async updateDhaApplication(id: string, updates: Partial<DhaApplication>): Promise<void> {
+    return memStorage.updateDhaApplication(id, updates);
+  }
+
+  async getDhaVerification(id: string): Promise<DhaVerification | undefined> {
+    return memStorage.getDhaVerification(id);
+  }
+
+  async getDhaVerifications(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    verificationType?: string;
+  }): Promise<DhaVerification[]> {
+    return memStorage.getDhaVerifications(filters);
+  }
+
+  async createDhaVerification(verification: InsertDhaVerification): Promise<DhaVerification> {
+    return memStorage.createDhaVerification(verification);
+  }
+
+  async getDhaAuditEvents(filters?: {
+    applicationId?: string;
+    applicantId?: string;
+    userId?: string;
+    eventType?: string;
+    limit?: number;
+  }): Promise<DhaAuditEvent[]> {
+    return memStorage.getDhaAuditEvents(filters);
+  }
+
+  async createDhaAuditEvent(event: InsertDhaAuditEvent): Promise<DhaAuditEvent> {
+    return memStorage.createDhaAuditEvent(event);
+  }
+
+  async getDhaConsentRecord(id: string): Promise<DhaConsentRecord | undefined> {
+    return memStorage.getDhaConsentRecord(id);
+  }
+
+  async getDhaConsentRecords(applicantId: string): Promise<DhaConsentRecord[]> {
+    return memStorage.getDhaConsentRecords(applicantId);
+  }
+
+  async createDhaConsentRecord(record: InsertDhaConsentRecord): Promise<DhaConsentRecord> {
+    return memStorage.createDhaConsentRecord(record);
+  }
+
+  async updateDhaConsentRecord(id: string, updates: Partial<DhaConsentRecord>): Promise<void> {
+    return memStorage.updateDhaConsentRecord(id, updates);
+  }
+
+  async getDhaBackgroundCheck(id: string): Promise<DhaBackgroundCheck | undefined> {
+    return memStorage.getDhaBackgroundCheck(id);
+  }
+
+  async getDhaBackgroundChecks(filters?: {
+    applicantId?: string;
+    applicationId?: string;
+    checkType?: string;
+  }): Promise<DhaBackgroundCheck[]> {
+    return memStorage.getDhaBackgroundChecks(filters);
+  }
+
+  async createDhaBackgroundCheck(check: InsertDhaBackgroundCheck): Promise<DhaBackgroundCheck> {
+    return memStorage.createDhaBackgroundCheck(check);
+  }
+
+  async updateDhaBackgroundCheck(id: string, updates: Partial<DhaBackgroundCheck>): Promise<void> {
+    return memStorage.updateDhaBackgroundCheck(id, updates);
+  }
+
+  async getEncryptedArtifact(id: string): Promise<EncryptedArtifact | undefined> {
+    return memStorage.getEncryptedArtifact(id);
+  }
+
+  async getEncryptedArtifacts(filters?: {
+    entityType?: string;
+    entityId?: string;
+    artifactType?: string;
+    classificationLevel?: string;
+  }): Promise<EncryptedArtifact[]> {
+    return memStorage.getEncryptedArtifacts(filters);
+  }
+
+  async createEncryptedArtifact(artifact: InsertEncryptedArtifact): Promise<EncryptedArtifact> {
+    return memStorage.createEncryptedArtifact(artifact);
+  }
+
+  async updateEncryptedArtifact(id: string, updates: Partial<EncryptedArtifact>): Promise<void> {
+    return memStorage.updateEncryptedArtifact(id, updates);
+  }
+
+  async deleteEncryptedArtifact(id: string): Promise<void> {
+    return memStorage.deleteEncryptedArtifact(id);
+  }
+
+  async incrementArtifactAccessCount(id: string, accessedBy: string): Promise<void> {
+    return memStorage.incrementArtifactAccessCount(id, accessedBy);
+  }
+
+  async getWorkflowStages(): Promise<WorkflowStage[]> {
+    return memStorage.getWorkflowStages();
+  }
+
+  async getWorkflowStage(id: string): Promise<WorkflowStage | undefined> {
+    return memStorage.getWorkflowStage(id);
+  }
+
+  async getWorkflowStageByCode(stageCode: string): Promise<WorkflowStage | undefined> {
+    return memStorage.getWorkflowStageByCode(stageCode);
+  }
+
+  async createWorkflowStage(stage: InsertWorkflowStage): Promise<WorkflowStage> {
+    return memStorage.createWorkflowStage(stage);
+  }
+
+  async updateWorkflowStage(id: string, updates: Partial<WorkflowStage>): Promise<void> {
+    return memStorage.updateWorkflowStage(id, updates);
+  }
+
+  async getWorkflowTransitions(fromStageId?: string): Promise<WorkflowTransition[]> {
+    return memStorage.getWorkflowTransitions(fromStageId);
+  }
+
+  async getValidTransitions(fromStageId: string): Promise<WorkflowTransition[]> {
+    return memStorage.getValidTransitions(fromStageId);
+  }
+
+  async createWorkflowTransition(transition: InsertWorkflowTransition): Promise<WorkflowTransition> {
+    return memStorage.createWorkflowTransition(transition);
+  }
+
+  async getDocumentWorkflowInstance(id: string): Promise<DocumentWorkflowInstance | undefined> {
+    return memStorage.getDocumentWorkflowInstance(id);
+  }
+
+  async getDocumentWorkflowInstances(filters?: {
+    documentId?: string;
+    documentType?: string;
+    applicantId?: string;
+    workflowStatus?: string;
+    currentStageId?: string;
+  }): Promise<DocumentWorkflowInstance[]> {
+    return memStorage.getDocumentWorkflowInstances(filters);
+  }
+
+  async createDocumentWorkflowInstance(instance: InsertDocumentWorkflowInstance): Promise<DocumentWorkflowInstance> {
+    return memStorage.createDocumentWorkflowInstance(instance);
+  }
+
+  async updateDocumentWorkflowInstance(id: string, updates: Partial<DocumentWorkflowInstance>): Promise<void> {
+    return memStorage.updateDocumentWorkflowInstance(id, updates);
+  }
+
+  async advanceWorkflowToStage(instanceId: string, newStageId: string, updatedBy: string): Promise<void> {
+    return memStorage.advanceWorkflowToStage(instanceId, newStageId, updatedBy);
+  }
+
+  async getWorkflowStageExecutions(workflowInstanceId: string): Promise<WorkflowStageExecution[]> {
+    return memStorage.getWorkflowStageExecutions(workflowInstanceId);
+  }
+
+  async getCurrentStageExecution(workflowInstanceId: string): Promise<WorkflowStageExecution | undefined> {
+    return memStorage.getCurrentStageExecution(workflowInstanceId);
+  }
+
+  async createWorkflowStageExecution(execution: InsertWorkflowStageExecution): Promise<WorkflowStageExecution> {
+    return memStorage.createWorkflowStageExecution(execution);
+  }
+
+  async updateWorkflowStageExecution(id: string, updates: Partial<WorkflowStageExecution>): Promise<void> {
+    return memStorage.updateWorkflowStageExecution(id, updates);
+  }
+
+  async completeStageExecution(id: string, result: string, processedBy: string): Promise<void> {
+    return memStorage.completeStageExecution(id, result, processedBy);
+  }
+
+  async getNotifications(userId?: string, filters?: {
+    category?: string;
+    priority?: string;
+    isRead?: boolean;
+    isArchived?: boolean;
+    requiresAction?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<NotificationEvent[]> {
+    return memStorage.getNotifications(userId, filters);
+  }
+
+  async getNotification(id: string): Promise<NotificationEvent | undefined> {
+    return memStorage.getNotification(id);
+  }
+
+  async createNotification(notification: InsertNotificationEvent): Promise<NotificationEvent> {
+    return memStorage.createNotification(notification);
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    return memStorage.markNotificationAsRead(id);
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<void> {
+    return memStorage.markAllNotificationsAsRead(userId);
+  }
+
+  async archiveNotification(id: string): Promise<void> {
+    return memStorage.archiveNotification(id);
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    return memStorage.deleteNotification(id);
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return memStorage.getUnreadNotificationCount(userId);
+  }
+
+  async getUserNotificationPreferences(userId: string): Promise<UserNotificationPreferences | undefined> {
+    return memStorage.getUserNotificationPreferences(userId);
+  }
+
+  async createUserNotificationPreferences(preferences: InsertUserNotificationPreferences): Promise<UserNotificationPreferences> {
+    return memStorage.createUserNotificationPreferences(preferences);
+  }
+
+  async updateUserNotificationPreferences(userId: string, updates: Partial<UserNotificationPreferences>): Promise<void> {
+    return memStorage.updateUserNotificationPreferences(userId, updates);
+  }
+
+  async getStatusUpdates(filters?: {
+    entityType?: string;
+    entityId?: string;
+    userId?: string;
+    isPublic?: boolean;
+    limit?: number;
+  }): Promise<StatusUpdate[]> {
+    return memStorage.getStatusUpdates(filters);
+  }
+
+  async getLatestStatusUpdate(entityType: string, entityId: string): Promise<StatusUpdate | undefined> {
+    return memStorage.getLatestStatusUpdate(entityType, entityId);
+  }
+
+  async createStatusUpdate(update: InsertStatusUpdate): Promise<StatusUpdate> {
+    return memStorage.createStatusUpdate(update);
+  }
+
+  async getWebSocketSessions(userId?: string): Promise<WebSocketSession[]> {
+    return memStorage.getWebSocketSessions(userId);
+  }
+
+  async getWebSocketSession(socketId: string): Promise<WebSocketSession | undefined> {
+    return memStorage.getWebSocketSession(socketId);
+  }
+
+  async createWebSocketSession(session: InsertWebSocketSession): Promise<WebSocketSession> {
+    return memStorage.createWebSocketSession(session);
+  }
+
+  async updateWebSocketSession(id: string, updates: Partial<WebSocketSession>): Promise<void> {
+    return memStorage.updateWebSocketSession(id, updates);
+  }
+
+  async deactivateWebSocketSession(socketId: string): Promise<void> {
+    return memStorage.deactivateWebSocketSession(socketId);
+  }
+
+  async updateWebSocketLastSeen(socketId: string): Promise<void> {
+    return memStorage.updateWebSocketLastSeen(socketId);
+  }
+
+  async getChatSessions(userId?: string, adminId?: string): Promise<ChatSession[]> {
+    return memStorage.getChatSessions(userId, adminId);
+  }
+
+  async getChatSession(id: string): Promise<ChatSession | undefined> {
+    return memStorage.getChatSession(id);
+  }
+
+  async createChatSession(session: InsertChatSession): Promise<ChatSession> {
+    return memStorage.createChatSession(session);
+  }
+
+  async updateChatSession(id: string, updates: Partial<ChatSession>): Promise<void> {
+    return memStorage.updateChatSession(id, updates);
+  }
+
+  async assignChatSessionToAdmin(sessionId: string, adminId: string): Promise<void> {
+    return memStorage.assignChatSessionToAdmin(sessionId, adminId);
+  }
+
+  async closeChatSession(sessionId: string): Promise<void> {
+    return memStorage.closeChatSession(sessionId);
+  }
+
+  async getAiDocumentSession(id: string): Promise<AiDocumentSession | undefined> {
+    return memStorage.getAiDocumentSession(id);
+  }
+
+  async getAiDocumentSessions(filters?: {
+    userId?: string;
+    conversationId?: string;
+    documentType?: string;
+    processingStatus?: string;
+    limit?: number;
+  }): Promise<AiDocumentSession[]> {
+    return memStorage.getAiDocumentSessions(filters);
+  }
+
+  async createAiDocumentSession(session: InsertAiDocumentSession): Promise<AiDocumentSession> {
+    return memStorage.createAiDocumentSession(session);
+  }
+
+  async updateAiDocumentSession(id: string, updates: Partial<AiDocumentSession>): Promise<void> {
+    return memStorage.updateAiDocumentSession(id, updates);
+  }
+
+  async getDocumentAutoFillTemplate(id: string): Promise<DocumentAutoFillTemplate | undefined> {
+    return memStorage.getDocumentAutoFillTemplate(id);
+  }
+
+  async getDocumentAutoFillTemplates(filters?: {
+    documentType?: string;
+    targetFormType?: string;
+    isActive?: boolean;
+  }): Promise<DocumentAutoFillTemplate[]> {
+    return memStorage.getDocumentAutoFillTemplates(filters);
+  }
+
+  async createDocumentAutoFillTemplate(template: InsertDocumentAutoFillTemplate): Promise<DocumentAutoFillTemplate> {
+    return memStorage.createDocumentAutoFillTemplate(template);
+  }
+
+  async updateDocumentAutoFillTemplate(id: string, updates: Partial<DocumentAutoFillTemplate>): Promise<void> {
+    return memStorage.updateDocumentAutoFillTemplate(id, updates);
+  }
+
+  async getOcrFieldDefinition(id: string): Promise<OcrFieldDefinition | undefined> {
+    return memStorage.getOcrFieldDefinition(id);
+  }
+
+  async getOcrFieldDefinitions(filters?: {
+    fieldName?: string;
+    category?: string;
+    dataType?: string;
+  }): Promise<OcrFieldDefinition[]> {
+    return memStorage.getOcrFieldDefinitions(filters);
+  }
+
+  async createOcrFieldDefinition(definition: InsertOcrFieldDefinition): Promise<OcrFieldDefinition> {
+    return memStorage.createOcrFieldDefinition(definition);
+  }
+
+  async updateOcrFieldDefinition(id: string, updates: Partial<OcrFieldDefinition>): Promise<void> {
+    return memStorage.updateOcrFieldDefinition(id, updates);
+  }
+
+  async getAiKnowledgeBaseEntry(id: string): Promise<AiKnowledgeBase | undefined> {
+    return memStorage.getAiKnowledgeBaseEntry(id);
+  }
+
+  async getAiKnowledgeBase(filters?: {
+    category?: string;
+    documentType?: string;
+    topic?: string;
+    language?: string;
+    isActive?: boolean;
+    limit?: number;
+  }): Promise<AiKnowledgeBase[]> {
+    return memStorage.getAiKnowledgeBase(filters);
+  }
+
+  async createAiKnowledgeBaseEntry(entry: InsertAiKnowledgeBase): Promise<AiKnowledgeBase> {
+    return memStorage.createAiKnowledgeBaseEntry(entry);
+  }
+
+  async updateAiKnowledgeBaseEntry(id: string, updates: Partial<AiKnowledgeBase>): Promise<void> {
+    return memStorage.updateAiKnowledgeBaseEntry(id, updates);
+  }
+
+  async searchAiKnowledgeBase(query: string, category?: string, documentType?: string): Promise<AiKnowledgeBase[]> {
+    return memStorage.searchAiKnowledgeBase(query, category, documentType);
+  }
+
+  async getAiConversationAnalytics(id: string): Promise<AiConversationAnalytics | undefined> {
+    return memStorage.getAiConversationAnalytics(id);
+  }
+
+  async getConversationAnalytics(conversationId: string): Promise<AiConversationAnalytics | undefined> {
+    return memStorage.getConversationAnalytics(conversationId);
+  }
+
+  async createConversationAnalytics(analytics: InsertAiConversationAnalytics): Promise<AiConversationAnalytics> {
+    return memStorage.createConversationAnalytics(analytics);
+  }
+
+  async updateConversationAnalytics(id: string, updates: Partial<AiConversationAnalytics>): Promise<void> {
+    return memStorage.updateConversationAnalytics(id, updates);
+  }
+
+  async getChatMessages(chatSessionId: string): Promise<ChatMessage[]> {
+    return memStorage.getChatMessages(chatSessionId);
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    return memStorage.createChatMessage(message);
+  }
+
+  async markChatMessageAsRead(messageId: string): Promise<void> {
+    return memStorage.markChatMessageAsRead(messageId);
+  }
+
+  async markAllChatMessagesAsRead(chatSessionId: string, userId: string): Promise<void> {
+    return memStorage.markAllChatMessagesAsRead(chatSessionId, userId);
+  }
+
+  async getAuditLogs(filters?: {
+    userId?: string;
+    action?: string;
+    entityType?: string;
+    entityId?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AuditLog[]> {
+    return memStorage.getAuditLogs(filters);
+  }
+
+  async createAuditLog(auditLog: InsertAuditLog): Promise<AuditLog> {
+    return memStorage.createAuditLog(auditLog);
+  }
+
+  async getAuditLogById(id: string): Promise<AuditLog | undefined> {
+    return memStorage.getAuditLogById(id);
+  }
+
+  async getSecurityIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    incidentType?: string;
+    assignedTo?: string;
+    limit?: number;
+  }): Promise<SecurityIncident[]> {
+    return memStorage.getSecurityIncidents(filters);
+  }
+
+  async getSecurityIncident(id: string): Promise<SecurityIncident | undefined> {
+    return memStorage.getSecurityIncident(id);
+  }
+
+  async createSecurityIncident(incident: InsertSecurityIncident): Promise<SecurityIncident> {
+    return memStorage.createSecurityIncident(incident);
+  }
+
+  async updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<void> {
+    return memStorage.updateSecurityIncident(id, updates);
+  }
+
+  async assignIncidentTo(incidentId: string, assignedTo: string): Promise<void> {
+    return memStorage.assignIncidentTo(incidentId, assignedTo);
+  }
+
+  async resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void> {
+    return memStorage.resolveIncident(incidentId, resolution, resolvedBy);
+  }
+
+  async closeSecurityIncident(incidentId: string, closedBy: string): Promise<void> {
+    return memStorage.closeSecurityIncident(incidentId, closedBy);
+  }
+
+  async getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined> {
+    return memStorage.getUserBehaviorProfile(userId);
+  }
+
+  async createUserBehaviorProfile(profile: InsertUserBehaviorProfile): Promise<UserBehaviorProfile> {
+    return memStorage.createUserBehaviorProfile(profile);
+  }
+
+  async updateUserBehaviorProfile(userId: string, updates: Partial<UserBehaviorProfile>): Promise<void> {
+    return memStorage.updateUserBehaviorProfile(userId, updates);
+  }
+
+  async analyzeUserBehavior(userId: string): Promise<{
+    riskScore: number;
+    anomalies: string[];
+    recommendations: string[];
+  }> {
+    return memStorage.analyzeUserBehavior(userId);
+  }
+
+  async getSecurityRules(filters?: {
+    category?: string;
+    isActive?: boolean;
+    ruleType?: string;
+  }): Promise<SecurityRule[]> {
+    return memStorage.getSecurityRules(filters);
+  }
+
+  async getSecurityRule(id: string): Promise<SecurityRule | undefined> {
+    return memStorage.getSecurityRule(id);
+  }
+
+  async createSecurityRule(rule: InsertSecurityRule): Promise<SecurityRule> {
+    return memStorage.createSecurityRule(rule);
+  }
+
+  async updateSecurityRule(id: string, updates: Partial<SecurityRule>): Promise<void> {
+    return memStorage.updateSecurityRule(id, updates);
+  }
+
+  async activateSecurityRule(id: string): Promise<void> {
+    return memStorage.activateSecurityRule(id);
+  }
+
+  async deactivateSecurityRule(id: string): Promise<void> {
+    return memStorage.deactivateSecurityRule(id);
+  }
+
+  async incrementRuleTriggeredCount(id: string): Promise<void> {
+    return memStorage.incrementRuleTriggeredCount(id);
+  }
+
+  async getComplianceEvents(filters?: {
+    regulation?: string;
+    eventType?: string;
+    dataSubjectId?: string;
+    complianceStatus?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<ComplianceEvent[]> {
+    return memStorage.getComplianceEvents(filters);
+  }
+
+  async createComplianceEvent(event: InsertComplianceEvent): Promise<ComplianceEvent> {
+    return memStorage.createComplianceEvent(event);
+  }
+
+  async getComplianceEvent(id: string): Promise<ComplianceEvent | undefined> {
+    return memStorage.getComplianceEvent(id);
+  }
+
+  async updateComplianceEventStatus(id: string, status: string, reviewNotes?: string, reviewedBy?: string): Promise<void> {
+    return memStorage.updateComplianceEventStatus(id, status, reviewNotes, reviewedBy);
+  }
+
+  async getComplianceReport(regulation: string, startDate: Date, endDate: Date): Promise<{
+    totalEvents: number;
+    compliantEvents: number;
+    nonCompliantEvents: number;
+    eventsByType: Record<string, number>;
+    dataByCategory: Record<string, number>;
+  }> {
+    return memStorage.getComplianceReport(regulation, startDate, endDate);
+  }
+
+  async getSecurityMetrics(filters?: {
+    metricName?: string;
+    timeWindow?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<SecurityMetric[]> {
+    return memStorage.getSecurityMetrics(filters);
+  }
+
+  async createSecurityMetric(metric: InsertSecurityMetric): Promise<SecurityMetric> {
+    return memStorage.createSecurityMetric(metric);
+  }
+
+  async getLatestSecurityMetrics(metricNames: string[]): Promise<SecurityMetric[]> {
+    return memStorage.getLatestSecurityMetrics(metricNames);
+  }
+
+  async getSecurityMetricTrends(metricName: string, timeWindow: string, periods: number): Promise<SecurityMetric[]> {
+    return memStorage.getSecurityMetricTrends(metricName, timeWindow, periods);
+  }
+
+  async getRefugeeDocument(id: string): Promise<RefugeeDocument | undefined> {
+    return memStorage.getRefugeeDocument(id);
+  }
+
+  async getRefugeeDocuments(userId?: string): Promise<RefugeeDocument[]> {
+    return memStorage.getRefugeeDocuments(userId);
+  }
+
+  async createRefugeeDocument(document: InsertRefugeeDocument): Promise<RefugeeDocument> {
+    return memStorage.createRefugeeDocument(document);
+  }
+
+  async updateRefugeeDocument(id: string, updates: Partial<RefugeeDocument>): Promise<void> {
+    return memStorage.updateRefugeeDocument(id, updates);
+  }
+
+  async getDiplomaticPassport(id: string): Promise<DiplomaticPassport | undefined> {
+    return memStorage.getDiplomaticPassport(id);
+  }
+
+  async getDiplomaticPassports(userId?: string): Promise<DiplomaticPassport[]> {
+    return memStorage.getDiplomaticPassports(userId);
+  }
+
+  async createDiplomaticPassport(passport: InsertDiplomaticPassport): Promise<DiplomaticPassport> {
+    return memStorage.createDiplomaticPassport(passport);
+  }
+
+  async updateDiplomaticPassport(id: string, updates: Partial<DiplomaticPassport>): Promise<void> {
+    return memStorage.updateDiplomaticPassport(id, updates);
+  }
+
+  async getDocumentDelivery(id: string): Promise<DocumentDelivery | undefined> {
+    return memStorage.getDocumentDelivery(id);
+  }
+
+  async getDocumentDeliveries(userId?: string): Promise<DocumentDelivery[]> {
+    return memStorage.getDocumentDeliveries(userId);
+  }
+
+  async createDocumentDelivery(delivery: InsertDocumentDelivery): Promise<DocumentDelivery> {
+    return memStorage.createDocumentDelivery(delivery);
+  }
+
+  async updateDocumentDelivery(id: string, updates: Partial<DocumentDelivery>): Promise<void> {
+    return memStorage.updateDocumentDelivery(id, updates);
+  }
+
+  async getDhaOffice(id: string): Promise<DhaOffice | undefined> {
+    return memStorage.getDhaOffice(id);
+  }
+
+  async getDhaOffices(province?: string): Promise<DhaOffice[]> {
+    return memStorage.getDhaOffices(province);
+  }
+
+  async createDhaOffice(office: InsertDhaOffice): Promise<DhaOffice> {
+    return memStorage.createDhaOffice(office);
+  }
+
+  async updateDhaOffice(id: string, updates: Partial<DhaOffice>): Promise<void> {
+    return memStorage.updateDhaOffice(id, updates);
+  }
+
+  async getAmsCertificate(id: string): Promise<AmsCertificate | undefined> {
+    return memStorage.getAmsCertificate(id);
+  }
+
+  async getAmsCertificates(userId?: string, status?: string): Promise<AmsCertificate[]> {
+    return memStorage.getAmsCertificates(userId, status);
+  }
+
+  async getAmsCertificateByNumber(certificateNumber: string): Promise<AmsCertificate | undefined> {
+    return memStorage.getAmsCertificateByNumber(certificateNumber);
+  }
+
+  async createAmsCertificate(certificate: InsertAmsCertificate): Promise<AmsCertificate> {
+    return memStorage.createAmsCertificate(certificate);
+  }
+
+  async updateAmsCertificate(id: string, updates: Partial<AmsCertificate>): Promise<void> {
+    return memStorage.updateAmsCertificate(id, updates);
+  }
+
+  async verifyAmsCertificate(id: string, verifiedBy: string): Promise<void> {
+    return memStorage.verifyAmsCertificate(id, verifiedBy);
+  }
+
+  async revokeAmsCertificate(id: string, reason: string): Promise<void> {
+    return memStorage.revokeAmsCertificate(id, reason);
+  }
+
+  async suspendAmsCertificate(id: string, reason: string): Promise<void> {
+    return memStorage.suspendAmsCertificate(id, reason);
+  }
+
+  async renewAmsCertificate(id: string, newExpiryDate: Date): Promise<AmsCertificate> {
+    return memStorage.renewAmsCertificate(id, newExpiryDate);
+  }
+
+  async getPermitStatusChanges(permitId: string): Promise<PermitStatusChange[]> {
+    return memStorage.getPermitStatusChanges(permitId);
+  }
+
+  async createPermitStatusChange(change: InsertPermitStatusChange): Promise<PermitStatusChange> {
+    return memStorage.createPermitStatusChange(change);
+  }
+
+  async getLatestPermitStatus(permitId: string): Promise<PermitStatusChange | undefined> {
+    return memStorage.getLatestPermitStatus(permitId);
+  }
+
+  async updatePermitStatus(permitId: string, newStatus: string, changedBy: string, reason: string): Promise<PermitStatusChange> {
+    return memStorage.updatePermitStatus(permitId, newStatus, changedBy, reason);
+  }
+
+  async getDocumentVerificationStatus(documentId: string): Promise<DocumentVerificationStatus | undefined> {
+    return memStorage.getDocumentVerificationStatus(documentId);
+  }
+
+  async getDocumentVerificationStatuses(documentType?: string): Promise<DocumentVerificationStatus[]> {
+    return memStorage.getDocumentVerificationStatuses(documentType);
+  }
+
+  async createDocumentVerificationStatus(status: InsertDocumentVerificationStatus): Promise<DocumentVerificationStatus> {
+    return memStorage.createDocumentVerificationStatus(status);
+  }
+
+  async updateDocumentVerificationStatus(id: string, updates: Partial<DocumentVerificationStatus>): Promise<void> {
+    return memStorage.updateDocumentVerificationStatus(id, updates);
+  }
+
+  async updateDocumentStatus(documentId: string, newStatus: string, updatedBy: string, reason?: string): Promise<void> {
+    return memStorage.updateDocumentStatus(documentId, newStatus, updatedBy, reason);
+  }
+
+  async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
+    return memStorage.getDocumentVerificationHistory(documentId);
+  }
+
+  async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    return memStorage.createDocumentVerificationHistory(history);
+  }
+
+  async getVerificationHistoryByType(documentType: string, limit?: number): Promise<DocumentVerificationHistory[]> {
+    return memStorage.getVerificationHistoryByType(documentType, limit);
+  }
+
+  async getBatchVerificationRequest(id: string): Promise<BatchVerificationRequest | undefined> {
+    return memStorage.getBatchVerificationRequest(id);
+  }
+
+  async getBatchVerificationRequests(requesterId?: string, status?: string): Promise<BatchVerificationRequest[]> {
+    return memStorage.getBatchVerificationRequests(requesterId, status);
+  }
+
+  async createBatchVerificationRequest(request: InsertBatchVerificationRequest): Promise<BatchVerificationRequest> {
+    return memStorage.createBatchVerificationRequest(request);
+  }
+
+  async updateBatchVerificationRequest(id: string, updates: Partial<BatchVerificationRequest>): Promise<void> {
+    return memStorage.updateBatchVerificationRequest(id, updates);
+  }
+
+  async getBatchVerificationItems(batchRequestId: string): Promise<BatchVerificationItem[]> {
+    return memStorage.getBatchVerificationItems(batchRequestId);
+  }
+
+  async createBatchVerificationItem(item: InsertBatchVerificationItem): Promise<BatchVerificationItem> {
+    return memStorage.createBatchVerificationItem(item);
+  }
+
+  async updateBatchVerificationItem(id: string, updates: Partial<BatchVerificationItem>): Promise<void> {
+    return memStorage.updateBatchVerificationItem(id, updates);
+  }
+
+  async processBatchVerificationItem(itemId: string, result: any): Promise<void> {
+    return memStorage.processBatchVerificationItem(itemId, result);
+  }
+
+  async getApiVerificationAccess(apiKeyId: string): Promise<ApiVerificationAccess | undefined> {
+    return memStorage.getApiVerificationAccess(apiKeyId);
+  }
+
+  async getAllApiVerificationAccess(isActive?: boolean): Promise<ApiVerificationAccess[]> {
+    return memStorage.getAllApiVerificationAccess(isActive);
+  }
+
+  async createApiVerificationAccess(access: InsertApiVerificationAccess): Promise<ApiVerificationAccess> {
+    return memStorage.createApiVerificationAccess(access);
+  }
+
+  async updateApiVerificationAccess(id: string, updates: Partial<ApiVerificationAccess>): Promise<void> {
+    return memStorage.updateApiVerificationAccess(id, updates);
+  }
+
+  async incrementApiUsage(apiKeyId: string, successful: boolean): Promise<void> {
+    return memStorage.incrementApiUsage(apiKeyId, successful);
+  }
+
+  async resetApiUsageCounters(apiKeyId: string): Promise<void> {
+    return memStorage.resetApiUsageCounters(apiKeyId);
+  }
+
+  async suspendApiAccess(id: string, reason: string): Promise<void> {
+    return memStorage.suspendApiAccess(id, reason);
+  }
+
+  async getRealtimeVerificationSession(sessionId: string): Promise<RealtimeVerificationSession | undefined> {
+    return memStorage.getRealtimeVerificationSession(sessionId);
+  }
+
+  async createRealtimeVerificationSession(session: InsertRealtimeVerificationSession): Promise<RealtimeVerificationSession> {
+    return memStorage.createRealtimeVerificationSession(session);
+  }
+
+  async updateRealtimeVerificationSession(id: string, updates: Partial<RealtimeVerificationSession>): Promise<void> {
+    return memStorage.updateRealtimeVerificationSession(id, updates);
+  }
+
+  async getActiveVerificationSessions(): Promise<RealtimeVerificationSession[]> {
+    return memStorage.getActiveVerificationSessions();
+  }
+
+  async expireVerificationSession(sessionId: string): Promise<void> {
+    return memStorage.expireVerificationSession(sessionId);
+  }
+
+  async incrementSessionVerificationCount(sessionId: string): Promise<void> {
+    return memStorage.incrementSessionVerificationCount(sessionId);
+  }
+
+  async getGovDatabaseValidation(id: string): Promise<GovDatabaseValidation | undefined> {
+    return memStorage.getGovDatabaseValidation(id);
+  }
+
+  async getGovDatabaseValidationsByRecord(verificationRecordId: string): Promise<GovDatabaseValidation[]> {
+    return memStorage.getGovDatabaseValidationsByRecord(verificationRecordId);
+  }
+
+  async createGovDatabaseValidation(validation: InsertGovDatabaseValidation): Promise<GovDatabaseValidation> {
+    return memStorage.createGovDatabaseValidation(validation);
+  }
+
+  async updateGovDatabaseValidation(id: string, updates: Partial<GovDatabaseValidation>): Promise<void> {
+    return memStorage.updateGovDatabaseValidation(id, updates);
+  }
+
+  async getValidationResults(validationType: string, dateRange?: { from: Date; to: Date }): Promise<GovDatabaseValidation[]> {
+    return memStorage.getValidationResults(validationType, dateRange);
+  }
+
+  async getAutonomousOperation(id: string): Promise<AutonomousOperation | undefined> {
+    return memStorage.getAutonomousOperation(id);
+  }
+
+  async getAutonomousOperations(filters?: {
+    actionType?: string;
+    targetService?: string;
+    status?: string;
+    triggeredBy?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<AutonomousOperation[]> {
+    return memStorage.getAutonomousOperations(filters);
+  }
+
+  async createAutonomousOperation(operation: InsertAutonomousOperation): Promise<AutonomousOperation> {
+    return memStorage.createAutonomousOperation(operation);
+  }
+
+  async updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<void> {
+    return memStorage.updateAutonomousOperation(id, updates);
+  }
+
+  async getActiveAutonomousOperations(): Promise<AutonomousOperation[]> {
+    return memStorage.getActiveAutonomousOperations();
+  }
+
+  async getOperationHistory(targetService: string, actionType?: string, limit?: number): Promise<AutonomousOperation[]> {
+    return memStorage.getOperationHistory(targetService, actionType, limit);
+  }
+
+  async getSystemHealthSnapshot(id: string): Promise<SystemHealthSnapshot | undefined> {
+    return memStorage.getSystemHealthSnapshot(id);
+  }
+
+  async getSystemHealthSnapshots(filters?: {
+    startDate?: Date;
+    endDate?: Date;
+    threatLevel?: string;
+    limit?: number;
+  }): Promise<SystemHealthSnapshot[]> {
+    return memStorage.getSystemHealthSnapshots(filters);
+  }
+
+  async createSystemHealthSnapshot(snapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot> {
+    return memStorage.createSystemHealthSnapshot(snapshot);
+  }
+
+  async getLatestSystemHealth(): Promise<SystemHealthSnapshot | undefined> {
+    return memStorage.getLatestSystemHealth();
+  }
+
+  async getHealthTrends(metricName: string, hours: number): Promise<{
+    timestamps: Date[];
+    values: number[];
+    average: number;
+    trend: 'up' | 'down' | 'stable';
+  }> {
+    return memStorage.getHealthTrends(metricName, hours);
+  }
+
+  async getPerformanceBaseline(serviceName: string, metricName: string): Promise<PerformanceBaseline | undefined> {
+    return memStorage.getPerformanceBaseline(serviceName, metricName);
+  }
+
+  async getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined> {
+    return memStorage.getCircuitBreakerState(serviceName);
+  }
+
+  async getAllCircuitBreakerStates(): Promise<CircuitBreakerState[]> {
+    return memStorage.getAllCircuitBreakerStates();
+  }
+
+  async createCircuitBreakerState(state: InsertCircuitBreakerState): Promise<CircuitBreakerState> {
+    return memStorage.createCircuitBreakerState(state);
+  }
+
+  async updateCircuitBreakerState(serviceName: string, updates: Partial<CircuitBreakerState>): Promise<void> {
+    return memStorage.updateCircuitBreakerState(serviceName, updates);
+  }
+
+  async recordServiceCall(serviceName: string, success: boolean, responseTime: number): Promise<void> {
+    return memStorage.recordServiceCall(serviceName, success, responseTime);
+  }
+
+  async getServiceHealth(serviceName: string): Promise<{
+    state: string;
+    successRate: number;
+    avgResponseTime: number;
+    isHealthy: boolean;
+  }> {
+    return memStorage.getServiceHealth(serviceName);
+  }
+
+  async getMaintenanceTask(id: string): Promise<MaintenanceTask | undefined> {
+    return memStorage.getMaintenanceTask(id);
+  }
+
+  async getMaintenanceTasks(filters?: {
+    taskType?: string;
+    isEnabled?: boolean;
+    status?: string;
+    nextRunTime?: Date;
+  }): Promise<MaintenanceTask[]> {
+    return memStorage.getMaintenanceTasks(filters);
+  }
+
+  async createMaintenanceTask(task: InsertMaintenanceTask): Promise<MaintenanceTask> {
+    return memStorage.createMaintenanceTask(task);
+  }
+
+  async updateMaintenanceTask(id: string, updates: Partial<MaintenanceTask>): Promise<void> {
+    return memStorage.updateMaintenanceTask(id, updates);
+  }
+
+  async getScheduledTasks(): Promise<MaintenanceTask[]> {
+    return memStorage.getScheduledTasks();
+  }
+
+  async getTaskHistory(taskId: string, limit?: number): Promise<AutonomousOperation[]> {
+    return memStorage.getTaskHistory(taskId, limit);
+  }
+
+  async enableMaintenanceTask(id: string): Promise<void> {
+    return memStorage.enableMaintenanceTask(id);
+  }
+
+  async disableMaintenanceTask(id: string): Promise<void> {
+    return memStorage.disableMaintenanceTask(id);
+  }
+
+  async getAlertRule(id: string): Promise<AlertRule | undefined> {
+    return memStorage.getAlertRule(id);
+  }
+
+  async getAlertRules(filters?: {
+    category?: string;
+    isEnabled?: boolean;
+    severity?: string;
+  }): Promise<AlertRule[]> {
+    return memStorage.getAlertRules(filters);
+  }
+
+  async createAlertRule(rule: InsertAlertRule): Promise<AlertRule> {
+    return memStorage.createAlertRule(rule);
+  }
+
+  async updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<void> {
+    return memStorage.updateAlertRule(id, updates);
+  }
+
+  async evaluateAlertRules(metricName: string, value: number): Promise<AlertRule[]> {
+    return memStorage.evaluateAlertRules(metricName, value);
+  }
+
+  async updateRuleStatistics(ruleId: string, triggered: boolean, falsePositive?: boolean): Promise<void> {
+    return memStorage.updateRuleStatistics(ruleId, triggered, falsePositive);
+  }
+
+  async getIncident(id: string): Promise<Incident | undefined> {
+    return memStorage.getIncident(id);
+  }
+
+  async getIncidents(filters?: {
+    status?: string;
+    severity?: string;
+    category?: string;
+    assignedTo?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<Incident[]> {
+    return memStorage.getIncidents(filters);
+  }
+
+  async createIncident(incident: InsertIncident): Promise<Incident> {
+    return memStorage.createIncident(incident);
+  }
+
+  async updateIncident(id: string, updates: Partial<Incident>): Promise<void> {
+    return memStorage.updateIncident(id, updates);
+  }
+
+  async assignIncident(id: string, assignedTo: string, assignedTeam?: string): Promise<void> {
+    return memStorage.assignIncident(id, assignedTo, assignedTeam);
+  }
+
+  async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
+    return memStorage.resolveIncident(id, resolution, resolvedBy);
+  }
+
+  async closeIncident(id: string, closedBy: string): Promise<void> {
+    return memStorage.closeIncident(id, closedBy);
+  }
+
+  async getIncidentStatistics(timeframe: 'day' | 'week' | 'month'): Promise<{
+    totalIncidents: number;
+    openIncidents: number;
+    resolvedIncidents: number;
+    averageResolutionTime: number;
+    incidentsByCategory: Array<{ category: string; count: number }>;
+    incidentsBySeverity: Array<{ severity: string; count: number }>;
+  }> {
+    return memStorage.getIncidentStatistics(timeframe);
+  }
+
+  async getGovernmentComplianceAudit(id: string): Promise<GovernmentComplianceAudit | undefined> {
+    return memStorage.getGovernmentComplianceAudit(id);
+  }
+
+  async getComplianceAudits(filters?: {
+    complianceRequirement?: string;
+    regulatoryFramework?: string;
+    complianceStatus?: string;
+    auditType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }): Promise<GovernmentComplianceAudit[]> {
+    return memStorage.getComplianceAudits(filters);
+  }
+
+  async createComplianceAudit(audit: InsertGovernmentComplianceAudit): Promise<GovernmentComplianceAudit> {
+    return memStorage.createComplianceAudit(audit);
+  }
+
+  async updateComplianceAudit(id: string, updates: Partial<GovernmentComplianceAudit>): Promise<void> {
+    return memStorage.updateComplianceAudit(id, updates);
+  }
+
+  async getComplianceStatus(requirementType: string): Promise<{
+    overallStatus: 'compliant' | 'non_compliant' | 'partial';
+    lastAuditDate: Date;
+    nextAuditDate: Date;
+    violations: number;
+    riskLevel: string;
+  }> {
+    return memStorage.getComplianceStatus(requirementType);
+  }
+
+  async scheduleComplianceAudit(requirement: string, framework: string, scheduledDate: Date): Promise<void> {
+    return memStorage.scheduleComplianceAudit(requirement, framework, scheduledDate);
+  }
+
+  async getPerformanceBaselines(filters?: {
+    metricName?: string;
+    serviceName?: string;
+    lastCalculated?: Date;
+  }): Promise<PerformanceBaseline[]> {
+    return memStorage.getPerformanceBaselines(filters);
+  }
+
+  async createPerformanceBaseline(baseline: InsertPerformanceBaseline): Promise<PerformanceBaseline> {
+    return memStorage.createPerformanceBaseline(baseline);
+  }
+
+  async updatePerformanceBaseline(id: string, updates: Partial<PerformanceBaseline>): Promise<void> {
+    return memStorage.updatePerformanceBaseline(id, updates);
+  }
+
+  async calculateBaseline(serviceName: string, metricName: string, dataPoints: number[]): Promise<PerformanceBaseline> {
+    return memStorage.calculateBaseline(serviceName, metricName, dataPoints);
+  }
+
+  async detectAnomalies(serviceName: string, metricName: string, currentValue: number): Promise<{
+    isAnomaly: boolean;
+    severity: 'low' | 'medium' | 'high';
+    deviationScore: number;
+    baseline: number;
+  }> {
+    return memStorage.detectAnomalies(serviceName, metricName, currentValue);
+  }
+
+  async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
+    return memStorage.getDocumentVerificationHistory(documentId);
+  }
+
+  async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
+    return memStorage.createDocumentVerificationHistory(history);
+  }
+
+  async getVerificationHistoryByIp(ipAddress: string, hours: number = 24): Promise<DocumentVerificationHistory[]> {
+    return memStorage.getVerificationHistoryByIp(ipAddress, hours);
+  }
+
+  async getVerificationAnalytics(dateRange?: { from: Date; to: Date }) {
+    return memStorage.getVerificationAnalytics(dateRange);
+  }
 }
 
 // Create instances

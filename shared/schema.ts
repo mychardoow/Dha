@@ -17,18 +17,18 @@ export const documentTypeEnum = pgEnum('document_type', [
   'smart_id_card',
   'identity_document_book',
   'temporary_id_certificate',
-  
+
   // Travel Documents (3)
   'south_african_passport',
   'emergency_travel_certificate',
   'refugee_travel_document',
-  
+
   // Civil Documents (4)
   'birth_certificate',
-  'death_certificate', 
+  'death_certificate',
   'marriage_certificate',
   'divorce_certificate',
-  
+
   // Immigration Documents (11)
   'general_work_visa',
   'critical_skills_work_visa',
@@ -41,11 +41,11 @@ export const documentTypeEnum = pgEnum('document_type', [
   'exchange_visa',
   'relatives_visa',
   'permanent_residence_permit',
-  
+
   // Additional DHA Documents (2)
   'certificate_of_exemption',
   'certificate_of_south_african_citizenship',
-  
+
   // Legacy compatibility (keep existing data working)
   'passport', 'sa_id', 'smart_id', 'temporary_id',
   'study_permit', 'work_permit', 'business_permit', 'transit_visa',
@@ -59,7 +59,7 @@ export const processingStatusEnum = pgEnum('processing_status', [
 
 // DHA 8-Stage Workflow Enums
 export const workflowStageEnum = pgEnum('workflow_stage', [
-  'draft', 'identity_verification', 'eligibility_check', 'background_verification', 
+  'draft', 'identity_verification', 'eligibility_check', 'background_verification',
   'payment', 'adjudication', 'approved', 'issued'
 ]);
 
@@ -141,7 +141,7 @@ export const countryEnum = pgEnum('country', [
 ]);
 
 export const provinceEnum = pgEnum('province', [
-  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal', 
+  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
   'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
 ]);
 
@@ -152,12 +152,12 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
   isActive: boolean("is_active").notNull().default(true),
-  
+
   // Account lockout fields for brute force protection
   failedAttempts: integer("failed_attempts").notNull().default(0),
   lockedUntil: timestamp("locked_until"),
   lastFailedAttempt: timestamp("last_failed_attempt"),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -187,31 +187,31 @@ export const aiDocumentSessions = pgTable("ai_document_sessions", {
   conversationId: varchar("conversation_id").references(() => conversations.id),
   documentId: varchar("document_id").references(() => documents.id),
   documentType: documentTypeEnum("document_type").notNull(),
-  
+
   // OCR Processing Results
   ocrResults: jsonb("ocr_results"), // Full OCR extraction results
   extractedFields: jsonb("extracted_fields"), // Structured field data
   mrzData: jsonb("mrz_data"), // MRZ parsing results for passports
-  
+
   // Auto-Fill Mapping
   fieldMappings: jsonb("field_mappings"), // Maps OCR fields to form fields
   autoFillData: jsonb("auto_fill_data"), // Data ready for form population
-  
+
   // AI Analysis
   aiAnalysis: jsonb("ai_analysis"), // AI insights about the document
   suggestions: jsonb("suggestions"), // AI suggestions for form completion
   validationIssues: jsonb("validation_issues"), // Identified issues
-  
+
   // Processing Status
   processingStatus: processingStatusEnum("processing_status").notNull().default("pending"),
   confidenceScore: integer("confidence_score"), // Overall processing confidence 0-100
   qualityScore: integer("quality_score"), // Document quality score 0-100
-  
+
   // Metadata
   processingStarted: timestamp("processing_started").notNull().default(sql`now()`),
   processingCompleted: timestamp("processing_completed"),
   processingDuration: integer("processing_duration"), // milliseconds
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -223,25 +223,25 @@ export const documentAutoFillTemplates = pgTable("document_auto_fill_templates",
   description: text("description"),
   documentType: documentTypeEnum("document_type").notNull(),
   targetFormType: text("target_form_type").notNull(), // e.g., 'passport_application', 'work_permit_form'
-  
+
   // Field Mapping Configuration
   fieldMappings: jsonb("field_mappings").notNull(), // OCR field -> Form field mappings
   requiredFields: jsonb("required_fields"), // Required fields for this template
   optionalFields: jsonb("optional_fields"), // Optional fields that can be auto-filled
-  
+
   // Validation Rules
   validationRules: jsonb("validation_rules"), // Rules for validating extracted data
   dataTransformations: jsonb("data_transformations"), // Transform rules for data format conversion
-  
+
   // AI Configuration
   aiPromptTemplate: text("ai_prompt_template"), // Template for AI assistance prompts
   aiValidationPrompt: text("ai_validation_prompt"), // AI validation instructions
-  
+
   // Template Metadata
   version: text("version").notNull().default("1.0"),
   isActive: boolean("is_active").notNull().default(true),
   priority: integer("priority").notNull().default(0), // Higher priority templates used first
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -253,26 +253,26 @@ export const ocrFieldDefinitions = pgTable("ocr_field_definitions", {
   displayName: text("display_name").notNull(), // Human-readable field name
   description: text("description"),
   dataType: text("data_type").notNull(), // 'text', 'date', 'number', 'boolean', 'email', 'phone'
-  
+
   // Field Properties
   category: text("category").notNull(), // 'personal', 'document', 'address', 'contact'
   isRequired: boolean("is_required").notNull().default(false),
   isVerificationField: boolean("is_verification_field").notNull().default(false),
-  
+
   // Validation Configuration
   validationPattern: text("validation_pattern"), // Regex pattern for validation
   minLength: integer("min_length"),
   maxLength: integer("max_length"),
   allowedValues: jsonb("allowed_values"), // Array of allowed values for select fields
-  
+
   // Processing Hints
   extractionHints: jsonb("extraction_hints"), // Hints for OCR extraction
   commonVariations: jsonb("common_variations"), // Common variations of field names
   relatedFields: jsonb("related_fields"), // Fields that should be processed together
-  
+
   // Internationalization
   translations: jsonb("translations"), // Translations for all 11 SA languages
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -285,27 +285,27 @@ export const aiKnowledgeBase = pgTable("ai_knowledge_base", {
   topic: text("topic").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
-  
+
   // Multilingual Support
   language: text("language").notNull().default("en"),
   translations: jsonb("translations"), // Content in all 11 SA languages
-  
+
   // Metadata
   keywords: jsonb("keywords"), // Search keywords
   tags: jsonb("tags"), // Categorization tags
   priority: integer("priority").notNull().default(0),
-  
+
   // Versioning
   version: text("version").notNull().default("1.0"),
   isActive: boolean("is_active").notNull().default(true),
   effectiveDate: timestamp("effective_date").notNull().default(sql`now()`),
   expiryDate: timestamp("expiry_date"),
-  
+
   // Usage Statistics
   viewCount: integer("view_count").notNull().default(0),
   useCount: integer("use_count").notNull().default(0),
   lastUsed: timestamp("last_used"),
-  
+
   createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -316,30 +316,30 @@ export const aiConversationAnalytics = pgTable("ai_conversation_analytics", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   conversationId: varchar("conversation_id").notNull().references(() => conversations.id),
   userId: varchar("user_id").references(() => users.id),
-  
+
   // Conversation Metrics
   totalMessages: integer("total_messages").notNull().default(0),
   averageResponseTime: integer("average_response_time"), // milliseconds
   userSatisfactionRating: integer("user_satisfaction_rating"), // 1-5 scale
-  
+
   // Content Analysis
   topicsDiscussed: jsonb("topics_discussed"), // Array of topics
   documentsProcessed: jsonb("documents_processed"), // Documents handled in conversation
   formsAutoFilled: jsonb("forms_auto_filled"), // Forms that were auto-filled
-  
+
   // Language and Localization
   primaryLanguage: text("primary_language").notNull().default("en"),
   languagesSwitched: jsonb("languages_switched"), // Languages used during conversation
-  
+
   // Success Metrics
   taskCompleted: boolean("task_completed").notNull().default(false),
   assistanceEffectiveness: integer("assistance_effectiveness"), // 1-100 score
   errorCount: integer("error_count").notNull().default(0),
-  
+
   // Technical Metrics
   ocrProcessingCount: integer("ocr_processing_count").notNull().default(0),
   autoFillSuccessRate: decimal("auto_fill_success_rate", { precision: 5, scale: 2 }), // Percentage
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -531,7 +531,7 @@ export const amsCertificates = pgTable("ams_certificates", {
   // SECURITY FIX: Biometric data moved to encrypted storage
   // biometricData removed - use encryptedArtifacts table for sensitive data
   biometricArtifactId: varchar("biometric_artifact_id").references(() => encryptedArtifacts.id),
-  
+
   // STRUCTURED ENDORSEMENTS AND RESTRICTIONS (replacing jsonb catch-alls)
   endorsements: text("endorsements").array(), // Array of endorsement codes
   restrictions: text("restrictions").array(), // Array of restriction codes
@@ -633,13 +633,13 @@ export const dhaOffices = pgTable("dha_offices", {
   saturdayClose: text("saturday_close"),
   sundayOpen: text("sunday_open"), // Optional for Sunday service
   sundayClose: text("sunday_close"),
-  
+
   servicesOffered: text().array(), // Array of services
   hasRefugeeServices: boolean("has_refugee_services").notNull().default(false),
   hasDiplomaticServices: boolean("has_diplomatic_services").notNull().default(false),
   collectionAvailable: boolean("collection_available").notNull().default(true),
   wheelchairAccessible: boolean("wheelchair_accessible").notNull().default(false),
-  
+
   // STRUCTURED COORDINATES (replacing jsonb catch-all)
   latitude: decimal("latitude", { precision: 10, scale: 8 }), // GPS latitude
   longitude: decimal("longitude", { precision: 11, scale: 8 }), // GPS longitude
@@ -651,45 +651,45 @@ export const dhaOffices = pgTable("dha_offices", {
 // This table stores all sensitive data with application-layer envelope encryption
 export const encryptedArtifacts = pgTable("encrypted_artifacts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Reference Information
   entityType: text("entity_type").notNull(), // 'biometric', 'document', 'signature', 'personal_data'
   entityId: varchar("entity_id").notNull(), // ID of the entity this artifact belongs to
   artifactType: text("artifact_type").notNull(), // 'template_data', 'image', 'document_scan', 'signature'
-  
+
   // Encrypted Data
   encryptedData: text("encrypted_data").notNull(), // Base64-encoded encrypted data
   encryptionAlgorithm: encryptionAlgorithmEnum("encryption_algorithm").notNull(),
   keyId: text("key_id").notNull(), // References the encryption key used
   iv: text("iv").notNull(), // Initialization vector for encryption
   salt: text("salt"), // Salt for key derivation if applicable
-  
+
   // Digital Signature for Integrity
   digitalSignature: text("digital_signature").notNull(),
   signatureAlgorithm: signatureAlgorithmEnum("signature_algorithm").notNull(),
   signingKeyId: text("signing_key_id").notNull(),
   signatureFormat: text("signature_format").notNull().default("base64"), // 'base64', 'hex', 'der'
-  
+
   // Access Control
   classificationLevel: classificationLevelEnum("classification_level").notNull().default("confidential"),
   accessControlList: jsonb("access_control_list").notNull(), // Who can decrypt this data
-  
+
   // Metadata (non-sensitive)
   dataSize: integer("data_size").notNull(), // Size of original data in bytes
   compressionUsed: boolean("compression_used").notNull().default(false),
   compressionAlgorithm: text("compression_algorithm"), // 'gzip', 'lz4', etc.
-  
+
   // Audit Trail
   createdBy: varchar("created_by").notNull().references(() => users.id),
   accessedBy: jsonb("accessed_by"), // Array of user IDs who accessed this data
   lastAccessedAt: timestamp("last_accessed_at"),
   accessCount: integer("access_count").notNull().default(0),
-  
+
   // Compliance and Retention
   retentionPolicy: text("retention_policy"), // 'indefinite', '7_years', '10_years', etc.
   purgeDate: timestamp("purge_date"), // When this data should be purged
   popiaCategory: text("popia_category"), // POPIA data category for compliance
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -705,28 +705,28 @@ export const biometricProfiles = pgTable("biometric_profiles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   type: biometricTypeEnum("type").notNull(),
-  
+
   // SECURITY FIX: No more plaintext biometric data
   // templateData is now stored in encryptedArtifacts table
   encryptedArtifactId: varchar("encrypted_artifact_id").notNull().references(() => encryptedArtifacts.id),
-  
+
   // Non-sensitive metadata only
   quality: integer("quality").notNull(), // 0-100 quality score
   isVerified: boolean("is_verified").notNull().default(false),
   enrollmentDate: timestamp("enrollment_date").notNull().default(sql`now()`),
   lastUsed: timestamp("last_used"),
   isActive: boolean("is_active").notNull().default(true),
-  
+
   // Template characteristics (non-sensitive)
   templateVersion: text("template_version").notNull().default("1.0"),
   algorithmUsed: text("algorithm_used"), // Algorithm used to create template
   qualityMetrics: jsonb("quality_metrics"), // Non-sensitive quality measurements
-  
+
   // Audit and Compliance
   enrollmentMethod: text("enrollment_method"), // 'live_capture', 'import', 'mobile_app'
   enrollmentDevice: text("enrollment_device"), // Device identifier
   enrollmentLocation: text("enrollment_location"), // Office/location where enrolled
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -741,25 +741,25 @@ export const workflowStages = pgTable("workflow_stages", {
   stageName: text("stage_name").notNull(),
   stageOrder: integer("stage_order").notNull(),
   description: text("description").notNull(),
-  
+
   // Stage Configuration
   isRequired: boolean("is_required").notNull().default(true),
   canSkip: boolean("can_skip").notNull().default(false),
   requiresApproval: boolean("requires_approval").notNull().default(false),
-  
+
   // SLA and Timing
   expectedDurationHours: integer("expected_duration_hours"),
   maxDurationHours: integer("max_duration_hours"),
   warningThresholdHours: integer("warning_threshold_hours"),
-  
+
   // Automation Settings
   canAutomate: boolean("can_automate").notNull().default(false),
   automationRules: jsonb("automation_rules"),
-  
+
   // Access Control
   requiredPermissions: jsonb("required_permissions"), // What permissions needed to work on this stage
   allowedRoles: jsonb("allowed_roles"), // Which roles can process this stage
-  
+
   // Metadata
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
@@ -774,20 +774,20 @@ export const workflowTransitions = pgTable("workflow_transitions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   fromStageId: varchar("from_stage_id").references(() => workflowStages.id),
   toStageId: varchar("to_stage_id").notNull().references(() => workflowStages.id),
-  
+
   // Transition Rules
   transitionType: text("transition_type").notNull(), // 'normal', 'rejection', 'escalation', 'skip'
   isAutomated: boolean("is_automated").notNull().default(false),
   requiresApproval: boolean("requires_approval").notNull().default(false),
-  
+
   // Conditions for transition
   transitionConditions: jsonb("transition_conditions"), // JSON rules for when this transition can occur
   requiredData: jsonb("required_data"), // What data must be present for transition
-  
+
   // Business Rules
   businessRules: jsonb("business_rules"), // Business logic to validate transition
   validationRules: jsonb("validation_rules"), // Technical validation rules
-  
+
   // Metadata
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
@@ -800,61 +800,61 @@ export const workflowTransitions = pgTable("workflow_transitions", {
 // Document Workflow Instances - Tracks actual workflow execution for documents
 export const documentWorkflowInstances = pgTable("document_workflow_instances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Document and Application References
   documentId: varchar("document_id").notNull(),
   documentType: documentTypeEnum("document_type").notNull(),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Current State
   currentStageId: varchar("current_stage_id").notNull().references(() => workflowStages.id),
   workflowStatus: workflowStatusEnum("workflow_status").notNull().default("in_progress"),
-  
+
   // Progress Tracking
   startedAt: timestamp("started_at").notNull().default(sql`now()`),
   completedAt: timestamp("completed_at"),
   estimatedCompletionAt: timestamp("estimated_completion_at"),
-  
+
   // SLA Tracking
   totalElapsedHours: integer("total_elapsed_hours").default(0),
   slaBreached: boolean("sla_breached").notNull().default(false),
   slaBreachReason: text("sla_breach_reason"),
-  
+
   // Priority and Escalation
   priorityLevel: priorityLevelEnum("priority_level").notNull().default("normal"),
   escalationLevel: text("escalation_level").default("none"), // 'none', 'supervisor', 'manager', 'director'
   escalationReason: text("escalation_reason"),
   escalatedAt: timestamp("escalated_at"),
   escalatedBy: varchar("escalated_by").references(() => users.id),
-  
+
   // Assignment
   assignedTo: varchar("assigned_to").references(() => users.id),
   assignedAt: timestamp("assigned_at"),
   assignedBy: varchar("assigned_by").references(() => users.id),
-  
+
   // Workflow Data
   workflowData: jsonb("workflow_data"), // All data collected throughout workflow
   stageResults: jsonb("stage_results"), // Results from each completed stage
-  
+
   // Quality Control
   qualityChecksPassed: boolean("quality_checks_passed"),
   qualityIssues: jsonb("quality_issues"),
   qualityCheckedBy: varchar("quality_checked_by").references(() => users.id),
   qualityCheckedAt: timestamp("quality_checked_at"),
-  
+
   // Final Results
   finalDecision: text("final_decision"), // 'approved', 'rejected', 'conditional'
   decisionReason: text("decision_reason"),
   decisionMadeBy: varchar("decision_made_by").references(() => users.id),
   decisionMadeAt: timestamp("decision_made_at"),
-  
+
   // Document Issuance (for approved workflows)
   documentNumber: text("document_number"),
   issueDate: timestamp("issue_date"),
   expiryDate: timestamp("expiry_date"),
   issuedBy: varchar("issued_by").references(() => users.id),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -869,42 +869,42 @@ export const workflowStageExecutions = pgTable("workflow_stage_executions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   workflowInstanceId: varchar("workflow_instance_id").notNull().references(() => documentWorkflowInstances.id),
   stageId: varchar("stage_id").notNull().references(() => workflowStages.id),
-  
+
   // Execution Status
   executionStatus: text("execution_status").notNull().default("pending"), // 'pending', 'in_progress', 'completed', 'failed', 'skipped'
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
-  
+
   // Assignment and Processing
   assignedTo: varchar("assigned_to").references(() => users.id),
   processedBy: varchar("processed_by").references(() => users.id),
-  
+
   // Results and Data
   stageResult: text("stage_result"), // 'passed', 'failed', 'requires_review'
   stageData: jsonb("stage_data"), // Data collected/processed in this stage
   stageScore: integer("stage_score"), // 0-100 score for this stage
-  
+
   // Decision Information
   decision: text("decision"), // 'approve', 'reject', 'refer', 'hold'
   decisionReason: text("decision_reason"),
   reviewNotes: text("review_notes"),
-  
+
   // Timing and SLA
   durationMinutes: integer("duration_minutes"),
   slaMetMinutes: integer("sla_met_minutes"), // Expected duration for this stage
   slaBreached: boolean("sla_breached").notNull().default(false),
-  
+
   // Quality and Verification
   verificationRequired: boolean("verification_required").notNull().default(false),
   verificationStatus: text("verification_status"), // 'pending', 'verified', 'failed'
   verifiedBy: varchar("verified_by").references(() => users.id),
   verifiedAt: timestamp("verified_at"),
-  
+
   // Error Handling
   errorCode: text("error_code"),
   errorMessage: text("error_message"),
   retryCount: integer("retry_count").notNull().default(0),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -1191,7 +1191,7 @@ export const documentVerifications = pgTable("document_verifications", {
 // Password strength validation
 const passwordStrengthSchema = z.string()
   .min(8, "Password must be at least 8 characters long")
-  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
     "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
 
 // Insert schemas
@@ -1349,109 +1349,13 @@ export const insertDocumentVerificationStatusSchema = createInsertSchema(documen
   createdAt: true,
 });
 
-export const insertLiveDocumentVerificationHistorySchema = createInsertSchema(liveDocumentVerificationHistory).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-
-export type Conversation = typeof conversations.$inferSelect;
-export type InsertConversation = z.infer<typeof insertConversationSchema>;
-
-export type Message = typeof messages.$inferSelect;
-export type InsertMessage = z.infer<typeof insertMessageSchema>;
-
-export type Document = typeof documents.$inferSelect;
-export type InsertDocument = z.infer<typeof insertDocumentSchema>;
-
-export type SecurityEvent = typeof securityEvents.$inferSelect;
-export type InsertSecurityEvent = z.infer<typeof insertSecurityEventSchema>;
-
-export type FraudAlert = typeof fraudAlerts.$inferSelect;
-export type InsertFraudAlert = z.infer<typeof insertFraudAlertSchema>;
-
-export type SystemMetric = typeof systemMetrics.$inferSelect;
-export type InsertSystemMetric = z.infer<typeof insertSystemMetricSchema>;
-
-export type QuantumKey = typeof quantumKeys.$inferSelect;
-export type InsertQuantumKey = z.infer<typeof insertQuantumKeySchema>;
-
-export type ErrorLog = typeof errorLogs.$inferSelect;
-export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
-
-export type BiometricProfile = typeof biometricProfiles.$inferSelect;
-export type InsertBiometricProfile = z.infer<typeof insertBiometricProfileSchema>;
-
-export type ApiKey = typeof apiKeys.$inferSelect;
-export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
-
-export type Certificate = typeof certificates.$inferSelect;
-export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
-
-export type Permit = typeof permits.$inferSelect;
-export type InsertPermit = z.infer<typeof insertPermitSchema>;
-
-export type DocumentTemplate = typeof documentTemplates.$inferSelect;
-export type InsertDocumentTemplate = z.infer<typeof insertDocumentTemplateSchema>;
-
-export type BirthCertificate = typeof birthCertificates.$inferSelect;
-export type InsertBirthCertificate = z.infer<typeof insertBirthCertificateSchema>;
-
-export type MarriageCertificate = typeof marriageCertificates.$inferSelect;
-export type InsertMarriageCertificate = z.infer<typeof insertMarriageCertificateSchema>;
-
-export type Passport = typeof passports.$inferSelect;
-export type InsertPassport = z.infer<typeof insertPassportSchema>;
-
-export type DeathCertificate = typeof deathCertificates.$inferSelect;
-export type InsertDeathCertificate = z.infer<typeof insertDeathCertificateSchema>;
-
-export type WorkPermit = typeof workPermits.$inferSelect;
-export type InsertWorkPermit = z.infer<typeof insertWorkPermitSchema>;
-
-export type PermanentVisa = typeof permanentVisas.$inferSelect;
-export type InsertPermanentVisa = z.infer<typeof insertPermanentVisaSchema>;
-
-export type IdCard = typeof idCards.$inferSelect;
-export type InsertIdCard = z.infer<typeof insertIdCardSchema>;
-
-export type DocumentVerification = typeof documentVerifications.$inferSelect;
-export type InsertDocumentVerification = z.infer<typeof insertDocumentVerificationSchema>;
-
-// New table types
-export type RefugeeDocument = typeof refugeeDocuments.$inferSelect;
-export type InsertRefugeeDocument = z.infer<typeof insertRefugeeDocumentSchema>;
-
-export type DiplomaticPassport = typeof diplomaticPassports.$inferSelect;
-export type InsertDiplomaticPassport = z.infer<typeof insertDiplomaticPassportSchema>;
-
-export type DocumentDelivery = typeof documentDelivery.$inferSelect;
-export type InsertDocumentDelivery = z.infer<typeof insertDocumentDeliverySchema>;
-
-
-export type DhaOffice = typeof dhaOffices.$inferSelect;
-export type InsertDhaOffice = z.infer<typeof insertDhaOfficeSchema>;
-
-// AMS Certificate and Status Management types
-export type AmsCertificate = typeof amsCertificates.$inferSelect;
-export type InsertAmsCertificate = z.infer<typeof insertAmsCertificateSchema>;
-
-export type PermitStatusChange = typeof permitStatusChanges.$inferSelect;
-export type InsertPermitStatusChange = z.infer<typeof insertPermitStatusChangeSchema>;
-
-export type DocumentVerificationStatus = typeof documentVerificationStatus.$inferSelect;
-export type InsertDocumentVerificationStatus = z.infer<typeof insertDocumentVerificationStatusSchema>;
-
 // ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
 
 // DHA Applicants - Personal details and citizenship information
 export const dhaApplicants = pgTable("dha_applicants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
-  
+
   // Personal Information
   fullName: text("full_name").notNull(),
   surNames: text("sur_names").notNull(),
@@ -1460,43 +1364,43 @@ export const dhaApplicants = pgTable("dha_applicants", {
   countryOfBirth: text("country_of_birth").notNull(),
   sex: text("sex").notNull(), // 'M', 'F', 'X'
   nationality: text("nationality").notNull(),
-  
+
   // Contact Information
   residentialAddress: text("residential_address").notNull(),
   postalAddress: text("postal_address"),
   phoneNumber: text("phone_number").notNull(),
   emailAddress: text("email_address").notNull().unique(), // UNIQUE CONSTRAINT ADDED
-  
+
   // Identity Information - WITH PRODUCTION CONSTRAINTS
   idNumber: text("id_number").unique(), // South African ID number - UNIQUE CONSTRAINT ADDED
   passportNumber: text("passport_number").unique(), // Current passport number - UNIQUE CONSTRAINT ADDED
   previousPassportNumbers: text("previous_passport_numbers").array(), // Array of previous passport numbers - STRUCTURED
-  
+
   // Citizenship Status
   citizenshipStatus: text("citizenship_status").notNull(), // 'citizen', 'permanent_resident', 'refugee', 'asylum_seeker'
   citizenshipAcquisitionDate: timestamp("citizenship_acquisition_date"),
   citizenshipAcquisitionMethod: text("citizenship_acquisition_method"), // 'birth', 'naturalization', 'descent'
-  
+
   // Parents Information
   motherFullName: text("mother_full_name"),
   motherMaidenName: text("mother_maiden_name"),
   motherIdNumber: text("mother_id_number"),
   fatherFullName: text("father_full_name"),
   fatherIdNumber: text("father_id_number"),
-  
+
   // Biometric Information
   biometricTemplates: jsonb("biometric_templates"), // Fingerprint, facial recognition templates
   biometricQualityScores: jsonb("biometric_quality_scores"),
-  
+
   // Document Information
   photoUrl: text("photo_url"),
   signatureUrl: text("signature_url"),
-  
+
   // Verification Status
   isVerified: boolean("is_verified").notNull().default(false),
   verificationScore: integer("verification_score"),
   verificationNotes: text("verification_notes"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -1504,7 +1408,7 @@ export const dhaApplicants = pgTable("dha_applicants", {
   // ===================== PRODUCTION CONSTRAINTS AND VALIDATIONS =====================
   // Check constraint for South African ID number format (13 digits)
   saIdFormatCheck: check("sa_id_format", sql`${table.idNumber} IS NULL OR ${table.idNumber} ~ '^[0-9]{13}$'`),
-  // Check constraint for passport number format (Letter + 8 digits) 
+  // Check constraint for passport number format (Letter + 8 digits)
   passportFormatCheck: check("passport_format", sql`${table.passportNumber} IS NULL OR ${table.passportNumber} ~ '^[A-Z][0-9]{8}$'`),
   // Check constraint for email format
   emailFormatCheck: check("email_format", sql`${table.emailAddress} ~ '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'`),
@@ -1521,53 +1425,53 @@ export const dhaApplications = pgTable("dha_applications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   userId: varchar("user_id").notNull().references(() => users.id),
-  
+
   // Application Details
   applicationType: text("application_type").notNull(), // 'passport', 'id_document', 'visa', 'permit', 'certificate'
   applicationSubtype: text("application_subtype"), // 'renewal', 'replacement', 'new', 'amendment'
   applicationNumber: text("application_number").notNull().unique(),
-  
+
   // DHA Workflow States
-  currentState: text("current_state").notNull().default("draft"), 
+  currentState: text("current_state").notNull().default("draft"),
   // States: draft → identity_verification → eligibility_check → background_verification → payment_processing → adjudication → approved → issued → active
   previousStates: jsonb("previous_states"), // Array of state history with timestamps
-  
+
   // Application Data
   applicationData: jsonb("application_data").notNull(), // Form data specific to application type
   documentsSubmitted: jsonb("documents_submitted"), // References to uploaded documents
-  
+
   // Processing Information
   priorityLevel: text("priority_level").notNull().default("standard"), // 'urgent', 'standard', 'low'
   processingFee: integer("processing_fee"), // Fee in cents
   paymentStatus: text("payment_status").default("pending"), // 'pending', 'paid', 'refunded', 'failed'
   paymentReference: text("payment_reference"),
-  
+
   // DHA Officer Assignment
   assignedOfficer: text("assigned_officer"),
   assignedOffice: text("assigned_office"),
   assignedDate: timestamp("assigned_date"),
-  
+
   // Verification Results
   identityVerificationResult: text("identity_verification_result"), // 'passed', 'failed', 'pending'
   eligibilityCheckResult: text("eligibility_check_result"),
   backgroundVerificationResult: text("background_verification_result"),
-  
+
   // Decision Information
   decisionStatus: text("decision_status"), // 'approved', 'rejected', 'pending'
   decisionDate: timestamp("decision_date"),
   decisionReason: text("decision_reason"),
   decisionNotes: text("decision_notes"),
-  
+
   // Issuance Information
   issuedDocumentNumber: text("issued_document_number"),
   issuedDate: timestamp("issued_date"),
   expiryDate: timestamp("expiry_date"),
-  
+
   // Collection Information
   collectionMethod: text("collection_method"), // 'office', 'courier', 'post'
   collectionOffice: text("collection_office"),
   collectionDate: timestamp("collection_date"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -1578,58 +1482,58 @@ export const dhaVerifications = pgTable("dha_verifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
-  
+
   // Verification Type and Service
   verificationType: text("verification_type").notNull(), // 'npr', 'abis', 'saps_crc', 'icao_pkd', 'mrz'
   verificationService: text("verification_service").notNull(), // External service used
   verificationMethod: text("verification_method"), // Specific method within service
-  
+
   // Request Information
   requestId: text("request_id").notNull().unique(), // External service request ID
   requestData: jsonb("request_data"), // Data sent to external service
   requestTimestamp: timestamp("request_timestamp").notNull().default(sql`now()`),
-  
+
   // Response Information
   responseStatus: text("response_status").notNull(), // 'success', 'failed', 'timeout', 'error'
   responseData: jsonb("response_data"), // Full response from external service
   responseTimestamp: timestamp("response_timestamp"),
   responseTime: integer("response_time"), // Response time in milliseconds
-  
+
   // Verification Results
   verificationResult: text("verification_result"), // 'verified', 'not_verified', 'inconclusive'
   confidenceScore: integer("confidence_score"), // 0-100 confidence in verification
   matchScore: integer("match_score"), // 0-100 match score for biometric verifications
-  
+
   // NPR Specific Fields
   nprPersonId: text("npr_person_id"), // NPR person identifier
   nprMatchLevel: text("npr_match_level"), // 'exact', 'probable', 'possible'
-  
+
   // ABIS Specific Fields
   abisMatchId: text("abis_match_id"), // ABIS match identifier
   abisBiometricType: text("abis_biometric_type"), // 'fingerprint', 'facial', 'iris'
-  
+
   // SAPS CRC Specific Fields
   sapsReferenceNumber: text("saps_reference_number"),
   sapsClearanceStatus: text("saps_clearance_status"), // 'clear', 'pending', 'record_found'
-  
+
   // PKD Specific Fields
   pkdCertificateStatus: text("pkd_certificate_status"), // 'valid', 'invalid', 'revoked', 'expired'
   pkdIssuerCountry: text("pkd_issuer_country"),
   pkdCertificateSerial: text("pkd_certificate_serial"),
-  
+
   // MRZ Specific Fields
   mrzValidationResult: text("mrz_validation_result"), // 'valid', 'invalid', 'checksum_failed'
   mrzParsedData: jsonb("mrz_parsed_data"),
-  
+
   // Error Information
   errorCode: text("error_code"),
   errorMessage: text("error_message"),
   errorDetails: jsonb("error_details"),
-  
+
   // Retry Information
   retryCount: integer("retry_count").notNull().default(0),
   lastRetryAt: timestamp("last_retry_at"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
@@ -1637,37 +1541,37 @@ export const dhaVerifications = pgTable("dha_verifications", {
 // DHA Audit Events - Complete audit trail of all DHA interactions
 export const dhaAuditEvents = pgTable("dha_audit_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Entity References
   applicationId: varchar("application_id").references(() => dhaApplications.id),
   applicantId: varchar("applicant_id").references(() => dhaApplicants.id),
   userId: varchar("user_id").references(() => users.id),
-  
+
   // Event Information
   eventType: text("event_type").notNull(), // 'application_submitted', 'state_changed', 'verification_completed', etc.
   eventCategory: text("event_category").notNull(), // 'system', 'user', 'external_service', 'administrative'
   eventDescription: text("event_description").notNull(),
-  
+
   // Actor Information
   actorType: text("actor_type").notNull(), // 'user', 'system', 'dha_officer', 'external_service'
   actorId: text("actor_id"), // ID of the actor (user ID, service name, etc.)
   actorName: text("actor_name"), // Human-readable name of actor
-  
+
   // Context Information
   contextData: jsonb("context_data"), // Additional context about the event
   beforeState: jsonb("before_state"), // State before the event
   afterState: jsonb("after_state"), // State after the event
-  
+
   // Request Information
   requestSource: text("request_source"), // 'web', 'mobile', 'api', 'batch_process'
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   sessionId: text("session_id"),
-  
+
   // Compliance Information
   complianceFlags: jsonb("compliance_flags"), // POPIA and other compliance markers
   dataProcessingPurpose: text("data_processing_purpose"), // Legal basis for processing
-  
+
   // Metadata
   timestamp: timestamp("timestamp").notNull().default(sql`now()`),
 });
@@ -1677,48 +1581,48 @@ export const dhaConsentRecords = pgTable("dha_consent_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Consent Information
   consentType: text("consent_type").notNull(), // 'data_processing', 'background_check', 'biometric_capture', 'information_sharing'
   consentPurpose: text("consent_purpose").notNull(), // Specific purpose for which consent is given
   consentScope: jsonb("consent_scope"), // Detailed scope of what is consented to
-  
+
   // Legal Basis
   legalBasis: text("legal_basis").notNull(), // POPIA legal basis - 'consent', 'legitimate_interest', 'legal_obligation', etc.
   lawfulnessAssessment: text("lawfulness_assessment"), // Documentation of lawfulness assessment
-  
+
   // Consent Details
   consentText: text("consent_text").notNull(), // Full text of consent given
   consentVersion: text("consent_version").notNull(), // Version of consent document
   consentLanguage: text("consent_language").notNull().default("en"), // Language in which consent was given
-  
+
   // Consent Status
   consentStatus: text("consent_status").notNull().default("given"), // 'given', 'withdrawn', 'expired'
   consentMethod: text("consent_method").notNull(), // 'digital_signature', 'checkbox', 'verbal', 'written'
-  
+
   // Timing Information
   consentGivenAt: timestamp("consent_given_at").notNull().default(sql`now()`),
   consentExpiresAt: timestamp("consent_expires_at"),
   consentWithdrawnAt: timestamp("consent_withdrawn_at"),
-  
+
   // Evidence
   consentEvidence: jsonb("consent_evidence"), // Digital signature, IP address, etc.
   consentWitness: text("consent_witness"), // Witness to consent if applicable
-  
+
   // Data Subject Rights
   dataSubjectNotified: boolean("data_subject_notified").notNull().default(true),
   dataSubjectRights: jsonb("data_subject_rights"), // Rights explained to data subject
   withdrawalMethod: text("withdrawal_method"), // How consent can be withdrawn
-  
+
   // Processing Information
   processingStartDate: timestamp("processing_start_date"),
   processingEndDate: timestamp("processing_end_date"),
   dataRetentionPeriod: text("data_retention_period"),
-  
+
   // Compliance
   popiaCompliant: boolean("popia_compliant").notNull().default(true),
   complianceNotes: text("compliance_notes"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -1730,58 +1634,58 @@ export const dhaBackgroundChecks = pgTable("dha_background_checks", {
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
   verificationId: varchar("verification_id").references(() => dhaVerifications.id),
-  
+
   // Check Information
   checkType: text("check_type").notNull(), // 'criminal_record', 'credit_check', 'employment_verification', 'reference_check'
   checkProvider: text("check_provider").notNull(), // 'saps', 'credit_bureau', 'employer', etc.
   checkReference: text("check_reference").notNull().unique(), // External reference number
-  
+
   // Request Information
   requestedBy: varchar("requested_by").notNull().references(() => users.id),
   requestDate: timestamp("request_date").notNull().default(sql`now()`),
   requestReason: text("request_reason").notNull(),
-  
+
   // Consent Information
   consentRecordId: varchar("consent_record_id").references(() => dhaConsentRecords.id),
   consentGiven: boolean("consent_given").notNull(),
   consentDate: timestamp("consent_date"),
-  
+
   // Results
   checkStatus: text("check_status").notNull().default("pending"), // 'pending', 'completed', 'failed', 'cancelled'
   resultStatus: text("result_status"), // 'clear', 'records_found', 'inconclusive'
-  
+
   // SAPS Criminal Record Specific
   sapsPolicyNumber: text("saps_policy_number"), // SAPS policy clearance number
   sapsResultCode: text("saps_result_code"),
   sapsResultDescription: text("saps_result_description"),
   criminalRecords: jsonb("criminal_records"), // Array of criminal record details
-  
+
   // General Results
   checkResults: jsonb("check_results"), // Full results from check provider
   riskAssessment: text("risk_assessment"), // 'low', 'medium', 'high'
   riskFactors: jsonb("risk_factors"), // Identified risk factors
-  
+
   // Processing Information
   processingStartDate: timestamp("processing_start_date"),
   processingCompletedDate: timestamp("processing_completed_date"),
   processingDuration: integer("processing_duration"), // Duration in hours
-  
+
   // Validity
   validFromDate: timestamp("valid_from_date"),
   validUntilDate: timestamp("valid_until_date"),
   isExpired: boolean("is_expired").notNull().default(false),
-  
+
   // Quality Assurance
   verifiedBy: varchar("verified_by").references(() => users.id),
   verificationDate: timestamp("verification_date"),
   verificationNotes: text("verification_notes"),
-  
+
   // Appeal Information
   appealable: boolean("appealable").notNull().default(true),
   appealDeadline: timestamp("appeal_deadline"),
   appealSubmitted: boolean("appeal_submitted").notNull().default(false),
   appealOutcome: text("appeal_outcome"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
@@ -1897,7 +1801,7 @@ export const productionBackupSchema = z.object({
 // Document template schema for admin endpoints
 export const documentTemplateSchema = z.object({
   name: z.string().min(1),
-  type: z.enum(["certificate", "permit"]),
+  type: z.string().min(1),
   htmlTemplate: z.string().min(1),
   cssStyles: z.string().min(1),
   officialLayout: z.record(z.any()).optional().default({}),
@@ -1954,7 +1858,7 @@ export const southAfricanIds = pgTable("south_african_ids", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Identity Information
   idNumber: text("id_number").notNull().unique(),
   fullName: text("full_name").notNull(),
@@ -1965,17 +1869,17 @@ export const southAfricanIds = pgTable("south_african_ids", {
   gender: text("gender").notNull(), // 'M', 'F'
   nationality: text("nationality").notNull().default("South African"),
   maritalStatus: text("marital_status"), // 'Single', 'Married', 'Divorced', 'Widowed'
-  
+
   // Physical Characteristics
   eyeColor: text("eye_color"),
   hairColor: text("hair_color"),
   height: text("height"),
   identifyingMarks: text("identifying_marks"),
-  
+
   // Address Information
   residentialAddress: jsonb("residential_address"),
   postalAddress: jsonb("postal_address"),
-  
+
   // Card Information
   cardNumber: text("card_number").unique(),
   cardVersion: text("card_version").default("Smart ID"),
@@ -1983,23 +1887,23 @@ export const southAfricanIds = pgTable("south_african_ids", {
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date"),
   issuingOffice: text("issuing_office").notNull(),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
   biometricTemplate: text("biometric_template"),
-  
+
   // Status and Validity
   status: text("status").notNull().default("active"), // 'active', 'suspended', 'cancelled', 'replaced'
   replacementReason: text("replacement_reason"),
   previousIdNumber: text("previous_id_number"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2011,16 +1915,16 @@ export const studyPermits = pgTable("study_permits", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Permit Information
   permitNumber: text("permit_number").notNull().unique(),
   permitType: text("permit_type").notNull().default("study"),
   section: text("section"), // Section of Immigration Act
-  
+
   // Applicant Details
   passportNumber: text("passport_number").notNull(),
   nationality: text("nationality").notNull(),
-  
+
   // Study Information
   institutionName: text("institution_name").notNull(),
   institutionAddress: jsonb("institution_address"),
@@ -2031,37 +1935,37 @@ export const studyPermits = pgTable("study_permits", {
   fieldOfStudy: text("field_of_study"),
   studyStartDate: timestamp("study_start_date").notNull(),
   studyEndDate: timestamp("study_end_date").notNull(),
-  
+
   // Financial Information
   tuitionFees: integer("tuition_fees"),
   livingExpenses: integer("living_expenses"),
   financialProof: jsonb("financial_proof"),
   sponsorDetails: jsonb("sponsor_details"),
-  
+
   // Permit Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
   validForReEntry: boolean("valid_for_re_entry").default(false),
-  
+
   // Conditions and Endorsements
   conditions: jsonb("conditions"), // Study permit conditions
   endorsements: jsonb("endorsements"),
   workRights: boolean("work_rights").default(false),
   maxWorkHours: integer("max_work_hours"),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2073,12 +1977,12 @@ export const businessPermits = pgTable("business_permits", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Permit Information
   permitNumber: text("permit_number").notNull().unique(),
   permitType: text("permit_type").notNull().default("business"),
   businessCategory: text("business_category"), // 'General Business', 'Investor', 'Self-Employment'
-  
+
   // Business Information
   businessName: text("business_name").notNull(),
   businessRegistration: text("business_registration"),
@@ -2086,40 +1990,40 @@ export const businessPermits = pgTable("business_permits", {
   businessAddress: jsonb("business_address"),
   businessSector: text("business_sector"),
   businessDescription: text("business_description"),
-  
+
   // Investment Information
   investmentAmount: integer("investment_amount"),
   capitalInvestment: integer("capital_investment"),
   jobCreationPlan: text("job_creation_plan"),
   expectedEmployment: integer("expected_employment"),
-  
+
   // Financial Requirements
   businessPlan: text("business_plan_url"),
   financialStatements: jsonb("financial_statements"),
   bankingDetails: jsonb("banking_details"),
-  
+
   // Permit Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
-  
+
   // Conditions and Endorsements
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   geographicLimitations: text("geographic_limitations"),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2131,63 +2035,63 @@ export const visitorsVisas = pgTable("visitors_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   visaType: text("visa_type").notNull().default("visitor"),
   visaCategory: text("visa_category"), // 'Tourism', 'Business', 'Family Visit', 'Medical', 'Conference'
   entries: text("entries"), // 'Single', 'Multiple'
-  
+
   // Visit Information
   purposeOfVisit: text("purpose_of_visit").notNull(),
   intendedDuration: integer("intended_duration"), // Days
   arrivalDate: timestamp("arrival_date"),
   departureDate: timestamp("departure_date"),
-  
+
   // Accommodation
   accommodationType: text("accommodation_type"), // 'Hotel', 'Guest House', 'Private', 'Other'
   accommodationAddress: jsonb("accommodation_address"),
   accommodationContact: jsonb("accommodation_contact"),
-  
+
   // Sponsor/Host Information
   sponsorDetails: jsonb("sponsor_details"),
   hostDetails: jsonb("host_details"),
   relationshipToSponsor: text("relationship_to_sponsor"),
-  
+
   // Financial Support
   financialSupport: jsonb("financial_support"),
   dailyExpenditure: integer("daily_expenditure"),
   totalFunds: integer("total_funds"),
-  
+
   // Travel Information
   entryPoint: text("entry_point"),
   exitPoint: text("exit_point"),
   transportMode: text("transport_mode"), // 'Air', 'Land', 'Sea'
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   validFrom: timestamp("valid_from").notNull(),
   validUntil: timestamp("valid_until").notNull(),
-  
+
   // Conditions and Endorsements
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   workProhibited: boolean("work_prohibited").default(true),
   studyProhibited: boolean("study_prohibited").default(true),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2199,40 +2103,40 @@ export const transitVisas = pgTable("transit_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   transitType: text("transit_type").notNull(), // 'Airport', 'Land', 'Seaport'
   transitDuration: integer("transit_duration"), // Hours
-  
+
   // Travel Information
   originCountry: text("origin_country").notNull(),
   destinationCountry: text("destination_country").notNull(),
   transitRoute: jsonb("transit_route"),
   flightDetails: jsonb("flight_details"),
-  
+
   // Timing
   arrivalDateTime: timestamp("arrival_date_time").notNull(),
   departureDateTime: timestamp("departure_date_time").notNull(),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   validFrom: timestamp("valid_from").notNull(),
   validUntil: timestamp("valid_until").notNull(),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2244,61 +2148,61 @@ export const medicalTreatmentVisas = pgTable("medical_treatment_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   treatmentType: text("treatment_type"), // 'Surgery', 'Therapy', 'Consultation', 'Emergency'
   urgencyLevel: text("urgency_level"), // 'Routine', 'Urgent', 'Emergency'
-  
+
   // Medical Information
   medicalCondition: text("medical_condition").notNull(),
   treatmentDescription: text("treatment_description").notNull(),
   treatmentDuration: integer("treatment_duration"), // Days
   doctorRecommendation: text("doctor_recommendation"),
-  
+
   // Healthcare Provider
   hospitalName: text("hospital_name").notNull(),
   hospitalAddress: jsonb("hospital_address"),
   hospitalRegistration: text("hospital_registration"),
   doctorDetails: jsonb("doctor_details"),
-  
+
   // Treatment Schedule
   treatmentStartDate: timestamp("treatment_start_date").notNull(),
   treatmentEndDate: timestamp("treatment_end_date").notNull(),
   appointmentSchedule: jsonb("appointment_schedule"),
-  
+
   // Financial Arrangements
   treatmentCost: integer("treatment_cost"),
   paymentMethod: text("payment_method"), // 'Self-funded', 'Medical Insurance', 'Government', 'NGO'
   insuranceDetails: jsonb("insurance_details"),
-  
+
   // Accompanying Persons
   accompaniedBy: jsonb("accompanied_by"), // Family members, caregivers
   caregiverDetails: jsonb("caregiver_details"),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   validFrom: timestamp("valid_from").notNull(),
   validUntil: timestamp("valid_until").notNull(),
-  
+
   // Conditions
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   extensionAllowed: boolean("extension_allowed").default(true),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2310,63 +2214,63 @@ export const criticalSkillsVisas = pgTable("critical_skills_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   skillsCategory: text("skills_category").notNull(), // From critical skills list
   professionalBody: text("professional_body"), // SAICA, ECSA, HPCSA, etc.
   registrationNumber: text("registration_number"),
-  
+
   // Professional Qualifications
   qualificationTitle: text("qualification_title").notNull(),
   qualificationLevel: text("qualification_level"), // Degree, Masters, PhD, Professional
   institutionName: text("institution_name").notNull(),
   qualificationCountry: text("qualification_country").notNull(),
   saqa_evaluation: text("saqa_evaluation"), // SAQA evaluation reference
-  
+
   // Professional Experience
   workExperience: integer("work_experience"), // Years of experience
   currentPosition: text("current_position"),
   currentEmployer: text("current_employer"),
   employmentHistory: jsonb("employment_history"),
-  
+
   // Skills Assessment
   skillsAssessment: text("skills_assessment_url"),
   assessingBody: text("assessing_body"),
   assessmentDate: timestamp("assessment_date"),
   assessmentValidUntil: timestamp("assessment_valid_until"),
-  
+
   // Job Offer (if applicable)
   jobOfferLetter: text("job_offer_letter_url"),
   employerName: text("employer_name"),
   employerAddress: jsonb("employer_address"),
   jobTitle: text("job_title"),
   salaryOffered: integer("salary_offered"),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
-  
+
   // Rights and Conditions
   workRights: boolean("work_rights").default(true),
   studyRights: boolean("study_rights").default(false),
   businessRights: boolean("business_rights").default(false),
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2378,70 +2282,70 @@ export const intraCompanyTransferVisas = pgTable("intra_company_transfer_visas",
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   transferType: text("transfer_type"), // 'Manager', 'Executive', 'Specialist Knowledge'
-  
+
   // Home Company Information
   homeCompanyName: text("home_company_name").notNull(),
   homeCompanyAddress: jsonb("home_company_address"),
   homeCompanyRegistration: text("home_company_registration"),
   homeCountry: text("home_country").notNull(),
-  
+
   // SA Company Information
   saCompanyName: text("sa_company_name").notNull(),
   saCompanyAddress: jsonb("sa_company_address"),
   saCompanyRegistration: text("sa_company_registration"),
-  
+
   // Company Relationship
   relationshipType: text("relationship_type"), // 'Subsidiary', 'Branch', 'Affiliate', 'Parent'
   ownershipPercentage: integer("ownership_percentage"),
   relationshipEvidence: text("relationship_evidence_url"),
-  
+
   // Employment Details
   currentPosition: text("current_position").notNull(),
   proposedPosition: text("proposed_position").notNull(),
   transferDuration: integer("transfer_duration"), // Months
   employmentPeriod: integer("employment_period"), // Months with home company
-  
+
   // Qualifications and Experience
   qualifications: jsonb("qualifications"),
   specialistKnowledge: text("specialist_knowledge"),
   managerialExperience: text("managerial_experience"),
-  
+
   // Transfer Details
   transferStartDate: timestamp("transfer_start_date").notNull(),
   transferEndDate: timestamp("transfer_end_date").notNull(),
   transferPurpose: text("transfer_purpose"),
-  
+
   // Financial Information
   salary: integer("salary"),
   allowances: jsonb("allowances"),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
-  
+
   // Conditions
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   workRights: boolean("work_rights").default(true),
   changeEmployerAllowed: boolean("change_employer_allowed").default(false),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2453,68 +2357,68 @@ export const corporateVisas = pgTable("corporate_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   corporateCategory: text("corporate_category"), // 'Executive', 'Senior Management', 'Board Member'
-  
+
   // Corporate Entity Information
   corporateName: text("corporate_name").notNull(),
   corporateRegistration: text("corporate_registration"),
   corporateAddress: jsonb("corporate_address"),
   corporateType: text("corporate_type"), // 'Multinational', 'Listed Company', 'Private Company'
-  
+
   // SA Business Operations
   saBranchOffice: text("sa_branch_office"),
   saRegistrationNumber: text("sa_registration_number"),
   businessActivity: text("business_activity"),
   sectorOfOperation: text("sector_of_operation"),
-  
+
   // Investment Information
   investmentAmount: integer("investment_amount"),
   jobCreationPlan: text("job_creation_plan"),
   expectedEmployees: integer("expected_employees"),
   economicImpact: text("economic_impact"),
-  
+
   // Applicant Role
   positionTitle: text("position_title").notNull(),
   jobDescription: text("job_description"),
   reportingStructure: jsonb("reporting_structure"),
   authorityLevel: text("authority_level"),
-  
+
   // Team and Operations
   teamSize: integer("team_size"),
   budgetResponsibility: integer("budget_responsibility"),
   businessUnitSize: integer("business_unit_size"),
-  
+
   // Qualifications
   educationBackground: jsonb("education_background"),
   professionalExperience: jsonb("professional_experience"),
   managementExperience: integer("management_experience"), // Years
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
-  
+
   // Rights and Conditions
   workRights: boolean("work_rights").default(true),
   businessRights: boolean("business_rights").default(true),
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2526,66 +2430,66 @@ export const treatyVisas = pgTable("treaty_visas", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   treatyReference: text("treaty_reference").notNull(), // Specific treaty reference
   treatyType: text("treaty_type"), // 'Bilateral Agreement', 'Trade Agreement', 'Investment Treaty'
-  
+
   // Treaty Information
   treatyName: text("treaty_name").notNull(),
   signatoryCountries: text().array(),
   treatyArticle: text("treaty_article"), // Specific article under which visa is granted
   treatyProvisions: jsonb("treaty_provisions"),
-  
+
   // Applicant's Country Status
   citizenshipCountry: text("citizenship_country").notNull(),
   treatyEligibility: text("treaty_eligibility"),
   countryStatus: text("country_status"), // 'Signatory', 'Most Favored Nation', etc.
-  
+
   // Purpose and Activities
   treatyPurpose: text("treaty_purpose").notNull(),
   businessActivities: jsonb("business_activities"),
   investmentDetails: jsonb("investment_details"),
   tradeActivities: jsonb("trade_activities"),
-  
+
   // Business Information
   businessName: text("business_name"),
   businessType: text("business_type"),
   businessAddress: jsonb("business_address"),
   businessRegistration: text("business_registration"),
-  
+
   // Investment Information
   investmentAmount: integer("investment_amount"),
   investmentType: text("investment_type"), // 'Direct', 'Portfolio', 'Joint Venture'
   investmentSector: text("investment_sector"),
   jobCreation: integer("job_creation"),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date"),
   renewableUnderTreaty: boolean("renewable_under_treaty").default(true),
-  
+
   // Rights and Conditions
   workRights: boolean("work_rights").default(true),
   businessRights: boolean("business_rights").default(true),
   investmentRights: boolean("investment_rights").default(true),
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2597,16 +2501,16 @@ export const temporaryResidencePermits = pgTable("temporary_residence_permits", 
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Permit Information
   permitNumber: text("permit_number").notNull().unique(),
   permitCategory: text("permit_category").notNull(), // 'General Work', 'Spousal', 'Life Partner', 'Relative'
   section: text("section"), // Section of Immigration Act
-  
+
   // Basis for Permit
   permitBasis: text("permit_basis").notNull(), // 'Employment', 'Relationship', 'Investment', 'Study Continuation'
   eligibilityCriteria: jsonb("eligibility_criteria"),
-  
+
   // Employment Information (if applicable)
   employerName: text("employer_name"),
   employerAddress: jsonb("employer_address"),
@@ -2614,31 +2518,31 @@ export const temporaryResidencePermits = pgTable("temporary_residence_permits", 
   jobDescription: text("job_description"),
   salary: integer("salary"),
   employmentContract: text("employment_contract_url"),
-  
+
   // Relationship Information (if applicable)
   relationshipType: text("relationship_type"), // 'Spouse', 'Life Partner', 'Child'
   partnerDetails: jsonb("partner_details"),
   relationshipProof: jsonb("relationship_proof"),
   dependents: jsonb("dependents"),
-  
+
   // Sponsor Information
   sponsorIdNumber: text("sponsor_id_number"),
   sponsorStatus: text("sponsor_status"), // 'SA Citizen', 'Permanent Resident'
   sponsorEmployment: jsonb("sponsor_employment"),
   sponsorIncome: integer("sponsor_income"),
-  
+
   // Accommodation
   residentialAddress: jsonb("residential_address"),
   accommodationProof: text("accommodation_proof_url"),
   accommodationType: text("accommodation_type"), // 'Own', 'Rental', 'Family'
-  
+
   // Permit Validity and Conditions
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
   renewalEligible: boolean("renewal_eligible").default(true),
   maxRenewals: integer("max_renewals"),
   renewalCount: integer("renewal_count").default(0),
-  
+
   // Rights and Conditions
   workRights: boolean("work_rights").default(false),
   studyRights: boolean("study_rights").default(false),
@@ -2646,25 +2550,25 @@ export const temporaryResidencePermits = pgTable("temporary_residence_permits", 
   geographicRestrictions: text("geographic_restrictions"),
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
-  
+
   // Path to Permanent Residence
   prEligible: boolean("pr_eligible").default(false),
   prEligibilityDate: timestamp("pr_eligibility_date"),
   continuousResidenceRequired: boolean("continuous_residence_required").default(true),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -2691,12 +2595,12 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   documentType: text("document_type").notNull(),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Current Workflow State
-  currentStage: text("current_stage").notNull().default("draft"), 
+  currentStage: text("current_stage").notNull().default("draft"),
   // Stages: 'draft', 'identity_verification', 'eligibility_check', 'background_verification', 'payment', 'adjudication', 'approved', 'issued'
   workflowStatus: text("workflow_status").notNull().default("in_progress"), // 'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'
-  
+
   // Stage 1: Draft
   draftStatus: text("draft_status").default("pending"), // 'pending', 'submitted', 'validated'
   draftSubmittedAt: timestamp("draft_submitted_at"),
@@ -2705,7 +2609,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   draftValidationNotes: text("draft_validation_notes"),
   applicationData: jsonb("application_data"), // Complete application form data
   supportingDocuments: jsonb("supporting_documents"), // URLs and metadata of uploaded docs
-  
+
   // Stage 2: Identity Verification
   identityVerificationStatus: text("identity_verification_status").default("pending"), // 'pending', 'in_progress', 'verified', 'failed'
   nprVerificationResult: jsonb("npr_verification_result"),
@@ -2715,7 +2619,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   identityVerifiedBy: varchar("identity_verified_by").references(() => users.id),
   identityVerifiedAt: timestamp("identity_verified_at"),
   identityVerificationNotes: text("identity_verification_notes"),
-  
+
   // Stage 3: Eligibility Check
   eligibilityCheckStatus: text("eligibility_check_status").default("pending"), // 'pending', 'in_progress', 'eligible', 'ineligible'
   eligibilityCriteria: jsonb("eligibility_criteria"), // Specific criteria for document type
@@ -2724,7 +2628,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   eligibilityCheckedBy: varchar("eligibility_checked_by").references(() => users.id),
   eligibilityCheckedAt: timestamp("eligibility_checked_at"),
   eligibilityNotes: text("eligibility_notes"),
-  
+
   // Stage 4: Background Verification
   backgroundVerificationStatus: text("background_verification_status").default("pending"), // 'pending', 'in_progress', 'cleared', 'flagged'
   sapsCheckResult: jsonb("saps_check_result"),
@@ -2735,7 +2639,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   backgroundVerifiedBy: varchar("background_verified_by").references(() => users.id),
   backgroundVerifiedAt: timestamp("background_verified_at"),
   backgroundVerificationNotes: text("background_verification_notes"),
-  
+
   // Stage 5: Payment
   paymentStatus: text("payment_status").default("pending"), // 'pending', 'processing', 'paid', 'failed', 'refunded'
   paymentAmount: integer("payment_amount"),
@@ -2745,7 +2649,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   paymentDate: timestamp("payment_date"),
   paymentProcessedBy: varchar("payment_processed_by").references(() => users.id),
   paymentNotes: text("payment_notes"),
-  
+
   // Stage 6: Adjudication
   adjudicationStatus: text("adjudication_status").default("pending"), // 'pending', 'in_review', 'approved', 'rejected', 'requires_senior_review'
   adjudicationLevel: text("adjudication_level"), // 'junior_officer', 'senior_officer', 'manager', 'director'
@@ -2757,7 +2661,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   seniorReviewRequired: boolean("senior_review_required").default(false),
   seniorReviewBy: varchar("senior_review_by").references(() => users.id),
   seniorReviewAt: timestamp("senior_review_at"),
-  
+
   // Stage 7: Approved
   approvalStatus: text("approval_status").default("pending"), // 'pending', 'approved', 'conditional'
   approvedBy: varchar("approved_by").references(() => users.id),
@@ -2765,7 +2669,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   approvalReference: text("approval_reference"),
   finalConditions: jsonb("final_conditions"),
   approvalNotes: text("approval_notes"),
-  
+
   // Stage 8: Issued
   issuanceStatus: text("issuance_status").default("pending"), // 'pending', 'generating', 'ready', 'issued', 'delivered'
   documentGenerated: boolean("document_generated").default(false),
@@ -2778,7 +2682,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   deliveryStatus: text("delivery_status"), // 'pending', 'in_transit', 'delivered', 'returned'
   deliveryDate: timestamp("delivery_date"),
   issuedBy: varchar("issued_by").references(() => users.id),
-  
+
   // Security and Verification
   securityClassification: text("security_classification").default("official"), // 'unclassified', 'official', 'confidential', 'secret'
   verificationCode: text("verification_code").unique(),
@@ -2786,7 +2690,7 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   digitalSignature: text("digital_signature"),
   documentHash: text("document_hash"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Workflow Metadata
   totalProcessingTime: integer("total_processing_time"), // Minutes from start to finish
   estimatedCompletionDate: timestamp("estimated_completion_date"),
@@ -2794,15 +2698,14 @@ export const documentProcessingWorkflow = pgTable("document_processing_workflow"
   slaBreached: boolean("sla_breached").default(false),
   priorityLevel: text("priority_level").default("normal"), // 'low', 'normal', 'high', 'urgent'
   escalationLevel: text("escalation_level").default("none"), // 'none', 'supervisor', 'manager', 'director'
-  
+
   // Quality Control
   qualityCheckRequired: boolean("quality_check_required").default(true),
   qualityCheckStatus: text("quality_check_status"), // 'pending', 'passed', 'failed'
   qualityCheckedBy: varchar("quality_checked_by").references(() => users.id),
   qualityCheckedAt: timestamp("quality_checked_at"),
   qualityIssues: jsonb("quality_issues"),
-  
-  // Metadata
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -2847,42 +2750,42 @@ export const fraudDetectionAnalysis = pgTable("fraud_detection_analysis", {
   documentId: varchar("document_id").notNull(),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   workflowId: varchar("workflow_id").references(() => documentProcessingWorkflow.id),
-  
+
   // Risk Scoring
   overallRiskScore: integer("overall_risk_score").notNull(), // 0-100
   riskLevel: text("risk_level").notNull(), // 'low', 'medium', 'high', 'critical'
   riskCategory: text("risk_category"), // 'identity_fraud', 'document_forgery', 'application_fraud', 'behavioral_anomaly'
-  
+
   // Identity Fraud Detection
   identityRiskScore: integer("identity_risk_score"),
   duplicateIdentityFlags: jsonb("duplicate_identity_flags"),
   biometricAnomalies: jsonb("biometric_anomalies"),
   identityPatternAnalysis: jsonb("identity_pattern_analysis"),
-  
+
   // Document Fraud Detection
   documentRiskScore: integer("document_risk_score"),
   documentTamperingIndicators: jsonb("document_tampering_indicators"),
   documentForensicAnalysis: jsonb("document_forensic_analysis"),
   securityFeatureValidation: jsonb("security_feature_validation"),
-  
+
   // Application Fraud Detection
   applicationRiskScore: integer("application_risk_score"),
   dataInconsistencies: jsonb("data_inconsistencies"),
   crossReferenceValidation: jsonb("cross_reference_validation"),
   historicalPatternAnalysis: jsonb("historical_pattern_analysis"),
-  
+
   // Behavioral Analysis
   behavioralRiskScore: integer("behavioral_risk_score"),
   userBehaviorAnalysis: jsonb("user_behavior_analysis"),
   accessPatterns: jsonb("access_patterns"),
   deviceFingerprinting: jsonb("device_fingerprinting"),
-  
+
   // Machine Learning Analysis
   mlModelResults: jsonb("ml_model_results"),
   mlConfidenceScore: integer("ml_confidence_score"),
   mlModelVersion: text("ml_model_version"),
   featureImportance: jsonb("feature_importance"),
-  
+
   // Analysis Metadata
   analysisDate: timestamp("analysis_date").notNull().default(sql`now()`),
   analysisVersion: text("analysis_version").default("1.0"),
@@ -2890,12 +2793,12 @@ export const fraudDetectionAnalysis = pgTable("fraud_detection_analysis", {
   reviewRequired: boolean("review_required").default(false),
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at"),
-  
+
   // Actions Taken
   actionsTaken: jsonb("actions_taken"), // Automated actions like flagging, blocking
   alertsGenerated: jsonb("alerts_generated"),
   investigationRequired: boolean("investigation_required").default(false),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -2909,77 +2812,77 @@ export const exchangePermits = pgTable("exchange_permits", {
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Permit Information
   permitNumber: text("permit_number").notNull().unique(),
   exchangeType: text("exchange_type"), // 'Academic', 'Cultural', 'Professional', 'Youth'
   programName: text("program_name").notNull(),
-  
+
   // Exchange Program Details
   organizingInstitution: text("organizing_institution").notNull(),
   partnerInstitution: text("partner_institution").notNull(),
   programDescription: text("program_description"),
   exchangeDuration: integer("exchange_duration"), // Months
-  
+
   // Academic/Professional Information
   fieldOfStudy: text("field_of_study"),
   professionalArea: text("professional_area"),
   qualificationLevel: text("qualification_level"),
   languageRequirements: jsonb("language_requirements"),
-  
+
   // Program Dates
   programStartDate: timestamp("program_start_date").notNull(),
   programEndDate: timestamp("program_end_date").notNull(),
-  
+
   // Supervision
   supervisorDetails: jsonb("supervisor_details"),
   mentorInformation: jsonb("mentor_information"),
-  
+
   // Financial Arrangements
   stipendAmount: integer("stipend_amount"),
   fundingSource: text("funding_source"), // 'Government', 'Institution', 'Private', 'Self-funded'
   financialSponsor: jsonb("financial_sponsor"),
-  
+
   // Permit Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date").notNull(),
-  
+
   // Conditions
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   workRights: boolean("work_rights").default(false),
   studyRights: boolean("study_rights").default(true),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
 });
 
-// Relative's Visas (if not already included) 
+// Relative's Visas (if not already included)
 export const relativesVisas = pgTable("relatives_visas", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id),
   applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
   applicationId: varchar("application_id").references(() => dhaApplications.id),
-  
+
   // Visa Information
   visaNumber: text("visa_number").notNull().unique(),
   relationshipType: text("relationship_type").notNull(), // 'Spouse', 'Child', 'Parent', 'Sibling'
   visaCategory: text("visa_category").notNull(), // 'Relative', 'Joining Family', 'Spousal'
-  
+
   // Sponsor Information (SA Citizen/Resident)
   sponsorIdNumber: text("sponsor_id_number").notNull(),
   sponsorFullName: text("sponsor_full_name").notNull(),
@@ -2987,51 +2890,51 @@ export const relativesVisas = pgTable("relatives_visas", {
   sponsorProofOfStatus: text("sponsor_proof_of_status"),
   sponsorAddress: jsonb("sponsor_address"),
   sponsorEmployment: jsonb("sponsor_employment"),
-  
+
   // Relationship Evidence
   relationshipProof: jsonb("relationship_proof"), // Marriage cert, birth cert, etc.
   marriageDate: timestamp("marriage_date"),
   marriagePlace: text("marriage_place"),
   marriageCertificateNumber: text("marriage_certificate_number"),
   relationshipDuration: integer("relationship_duration"), // Months
-  
+
   // Living Arrangements
   intendedAddress: jsonb("intended_address"),
   accommodationDetails: jsonb("accommodation_details"),
   supportDetails: jsonb("support_details"),
-  
+
   // Children (if applicable)
   dependentChildren: jsonb("dependent_children"),
   childrenSchooling: jsonb("children_schooling"),
-  
+
   // Financial Support
   sponsorIncome: integer("sponsor_income"),
   supportCapacity: text("support_capacity"),
   financialCommitment: text("financial_commitment"),
-  
+
   // Visa Validity
   issueDate: timestamp("issue_date").notNull(),
   expiryDate: timestamp("expiry_date"),
-  
+
   // Conditions
   conditions: jsonb("conditions"),
   endorsements: jsonb("endorsements"),
   workRights: boolean("work_rights").default(false),
   studyRights: boolean("study_rights").default(false),
-  
+
   // Security Features
   verificationCode: text("verification_code").notNull().unique(),
   qrCodeData: text("qr_code_data"),
   digitalSignature: text("digital_signature"),
   securityFeatures: jsonb("security_features"),
-  
+
   // Status
   status: text("status").notNull().default("active"),
-  
+
   // Document URLs
   documentUrl: text("document_url"),
   qrCodeUrl: text("qr_code_url"),
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at")
@@ -3234,7 +3137,7 @@ export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 
 export const NotificationCategory = {
   SYSTEM: 'system',
-  SECURITY: 'security', 
+  SECURITY: 'security',
   DOCUMENT: 'document',
   USER: 'user',
   ADMIN: 'admin',
@@ -3255,14 +3158,14 @@ export const EventType = {
   SYSTEM_MAINTENANCE: 'system.maintenance',
   SYSTEM_UPDATE: 'system.update',
   SYSTEM_DOWNTIME: 'system.downtime',
-  
-  // Security events  
+
+  // Security events
   SECURITY_BREACH: 'security.breach',
   SECURITY_LOGIN: 'security.login',
   SECURITY_FAILED_LOGIN: 'security.failed_login',
   SECURITY_PASSWORD_CHANGED: 'security.password_changed',
   SECURITY_SUSPICIOUS_ACTIVITY: 'security.suspicious_activity',
-  
+
   // Document events
   DOCUMENT_UPLOADED: 'document.uploaded',
   DOCUMENT_PROCESSING: 'document.processing',
@@ -3272,23 +3175,23 @@ export const EventType = {
   DOCUMENT_EXPIRED: 'document.expired',
   PROCESSING_FAILED: 'processing.failed',
   PROCESSING_COMPLETED: 'processing.completed',
-  
+
   // User events
   USER_REGISTERED: 'user.registered',
   USER_PROFILE_UPDATED: 'user.profile_updated',
   USER_ACCOUNT_LOCKED: 'user.account_locked',
   USER_ACCOUNT_UNLOCKED: 'user.account_unlocked',
-  
+
   // Admin events
   ADMIN_REVIEW_REQUIRED: 'admin.review_required',
   ADMIN_ACTION_COMPLETED: 'admin.action_completed',
   ADMIN_ESCALATION: 'admin.escalation',
-  
+
   // Fraud events
   FRAUD_DETECTED: 'fraud.detected',
   FRAUD_RESOLVED: 'fraud.resolved',
   FRAUD_HIGH_RISK: 'fraud.high_risk',
-  
+
   // Biometric events
   BIOMETRIC_ENROLLED: 'biometric.enrolled',
   BIOMETRIC_VERIFIED: 'biometric.verified',
@@ -3308,36 +3211,36 @@ export const documentVerificationRecords = pgTable("document_verification_record
   documentData: jsonb("document_data").notNull(), // Complete document information
   userId: varchar("user_id").references(() => users.id), // Document holder (optional)
   applicantId: varchar("applicant_id").references(() => dhaApplicants.id), // Associated applicant
-  
+
   // Verification Details
   verificationUrl: text("verification_url").notNull(), // QR code verification URL
   hashtags: text("hashtags").array().notNull().default(sql`'{}'`), // Document hashtags for social verification
   isActive: boolean("is_active").notNull().default(true), // Whether document is active
   verificationCount: integer("verification_count").notNull().default(0), // Number of times verified
   lastVerifiedAt: timestamp("last_verified_at"), // Last verification timestamp
-  
+
   // Document Metadata
   issuedAt: timestamp("issued_at").notNull().default(sql`now()`), // When document was issued
   expiryDate: timestamp("expiry_date"), // Document expiry date
   issuingOffice: text("issuing_office"), // Issuing office name
   issuingOfficer: text("issuing_officer"), // Issuing officer name
-  
+
   // Security Features
   securityFeatures: jsonb("security_features").notNull().default('{}'), // Security feature metadata
   digitalSignature: text("digital_signature"), // Cryptographic signature
   encryptionLevel: text("encryption_level").default("AES-256"), // Encryption standard used
-  
+
   // AI and Fraud Detection
   aiAuthenticityScore: integer("ai_authenticity_score"), // AI-calculated authenticity score (0-100)
   aiVerificationMetadata: jsonb("ai_verification_metadata"), // AI analysis results
   fraudRiskLevel: text("fraud_risk_level").default("low"), // low, medium, high, critical
   antiTamperHash: text("anti_tamper_hash"), // Hash for tampering detection
-  
+
   // Revocation and Status
   revokedAt: timestamp("revoked_at"), // When document was revoked
   revocationReason: text("revocation_reason"), // Reason for revocation
   replacementDocumentId: varchar("replacement_document_id"), // If replaced, ID of new document
-  
+
   // Metadata
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
@@ -3348,44 +3251,44 @@ export const documentVerificationHistory = pgTable("document_verification_histor
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   verificationRecordId: varchar("verification_record_id").notNull().references(() => documentVerificationRecords.id),
   verificationMethod: text("verification_method").notNull(), // qr_scan, manual_entry, document_lookup, batch, api
-  
+
   // Request Information
   requesterInfo: jsonb("requester_info"), // Information about who requested verification
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   location: jsonb("location"), // Geographic location data
   deviceFingerprint: text("device_fingerprint"), // Unique device identifier
-  
+
   // Verification Results
   isSuccessful: boolean("is_successful").notNull(),
   confidenceLevel: integer("confidence_level"), // Verification confidence (0-100)
   verificationScore: integer("verification_score"), // Overall verification score
-  
+
   // Cross-validation Results
   nprValidationResult: jsonb("npr_validation_result"), // NPR database validation
   sapsValidationResult: jsonb("saps_validation_result"), // SAPS database validation
   icaoPkdValidationResult: jsonb("icao_pkd_validation_result"), // ICAO PKD validation
   biometricValidationResult: jsonb("biometric_validation_result"), // Biometric validation
-  
+
   // Fraud Detection Results
   fraudIndicators: jsonb("fraud_indicators"), // Detected fraud indicators
   behavioralAnalysis: jsonb("behavioral_analysis"), // Behavioral pattern analysis
   anomalyDetection: jsonb("anomaly_detection"), // Geographic/temporal anomalies
-  
+
   // Response and Timing
   responseTime: integer("response_time"), // Response time in milliseconds
   errorCode: text("error_code"), // Error code if verification failed
   errorMessage: text("error_message"), // Error message if verification failed
-  
+
   // Security and Privacy
   privacyLevel: text("privacy_level").default("standard"), // standard, enhanced, anonymous
   dataRetentionDays: integer("data_retention_days").default(2555), // 7 years default retention
   complianceFlags: jsonb("compliance_flags"), // POPIA compliance markers
-  
+
   // Real-time Updates
   realTimeNotified: boolean("real_time_notified").default(false), // Whether real-time notification sent
   webhookDelivered: boolean("webhook_delivered").default(false), // Whether webhook was delivered
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`)
 });
 
@@ -3394,7 +3297,7 @@ export const batchVerificationRequests = pgTable("batch_verification_requests", 
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   batchId: text("batch_id").notNull().unique(), // Unique batch identifier
   requesterId: varchar("requester_id").notNull().references(() => users.id), // Who requested the batch
-  
+
   // Batch Information
   batchName: text("batch_name"), // Human-readable batch name
   description: text("description"), // Batch description
@@ -3402,33 +3305,33 @@ export const batchVerificationRequests = pgTable("batch_verification_requests", 
   processedDocuments: integer("processed_documents").notNull().default(0), // Processed count
   successfulVerifications: integer("successful_verifications").notNull().default(0), // Successful count
   failedVerifications: integer("failed_verifications").notNull().default(0), // Failed count
-  
+
   // Processing Status
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   estimatedCompletion: timestamp("estimated_completion"),
-  
+
   // Authorization and Security
   authorizationLevel: text("authorization_level").notNull(), // basic, elevated, administrative
   authorizedBy: varchar("authorized_by").references(() => users.id), // Who authorized the batch
   securityClassification: text("security_classification").default("official"), // Security level
-  
+
   // Progress Tracking
   progressPercentage: integer("progress_percentage").notNull().default(0), // 0-100
   currentDocumentIndex: integer("current_document_index").default(0), // Current position
   lastProcessedAt: timestamp("last_processed_at"), // Last activity timestamp
-  
+
   // Results and Reporting
   resultsSummary: jsonb("results_summary"), // Summary of verification results
   reportUrl: text("report_url"), // URL to detailed report
   errorSummary: jsonb("error_summary"), // Summary of errors encountered
-  
+
   // Rate Limiting and Performance
   rateLimitPerSecond: integer("rate_limit_per_second").default(10), // Requests per second limit
   maxConcurrentVerifications: integer("max_concurrent_verifications").default(5),
   averageVerificationTime: integer("average_verification_time"), // Average time per verification
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -3438,27 +3341,27 @@ export const batchVerificationItems = pgTable("batch_verification_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   batchRequestId: varchar("batch_request_id").notNull().references(() => batchVerificationRequests.id),
   itemIndex: integer("item_index").notNull(), // Position in batch
-  
+
   // Document Information
   verificationCode: text("verification_code").notNull(), // Document verification code to check
   documentNumber: text("document_number"), // Optional document number
   expectedDocumentType: text("expected_document_type"), // Expected document type
-  
+
   // Processing Status
   status: text("status").notNull().default("pending"), // pending, processing, completed, failed
   processedAt: timestamp("processed_at"),
   processingTime: integer("processing_time"), // Time taken to process in milliseconds
-  
+
   // Verification Results
   verificationResult: jsonb("verification_result"), // Complete verification response
   isValid: boolean("is_valid"), // Whether verification was successful
   confidenceScore: integer("confidence_score"), // Verification confidence (0-100)
-  
+
   // Error Information
   errorCode: text("error_code"), // Error code if verification failed
   errorMessage: text("error_message"), // Human-readable error message
   retryCount: integer("retry_count").default(0), // Number of retry attempts
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`)
 });
 
@@ -3468,47 +3371,47 @@ export const apiVerificationAccess = pgTable("api_verification_access", {
   apiKeyId: varchar("api_key_id").notNull().references(() => apiKeys.id), // Associated API key
   organizationName: text("organization_name").notNull(), // Organization name
   contactEmail: text("contact_email").notNull(), // Primary contact
-  
+
   // Access Configuration
   accessLevel: text("access_level").notNull().default("basic"), // basic, standard, premium, enterprise
   allowedDocumentTypes: text("allowed_document_types").array().notNull().default(sql`'{}'`), // Allowed document types
   allowedMethods: text("allowed_methods").array().notNull().default(sql`'{}'`), // qr_scan, manual_entry, document_lookup, batch
-  
+
   // Rate Limiting
   dailyQuota: integer("daily_quota").notNull().default(1000), // Requests per day
   hourlyQuota: integer("hourly_quota").notNull().default(100), // Requests per hour
   burstLimit: integer("burst_limit").notNull().default(10), // Concurrent requests
   currentDailyUsage: integer("current_daily_usage").notNull().default(0),
   currentHourlyUsage: integer("current_hourly_usage").notNull().default(0),
-  
+
   // IP and Geographic Restrictions
   allowedIpRanges: text("allowed_ip_ranges").array().default(sql`'{}'`), // CIDR ranges
   allowedCountries: text("allowed_countries").array().default(sql`'{}'`), // ISO country codes
   blockedIpRanges: text("blocked_ip_ranges").array().default(sql`'{}'`), // Blocked CIDR ranges
-  
+
   // Webhook Configuration
   webhookUrl: text("webhook_url"), // Webhook endpoint for real-time updates
   webhookSecret: text("webhook_secret"), // Secret for webhook verification
   webhookEnabled: boolean("webhook_enabled").default(false),
   webhookEvents: text("webhook_events").array().default(sql`'{}'`), // Events to notify about
-  
+
   // Monitoring and Analytics
   totalRequests: integer("total_requests").notNull().default(0), // Total lifetime requests
   successfulRequests: integer("successful_requests").notNull().default(0), // Successful requests
   failedRequests: integer("failed_requests").notNull().default(0), // Failed requests
   lastUsedAt: timestamp("last_used_at"), // Last API usage
-  
+
   // Status and Lifecycle
   isActive: boolean("is_active").notNull().default(true), // Whether API access is active
   suspendedAt: timestamp("suspended_at"), // If suspended, when
   suspensionReason: text("suspension_reason"), // Reason for suspension
   expiresAt: timestamp("expires_at"), // API access expiry
-  
+
   // Billing and Commercial
   billingTier: text("billing_tier").default("free"), // free, paid, enterprise
   costPerVerification: decimal("cost_per_verification", { precision: 10, scale: 4 }), // Cost per verification
   monthlyBill: decimal("monthly_bill", { precision: 10, scale: 2 }), // Current monthly bill
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -3519,18 +3422,18 @@ export const realtimeVerificationSessions = pgTable("realtime_verification_sessi
   sessionId: text("session_id").notNull().unique(), // Unique session identifier
   socketId: text("socket_id"), // WebSocket connection ID
   userId: varchar("user_id").references(() => users.id), // Optional authenticated user
-  
+
   // Session Configuration
   sessionType: text("session_type").notNull().default("public"), // public, authenticated, api, batch
   verificationMethods: text("verification_methods").array().notNull().default(sql`'{}'`), // Enabled methods
   maxVerifications: integer("max_verifications").default(10), // Session verification limit
   currentVerifications: integer("current_verifications").default(0),
-  
+
   // Real-time Status
   status: text("status").notNull().default("active"), // active, paused, completed, expired
   lastActivity: timestamp("last_activity").notNull().default(sql`now()`),
   expiresAt: timestamp("expires_at").notNull().default(sql`now() + interval '1 hour'`), // 1-hour session timeout
-  
+
   // Geographic and Device Info
   ipAddress: text("ip_address"),
   country: text("country"), // Detected country
@@ -3538,17 +3441,17 @@ export const realtimeVerificationSessions = pgTable("realtime_verification_sessi
   city: text("city"), // Detected city
   userAgent: text("user_agent"),
   deviceInfo: jsonb("device_info"), // Device characteristics
-  
+
   // Security and Fraud Prevention
   riskScore: integer("risk_score").default(0), // Session risk score (0-100)
   fraudFlags: jsonb("fraud_flags"), // Detected fraud indicators
   rateLimited: boolean("rate_limited").default(false), // Whether session is rate limited
   blockedAt: timestamp("blocked_at"), // If blocked, when
-  
+
   // Session Metadata
   metadata: jsonb("metadata"), // Additional session data
   subscribedEvents: text("subscribed_events").array().default(sql`'{}'`), // WebSocket event subscriptions
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`)
 });
 
@@ -3557,38 +3460,38 @@ export const govDatabaseValidations = pgTable("gov_database_validations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   verificationRecordId: varchar("verification_record_id").notNull().references(() => documentVerificationRecords.id),
   validationType: text("validation_type").notNull(), // npr, saps, icao_pkd, abis, mrz
-  
+
   // Request Information
   requestId: text("request_id"), // External system request ID
   requestTimestamp: timestamp("request_timestamp").notNull().default(sql`now()`),
   responseTimestamp: timestamp("response_timestamp"),
-  
+
   // Validation Results
   validationStatus: text("validation_status").notNull(), // pending, success, failed, timeout, error
   isValid: boolean("is_valid"), // Whether validation passed
   confidenceScore: integer("confidence_score"), // Confidence level (0-100)
   matchScore: integer("match_score"), // Data match score (0-100)
-  
+
   // Detailed Results
   validationData: jsonb("validation_data").notNull(), // Complete validation response
   matchedFields: text("matched_fields").array().default(sql`'{}'`), // Successfully matched fields
   mismatchedFields: text("mismatched_fields").array().default(sql`'{}'`), // Fields that didn't match
   missingFields: text("missing_fields").array().default(sql`'{}'`), // Fields not provided by external system
-  
+
   // Performance Metrics
   responseTime: integer("response_time"), // Response time in milliseconds
   retryCount: integer("retry_count").default(0), // Number of retries attempted
-  
+
   // Error Information
   errorCode: text("error_code"), // Error code from external system
   errorMessage: text("error_message"), // Error message
   systemStatus: text("system_status"), // External system status at time of request
-  
+
   // Quality Assessment
   dataQuality: integer("data_quality"), // Quality score of returned data (0-100)
   completeness: integer("completeness"), // Completeness score (0-100)
   reliability: integer("reliability"), // Reliability assessment (0-100)
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`)
 });
 
@@ -3780,7 +3683,7 @@ export const AuditAction = {
   LOGOUT: 'auth.logout',
   PASSWORD_CHANGED: 'auth.password_changed',
   ACCOUNT_LOCKED: 'auth.account_locked',
-  
+
   // Document actions
   DOCUMENT_VIEWED: 'document.viewed',
   DOCUMENT_DOWNLOADED: 'document.downloaded',
@@ -3788,23 +3691,23 @@ export const AuditAction = {
   DOCUMENT_DELETED: 'document.deleted',
   DOCUMENT_MODIFIED: 'document.modified',
   DOCUMENT_VERIFIED: 'document.verified',
-  
+
   // User management actions
   USER_CREATED: 'user.created',
   USER_UPDATED: 'user.updated',
   USER_DELETED: 'user.deleted',
   USER_DEACTIVATED: 'user.deactivated',
   USER_ROLE_CHANGED: 'user.role_changed',
-  
+
   // Admin actions
   ADMIN_LOGIN: 'admin.login',
   ADMIN_ACTION: 'admin.action',
   SYSTEM_CONFIG_CHANGED: 'admin.config_changed',
-  
+
   // API actions
   API_CALL: 'api.call',
   API_KEY_USED: 'api.key_used',
-  
+
   // Integration actions
   DHA_API_CALL: 'integration.dha_call',
   SAPS_API_CALL: 'integration.saps_call',
@@ -3843,7 +3746,7 @@ export const errorLogCreationSchema = z.object({
   url: z.string().max(500).optional()
 });
 
-// Security Events Query Schema  
+// Security Events Query Schema
 export const securityEventsQuerySchema = z.object({
   limit: z.number().min(1).max(500).optional(),
   severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
@@ -3935,9 +3838,7 @@ export const auditLogQuerySchema = z.object({
 export const complianceReportQuerySchema = z.object({
   regulation: z.enum(['POPIA', 'GDPR']),
   startDate: z.string().datetime(),
-  endDate: z.string().datetime(),
-  eventType: z.string().max(100).optional(),
-  complianceStatus: z.enum(['compliant', 'non_compliant', 'under_review']).optional()
+  endDate: z.string().datetime()
 });
 
 // Security Rules Query Schema
@@ -4009,13 +3910,13 @@ export const documentTemplateQuerySchema = z.object({
   type: z.enum(['birth_certificate', 'passport', 'id_card', 'permit', 'certificate', 'visa']).optional()
 });
 
-// Document Verification Query Schema  
+// Document Verification Query Schema
 export const documentVerificationQuerySchema = z.object({
   documentType: z.enum(['birth_certificate', 'passport', 'id_card', 'permit', 'certificate', 'visa']).optional(),
   documentId: z.string().uuid().optional()
 });
 
-// Compliance Report Parameter Schema (for URL params)
+// Compliance Report Query Schema (for URL params)
 export const complianceReportParamsSchema = z.object({
   regulation: z.enum(['POPIA', 'GDPR']),
   startDate: z.string().datetime(),
@@ -4050,9 +3951,6 @@ export const liveDocumentVerificationRecords = pgTable("live_document_verificati
   expiryDate: timestamp("expiry_date"),
   issuingOffice: text("issuing_office"),
   issuingOfficer: text("issuing_officer"),
-  securityFeatures: jsonb("security_features"),
-  revokedAt: timestamp("revoked_at"),
-  revocationReason: text("revocation_reason"),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -4459,7 +4357,7 @@ export const publicVerificationSchema = z.object({
   verificationCode: z.string().length(12, "Please enter a valid 12-character verification code"),
 });
 
-// QR code verification schema  
+// QR code verification schema
 export const qrVerificationSchema = z.object({
   qrData: z.string().min(1, "QR code data is required"),
   verificationMethod: z.literal("qr_scan"),
@@ -4539,7 +4437,7 @@ export const classificationAssignmentSchema = z.object({
 export const documentProcessingRequestSchema = z.object({
   applicantId: z.string().uuid(),
   documentType: z.enum([
-    "birth_certificate", "south_african_id", "passport", "work_permit", 
+    "birth_certificate", "south_african_id", "passport", "work_permit",
     "marriage_certificate", "death_certificate", "refugee_id", "temporary_residence_permit",
     "permanent_residence_permit", "study_permit", "business_permit", "visitors_visa",
     "transit_visa", "medical_treatment_visa", "exchange_permit", "relatives_visa",
@@ -4806,13 +4704,13 @@ export const securityClassificationSchema = z.enum([
 
 // ===================== COMPREHENSIVE DHA SYSTEM STATUS =====================
 
-/* 
+/*
 🇿🇦 SOUTH AFRICAN DEPARTMENT OF HOME AFFAIRS DIGITAL SERVICES
 📋 COMPREHENSIVE DATA MODEL - PRODUCTION READY
 
 ✅ DOCUMENT TYPES IMPLEMENTED (21 Total):
 1.  Birth Certificate ✅
-2.  South African ID ✅ 
+2.  South African ID ✅
 3.  Passport (Ordinary, Diplomatic, Official) ✅
 4.  Work Permit (All Sections) ✅
 5.  Marriage Certificate ✅
@@ -4900,31 +4798,31 @@ export const autonomousOperations = pgTable("autonomous_operations", {
   targetService: text("target_service").notNull(), // e.g., 'database', 'cache', 'pdf_service'
   triggeredBy: text("triggered_by").notNull(), // 'health_check', 'error_threshold', 'scheduled'
   triggerDetails: jsonb("trigger_details"), // Details of what triggered the action
-  
+
   // Action execution details
   status: autonomousActionStatusEnum("status").notNull().default("initiated"),
   startedAt: timestamp("started_at").notNull().default(sql`now()`),
   completedAt: timestamp("completed_at"),
   duration: integer("duration"), // milliseconds
-  
+
   // Action results and impact
   actionParameters: jsonb("action_parameters"), // Parameters used for the action
   executionResults: jsonb("execution_results"), // Results and output of the action
   impactMetrics: jsonb("impact_metrics"), // Metrics before/after action
   rollbackDetails: jsonb("rollback_details"), // Details if rollback was needed
-  
+
   // Government compliance and audit
   complianceFlags: jsonb("compliance_flags"), // Flags for regulatory compliance
   auditTrailId: varchar("audit_trail_id").references(() => auditLogs.id),
   approvalRequired: boolean("approval_required").notNull().default(false),
   approvedBy: varchar("approved_by").references(() => users.id),
-  
+
   // Error handling
   errorMessage: text("error_message"),
   retryCount: integer("retry_count").notNull().default(0),
   maxRetries: integer("max_retries").notNull().default(3),
   nextRetryAt: timestamp("next_retry_at"),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -4933,41 +4831,41 @@ export const autonomousOperations = pgTable("autonomous_operations", {
 export const systemHealthSnapshots = pgTable("system_health_snapshots", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   timestamp: timestamp("timestamp").notNull().default(sql`now()`),
-  
+
   // System metrics
   cpuUsage: decimal("cpu_usage", { precision: 5, scale: 2 }), // Percentage
   memoryUsage: decimal("memory_usage", { precision: 5, scale: 2 }), // Percentage
   diskUsage: decimal("disk_usage", { precision: 5, scale: 2 }), // Percentage
   networkLatency: integer("network_latency"), // milliseconds
-  
+
   // Application metrics
   activeConnections: integer("active_connections"),
   responseTime: integer("response_time"), // average milliseconds
   errorRate: decimal("error_rate", { precision: 5, scale: 2 }), // Percentage
   throughput: integer("throughput"), // requests per minute
-  
+
   // Service-specific health
   databaseHealth: jsonb("database_health"), // Connection pool, query performance
   cacheHealth: jsonb("cache_health"), // Hit rates, memory usage
   apiHealth: jsonb("api_health"), // Endpoint response times, error rates
   externalServicesHealth: jsonb("external_services_health"), // Third-party service status
-  
+
   // Security metrics
   securityScore: integer("security_score"), // Overall security posture 0-100
   threatLevel: severityEnum("threat_level").notNull().default("low"),
   activeSecurityIncidents: integer("active_security_incidents").notNull().default(0),
   fraudAlertsActive: integer("fraud_alerts_active").notNull().default(0),
-  
+
   // Performance baselines and anomalies
   anomalyScore: decimal("anomaly_score", { precision: 3, scale: 2 }), // 0.00-1.00
   anomaliesDetected: jsonb("anomalies_detected"), // Array of detected anomalies
   performanceBaseline: jsonb("performance_baseline"), // Baseline metrics for comparison
-  
+
   // Government compliance status
   complianceScore: integer("compliance_score"), // 0-100
   regulatoryViolations: jsonb("regulatory_violations"), // Active violations
   uptimePercentage: decimal("uptime_percentage", { precision: 5, scale: 2 }),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`)
 });
 
@@ -4976,29 +4874,29 @@ export const circuitBreakerStates = pgTable("circuit_breaker_states", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   serviceName: text("service_name").notNull().unique(), // e.g., 'npr_service', 'saps_service'
   state: circuitBreakerStateEnum("state").notNull().default("closed"),
-  
+
   // Failure tracking
   failureCount: integer("failure_count").notNull().default(0),
   failureThreshold: integer("failure_threshold").notNull().default(5),
   successCount: integer("success_count").notNull().default(0),
   successThreshold: integer("success_threshold").notNull().default(3),
-  
+
   // Timing configuration
   timeout: integer("timeout").notNull().default(30000), // milliseconds
   lastFailureAt: timestamp("last_failure_at"),
   lastSuccessAt: timestamp("last_success_at"),
   nextRetryAt: timestamp("next_retry_at"),
-  
+
   // Statistics
   totalRequests: integer("total_requests").notNull().default(0),
   totalFailures: integer("total_failures").notNull().default(0),
   averageResponseTime: integer("average_response_time"),
-  
+
   // Recovery tracking
   stateChangedAt: timestamp("state_changed_at").notNull().default(sql`now()`),
   recoveryAttempts: integer("recovery_attempts").notNull().default(0),
   lastRecoveryAt: timestamp("last_recovery_at"),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5007,39 +4905,39 @@ export const circuitBreakerStates = pgTable("circuit_breaker_states", {
 export const maintenanceTasks = pgTable("maintenance_tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   taskType: maintenanceTaskTypeEnum("task_type").notNull(),
-  taskName: text("task_name").notNull(),
+  taskName: text("task_name").notNull().unique(),
   description: text("description"),
-  
+
   // Scheduling
   schedulePattern: text("schedule_pattern").notNull(), // cron expression
   nextRunTime: timestamp("next_run_time").notNull(),
   lastRunTime: timestamp("last_run_time"),
-  
+
   // Execution settings
   isEnabled: boolean("is_enabled").notNull().default(true),
   timeout: integer("timeout").notNull().default(300000), // 5 minutes
   maxRetries: integer("max_retries").notNull().default(3),
   retryDelay: integer("retry_delay").notNull().default(60000), // 1 minute
-  
+
   // Task configuration
   taskParameters: jsonb("task_parameters"), // Task-specific parameters
   dependsOnTasks: jsonb("depends_on_tasks"), // Array of task IDs this depends on
-  
+
   // Execution tracking
   status: autonomousActionStatusEnum("status").notNull().default("initiated"),
   executionCount: integer("execution_count").notNull().default(0),
   successCount: integer("success_count").notNull().default(0),
   failureCount: integer("failure_count").notNull().default(0),
   averageDuration: integer("average_duration"),
-  
+
   // Results and impact
   lastExecutionResults: jsonb("last_execution_results"),
   performanceImpact: jsonb("performance_impact"), // Impact on system performance
-  
+
   // Government compliance
   complianceRequired: boolean("compliance_required").notNull().default(false),
   auditTrailRequired: boolean("audit_trail_required").notNull().default(true),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5050,35 +4948,35 @@ export const alertRules = pgTable("alert_rules", {
   ruleName: text("rule_name").notNull().unique(),
   description: text("description"),
   category: text("category").notNull(), // 'performance', 'security', 'availability'
-  
+
   // Rule conditions
   metricName: text("metric_name").notNull(),
   operator: text("operator").notNull(), // 'greater_than', 'less_than', 'equals', 'not_equals'
   threshold: decimal("threshold", { precision: 10, scale: 2 }).notNull(),
   duration: integer("duration").notNull().default(300), // seconds
-  
+
   // Alert configuration
   severity: severityEnum("severity").notNull().default("medium"),
   isEnabled: boolean("is_enabled").notNull().default(true),
   suppressionWindow: integer("suppression_window").notNull().default(3600), // seconds
-  
+
   // Smart alerting features
   smartClustering: boolean("smart_clustering").notNull().default(true),
   rootCauseAnalysis: boolean("root_cause_analysis").notNull().default(true),
   autoResolution: boolean("auto_resolution").notNull().default(false),
   escalationRules: jsonb("escalation_rules"), // Escalation configuration
-  
+
   // Notification settings
   notificationChannels: jsonb("notification_channels"), // Array of channels
   recipientGroups: jsonb("recipient_groups"), // Array of user groups
   messageTemplate: text("message_template"),
-  
+
   // Performance tracking
   triggerCount: integer("trigger_count").notNull().default(0),
   falsePositiveCount: integer("false_positive_count").notNull().default(0),
   averageResolutionTime: integer("average_resolution_time"),
   lastTriggeredAt: timestamp("last_triggered_at"),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5089,49 +4987,49 @@ export const incidents = pgTable("incidents", {
   incidentNumber: text("incident_number").notNull().unique(), // Auto-generated INC-YYYY-NNNN
   title: text("title").notNull(),
   description: text("description"),
-  
+
   // Classification
   severity: incidentSeverityEnum("severity").notNull(),
   status: incidentStatusEnum("status").notNull().default("open"),
   category: text("category").notNull(), // 'security', 'performance', 'availability'
-  
+
   // Impact assessment
   impactLevel: severityEnum("impact_level").notNull().default("low"),
   affectedServices: jsonb("affected_services"), // Array of affected services
   affectedUsers: integer("affected_users"),
   businessImpact: text("business_impact"),
-  
+
   // Resolution tracking
   assignedTo: varchar("assigned_to").references(() => users.id),
   assignedTeam: text("assigned_team"),
   priority: priorityLevelEnum("priority").notNull().default("normal"),
-  
+
   // Timeline
   detectedAt: timestamp("detected_at").notNull().default(sql`now()`),
   acknowledgedAt: timestamp("acknowledged_at"),
   resolvedAt: timestamp("resolved_at"),
   closedAt: timestamp("closed_at"),
-  
+
   // Autonomous actions
   triggerAlertRuleId: varchar("trigger_alert_rule_id").references(() => alertRules.id),
   autonomousActionsCount: integer("autonomous_actions_count").notNull().default(0),
   automaticResolution: boolean("automatic_resolution").notNull().default(false),
-  
+
   // Root cause analysis
   rootCause: text("root_cause"),
   rootCauseAnalysis: jsonb("root_cause_analysis"), // AI-generated analysis
   preventiveMeasures: jsonb("preventive_measures"), // Actions to prevent recurrence
-  
+
   // Government compliance
   governmentNotificationRequired: boolean("government_notification_required").notNull().default(false),
   governmentNotifiedAt: timestamp("government_notified_at"),
   complianceViolation: boolean("compliance_violation").notNull().default(false),
   regulatoryReporting: jsonb("regulatory_reporting"),
-  
+
   // Communication
   communicationLog: jsonb("communication_log"), // Array of communications
   stakeholderUpdates: jsonb("stakeholder_updates"), // Updates sent to stakeholders
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5140,50 +5038,50 @@ export const incidents = pgTable("incidents", {
 export const governmentComplianceAudit = pgTable("government_compliance_audit", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   auditId: text("audit_id").notNull().unique(), // GOV-AUDIT-YYYY-NNNN
-  
+
   // Compliance tracking
   complianceRequirement: complianceRequirementEnum("compliance_requirement").notNull(),
   regulatoryFramework: text("regulatory_framework").notNull(), // 'POPIA', 'PFMA', etc.
   requirementDetails: jsonb("requirement_details"), // Specific requirement details
-  
+
   // Audit details
   auditType: text("audit_type").notNull(), // 'automated', 'manual', 'scheduled'
   triggeredBy: text("triggered_by"), // What triggered this audit
   auditScope: jsonb("audit_scope"), // What was audited
-  
+
   // Results
   complianceStatus: text("compliance_status").notNull(), // 'compliant', 'non_compliant', 'partial'
   findings: jsonb("findings"), // Audit findings
   violations: jsonb("violations"), // Any violations found
   riskLevel: riskLevelEnum("risk_level").notNull().default("low"),
-  
+
   // Evidence and documentation
   evidenceCollected: jsonb("evidence_collected"), // Evidence supporting compliance
   documentationLinks: jsonb("documentation_links"), // Links to supporting documentation
   screenshotPaths: jsonb("screenshot_paths"), // Paths to screenshot evidence
-  
+
   // Remediation
   remediationRequired: boolean("remediation_required").notNull().default(false),
   remediationPlan: jsonb("remediation_plan"), // Plan to address issues
   remediationDeadline: timestamp("remediation_deadline"),
   remediationCompleted: boolean("remediation_completed").notNull().default(false),
-  
+
   // Reporting
   reportGenerated: boolean("report_generated").notNull().default(false),
   reportPath: text("report_path"), // Path to generated report
   reportSentAt: timestamp("report_sent_at"),
   reportRecipients: jsonb("report_recipients"), // Who received the report
-  
+
   // Timeline
   auditStartedAt: timestamp("audit_started_at").notNull().default(sql`now()`),
   auditCompletedAt: timestamp("audit_completed_at"),
   nextAuditScheduled: timestamp("next_audit_scheduled"),
-  
+
   // Accountability
   auditedBy: varchar("audited_by").references(() => users.id),
   reviewedBy: varchar("reviewed_by").references(() => users.id),
   approvedBy: varchar("approved_by").references(() => users.id),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5193,33 +5091,33 @@ export const performanceBaselines = pgTable("performance_baselines", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   metricName: text("metric_name").notNull(),
   serviceName: text("service_name").notNull(),
-  
+
   // Baseline statistics
   baselineValue: decimal("baseline_value", { precision: 10, scale: 2 }).notNull(),
   standardDeviation: decimal("standard_deviation", { precision: 10, scale: 2 }),
   minValue: decimal("min_value", { precision: 10, scale: 2 }),
   maxValue: decimal("max_value", { precision: 10, scale: 2 }),
-  
+
   // Time-based patterns
   hourlyPattern: jsonb("hourly_pattern"), // 24-hour pattern
   dailyPattern: jsonb("daily_pattern"), // 7-day pattern
   monthlyPattern: jsonb("monthly_pattern"), // 30-day pattern
   seasonalAdjustment: decimal("seasonal_adjustment", { precision: 5, scale: 2 }),
-  
+
   // Anomaly detection settings
   anomalyThreshold: decimal("anomaly_threshold", { precision: 3, scale: 2 }).notNull().default("2.0"), // Standard deviations
   adaptiveLearning: boolean("adaptive_learning").notNull().default(true),
-  
+
   // Update tracking
   lastCalculated: timestamp("last_calculated").notNull().default(sql`now()`),
   dataPointsUsed: integer("data_points_used").notNull(),
   validityPeriod: integer("validity_period").notNull().default(2592000), // 30 days in seconds
-  
+
   // Performance tracking
   anomaliesDetected: integer("anomalies_detected").notNull().default(0),
   falsePositives: integer("false_positives").notNull().default(0),
   accuracy: decimal("accuracy", { precision: 5, scale: 2 }),
-  
+
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
@@ -5743,5 +5641,3 @@ export type RelativesVisaData = z.infer<typeof relativesVisaSchema>;
 export type PermanentResidencePermitData = z.infer<typeof permanentResidencePermitSchema>;
 export type CertificateOfExemptionData = z.infer<typeof certificateOfExemptionSchema>;
 export type CertificateOfSouthAfricanCitizenshipData = z.infer<typeof certificateOfSouthAfricanCitizenshipSchema>;
-
-
