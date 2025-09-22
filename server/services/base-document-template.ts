@@ -18,6 +18,8 @@ import {
   SpecialInkEffects,
   DataMatrixConfig
 } from "./security-features-v2";
+import { ICAOMRZGenerator, MRZGenerationOptions } from "./icao-mrz-generator";
+import { cryptographicSignatureService } from "./cryptographic-signature-service";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 
@@ -69,6 +71,158 @@ export abstract class BaseDocumentTemplate {
   
   constructor() {}
   
+  /**
+   * Generate and add ICAO compliant MRZ
+   */
+  protected addMRZ(doc: PDFKit, options: MRZGenerationOptions, x: number, y: number): void {
+    const mrzLines = ICAOMRZGenerator.generate(options);
+    
+    doc.save();
+    doc.fontSize(8)
+       .font('Courier') // Monospace font for MRZ
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.black);
+    
+    mrzLines.forEach((line, index) => {
+      doc.text(line, x, y + (index * 12), {
+        characterSpacing: 1,
+        wordSpacing: 0
+      });
+    });
+    
+    doc.restore();
+  }
+
+  /**
+   * Apply comprehensive digital signature to PDF
+   */
+  protected async applyDigitalSignature(pdfBuffer: Buffer, metadata: any): Promise<Buffer> {
+    try {
+      return await cryptographicSignatureService.signDocument(pdfBuffer, {
+        documentId: metadata.documentId,
+        documentType: metadata.documentType,
+        issuingOfficer: metadata.issuingOfficer,
+        timestamp: new Date(),
+        level: 'PAdES-B'
+      });
+    } catch (error) {
+      console.error('Digital signature failed:', error);
+      return pdfBuffer; // Return unsigned PDF if signing fails
+    }
+  }
+
+  /**
+   * Add comprehensive security features
+   */
+  protected addComprehensiveSecurityFeatures(doc: PDFKit, documentType: string, isPreview: boolean = false): void {
+    if (isPreview) return; // Skip security features in preview mode
+    
+    // Add watermarks
+    this.addSecurityWatermarks(doc);
+    
+    // Add microtext security borders
+    this.addMicrotextBorders(doc);
+    
+    // Add guilloche patterns
+    this.addGuillochePatterns(doc);
+    
+    // Add UV-reactive elements (simulated)
+    this.addUVReactiveElements(doc);
+    
+    // Add holographic simulation
+    this.addHolographicSimulation(doc);
+  }
+
+  /**
+   * Add security watermarks
+   */
+  protected addSecurityWatermarks(doc: PDFKit): void {
+    doc.save();
+    doc.fontSize(60)
+       .font(SA_GOVERNMENT_DESIGN.fonts.header)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.watermark)
+       .opacity(0.1)
+       .text('REPUBLIC OF SOUTH AFRICA', 50, 300, {
+         rotate: 45,
+         align: 'center'
+       });
+    doc.restore();
+  }
+
+  /**
+   * Add microtext security borders
+   */
+  protected addMicrotextBorders(doc: PDFKit): void {
+    const microtext = 'DEPARTMENT OF HOME AFFAIRS REPUBLIC OF SOUTH AFRICA '.repeat(50);
+    
+    doc.save();
+    doc.fontSize(4)
+       .font(SA_GOVERNMENT_DESIGN.fonts.microtext)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.microprint_gray);
+    
+    // Top border
+    doc.text(microtext, 20, 10, { width: 555, height: 10, ellipsis: false });
+    
+    // Bottom border  
+    doc.text(microtext, 20, 820, { width: 555, height: 10, ellipsis: false });
+    
+    doc.restore();
+  }
+
+  /**
+   * Add guilloche security patterns
+   */
+  protected addGuillochePatterns(doc: PDFKit): void {
+    doc.save();
+    doc.strokeColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
+       .lineWidth(0.5)
+       .opacity(0.3);
+    
+    // Create guilloche pattern
+    for (let i = 0; i < 20; i++) {
+      const x = 50 + (i * 25);
+      const y = 150;
+      
+      doc.circle(x, y, 15)
+         .stroke();
+      
+      doc.circle(x + 10, y + 10, 10)
+         .stroke();
+    }
+    
+    doc.restore();
+  }
+
+  /**
+   * Add UV-reactive elements (simulated)
+   */
+  protected addUVReactiveElements(doc: PDFKit): void {
+    doc.save();
+    doc.fontSize(12)
+       .font(SA_GOVERNMENT_DESIGN.fonts.body)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.security_green)
+       .opacity(0.2)
+       .text('UV SECURE', 450, 200, { rotate: 25 });
+    doc.restore();
+  }
+
+  /**
+   * Add holographic simulation
+   */
+  protected addHolographicSimulation(doc: PDFKit): void {
+    doc.save();
+    doc.rect(450, 250, 80, 60)
+       .strokeColor(SA_GOVERNMENT_DESIGN.colors.hologram_silver)
+       .lineWidth(2)
+       .stroke();
+    
+    doc.fontSize(8)
+       .font(SA_GOVERNMENT_DESIGN.fonts.body)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.hologram_silver)
+       .text('HOLOGRAM', 460, 275);
+    
+    doc.restore();
+  }
+
   /**
    * Add official SA government header
    */
