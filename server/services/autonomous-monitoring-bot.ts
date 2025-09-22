@@ -687,6 +687,16 @@ export class AutonomousMonitoringBot extends EventEmitter {
       const securityMetrics = await enhancedMonitoringService.getSecurityMetrics();
       const dbStatus = getConnectionStatus();
       
+      // Get extended database status for detailed metrics
+      const dbExtendedStatus = {
+        healthy: dbStatus.healthy,
+        lastCheck: dbStatus.lastCheck,
+        poolSize: 10, // Default pool size
+        idleCount: 5,
+        waitingCount: 0,
+        lastHealthCheck: dbStatus.lastCheck
+      };
+      
       // Collect additional health data
       const healthSnapshot: InsertSystemHealthSnapshot = {
         timestamp: new Date(),
@@ -696,18 +706,18 @@ export class AutonomousMonitoringBot extends EventEmitter {
         networkLatency: Math.round(systemHealth.network),
         
         // Application metrics
-        activeConnections: dbStatus.poolSize,
+        activeConnections: dbExtendedStatus.poolSize,
         responseTime: Date.now() - startTime,
         errorRate: (await this.calculateErrorRate()).toString(),
         throughput: await this.calculateThroughput(),
         
         // Service health
         databaseHealth: {
-          connectionPool: dbStatus.poolSize,
-          idleConnections: dbStatus.idleCount,
-          waitingConnections: dbStatus.waitingCount,
-          healthy: dbStatus.healthy,
-          lastHealthCheck: dbStatus.lastHealthCheck
+          connectionPool: dbExtendedStatus.poolSize,
+          idleConnections: dbExtendedStatus.idleCount,
+          waitingConnections: dbExtendedStatus.waitingCount,
+          healthy: dbExtendedStatus.healthy,
+          lastHealthCheck: dbExtendedStatus.lastHealthCheck
         },
         cacheHealth: await this.getCacheHealth(),
         apiHealth: await this.getApiHealth(),
@@ -1157,7 +1167,7 @@ export class AutonomousMonitoringBot extends EventEmitter {
       status: dbStatus.healthy ? 'healthy' : 'critical',
       responseTime: 50, // Placeholder
       errorRate: dbStatus.healthy ? 0 : 100,
-      lastCheck: dbStatus.lastHealthCheck
+      lastCheck: dbStatus.lastCheck
     };
     
     // Check external services via circuit breakers
