@@ -950,7 +950,26 @@ export class AutonomousMonitoringBot extends EventEmitter {
    * Get autonomous operations history
    */
   public async getAutonomousOperationsHistory(limit = 100): Promise<any[]> {
-    return await storage.getAutonomousOperations({ limit });
+    try {
+      return await storage.getAutonomousOperations({ limit });
+    } catch (error) {
+      console.error('[AutonomousBot] Error getting operations history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Start monitoring - alias for start method
+   */
+  public async startMonitoring(): Promise<void> {
+    return this.start();
+  }
+
+  /**
+   * Stop monitoring - alias for stop method  
+   */
+  public async stopMonitoring(): Promise<void> {
+    return this.stop();
   }
 
   /**
@@ -2254,3 +2273,6 @@ export class AutonomousMonitoringBot extends EventEmitter {
 
 // Export singleton instance
 export const autonomousMonitoringBot = AutonomousMonitoringBot.getInstance();
+
+// Default export for compatibility
+export default autonomousMonitoringBot;

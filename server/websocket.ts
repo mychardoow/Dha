@@ -10,6 +10,24 @@ import { privacyProtectionService } from "./services/privacy-protection";
 import { getConfigService, getConfig } from "./middleware/provider-config";
 import { LRUCache } from 'lru-cache';
 
+// Optional imports with fallbacks
+let enhancedMonitoringService: any = null;
+let webSocketSubscriptionService: any = null;
+
+try {
+  const monitoring = await import("./services/enhanced-monitoring-service");
+  enhancedMonitoringService = monitoring.enhancedMonitoringService;
+} catch (e) {
+  console.log("Enhanced monitoring service not available");
+}
+
+try {
+  const wsService = await import("./services/websocket-subscription-service");
+  webSocketSubscriptionService = wsService.webSocketSubscriptionService;
+} catch (e) {
+  console.log("WebSocket subscription service not available");
+}
+
 export interface AuthenticatedSocket {
   id: string;
   userId: string;
