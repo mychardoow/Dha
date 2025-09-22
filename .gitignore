@@ -17,6 +17,17 @@ build/
 .env.development
 generated-keys.txt
 
+# Security - CRITICAL: Never commit sensitive files
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_dsa
+private-key*
+*.key
+certificate*
+ca-bundle*
+
 # Logs
 *.log
 logs/
