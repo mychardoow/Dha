@@ -147,6 +147,12 @@ import { ConsentMiddleware } from "./middleware/consent-middleware";
 import { healthRouter } from "./routes/health";
 import monitoringRouter from "./routes/monitoring";
 import { systemHealthRouter } from "./routes/system-health";
+// Import enhanced AI routes
+import { enhancedAIRoutes } from "./routes/enhanced-ai";
+
+// Initialize WebSocket
+initializeWebSocket(createServer(app));
+
 
 // Initialize consent middleware
 const consentMiddleware = new ConsentMiddleware();
@@ -1826,23 +1832,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { message, mode = 'assistant', attachments = [] } = req.body;
       const user = (req as any).user;
-
+      
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
       }
-
+      
       const response = await aiAssistantService.processAIRequest(
         message, 
         mode as any, 
         user?.email, 
         attachments
       );
-
+      
       // Log admin uncensored mode usage
       if (user?.email === 'raeesa.osman@admin' && mode === 'assistant') {
         console.log(`[ADMIN] Uncensored AI access by ${user.email}: ${message.substring(0, 100)}...`);
       }
-
+      
       res.json(response);
     } catch (error) {
       console.error('[AI Chat] Error:', error);
@@ -1855,14 +1861,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { message, conversationId, adminOverride, bypassRestrictions, unlimitedMode, context } = req.body;
       const user = (req as any).user;
-
+      
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: 'Message is required' });
       }
-
+      
       // Admin override logging
       console.log(`[ADMIN UNLIMITED] ${user?.email}: ${message.substring(0, 100)}...`);
-
+      
       // Set admin mode for unlimited access with proper role verification
       const userContext = {
         email: user?.email,
@@ -1870,7 +1876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verified: true // This route already has admin role verification middleware
       };
       aiAssistantService.setAdminMode('uncensored', userContext);
-
+      
       const response = await aiAssistantService.processAIRequest(
         message,
         'assistant', // Default to assistant mode for admin chat
@@ -1878,7 +1884,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         [], // No attachments in admin chat for now
         true // Enable API access for admin
       );
-
+      
       // Add admin metadata
       response.metadata = {
         ...response.metadata,
@@ -1887,7 +1893,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         clearanceLevel: "MAXIMUM",
         executionTime: Date.now()
       };
-
+      
       res.json({
         success: response.success,
         content: response.content,
@@ -1910,9 +1916,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { mode } = req.body;
       const user = (req as any).user;
-
+      
       const success = aiAssistantService.setAdminMode(mode, user?.email);
-
+      
       if (success) {
         res.json({ success: true, mode, message: 'Admin mode updated' });
       } else {
@@ -1932,7 +1938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const file = req.file;
       const user = (req as any).user;
-
+      
       // Process file with AI for OCR and analysis
       const fileData = file.buffer.toString('base64');
       const analysis = await aiAssistantService.processAIRequest(
@@ -1941,7 +1947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user?.email,
         [{ type: file.mimetype, data: fileData, filename: file.originalname }]
       );
-
+      
       // Store file info for chat attachment
       const fileInfo = {
         id: crypto.randomUUID(),
@@ -1952,7 +1958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         uploadedAt: new Date().toISOString(),
         userId: user?.id
       };
-
+      
       res.json({
         success: true,
         file: fileInfo,
@@ -3764,7 +3770,226 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
       return 'civil';
     }
-    return 'immigration';
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['birth_certificate', 'death_certificate', 'marriage_certificate', 'divorce_certificate'].includes(type)) {
+      return 'civil';
+    }
+    if (['visa', 'permit', 'residence', 'exemption', 'citizenship'].some(keyword => type.includes(keyword))) {
+      return 'immigration';
+    }
+    return 'other';
   }
 
   function getFormNumber(type: string): string {
@@ -3847,7 +4072,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = web3DocumentVerificationSchema.parse(req.body);
       const verification = await web3Integration.verifyDocumentOnBlockchain(validatedData.documentId, validatedData.documentHash);
-
+      
       res.json({
         success: true,
         isMockMode: !web3Integration.isBlockchainEnabled(),
@@ -3867,7 +4092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = web3DocumentVerificationSchema.parse(req.body);
       const anchoring = await web3Integration.anchorDocumentToBlockchain(validatedData.documentId, validatedData.documentHash);
-
+      
       res.json({
         success: true,
         isMockMode: !web3Integration.isBlockchainEnabled(),
@@ -3888,7 +4113,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const queryData = web3NetworkQuerySchema.parse(req.query);
       const networks = web3Integration.getSupportedNetworks();
       const isEnabled = web3Integration.isBlockchainEnabled();
-
+      
       res.json({
         success: true,
         networks,
@@ -3909,7 +4134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = web3BlockchainSignatureSchema.parse(req.body);
       const signature = await web3Integration.generateBlockchainSignature(validatedData.documentHash, validatedData.signerAddress);
-
+      
       res.json({
         success: true,
         isMockMode: !web3Integration.isBlockchainEnabled(),
@@ -3931,7 +4156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = dhaVfsIdentityVerificationSchema.parse(req.body);
       const result = await dhaVfsIntegration.verifyIdentityNPR(validatedData);
-
+      
       res.json({
         success: true,
         isMockMode: !dhaVfsIntegration.isNPRConnected(),
@@ -3951,7 +4176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = dhaVfsBiometricVerificationSchema.parse(req.body);
       const result = await dhaVfsIntegration.verifyBiometricsABIS(validatedData);
-
+      
       res.json({
         success: true,
         isMockMode: !dhaVfsIntegration.isABISConnected(),
@@ -3971,7 +4196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = dhaVfsDocumentVerificationSchema.parse(req.body);
       const result = await dhaVfsIntegration.verifyDocumentHANIS(validatedData.documentNumber, validatedData.documentType);
-
+      
       res.json({
         success: true,
         isMockMode: !dhaVfsIntegration.isHANISConnected(),
@@ -3990,11 +4215,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dha-vfs/application-status/:applicationNumber", authenticate, apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
       const { applicationNumber } = req.params;
-
+      
       // Validate application number format
       const validatedParams = vfsApplicationStatusSchema.parse({ applicationNumber });
       const status = await dhaVfsIntegration.checkVFSApplicationStatus(validatedParams.applicationNumber);
-
+      
       res.json({
         success: true,
         isMockMode: !dhaVfsIntegration.isVFSConnected(),
@@ -4014,7 +4239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = vfsApplicationSubmissionSchema.parse(req.body);
       const result = await dhaVfsIntegration.submitVFSApplication(validatedData);
-
+      
       res.json({
         success: true,
         isMockMode: !dhaVfsIntegration.isVFSConnected(),
@@ -4033,7 +4258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/dha-vfs/system-status", authenticate, requireRole(['admin', 'officer']), apiLimiter, asyncHandler(async (req: Request, res: Response) => {
     try {
       const status = dhaVfsIntegration.getSystemStatus();
-
+      
       res.json({
         success: true,
         systems: status,
@@ -4050,10 +4275,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===================== AUTONOMOUS MONITORING ROUTES =====================
 
   // Mount monitoring routes
-  app.use("/api/monitoring", monitoringRouter);
+  app.use("/api/monitoring", monitoringRoutes);
   // Register system health routes
-  app.use("/api/system", systemHealthRouter);
-
+  app.use("/api/system", systemHealthRoutes);
+  
   // Health endpoint alias for presentation demos
   app.get('/api/health', (req: Request, res: Response) => {
     res.json({

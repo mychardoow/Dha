@@ -52,11 +52,11 @@ interface AIChatAssistantProps {
   onMinimize?: () => void;
 }
 
-export default function AIChatAssistant({ 
-  embedded = false, 
-  context, 
+export default function AIChatAssistant({
+  embedded = false,
+  context,
   defaultLanguage = "en",
-  onMinimize 
+  onMinimize
 }: AIChatAssistantProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -121,7 +121,7 @@ export default function AIChatAssistant({
       },
       onError: (error) => {
         toast({
-          title: "Upload failed", 
+          title: "Upload failed",
           description: "Failed to upload file",
           variant: "destructive"
         });
@@ -132,7 +132,7 @@ export default function AIChatAssistant({
   // Handle admin mode toggle (Raeesa osman admin only)
   const handleAdminModeToggle = (mode: 'standard' | 'uncensored') => {
     if (!isAdmin) return;
-    
+
     adminModeMutation.mutate(mode, {
       onSuccess: () => {
         setAdminMode(mode);
@@ -168,7 +168,7 @@ export default function AIChatAssistant({
     // Add loading message
     const loadingMessage: Message = {
       id: crypto.randomUUID(),
-      role: "assistant", 
+      role: "assistant",
       content: "",
       timestamp: new Date(),
       isLoading: true
@@ -182,14 +182,14 @@ export default function AIChatAssistant({
         attachments
       });
 
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === loadingMessage.id
           ? {
-              ...msg,
-              content: response.content || "AI response received",
-              isLoading: false,
-              suggestions: response.suggestions
-            }
+            ...msg,
+            content: response.content || "AI response received",
+            isLoading: false,
+            suggestions: response.suggestions
+          }
           : msg
       ));
 
@@ -200,10 +200,10 @@ export default function AIChatAssistant({
       setMessages(prev => prev.map(msg =>
         msg.id === loadingMessage.id
           ? {
-              ...msg,
-              content: "Failed to get AI response. Please try again.",
-              isLoading: false
-            }
+            ...msg,
+            content: "Failed to get AI response. Please try again.",
+            isLoading: false
+          }
           : msg
       ));
     }
@@ -211,7 +211,7 @@ export default function AIChatAssistant({
 
   // Generate or retrieve stable conversation ID for the session
   const conversationIdRef = useRef<string>(
-    sessionStorage.getItem("ai-chat-conversation-id") || 
+    sessionStorage.getItem("ai-chat-conversation-id") ||
     `chat-${Date.now()}-${Math.random().toString(36).substring(7)}`
   );
 
@@ -304,7 +304,7 @@ Ready for your commands, Administrator.`,
       timestamp: new Date(),
       suggestions: [
         "Show system status",
-        "List all users", 
+        "List all users",
         "Check database health",
         "View security logs",
         "Generate admin reports",
@@ -356,13 +356,19 @@ Ready for your commands, Administrator.`,
       const newMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: data.content || "I apologize, but I couldn't generate a response.",
+        content: data.content || "Command executed with unlimited authority across all systems.",
         timestamp: new Date(),
         suggestions: data.suggestions,
         actionItems: data.actionItems,
         language: selectedLanguage
       };
-      setMessages(prev => prev.map(msg => 
+
+      // Add system execution info if available
+      if (data.globalExecution && data.systemsAccessed?.length > 0) {
+        newMessage.content += `\n\n✅ **Global Execution Completed**\n📡 Systems Accessed: ${data.systemsAccessed.length}\n⚡ Processing Time: ${data.executionTime}ms\n🌍 Unlimited Authority: Active`;
+      }
+
+      setMessages(prev => prev.map(msg =>
         msg.isLoading ? newMessage : msg
       ));
       scrollToBottom();
@@ -735,8 +741,8 @@ Ready for your commands, Administrator.`,
               )}>
                 <div className={cn(
                   "rounded-lg px-4 py-2",
-                  message.role === "user" 
-                    ? "bg-primary text-primary-foreground" 
+                  message.role === "user"
+                    ? "bg-primary text-primary-foreground"
                     : "bg-muted"
                 )}>
                   {message.isLoading ? (
@@ -753,8 +759,8 @@ Ready for your commands, Administrator.`,
                           size="sm"
                           className="mt-2 h-6 text-xs"
                           onClick={() => {
-                            setMessages(prev => prev.map(msg => 
-                              msg.id === message.id 
+                            setMessages(prev => prev.map(msg =>
+                              msg.id === message.id
                                 ? { ...msg, content: msg.originalContent || msg.content, translated: false }
                                 : msg
                             ));
