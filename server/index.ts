@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import { fileURLToPath } from 'url';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { bootstrap } from './bootstrap.js'; // Assuming bootstrap is in bootstrap.js as per original import
 import { WebSocketService } from './websocket.js'; // Assuming WebSocketService is in websocket.js
 import { createServer } from 'http';
