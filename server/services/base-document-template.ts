@@ -102,7 +102,7 @@ export abstract class BaseDocumentTemplate {
         documentType: metadata.documentType,
         issuingOfficer: metadata.issuingOfficer,
         timestamp: new Date(),
-        level: 'PAdES-B'
+        level: 'PAdES-B-LTV' // CRITICAL: Use LTV for flawless verification
       });
     } catch (error) {
       console.error('Digital signature failed:', error);
@@ -224,6 +224,94 @@ export abstract class BaseDocumentTemplate {
   }
 
   /**
+   * Draw official South African Coat of Arms
+   */
+  protected drawOfficialCoatOfArms(doc: PDFKit, x: number, y: number, width: number, height: number): void {
+    doc.save();
+    
+    // Main shield outline
+    doc.moveTo(x + width/2, y)
+       .lineTo(x + width * 0.8, y + height * 0.3)
+       .lineTo(x + width * 0.8, y + height * 0.7)
+       .lineTo(x + width/2, y + height)
+       .lineTo(x + width * 0.2, y + height * 0.7)
+       .lineTo(x + width * 0.2, y + height * 0.3)
+       .closePath()
+       .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.light_teal)
+       .fillAndStroke();
+    
+    // Central elements - traditional patterns
+    doc.circle(x + width/2, y + height * 0.4, width * 0.15)
+       .strokeColor(SA_GOVERNMENT_DESIGN.colors.gold)
+       .lineWidth(1.5)
+       .stroke();
+    
+    // Crown/protea elements
+    for (let i = 0; i < 5; i++) {
+      const angle = (Math.PI * 2 * i) / 5;
+      const px = x + width/2 + Math.cos(angle) * width * 0.25;
+      const py = y + height * 0.2 + Math.sin(angle) * height * 0.15;
+      doc.circle(px, py, 2)
+         .fillColor(SA_GOVERNMENT_DESIGN.colors.gold)
+         .fill();
+    }
+    
+    // Banner with "Unity Work Progress"
+    doc.fontSize(4)
+       .font(SA_GOVERNMENT_DESIGN.fonts.official)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
+       .text('!KE E: /XARRA //KE', x + width * 0.1, y + height * 0.85, {
+         width: width * 0.8,
+         align: 'center'
+       });
+    
+    doc.restore();
+  }
+
+  /**
+   * Draw official DHA stamp
+   */
+  protected drawOfficialDHAStamp(doc: PDFKit, x: number, y: number, radius: number): void {
+    doc.save();
+    
+    // Outer circle
+    doc.circle(x, y, radius)
+       .strokeColor(SA_GOVERNMENT_DESIGN.colors.stamping_blue)
+       .lineWidth(2)
+       .stroke();
+    
+    // Inner circle
+    doc.circle(x, y, radius - 5)
+       .strokeColor(SA_GOVERNMENT_DESIGN.colors.stamping_blue)
+       .lineWidth(1)
+       .stroke();
+    
+    // DHA text
+    doc.fontSize(6)
+       .font(SA_GOVERNMENT_DESIGN.fonts.header)
+       .fillColor(SA_GOVERNMENT_DESIGN.colors.stamping_blue)
+       .text('DEPT OF HOME', x - 15, y - 8, { width: 30, align: 'center' });
+    
+    doc.fontSize(5)
+       .text('AFFAIRS', x - 12, y - 2, { width: 24, align: 'center' });
+    
+    doc.fontSize(4)
+       .text('REP OF SA', x - 10, y + 4, { width: 20, align: 'center' });
+    
+    // Date stamp
+    const today = new Date().toLocaleDateString('en-ZA', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+    doc.fontSize(3)
+       .text(today, x - 8, y + 10, { width: 16, align: 'center' });
+    
+    doc.restore();
+  }
+
+  /**
    * Add official SA government header
    */
   protected addGovernmentHeader(doc: PDFKit, documentTitle: string, formNumber?: string): void {
@@ -235,17 +323,8 @@ export abstract class BaseDocumentTemplate {
        .fill(colors.light_teal);
     doc.restore();
     
-    // SA Coat of Arms placeholder (official size and position)
-    doc.save();
-    doc.rect(30, 20, 60, 60)
-       .strokeColor(colors.green)
-       .lineWidth(2)
-       .stroke();
-    doc.fontSize(8)
-       .font(fonts.body)
-       .fillColor(colors.green)
-       .text("COAT OF\nARMS", 40, 45, { width: 40, align: "center" });
-    doc.restore();
+    // SA Coat of Arms (official design implementation)
+    this.drawOfficialCoatOfArms(doc, 30, 20, 60, 60);
     
     // Official government headers
     doc.fontSize(16)

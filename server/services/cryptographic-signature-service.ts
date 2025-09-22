@@ -122,10 +122,13 @@ export interface OCSPResponse {
  * PRODUCTION-READY Cryptographic Signature Service
  * Implements PAdES (PDF Advanced Electronic Signatures) for DHA documents
  * Provides legally-binding digital signatures with offline verification capability
+ * 
+ * SECURITY NOTE: All private keys are loaded from secure environment variables
+ * or hardware security modules (HSM) - never from repository files
  */
 export class CryptographicSignatureService {
   private signingCertificate: DHASigningCertificate | null = null;
-  private timestampServiceUrl: string = process.env.DHA_TIMESTAMP_SERVICE || 'http://tsa.dha.gov.za/tsa';
+  private timestampServiceUrl: string = process.env.DHA_TIMESTAMP_SERVICE || 'https://tsa.dha.gov.za/tsa';
   
   constructor() {
     // Initialize asynchronously to avoid blocking startup

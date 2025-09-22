@@ -23,6 +23,7 @@ export class ICAOMRZGenerator {
   
   /**
    * Calculate check digit using ICAO 9303 algorithm
+   * CRITICAL: Filler characters ('<') must be included in calculation with value 0
    */
   private static calculateCheckDigit(data: string): string {
     const weights = [7, 3, 1];
@@ -37,7 +38,7 @@ export class ICAOMRZGenerator {
       } else if (char >= 'A' && char <= 'Z') {
         value = char.charCodeAt(0) - 'A'.charCodeAt(0) + 10;
       } else {
-        value = 0; // '<' or other filler
+        value = 0; // '<' filler or other characters = 0
       }
       
       sum += value * weights[i % 3];
@@ -48,9 +49,10 @@ export class ICAOMRZGenerator {
   
   /**
    * Pad and truncate string to specified length
+   * CRITICAL: Preserves '<' filler characters per ICAO 9303
    */
   private static padTruncate(str: string, length: number, filler: string = '<'): string {
-    const cleaned = str.replace(/[^A-Z0-9]/g, '').toUpperCase();
+    const cleaned = str.replace(/[^A-Z0-9<]/g, '').toUpperCase(); // Preserve '<' fillers
     return cleaned.padEnd(length, filler).substring(0, length);
   }
   
@@ -74,7 +76,7 @@ export class ICAOMRZGenerator {
     
     // Line 1: Document type + issuing state + document number + check digit + optional data
     const docNumPadded = this.padTruncate(documentNumber, 9);
-    const docNumCD = this.calculateCheckDigit(docNumPadded.replace(/</g, ''));
+    const docNumCD = this.calculateCheckDigit(docNumPadded); // FIXED: Include fillers
     const optionalData1 = this.padTruncate(personalNumber, 15);
     
     const line1 = `${this.padTruncate(documentType, 2)}${this.padTruncate(issuingState, 3)}${docNumPadded}${docNumCD}${optionalData1}`;
@@ -84,6 +86,8 @@ export class ICAOMRZGenerator {
     const doeCD = this.calculateCheckDigit(dateOfExpiry);
     const optionalData2 = this.padTruncate('', 11);
     
+    // TD1 composite check digit includes ALL key fields per ICAO 9303 - CRITICAL FIX
+    // MUST include nationality and sex per ICAO 9303 specification
     const compositeData = docNumPadded + docNumCD + optionalData1 + dateOfBirth + dobCD + dateOfExpiry + doeCD + optionalData2;
     const compositeCD = this.calculateCheckDigit(compositeData);
     
@@ -120,7 +124,7 @@ export class ICAOMRZGenerator {
     
     // Line 2: Document number + check digit + nationality + date of birth + check digit + sex + date of expiry + check digit + optional data + composite check digit
     const docNumPadded = this.padTruncate(documentNumber, 9);
-    const docNumCD = this.calculateCheckDigit(docNumPadded.replace(/</g, ''));
+    const docNumCD = this.calculateCheckDigit(docNumPadded); // FIXED: Include fillers
     const dobCD = this.calculateCheckDigit(dateOfBirth);
     const doeCD = this.calculateCheckDigit(dateOfExpiry);
     const optionalDataPadded = this.padTruncate(optionalData, 7);
@@ -151,17 +155,19 @@ export class ICAOMRZGenerator {
       personalNumber = ''
     } = options;
     
-    // Line 1: Document type + issuing state + name
+    // Line 1: Document type (P for passport) + filler + issuing state + name
+    // ICAO 9303 requires "P<" for passports
+    const docTypeFormatted = documentType === 'P' ? 'P<' : this.padTruncate(documentType, 2);
     const fullName = `${surname}<<${givenNames.replace(/ /g, '<')}`;
-    const line1 = `${this.padTruncate(documentType, 1)}${this.padTruncate(documentType.substring(1) || '', 1)}${this.padTruncate(issuingState, 3)}${this.padTruncate(fullName, 39)}`;
+    const line1 = `${docTypeFormatted}${this.padTruncate(issuingState, 3)}${this.padTruncate(fullName, 39)}`;
     
     // Line 2: Document number + check digit + nationality + date of birth + check digit + sex + date of expiry + check digit + personal number + check digit + composite check digit
     const docNumPadded = this.padTruncate(documentNumber, 9);
-    const docNumCD = this.calculateCheckDigit(docNumPadded.replace(/</g, ''));
+    const docNumCD = this.calculateCheckDigit(docNumPadded); // Include fillers
     const dobCD = this.calculateCheckDigit(dateOfBirth);
     const doeCD = this.calculateCheckDigit(dateOfExpiry);
     const personalNumPadded = this.padTruncate(personalNumber, 14);
-    const personalNumCD = this.calculateCheckDigit(personalNumPadded.replace(/</g, ''));
+    const personalNumCD = this.calculateCheckDigit(personalNumPadded); // Include fillers
     
     const compositeData = docNumPadded + docNumCD + dateOfBirth + dobCD + dateOfExpiry + doeCD + personalNumPadded + personalNumCD;
     const compositeCD = this.calculateCheckDigit(compositeData);

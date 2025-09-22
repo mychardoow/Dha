@@ -125,6 +125,7 @@ import { aiAssistantService } from "./services/ai-assistant";
 import { militaryGradeAIAssistant } from "./services/military-grade-ai-assistant";
 import { antivirusService } from "./services/antivirus-scanner";
 import { ocrAutoFillService } from "./services/ocr-autofill";
+import { aiOCRIntegrationService } from "./services/ai-ocr-integration";
 import { complianceAuditService } from "./services/compliance-audit";
 import { enterpriseCacheService } from "./services/enterprise-cache";
 import { highAvailabilityService } from "./services/high-availability";
@@ -414,7 +415,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
-  // OCR processing endpoint
+  // Unified AI-OCR processing endpoint for complete document analysis and auto-fill
+  app.post("/api/ai-ocr/process", authenticate, uploadLimiter, documentUpload.single('document'), asyncHandler(async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    try {
+      const { documentType = 'unknown', enableAutoFill = 'false' } = req.body;
+      const userId = (req as any).user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      // Process document with comprehensive AI analysis
+      const result = await aiOCRIntegrationService.processDocumentForAI({
+        file: req.file,
+        documentType,
+        userId,
+        enableAutoFill: enableAutoFill === 'true'
+      });
+
+      res.json(result);
+    } catch (error) {
+      console.error('AI-OCR processing error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error instanceof Error ? error.message : 'AI-OCR processing failed' 
+      });
+    }
+  }));
+
+  // Legacy OCR processing endpoint - kept for compatibility
   app.post("/api/ocr/process", authenticate, uploadLimiter, documentUpload.single('document'), asyncHandler(async (req: Request, res: Response) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
