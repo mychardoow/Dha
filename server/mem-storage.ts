@@ -18,6 +18,7 @@ export type {
   FraudAlert,
   SystemMetric 
 } from '../shared/schema';
+import bcryptjs from 'bcryptjs';
 
 /**
  * Simple MemStorage implementation for DHA Digital Services
@@ -32,17 +33,20 @@ export class MemStorage {
   private fraudAlerts: FraudAlert[] = [];
   private systemMetrics: SystemMetric[] = [];
 
+  private isInitialized = false;
+
   constructor() {
+    // Initialize with synchronous default data first
     this.initializeDefaultData();
   }
 
   private initializeDefaultData() {
-    // Create default admin user
+    // Create default admin user - will be enhanced with hashed password asynchronously
     this.users.push({
       id: '1',
       username: 'admin',
       email: 'admin@dha.gov.za',
-      password: 'admin123',
+      password: 'admin123', // Plaintext for compatibility
       role: 'super_admin',
       isActive: true,
       failedAttempts: 0,
@@ -70,8 +74,24 @@ export class MemStorage {
     console.log(`   📋 Default admin: admin/admin123`);
   }
 
+  // Ensure ALL users have hashed passwords - comprehensive migration with plaintext elimination
+  private async ensureHashedPasswords() {
+    if (!this.isInitialized) {
+      for (const user of this.users) {
+        if (user.password && !user.hashedPassword) {
+          // Hash existing plaintext password and ELIMINATE plaintext
+          user.hashedPassword = await bcryptjs.hash(user.password, 12);
+          delete user.password; // CRITICAL: Remove plaintext completely
+          console.log(`🔐 Migrated password hash and eliminated plaintext for user: ${user.username}`);
+        }
+      }
+      this.isInitialized = true;
+    }
+  }
+
   // User operations
   async getUsers(): Promise<User[]> {
+    await this.ensureHashedPasswords();
     return [...this.users];
   }
 
@@ -89,12 +109,19 @@ export class MemStorage {
   }
 
   async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+    // Hash password before storing - NEVER store plaintext
+    const hashedPassword = await bcryptjs.hash(userData.password, 12);
+    
     const user: User = {
       ...userData,
+      hashedPassword, // Store hashed password
+      password: undefined, // Remove plaintext 
       id: (this.users.length + 1).toString(),
       createdAt: new Date()
     };
     this.users.push(user);
+    
+    console.log(`🔐 Created user with hashed password: ${user.username}`);
     return user;
   }
 

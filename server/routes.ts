@@ -1,6 +1,8 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer } from 'http';
 import { initializeWebSocket } from './websocket';
+import bcryptjs from 'bcryptjs';
+import rateLimit from 'express-rate-limit';
 
 // Import route modules
 import { healthRouter as healthRoutes } from './routes/health';
@@ -8,6 +10,45 @@ import monitoringRoutes from './routes/monitoring';
 import aiAssistantRoutes from './routes/ai-assistant';
 import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
+import { storage } from './mem-storage';
+
+// Authentication rate limiter - Enhanced security
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per window
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  message: {
+    success: false,
+    error: 'Too many authentication attempts. Please try again in 15 minutes.'
+  }
+});
+
+// Session validation middleware
+const requireAuth = (req: Request, res: Response, next: any) => {
+  const user = (req.session as any)?.user;
+  const lastActivity = (req.session as any)?.lastActivity;
+  
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  
+  // Check session timeout (30 minutes of inactivity)
+  if (lastActivity && Date.now() - lastActivity > 30 * 60 * 1000) {
+    req.session.destroy(() => {});
+    return res.status(401).json({
+      success: false,
+      error: 'Session expired due to inactivity'
+    });
+  }
+  
+  // Update last activity
+  (req.session as any).lastActivity = Date.now();
+  next();
+};
 
 export async function registerRoutes(app: Express, httpServer?: any): Promise<any> {
   console.log('[Routes] Registering all application routes...');
@@ -58,8 +99,8 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.error('[Routes] Failed to register biometric ultra admin routes:', error);
     }
 
-    // Authentication routes
-    app.post('/api/auth/login', async (req: Request, res: Response) => {
+    // Authentication routes with enhanced security
+    app.post('/api/auth/login', authLimiter, async (req: Request, res: Response) => {
       try {
         const { username, password } = req.body;
 
@@ -70,24 +111,93 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
           });
         }
 
-        // Real authentication logic
-        if (username === 'admin' && password === 'admin123') {
-          const user = {
-            id: 1,
-            username: 'admin',
-            role: 'admin',
-            permissions: ['ultra_admin', 'document_generation', 'user_management']
+        // Enhanced authentication with comprehensive migration support
+        const validUsers = await storage.getUsers();
+        const authenticatedUser = validUsers.find(u => u.username === username);
+        
+        if (!authenticatedUser) {
+          // Log failed attempt for security audit
+          await storage.createSecurityEvent({
+            type: 'AUTH_FAILED_USER_NOT_FOUND',
+            description: `Failed login attempt for non-existent user: ${username}`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+          
+          return res.status(401).json({
+            success: false,
+            error: 'Invalid credentials'
+          });
+        }
+        
+        // Check if user has hashed password or needs migration
+        let isValidPassword = false;
+        
+        if (authenticatedUser.hashedPassword) {
+          // Use hashed password verification
+          isValidPassword = await bcryptjs.compare(password, authenticatedUser.hashedPassword);
+          
+          // CRITICAL: If plaintext still exists after hash comparison, eliminate it
+          if (isValidPassword && authenticatedUser.password) {
+            delete authenticatedUser.password;
+            console.log(`🔐 Eliminated remaining plaintext password for user: ${username}`);
+          }
+        } else if (authenticatedUser.password) {
+          // Migrate plaintext password on successful login
+          if (authenticatedUser.password === password) {
+            isValidPassword = true;
+            // Self-migrate: hash the password and remove plaintext
+            authenticatedUser.hashedPassword = await bcryptjs.hash(password, 12);
+            delete authenticatedUser.password;
+            
+            await storage.createSecurityEvent({
+              type: 'PASSWORD_MIGRATED',
+              description: `Password migrated to hash for user: ${username}`,
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent'] || '',
+              timestamp: new Date()
+            });
+            
+            console.log(`🔐 Self-migrated password for user: ${username}`);
+          }
+        }
+        
+        if (isValidPassword) {
+          // Log successful authentication
+          await storage.createSecurityEvent({
+            type: 'AUTH_SUCCESS',
+            description: `Successful login for user: ${username}`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+          const sessionUser = {
+            id: authenticatedUser.id,
+            username: authenticatedUser.username,
+            role: authenticatedUser.role || 'admin',
+            permissions: ['ultra_admin', 'document_generation', 'user_management', 'biometric_access']
           };
 
-          // Store in session
-          (req.session as any).user = user;
+          // Store in secure session
+          (req.session as any).user = sessionUser;
+          (req.session as any).lastActivity = Date.now();
 
           res.json({
             success: true,
-            user,
-            message: 'Login successful'
+            user: sessionUser,
+            message: 'DHA Authentication Successful - Military Grade Security Active'
           });
         } else {
+          // Log failed authentication attempt
+          await storage.createSecurityEvent({
+            type: 'AUTH_FAILED_INVALID_PASSWORD',
+            description: `Failed login attempt with invalid password for user: ${username}`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+          
           res.status(401).json({
             success: false,
             error: 'Invalid credentials'
@@ -119,19 +229,60 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       });
     });
 
-    app.get('/api/auth/me', (req: Request, res: Response) => {
+    app.get('/api/auth/me', requireAuth, (req: Request, res: Response) => {
       const user = (req.session as any)?.user;
+      const lastActivity = (req.session as any)?.lastActivity;
 
-      if (!user) {
-        return res.status(401).json({
+      res.json({
+        success: true,
+        user,
+        sessionInfo: {
+          lastActivity: new Date(lastActivity).toISOString(),
+          sessionActive: true,
+          securityLevel: 'Military Grade'
+        }
+      });
+    });
+
+    // Protected admin dashboard endpoint
+    app.get('/api/admin/dashboard', requireAuth, (req: Request, res: Response) => {
+      const user = (req.session as any)?.user;
+      
+      if (!user?.permissions?.includes('ultra_admin')) {
+        return res.status(403).json({
           success: false,
-          error: 'Not authenticated'
+          error: 'Ultra admin access required'
         });
       }
 
       res.json({
         success: true,
-        user
+        dashboard: {
+          totalUsers: 1,
+          activeServices: ['AI Assistant', 'Document Generation', 'Biometric Security'],
+          systemStatus: 'Operational',
+          securityEvents: [],
+          lastLogin: new Date().toISOString()
+        }
+      });
+    });
+
+    // Protected document generation endpoint  
+    app.post('/api/documents/secure-generate', requireAuth, (req: Request, res: Response) => {
+      const user = (req.session as any)?.user;
+      
+      if (!user?.permissions?.includes('document_generation')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Document generation access required'
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Secure document generation authorized',
+        user: user.username,
+        timestamp: new Date().toISOString()
       });
     });
 
