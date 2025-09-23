@@ -1,4 +1,4 @@
-import { environmentValidator } from "./services/environment-validator";
+import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
 
 /**
  * PRODUCTION-READY Startup Health Checks Service

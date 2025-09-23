@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
 import { startupHealthChecks } from "./startup-health-checks";
-import { EnvironmentValidator } from "./services/environment-validator";
+import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
+import { storage } from "./mem-storage";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -88,16 +89,88 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    version: '1.0.0'
+    version: '2.0.0',
+    database: 'MemStorage Active',
+    features: ['Document Generation', 'AI Assistant', 'Security', 'Authentication']
   });
 });
 
 app.get('/api/status', (req, res) => {
   res.json({
     status: 'DHA Digital Services Active',
-    services: ['Document Generation', 'AI Assistant', 'Security'],
+    services: ['Document Generation', 'AI Assistant', 'Security', 'Authentication'],
+    database: 'MemStorage Connected',
+    version: '2.0.0',
     timestamp: new Date().toISOString()
   });
+});
+
+// Database health check endpoint
+app.get('/api/db/health', async (req, res) => {
+  try {
+    // Test all storage collections
+    const users = await storage.getUsers();
+    const documents = await storage.getDocuments();
+    const conversations = await storage.getConversations();
+    const securityEvents = await storage.getSecurityEvents();
+    const systemMetrics = await storage.getSystemMetrics();
+    const stats = storage.getStats();
+    
+    res.json({
+      status: 'healthy',
+      database: 'MemStorage Active',
+      tablesReady: true,
+      collections: {
+        users: stats.users,
+        documents: stats.documents,
+        conversations: stats.conversations,
+        messages: stats.messages,
+        securityEvents: stats.securityEvents,
+        systemMetrics: stats.systemMetrics
+      },
+      totalRecords: Object.values(stats).reduce((a, b) => a + b, 0),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      database: 'MemStorage Error',
+      tablesReady: false,
+      error: error instanceof Error ? error.message : String(error),
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Authentication endpoint for admin login
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({
+      success: false,
+      error: 'Username and password required'
+    });
+  }
+  
+  // Simple authentication for deployment
+  if (username === 'admin' && password === 'admin123') {
+    res.json({
+      success: true,
+      user: {
+        id: 1,
+        username: 'admin',
+        role: 'ULTRA_ADMIN',
+        permissions: ['all']
+      },
+      token: 'admin-session-token'
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      error: 'Invalid credentials'
+    });
+  }
 });
 
 // Serve static files
@@ -134,7 +207,11 @@ const startServer = async () => {
     console.log('🇿🇦 Department of Home Affairs Digital Platform');
     console.log('👑 Ultra AI Assistant: Raeesa Osman Exclusive Authority');
     console.log('🤖 Agent System: FULLY OPERATIONAL');
+    console.log('💾 Database: MemStorage Ready');
     console.log('');
+
+    // Heartbeat log before server start
+    console.log('🔄 Starting server initialization...');
 
     // Initialize all agent systems
     console.log('🔍 Initializing Agent Task Systems...');
@@ -150,6 +227,16 @@ const startServer = async () => {
 
     // Run startup health checks before starting server
     await startupHealthChecks();
+
+    // Verify storage initialization
+    const storageStats = storage.getStats();
+    console.log(`📊 Storage initialized: ${storageStats.users} users, ${storageStats.documents} documents`);
+    
+    // Test admin user existence
+    const adminUser = await storage.getUserByUsername('admin');
+    if (adminUser) {
+      console.log(`👑 Admin user ready: ${adminUser.username} (${adminUser.role})`);
+    }
 
     // Force bind to 0.0.0.0 for Replit deployment
     server.listen(PORT, HOST, () => {
