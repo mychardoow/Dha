@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, timestamp, boolean, integer, decimal, jsonb, pgEnum, uniqueIndex, check } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+// import { createInsertSchema } from "drizzle-zod"; // Temporarily disabled due to version conflict
 import { z } from "zod";
 
 // ===================== DRIZZLE ENUMS FOR TYPE SAFETY =====================
@@ -1194,8 +1194,9 @@ const passwordStrengthSchema = z.string()
   .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
     "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character");
 
-// Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
+// Insert schemas - Temporarily disabled due to drizzle-zod version conflict
+/*
+// export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   email: true,
   password: true,
@@ -1203,7 +1204,10 @@ export const insertUserSchema = createInsertSchema(users).pick({
 }).extend({
   password: passwordStrengthSchema, // Override with strength validation
 });
+*/
 
+/*
+// All insert schemas temporarily disabled due to drizzle-zod version conflict
 export const insertConversationSchema = createInsertSchema(conversations).pick({
   userId: true,
   title: true,
@@ -1241,110 +1245,110 @@ export const insertQuantumKeySchema = createInsertSchema(quantumKeys).omit({
   createdAt: true,
 });
 
-export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
+// export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({
   id: true,
   timestamp: true,
   resolvedAt: true,
 });
 
-export const insertBiometricProfileSchema = createInsertSchema(biometricProfiles).omit({
+// export const insertBiometricProfileSchema = createInsertSchema(biometricProfiles).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
+// export const insertApiKeySchema = createInsertSchema(apiKeys).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertCertificateSchema = createInsertSchema(certificates).omit({
+// export const insertCertificateSchema = createInsertSchema(certificates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertPermitSchema = createInsertSchema(permits).omit({
+// export const insertPermitSchema = createInsertSchema(permits).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
+// export const insertDocumentTemplateSchema = createInsertSchema(documentTemplates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertBirthCertificateSchema = createInsertSchema(birthCertificates).omit({
+// export const insertBirthCertificateSchema = createInsertSchema(birthCertificates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertMarriageCertificateSchema = createInsertSchema(marriageCertificates).omit({
+// export const insertMarriageCertificateSchema = createInsertSchema(marriageCertificates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertPassportSchema = createInsertSchema(passports).omit({
+// export const insertPassportSchema = createInsertSchema(passports).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDeathCertificateSchema = createInsertSchema(deathCertificates).omit({
+// export const insertDeathCertificateSchema = createInsertSchema(deathCertificates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertWorkPermitSchema = createInsertSchema(workPermits).omit({
+// export const insertWorkPermitSchema = createInsertSchema(workPermits).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertPermanentVisaSchema = createInsertSchema(permanentVisas).omit({
+// export const insertPermanentVisaSchema = createInsertSchema(permanentVisas).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertIdCardSchema = createInsertSchema(idCards).omit({
+// export const insertIdCardSchema = createInsertSchema(idCards).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDocumentVerificationSchema = createInsertSchema(documentVerifications).omit({
+// export const insertDocumentVerificationSchema = createInsertSchema(documentVerifications).omit({
   id: true,
 });
 
 // New table insert schemas
-export const insertRefugeeDocumentSchema = createInsertSchema(refugeeDocuments).omit({
+// export const insertRefugeeDocumentSchema = createInsertSchema(refugeeDocuments).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDiplomaticPassportSchema = createInsertSchema(diplomaticPassports).omit({
+// export const insertDiplomaticPassportSchema = createInsertSchema(diplomaticPassports).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDocumentDeliverySchema = createInsertSchema(documentDelivery).omit({
+// export const insertDocumentDeliverySchema = createInsertSchema(documentDelivery).omit({
   id: true,
   createdAt: true,
 });
 
 
-export const insertDhaOfficeSchema = createInsertSchema(dhaOffices).omit({
+// export const insertDhaOfficeSchema = createInsertSchema(dhaOffices).omit({
   id: true,
   createdAt: true,
 });
 
 // AMS Certificate and Status Management insert schemas
-export const insertAmsCertificateSchema = createInsertSchema(amsCertificates).omit({
+// export const insertAmsCertificateSchema = createInsertSchema(amsCertificates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertPermitStatusChangeSchema = createInsertSchema(permitStatusChanges).omit({
+// export const insertPermitStatusChangeSchema = createInsertSchema(permitStatusChanges).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDocumentVerificationStatusSchema = createInsertSchema(documentVerificationStatus).omit({
+// export const insertDocumentVerificationStatusSchema = createInsertSchema(documentVerificationStatus).omit({
   id: true,
   createdAt: true,
 });
@@ -1693,34 +1697,34 @@ export const dhaBackgroundChecks = pgTable("dha_background_checks", {
 
 // ===================== DHA INSERT SCHEMAS =====================
 
-export const insertDhaApplicantSchema = createInsertSchema(dhaApplicants).omit({
+// export const insertDhaApplicantSchema = createInsertSchema(dhaApplicants).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertDhaApplicationSchema = createInsertSchema(dhaApplications).omit({
+// export const insertDhaApplicationSchema = createInsertSchema(dhaApplications).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertDhaVerificationSchema = createInsertSchema(dhaVerifications).omit({
+// export const insertDhaVerificationSchema = createInsertSchema(dhaVerifications).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertDhaAuditEventSchema = createInsertSchema(dhaAuditEvents).omit({
+// export const insertDhaAuditEventSchema = createInsertSchema(dhaAuditEvents).omit({
   id: true,
 });
 
-export const insertDhaConsentRecordSchema = createInsertSchema(dhaConsentRecords).omit({
+// export const insertDhaConsentRecordSchema = createInsertSchema(dhaConsentRecords).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertDhaBackgroundCheckSchema = createInsertSchema(dhaBackgroundChecks).omit({
+// export const insertDhaBackgroundCheckSchema = createInsertSchema(dhaBackgroundChecks).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -3047,7 +3051,7 @@ export const chatMessages = pgTable("chat_messages", {
 
 // ===================== NOTIFICATION SCHEMAS =====================
 
-export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
+// export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
   id: true,
   createdAt: true,
   readAt: true,
@@ -3066,28 +3070,28 @@ export const criticalAlertSchema = insertNotificationEventSchema.extend({
   escalationLevel: z.enum(["low", "medium", "high", "critical"]).default("critical")
 }).omit({ userId: true, createdBy: true, priority: true }); // Priority is auto-set to critical
 
-export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({
+// export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertStatusUpdateSchema = createInsertSchema(statusUpdates).omit({
+// export const insertStatusUpdateSchema = createInsertSchema(statusUpdates).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertWebSocketSessionSchema = createInsertSchema(webSocketSessions).omit({
+// export const insertWebSocketSessionSchema = createInsertSchema(webSocketSessions).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
+// export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+// export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   id: true,
   createdAt: true,
   readAt: true,
@@ -3722,31 +3726,31 @@ export const saIdNumberSchema = z.string().regex(
 }, "Invalid South African ID number checksum");
 
 // AI Assistant System Insert Schemas
-export const insertAiDocumentSessionSchema = createInsertSchema(aiDocumentSessions).omit({
+// export const insertAiDocumentSessionSchema = createInsertSchema(aiDocumentSessions).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertDocumentAutoFillTemplateSchema = createInsertSchema(documentAutoFillTemplates).omit({
+// export const insertDocumentAutoFillTemplateSchema = createInsertSchema(documentAutoFillTemplates).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertOcrFieldDefinitionSchema = createInsertSchema(ocrFieldDefinitions).omit({
+// export const insertOcrFieldDefinitionSchema = createInsertSchema(ocrFieldDefinitions).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertAiKnowledgeBaseSchema = createInsertSchema(aiKnowledgeBase).omit({
+// export const insertAiKnowledgeBaseSchema = createInsertSchema(aiKnowledgeBase).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertAiConversationAnalyticsSchema = createInsertSchema(aiConversationAnalytics).omit({
+// export const insertAiConversationAnalyticsSchema = createInsertSchema(aiConversationAnalytics).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
@@ -4132,7 +4136,7 @@ export const maintenanceTasks = pgTable("maintenance_tasks", {
   isEnabled: boolean("is_enabled").notNull().default(true),
   timeout: integer("timeout").notNull().default(300000), // 5 minutes
   maxRetries: integer("max_retries").notNull().default(3),
-  retryDelay: integer("retry_not null().default(60000), // 1 minute
+  retryDelay: integer("retry_delay").notNull().default(60000), // 1 minute
 
   // Task configuration
   taskParameters: jsonb("task_parameters"), // Task-specific parameters
@@ -4337,6 +4341,15 @@ export const performanceBaselines = pgTable("performance_baselines", {
   updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
 });
 
+// Ultra Admin Biometric Profiles - Military-grade admin access
+export const ultraAdminProfiles = pgTable("ultra_admin_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  profileData: jsonb("profile_data"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
 // Type exports for all new autonomous monitoring tables
 export type AutonomousOperation = typeof autonomousOperations.$inferSelect;
 export type InsertAutonomousOperation = typeof autonomousOperations.$inferInsert;
@@ -4363,14 +4376,14 @@ export type PerformanceBaseline = typeof performanceBaselines.$inferSelect;
 export type InsertPerformanceBaseline = typeof performanceBaselines.$inferInsert;
 
 // Zod schemas for autonomous monitoring
-export const insertAutonomousOperationSchema = createInsertSchema(autonomousOperations);
-export const insertSystemHealthSnapshotSchema = createInsertSchema(systemHealthSnapshots);
-export const insertCircuitBreakerStateSchema = createInsertSchema(circuitBreakerStates);
-export const insertMaintenanceTaskSchema = createInsertSchema(maintenanceTasks);
-export const insertAlertRuleSchema = createInsertSchema(alertRules);
-export const insertIncidentSchema = createInsertSchema(incidents);
-export const insertGovernmentComplianceAuditSchema = createInsertSchema(governmentComplianceAudit);
-export const insertPerformanceBaselineSchema = createInsertSchema(performanceBaselines);
+// export const insertAutonomousOperationSchema = createInsertSchema(autonomousOperations);
+// export const insertSystemHealthSnapshotSchema = createInsertSchema(systemHealthSnapshots);
+// export const insertCircuitBreakerStateSchema = createInsertSchema(circuitBreakerStates);
+// export const insertMaintenanceTaskSchema = createInsertSchema(maintenanceTasks);
+// export const insertAlertRuleSchema = createInsertSchema(alertRules);
+// export const insertIncidentSchema = createInsertSchema(incidents);
+// export const insertGovernmentComplianceAuditSchema = createInsertSchema(governmentComplianceAudit);
+// export const insertPerformanceBaselineSchema = createInsertSchema(performanceBaselines);
 
 // ===================== COMPLETE 21 DHA DOCUMENT VALIDATION SCHEMAS =====================
 

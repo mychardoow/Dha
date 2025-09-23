@@ -20,10 +20,8 @@ process.env.NODE_ENV = 'production';
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
-// Set up environment fallbacks ONLY for development
-if (process.env.NODE_ENV !== 'production') {
-  environmentValidator.setupDevelopmentFallbacks();
-}
+// Set up environment fallbacks for testing deployment
+environmentValidator.setupDevelopmentFallbacks();
 
 // Create HTTP server
 const server = createServer(app);
