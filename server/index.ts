@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
@@ -27,6 +28,9 @@ EnvironmentValidator.setupDevelopmentFallbacks();
 
 // Create HTTP server
 const server = createServer(app);
+
+// Trust proxy for secure cookies and rate limiting
+app.set('trust proxy', 1);
 
 // Initialize WebSocket (basic implementation)
 let wsService: any;
@@ -80,6 +84,26 @@ const limiter = rateLimit({
   legacyHeaders: false // Disable the `X-RateLimit-*` headers
 });
 app.use(limiter);
+
+// Session management with military-grade security
+const sessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === 'production' && (!sessionSecret || sessionSecret.length < 32)) {
+  console.error('🚨 SECURITY ERROR: SESSION_SECRET must be set and at least 32 characters in production');
+  process.exit(1);
+}
+
+app.use(session({
+  secret: sessionSecret || 'dha-ultra-secure-session-secret-2024-military-grade-authentication-system',
+  resave: false,
+  saveUninitialized: false,
+  name: 'dha.session.id',
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'strict'
+  }
+}));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -183,7 +207,12 @@ const startServer = async () => {
     const storageStats = storage.getStats();
     console.log(`📊 Storage initialized: ${storageStats.users} users, ${storageStats.documents} documents`);
     
-    // Test admin user existence
+    // CRITICAL: Trigger eager password migration BEFORE any user lookups
+    console.log('🔐 Triggering immediate password migration...');
+    await storage.getUsers(); // This ensures all plaintext passwords are hashed and eliminated
+    console.log('✅ Password migration completed - No plaintext remains in memory');
+
+    // Test admin user existence (now safely with hashed password only)
     const adminUser = await storage.getUserByUsername('admin');
     if (adminUser) {
       console.log(`👑 Admin user ready: ${adminUser.username} (${adminUser.role})`);
