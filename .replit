@@ -67,7 +67,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "Simple "
+runButton = "This one "
 
 [[workflows.workflow]]
 name = "Project"
@@ -85,3 +85,12 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "packager.installForAll"
+
+[[workflows.workflow]]
+name = "This one "
+mode = "sequential"
+author = 47909382
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
