@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import { storage } from "../storage";
-import type { User } from "@shared/schema";
+import bcryptjs from "bcryptjs";
+import { storage } from "../mem-storage";
+import type { User } from "../mem-storage";
 import { privacyProtectionService } from "../services/privacy-protection";
 import { configService, config } from "./provider-config";
 
@@ -20,11 +20,11 @@ export type AuthenticatedUser = {
 
 
 export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 12);
+  return await bcryptjs.hash(password, 12);
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return await bcrypt.compare(password, hash);
+  return await bcryptjs.compare(password, hash);
 }
 
 export function generateToken(user: { id: string; username: string; email: string; role: string }): string {
@@ -163,7 +163,7 @@ export async function requireApiKey(req: Request, res: Response, next: NextFunct
     let matchedKey = null;
 
     for (const storedKey of allApiKeys) {
-      const isMatch = await bcrypt.compare(apiKey, storedKey.keyHash);
+      const isMatch = await bcryptjs.compare(apiKey, storedKey.keyHash);
       if (isMatch) {
         matchedKey = storedKey;
         break;
