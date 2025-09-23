@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA AI Assistant & PDF Generator Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .header { 
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white; 
+            padding: 30px; 
+            text-align: center; 
+        }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header p { font-size: 1.2em; opacity: 0.9; }
+        
+        .demo-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 0;
+            min-height: 600px;
+        }
+        
+        .demo-section { 
+            padding: 30px; 
+            border-right: 1px solid #e5e7eb;
+        }
+        .demo-section:last-child { border-right: none; }
+        
+        .section-title { 
+            font-size: 1.8em; 
+            margin-bottom: 20px; 
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .chat-container {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #3b82f6;
+            color: white;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .ai-message {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .chat-input-container {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+        }
+        
+        .chat-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .chat-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .pdf-form {
+            background: #f9fafb;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+        
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .status.error {
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+        
+        .status.info {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+        
+        .loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .feature-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .demo-grid { grid-template-columns: 1fr; }
+            .demo-section { border-right: none; border-bottom: 1px solid #e5e7eb; }
+            .demo-section:last-child { border-bottom: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏛️ DHA Digital Services Platform</h1>
+            <p>AI Assistant & Document Generation Demo</p>
+        </div>
+        
+        <div class="demo-grid">
+            <!-- AI Assistant Section -->
+            <div class="demo-section">
+                <h2 class="section-title">
+                    🤖 Ultra AI Assistant
+                </h2>
+                <div class="feature-badge">Military-Grade • Unlimited Capabilities</div>
+                
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai-message">
+                            <strong>DHA AI Assistant:</strong> Hello! I'm your Ultra AI assistant with unlimited capabilities. I can help with DHA services, document generation, government operations, and any questions you have. How can I assist you today?
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input 
+                            type="text" 
+                            class="chat-input" 
+                            id="chatInput"
+                            placeholder="Ask me anything about DHA services..."
+                            onkeypress="handleChatKeyPress(event)"
+                        >
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PDF Generator Section -->
+            <div class="demo-section">
+                <h2 class="section-title">
+                    📄 Document Generator
+                </h2>
+                <div class="feature-badge">All 21 DHA Document Types</div>
+                
+                <div class="pdf-form">
+                    <div class="form-group">
+                        <label for="documentType">Document Type:</label>
+                        <select id="documentType">
+                            <option value="smart_id_card">Smart ID Card</option>
+                            <option value="south_african_passport">South African Passport</option>
+                            <option value="birth_certificate">Birth Certificate</option>
+                            <option value="marriage_certificate">Marriage Certificate</option>
+                            <option value="death_certificate">Death Certificate</option>
+                            <option value="unabridged_birth_certificate">Unabridged Birth Certificate</option>
+                            <option value="temporary_identity_certificate">Temporary Identity Certificate</option>
+                            <option value="asylum_seeker_permit">Asylum Seeker Permit</option>
+                            <option value="refugee_identity_document">Refugee Identity Document</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fullName">Full Name:</label>
+                        <input type="text" id="fullName" placeholder="Enter full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="idNumber">ID Number:</label>
+                        <input type="text" id="idNumber" placeholder="Enter ID number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="dateOfBirth">Date of Birth:</label>
+                        <input type="date" id="dateOfBirth">
+                    </div>
+                    
+                    <button class="btn" onclick="generateDocument()" id="generateBtn">
+                        Generate Secure Document
+                    </button>
+                    
+                    <div id="documentStatus"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let sessionId = null;
+
+        // Login first to get session
+        async function authenticateUser() {
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'dha2024admin'
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    sessionId = data.sessionId;
+                    console.log('Authentication successful');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Authentication failed:', error);
+            }
+            return false;
+        }
+
+        // Chat functionality
+        async function sendMessage(message) {
+            if (!sessionId) {
+                await authenticateUser();
+            }
+
+            const chatMessages = document.getElementById('chatMessages');
+            
+            // Add user message
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = message;
+            chatMessages.appendChild(userMessage);
+            
+            // Add thinking indicator
+            const thinkingMessage = document.createElement('div');
+            thinkingMessage.className = 'message ai-message';
+            thinkingMessage.innerHTML = '<div class="loading"><div class="spinner"></div> AI is thinking...</div>';
+            chatMessages.appendChild(thinkingMessage);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationId: 'demo-chat'
+                    })
+                });
+
+                const data = await response.json();
+                
+                // Remove thinking indicator
+                chatMessages.removeChild(thinkingMessage);
+                
+                if (data.success) {
+                    const aiMessage = document.createElement('div');
+                    aiMessage.className = 'message ai-message';
+                    aiMessage.innerHTML = `<strong>Ultra AI:</strong> ${data.aiResponse.content}`;
+                    chatMessages.appendChild(aiMessage);
+                } else {
+                    const errorMessage = document.createElement('div');
+                    errorMessage.className = 'message ai-message';
+                    errorMessage.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                    chatMessages.appendChild(errorMessage);
+                }
+            } catch (error) {
+                chatMessages.removeChild(thinkingMessage);
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'message ai-message';
+                errorMessage.innerHTML = `<strong>Error:</strong> Failed to connect to AI service`;
+                chatMessages.appendChild(errorMessage);
+            }
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('chatInput');
+                const message = input.value.trim();
+                if (message) {
+                    sendMessage(message);
+                    input.value = '';
+                }
+            }
+        }
+
+        // Document generation functionality
+        async function generateDocument() {
+            if (!sessionId) {
+                await authenticateUser();
+            }
+
+            const generateBtn = document.getElementById('generateBtn');
+            const documentStatus = document.getElementById('documentStatus');
+            
+            const documentType = document.getElementById('documentType').value;
+            const fullName = document.getElementById('fullName').value;
+            const idNumber = document.getElementById('idNumber').value;
+            const dateOfBirth = document.getElementById('dateOfBirth').value;
+
+            if (!fullName || !idNumber || !dateOfBirth) {
+                documentStatus.innerHTML = '<div class="status error">Please fill in all required fields</div>';
+                return;
+            }
+
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<div class="loading"><div class="spinner"></div> Generating Document...</div>';
+            
+            documentStatus.innerHTML = '<div class="status info">🔒 Initiating secure document generation...</div>';
+
+            try {
+                const response = await fetch('/api/documents/secure-generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-session-id': sessionId
+                    },
+                    body: JSON.stringify({
+                        type: documentType,
+                        personalInfo: {
+                            fullName: fullName,
+                            idNumber: idNumber,
+                            dateOfBirth: dateOfBirth
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    documentStatus.innerHTML = `
+                        <div class="status success">
+                            ✅ <strong>Document Generated Successfully!</strong><br>
+                            📄 Document ID: ${data.document.id}<br>
+                            🔒 Security Level: ${data.document.securityLevel}<br>
+                            📅 Generated: ${data.timestamp}<br>
+                            👤 Generated by: ${data.user}
+                        </div>
+                    `;
+                } else {
+                    documentStatus.innerHTML = `<div class="status error">❌ Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                documentStatus.innerHTML = '<div class="status error">❌ Failed to connect to document service</div>';
+            }
+            
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = 'Generate Secure Document';
+        }
+
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', function() {
+            authenticateUser();
+        });
+    </script>
+</body>
+</html>
