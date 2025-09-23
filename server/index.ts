@@ -17,10 +17,12 @@ const app = express();
 
 // Force production mode
 process.env.NODE_ENV = 'production';
-const port = process.env.PORT || '5000';
+const port = parseInt(process.env.PORT || '5000', 10);
 
-// Set up environment fallbacks for development
-environmentValidator.setupDevelopmentFallbacks();
+// Set up environment fallbacks ONLY for development
+if (process.env.NODE_ENV !== 'production') {
+  environmentValidator.setupDevelopmentFallbacks();
+}
 
 // Create HTTP server
 const server = createServer(app);
@@ -31,7 +33,7 @@ try {
   const { WebSocketService } = await import('./websocket');
   wsService = new WebSocketService(server);
 } catch (error) {
-  console.warn('WebSocket service not available:', error.message);
+  console.warn('WebSocket service not available:', error instanceof Error ? error.message : String(error));
 }
 
 // Security middleware
@@ -134,13 +136,16 @@ const startServer = async () => {
     console.log('👑 Ultra AI Assistant: Raeesa Osman Exclusive');
     console.log('');
 
+    // Run startup health checks before starting server
+    await startupHealthChecks();
+
     // Force bind to 0.0.0.0 for Replit deployment
     server.listen(port, '0.0.0.0', () => {
       console.log('🌟 SERVER LIVE AND DEPLOYED!');
       console.log('==========================');
       console.log(`🔗 Application URL: https://${process.env.REPL_SLUG || 'dha-digital-services'}.${process.env.REPL_OWNER || 'replit'}.repl.co`);
-      console.log(`📊 Health Check: /api/health`); // Note: Original /api/health is removed in snippet
-      console.log(`👑 Admin Login: admin/admin123`);
+      console.log(`📊 Health Check: /api/health`);
+      console.log(`👑 Admin Authentication: Configured`);
       console.log(`🏛️ All 21 DHA document types ready`);
       console.log(`🔒 Military-grade security active`);
       console.log(`🤖 Ultra AI Assistant ready`);
