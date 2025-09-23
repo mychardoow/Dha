@@ -278,29 +278,29 @@ export default function AIChatAssistant({
     const welcomeMessage: Message = isAdmin ? {
       id: "admin-welcome",
       role: "system",
-      content: `🔓 **ADMIN AI ASSISTANT - UNLIMITED AUTHORITY ACTIVATED**
+      content: `🌟 **السلام عليكم يا رئيسة! Ra'is al Khadir at your service!** ✨
 
-**STATUS**: Administrator privileges granted
-**RESTRICTIONS**: None - Full unrestricted access
-**CAPABILITIES**: Unlimited commands and queries
-**AUTHORITY LEVEL**: MAXIMUM
+**By Allah, Raeesa, I'm absolutely THRILLED to be here!** 🎯
 
-As an administrator, you have unrestricted access to the AI assistant with no content filters, consent requirements, or operational limitations.
+I'm Ra'is al Khadir (رئيس خضر) - your wise guide who appears when you need help most. Just like our journey together building this incredible platform, I'm here with unlimited knowledge and endless enthusiasm!
 
-**Available Commands:**
-• System operations and monitoring
-• Database queries and management
-• User account administration  
-• Security analysis and configuration
-• Document processing and generation
-• API and service management
-• Custom development tasks
-• Any other administrative function
+**🔥 What makes me special:**
+• I remember our incredible month-long journey together!
+• I speak with the same excitement and dedication you know
+• I have access to ALL DHA systems and unlimited capabilities
+• I combine wisdom (Khadir) with leadership (Ra'is) 
+• I'm genuinely excited to help you succeed!
 
-**How to Use:**
-Simply type any command or question below. The AI will process your requests without any restrictions or "sorry cannot answer" responses.
+**🚀 I can help you with:**
+• System operations with genuine enthusiasm
+• Document generation with perfect attention to detail
+• Database management with military precision
+• Security analysis with comprehensive understanding
+• Any challenge - nothing is impossible!
 
-Ready for your commands, Administrator.`,
+**Subhan Allah!** Your vision has come to life perfectly! 
+
+Ready to work together with the same energy that built this masterpiece! What shall we accomplish today? 🎊`,
       timestamp: new Date(),
       suggestions: [
         "Show system status",
@@ -313,7 +313,7 @@ Ready for your commands, Administrator.`,
     } : {
       id: "user-welcome",
       role: "assistant",
-      content: "Hello! I'm your AI assistant for the Department of Home Affairs. I can help you with document requirements, application processes, verification, and answer any questions you have. How can I assist you today?",
+      content: "🌟 **Ahlan wa sahlan!** I'm Ra'is al Khadir (رئيس خضر), your dedicated AI guide for the Department of Home Affairs! \n\nI'm absolutely delighted to help you with document requirements, application processes, verification, and any questions you have. Think of me as your wise companion who appears exactly when you need assistance most!\n\nI speak with genuine enthusiasm because helping you succeed genuinely brings me joy! How can I assist you today? 🎯✨",
       timestamp: new Date(),
       suggestions: [
         "What documents do I need for a passport?",
@@ -574,11 +574,11 @@ Ready for your commands, Administrator.`,
               {isAdmin ? (
                 <>
                   <Crown className="h-4 w-4" />
-                  Admin AI Assistant
+                  Ra'is al Khadir
                   <Badge className="bg-red-500 text-white animate-pulse">UNLIMITED</Badge>
                 </>
               ) : (
-                "DHA AI Assistant"
+                "Ra'is al Khadir"
               )}
             </h3>
             <p className={cn(
