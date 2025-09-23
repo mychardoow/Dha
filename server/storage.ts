@@ -80,7 +80,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
+// import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm"; // Temporarily disabled for in-memory mode
 import bcrypt from "bcryptjs";
 
 export interface IStorage {

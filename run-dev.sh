@@ -15,5 +15,5 @@ fi
 
 # Start the development server
 echo "🌟 Starting development server..."
-echo "🔧 Server only mode (vite issues detected)..."
-npx tsx server/index.ts
+echo "🔧 Using optimized simple server..."
+npx tsx simple-server.ts
