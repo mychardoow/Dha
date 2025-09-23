@@ -9,19 +9,21 @@ import { aiAssistantRoutes } from './routes/ai-assistant';
 import { biometricUltraAdminRoutes } from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 
-export async function registerRoutes(app: Express): Promise<any> {
+export async function registerRoutes(app: Express, httpServer?: any): Promise<any> {
   console.log('[Routes] Registering all application routes...');
 
   try {
-    // Create HTTP server for WebSocket support
-    const httpServer = createServer(app);
+    // Use provided HTTP server or create one
+    const server = httpServer || createServer(app);
 
-    // Initialize WebSocket
-    try {
-      await initializeWebSocket(httpServer);
-      console.log('[Routes] ✅ WebSocket initialized');
-    } catch (wsError) {
-      console.warn('[Routes] WebSocket initialization failed:', wsError);
+    // Initialize WebSocket only if we have a server
+    if (server) {
+      try {
+        await initializeWebSocket(server);
+        console.log('[Routes] ✅ WebSocket initialized');
+      } catch (wsError) {
+        console.warn('[Routes] WebSocket initialization failed:', wsError);
+      }
     }
 
     // Register health routes
@@ -211,33 +213,10 @@ export async function registerRoutes(app: Express): Promise<any> {
     });
 
     console.log('[Routes] ✅ All routes registered successfully');
-    return httpServer;
+    return server;
 
   } catch (error) {
     console.error('[Routes] ❌ Failed to register routes:', error);
     throw error;
   }
-}
-import { Express } from 'express';
-
-export function registerRoutes(app: Express) {
-  // Health check routes
-  app.get('/api/health', (req, res) => {
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV
-    });
-  });
-
-  // Status route
-  app.get('/api/status', (req, res) => {
-    res.json({
-      status: 'DHA Digital Services Active',
-      services: ['Document Generation', 'AI Assistant', 'Security'],
-      timestamp: new Date().toISOString()
-    });
-  });
-
-  console.log('Routes registered successfully');
 }
