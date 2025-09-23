@@ -19,8 +19,8 @@ const __dirname = dirname(__filename);
 // Create Express app first
 const app = express();
 
-// Force production mode
-// Let environment control NODE_ENV for proper dev workflow
+// Force development mode for proper Vite integration
+process.env.NODE_ENV = 'development';
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
@@ -237,13 +237,16 @@ const startServer = async () => {
       console.error('⚠️ Route registration failed (non-blocking):', routeError);
     }
 
-    // Setup Vite for development or serve static files for production
-    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
-      // Development mode: Use Vite middleware for hot reloading
-      console.log('🎯 Setting up Vite development server...');
+    // ALWAYS use Vite in development - Force React app serving
+    console.log('🎯 Setting up Vite development server for React app...');
+    console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`);
+    try {
       await setupVite(app, server);
-      console.log('✅ Vite development server configured');
-    } else {
+      console.log('✅ Vite development server configured successfully');
+      console.log('🚀 React app will now be served with full interactivity');
+    } catch (viteError) {
+      console.error('❌ Vite setup failed:', viteError);
+      // Fallback to static serving if Vite fails
       // Production mode: Serve static files
       const publicPath = join(__dirname, '../public');
       app.use(express.static(publicPath, {
