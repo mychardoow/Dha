@@ -36,35 +36,3 @@ export class WebSocketService {
     this.io.emit(event, data);
   }
 }
-import { Server } from 'http';
-import { WebSocketServer } from 'ws';
-
-export class WebSocketService {
-  private wss: WebSocketServer;
-
-  constructor(server: Server) {
-    this.wss = new WebSocketServer({ server });
-  }
-
-  initialize() {
-    this.wss.on('connection', (ws) => {
-      console.log('WebSocket client connected');
-      
-      ws.on('message', (message) => {
-        console.log('Received:', message.toString());
-      });
-
-      ws.on('close', () => {
-        console.log('WebSocket client disconnected');
-      });
-
-      // Send welcome message
-      ws.send(JSON.stringify({
-        type: 'welcome',
-        message: 'Connected to DHA Digital Services'
-      }));
-    });
-
-    console.log('WebSocket server initialized');
-  }
-}
