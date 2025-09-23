@@ -1,5 +1,16 @@
 // Create missing environment validator service
 export class EnvironmentValidator {
+  private static instance: EnvironmentValidator;
+
+  private constructor() {}
+
+  static getInstance(): EnvironmentValidator {
+    if (!EnvironmentValidator.instance) {
+      EnvironmentValidator.instance = new EnvironmentValidator();
+    }
+    return EnvironmentValidator.instance;
+  }
+
   static setupDevelopmentFallbacks() {
     // Set up development fallbacks for missing environment variables
     if (!process.env.NODE_ENV) {
@@ -58,4 +69,4 @@ export class EnvironmentValidator {
   }
 }
 
-export const environmentValidator = new EnvironmentValidator();
+export const environmentValidator = EnvironmentValidator.getInstance();
