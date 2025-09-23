@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AuthGuard from "@/components/AuthGuard";
 import Login from "@/pages/Login";
+import Dashboard from "./pages/Dashboard";
 import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
 import DocumentServices from "./pages/DocumentServices";
@@ -87,7 +88,7 @@ function App() {
             {/* Protected Routes */}
             <Route path="/">
               <AuthGuard>
-                <DocumentGenerationPage />
+                <Dashboard />
               </AuthGuard>
             </Route>
             <Route path="/ai-assistant">
@@ -222,9 +223,13 @@ function App() {
               </AuthGuard>
             </Route>
 
-            {/* Ultra AI Route - Raeesa Only */}
+            {/* Ultra AI Route - Admin Only */}
             <Route path="/ultra-ai">
-              <UltraAI />
+              <AuthGuard>
+                <AdminGuard>
+                  <UltraAI />
+                </AdminGuard>
+              </AuthGuard>
             </Route>
 
             <Route component={NotFoundPage} />

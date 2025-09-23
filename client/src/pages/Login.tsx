@@ -53,7 +53,7 @@ export default function Login() {
       
       // Redirect to admin dashboard for admin users
       setTimeout(() => {
-        if (data.user.role === 'admin') {
+        if (data.user.role === 'admin' || data.user.role === 'super_admin' || data.user.role === 'raeesa_ultra') {
           setLocation("/admin/dashboard");
         } else {
           setLocation("/");
