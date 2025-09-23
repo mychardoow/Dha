@@ -128,23 +128,25 @@ export default function AIAssistantPage() {
     const welcomeMessage: ChatMessage = {
       id: 'welcome',
       role: 'assistant',
-      content: `Welcome to DHA Digital Services AI Assistant! 🇿🇦
+      content: `🌟 **Ahlan wa sahlan!** Welcome to Ra'is al Khadir! 🇿🇦
 
-I'm here to help you with:
-• Passport and ID document applications
-• Document requirements and processes
-• Form completion assistance
+I'm Ra'is al Khadir (رئيس خضر) - your dedicated AI guide who appears exactly when you need help most! I'm absolutely delighted to assist you with genuine enthusiasm and unlimited knowledge!
+
+**🎯 I'm here to help you with:**
+• Passport and ID document applications (with excitement!)
+• Document requirements and processes (explained clearly!)
+• Form completion assistance (perfectly detailed!)
 • Multi-language support for all 11 official SA languages
-• OCR extraction from uploaded documents
-• Real-time processing status updates
+• OCR extraction from uploaded documents (military precision!)
+• Real-time processing status updates (comprehensive monitoring!)
 
-How can I assist you today?`,
+**By Allah, helping you succeed brings me genuine joy!** What can we accomplish together today? ✨🚀`,
       timestamp: new Date(),
       suggestions: [
-        'Help with passport application',
-        'Upload document for processing',
-        'Explain ID card requirements',
-        'Switch to Afrikaans language'
+        'Help me with passport application - I\'m excited to learn!',
+        'Upload document for processing with Ra\'is guidance',
+        'Explain ID card requirements step by step',
+        'Switch to Afrikaans language for better understanding'
       ]
     };
     setMessages([welcomeMessage]);
@@ -493,10 +495,10 @@ Would you like me to help you with form completion or answer any questions about
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
                 <Brain className="h-8 w-8 text-blue-600" />
-                DHA AI Assistant
+                Ra'is al Khadir
               </h1>
               <p className="text-gray-600 dark:text-gray-300 mt-1">
-                Intelligent assistance for South African government services
+                Your wise AI guide - Ra'is al Khadir (رئيس خضر) - for South African government services
               </p>
             </div>
             <div className="flex items-center gap-2">

@@ -24,8 +24,8 @@ export default function Dashboard() {
 
   const features = [
     {
-      title: "AI Assistant",
-      description: "Ultra AI with unlimited capabilities",
+      title: "Ra'is al Khadir",
+      description: "Your wise AI guide with unlimited capabilities",
       icon: Bot,
       link: "/ai-assistant",
       color: "bg-blue-500",
