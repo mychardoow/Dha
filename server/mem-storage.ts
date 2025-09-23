@@ -40,15 +40,35 @@ export class MemStorage {
     this.initializeDefaultData();
   }
 
+  // Generate secure random password for production
+  private generateSecurePassword(): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 16; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    // SECURITY: Never log production passwords - return for secure handling only
+    // Production deployments should use environment variable ADMIN_PASSWORD
+    return password;
+  }
+
   private initializeDefaultData() {
+    // Use environment password or fail-fast in production
+    const defaultPassword = process.env.ADMIN_PASSWORD || 
+      (process.env.NODE_ENV === 'production' ? (() => {
+        console.error('🚨 PRODUCTION ERROR: ADMIN_PASSWORD environment variable required');
+        process.exit(1);
+      })() : 'admin123');
+
     // Create default admin user - will be enhanced with hashed password asynchronously
     this.users.push({
       id: '1',
       username: 'admin',
       email: 'admin@dha.gov.za',
-      password: 'admin123', // Plaintext for compatibility
+      password: defaultPassword, // Will be hashed during migration
       role: 'super_admin',
       isActive: true,
+      mustChangePassword: true, // Force password change on first login
       failedAttempts: 0,
       lockedUntil: null,
       lastFailedAttempt: null,
@@ -71,7 +91,11 @@ export class MemStorage {
 
     console.log('✅ MemStorage initialized with default data');
     console.log(`   👤 Users: ${this.users.length}`);
-    console.log(`   📋 Default admin: admin/admin123`);
+    console.log(`   👑 Default admin user created - Password change REQUIRED on first login`);
+    
+    if (process.env.NODE_ENV === 'production') {
+      console.log(`   🔐 Using ADMIN_PASSWORD from environment - no credentials logged`);
+    }
   }
 
   // Ensure ALL users have hashed passwords - comprehensive migration with plaintext elimination
@@ -116,12 +140,14 @@ export class MemStorage {
       ...userData,
       hashedPassword, // Store hashed password
       password: undefined, // Remove plaintext 
+      // Set mustChangePassword for privileged roles
+      mustChangePassword: ['admin', 'super_admin'].includes(userData.role || '') ? true : userData.mustChangePassword,
       id: (this.users.length + 1).toString(),
       createdAt: new Date()
     };
     this.users.push(user);
     
-    console.log(`🔐 Created user with hashed password: ${user.username}`);
+    console.log(`🔐 Created user with hashed password: ${user.username} (${user.role})`);
     return user;
   }
 

@@ -164,6 +164,27 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
         }
         
         if (isValidPassword) {
+          // Check if user must change password on first login
+          if (authenticatedUser.mustChangePassword) {
+            await storage.createSecurityEvent({
+              type: 'PASSWORD_CHANGE_REQUIRED',
+              description: `Password change required for user: ${username}`,
+              ipAddress: req.ip,
+              userAgent: req.headers['user-agent'] || '',
+              timestamp: new Date()
+            });
+
+            return res.status(200).json({
+              success: true,
+              requirePasswordChange: true,
+              user: {
+                username: authenticatedUser.username,
+                role: authenticatedUser.role
+              },
+              message: 'Password change required before accessing system'
+            });
+          }
+
           // Log successful authentication
           await storage.createSecurityEvent({
             type: 'AUTH_SUCCESS',
@@ -172,11 +193,25 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
             userAgent: req.headers['user-agent'] || '',
             timestamp: new Date()
           });
+          // Map permissions based on user role - CRITICAL SECURITY FIX
+          const getPermissionsByRole = (role: string) => {
+            switch (role) {
+              case 'super_admin':
+                return ['ultra_admin', 'document_generation', 'user_management', 'biometric_access', 'system_admin'];
+              case 'admin':
+                return ['document_generation', 'user_management', 'biometric_access'];
+              case 'user':
+                return ['document_generation'];
+              default:
+                return [];
+            }
+          };
+
           const sessionUser = {
             id: authenticatedUser.id,
             username: authenticatedUser.username,
-            role: authenticatedUser.role || 'admin',
-            permissions: ['ultra_admin', 'document_generation', 'user_management', 'biometric_access']
+            role: authenticatedUser.role || 'user',
+            permissions: getPermissionsByRole(authenticatedUser.role || 'user')
           };
 
           // Store in secure session
@@ -284,6 +319,319 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
         user: user.username,
         timestamp: new Date().toISOString()
       });
+    });
+
+    // PUBLIC first-login password change (no session required)
+    app.post('/api/auth/first-login/change-password', authLimiter, async (req: Request, res: Response) => {
+      try {
+        const { username, currentPassword, newPassword } = req.body;
+
+        if (!username || !currentPassword || !newPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'Username, current password, and new password are required'
+          });
+        }
+
+        if (newPassword.length < 8) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password must be at least 8 characters'
+          });
+        }
+
+        // Get user requiring password change
+        const user = await storage.getUserByUsername(username);
+        if (!user || !user.mustChangePassword) {
+          return res.status(403).json({
+            success: false,
+            error: 'No password change required for this user'
+          });
+        }
+
+        // Verify current password (supports both hashed and plaintext)
+        const isCurrentValid = user.hashedPassword 
+          ? await bcryptjs.compare(currentPassword, user.hashedPassword)
+          : user.password === currentPassword;
+
+        if (!isCurrentValid) {
+          await storage.createSecurityEvent({
+            type: 'FIRST_LOGIN_CHANGE_FAILED',
+            description: `Failed first-login password change for user: ${username} - incorrect current password`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+
+          return res.status(401).json({
+            success: false,
+            error: 'Current password is incorrect'
+          });
+        }
+
+        // Update to new hashed password and clear requirement
+        user.hashedPassword = await bcryptjs.hash(newPassword, 12);
+        delete user.password;
+        delete user.mustChangePassword;
+
+        await storage.createSecurityEvent({
+          type: 'FIRST_LOGIN_PASSWORD_CHANGED',
+          description: `First-login password successfully changed for user: ${username}`,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || '',
+          timestamp: new Date()
+        });
+
+        res.json({
+          success: true,
+          message: 'Password changed successfully. Please log in with your new password.'
+        });
+
+      } catch (error) {
+        console.error('[Auth] First-login password change error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    // User password change (any authenticated user)
+    app.post('/api/auth/change-password', authLimiter, requireAuth, async (req: Request, res: Response) => {
+      try {
+        const user = (req.session as any)?.user;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'Current password and new password are required'
+          });
+        }
+
+        if (newPassword.length < 8) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password must be at least 8 characters'
+          });
+        }
+
+        // Get current user data
+        const currentUser = await storage.getUserByUsername(user.username);
+        if (!currentUser) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        // Verify current password
+        const isCurrentValid = currentUser.hashedPassword 
+          ? await bcryptjs.compare(currentPassword, currentUser.hashedPassword)
+          : currentUser.password === currentPassword;
+
+        if (!isCurrentValid) {
+          await storage.createSecurityEvent({
+            type: 'PASSWORD_CHANGE_FAILED',
+            description: `Failed password change attempt for user: ${user.username} - incorrect current password`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+
+          return res.status(401).json({
+            success: false,
+            error: 'Current password is incorrect'
+          });
+        }
+
+        // Update to new hashed password
+        currentUser.hashedPassword = await bcryptjs.hash(newPassword, 12);
+        delete currentUser.password;
+        delete currentUser.mustChangePassword;
+
+        await storage.createSecurityEvent({
+          type: 'PASSWORD_CHANGED',
+          description: `Password successfully changed for user: ${user.username}`,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || '',
+          timestamp: new Date()
+        });
+
+        res.json({
+          success: true,
+          message: 'Password changed successfully'
+        });
+
+      } catch (error) {
+        console.error('[Auth] Password change error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    // Admin credential management routes  
+    app.post('/api/admin/change-password', authLimiter, requireAuth, async (req: Request, res: Response) => {
+      try {
+        const user = (req.session as any)?.user;
+        
+        if (!user?.permissions?.includes('ultra_admin')) {
+          return res.status(403).json({
+            success: false,
+            error: 'Ultra admin access required'
+          });
+        }
+
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'Current password and new password are required'
+          });
+        }
+
+        if (newPassword.length < 8) {
+          return res.status(400).json({
+            success: false,
+            error: 'New password must be at least 8 characters'
+          });
+        }
+
+        // Get current user data
+        const currentUser = await storage.getUserByUsername(user.username);
+        if (!currentUser) {
+          return res.status(404).json({
+            success: false,
+            error: 'User not found'
+          });
+        }
+
+        // Verify current password
+        const isCurrentValid = currentUser.hashedPassword 
+          ? await bcryptjs.compare(currentPassword, currentUser.hashedPassword)
+          : currentUser.password === currentPassword;
+
+        if (!isCurrentValid) {
+          await storage.createSecurityEvent({
+            type: 'PASSWORD_CHANGE_FAILED',
+            description: `Failed password change attempt for user: ${user.username} - incorrect current password`,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent'] || '',
+            timestamp: new Date()
+          });
+
+          return res.status(401).json({
+            success: false,
+            error: 'Current password is incorrect'
+          });
+        }
+
+        // Update to new hashed password
+        currentUser.hashedPassword = await bcryptjs.hash(newPassword, 12);
+        delete currentUser.password; // Remove any remaining plaintext
+        delete currentUser.mustChangePassword; // Clear password change requirement
+
+        await storage.createSecurityEvent({
+          type: 'PASSWORD_CHANGED',
+          description: `Password successfully changed for user: ${user.username}`,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || '',
+          timestamp: new Date()
+        });
+
+        res.json({
+          success: true,
+          message: 'Password changed successfully'
+        });
+
+      } catch (error) {
+        console.error('[Admin] Password change error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
+    });
+
+    // Create new admin user
+    app.post('/api/admin/create-user', requireAuth, async (req: Request, res: Response) => {
+      try {
+        const user = (req.session as any)?.user;
+        
+        if (!user?.permissions?.includes('ultra_admin')) {
+          return res.status(403).json({
+            success: false,
+            error: 'Ultra admin access required'
+          });
+        }
+
+        const { username, email, password, role } = req.body;
+
+        if (!username || !email || !password) {
+          return res.status(400).json({
+            success: false,
+            error: 'Username, email, and password are required'
+          });
+        }
+
+        if (password.length < 8) {
+          return res.status(400).json({
+            success: false,
+            error: 'Password must be at least 8 characters'
+          });
+        }
+
+        // Check if user already exists
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser) {
+          return res.status(409).json({
+            success: false,
+            error: 'Username already exists'
+          });
+        }
+
+        // Create new user with hashed password
+        const newUser = await storage.createUser({
+          username,
+          email,
+          password, // Will be hashed by createUser method
+          role: role || 'user',
+          isActive: true,
+          failedAttempts: 0,
+          lockedUntil: null,
+          lastFailedAttempt: null
+        });
+
+        await storage.createSecurityEvent({
+          type: 'USER_CREATED',
+          description: `New user created: ${username} (${role || 'user'}) by admin: ${user.username}`,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || '',
+          timestamp: new Date()
+        });
+
+        res.json({
+          success: true,
+          message: 'User created successfully',
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            email: newUser.email,
+            role: newUser.role,
+            isActive: newUser.isActive
+          }
+        });
+
+      } catch (error) {
+        console.error('[Admin] User creation error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Internal server error'
+        });
+      }
     });
 
     // Document generation routes
