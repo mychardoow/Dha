@@ -97,3 +97,15 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node standalone-dha-test-server.mjs"
+
+[[workflows.workflow]]
+name = "Start app "
+mode = "sequential"
+author = 47909382
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node standalone-dha-test-server.mjs"
