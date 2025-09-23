@@ -81,7 +81,7 @@ import {
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Storage readiness validation
