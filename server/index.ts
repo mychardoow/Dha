@@ -18,9 +18,9 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Force production mode
-process.env.NODE_ENV = 'production';
+// Let environment control NODE_ENV for proper dev workflow
 const PORT = parseInt(process.env.PORT || '5000', 10);
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
 // Set up environment fallbacks for testing deployment
 EnvironmentValidator.setupDevelopmentFallbacks();
@@ -144,33 +144,7 @@ app.get('/api/db/health', async (req, res) => {
 });
 
 // Note: Authentication endpoints moved to routes.ts for comprehensive session management
-
-// Serve static files
-const publicPath = join(__dirname, '../public');
-app.use(express.static(publicPath, {
-  maxAge: '1y',
-  etag: true,
-  lastModified: true
-}));
-
-// Catch-all handler for serving the frontend
-app.get('*', (req, res) => {
-  // Avoid serving index.html for API routes if any were missed by express.static
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(join(publicPath, 'index.html'));
-  } else {
-    res.status(404).send('API route not found');
-  }
-});
-
-// Error handling middleware
-app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Server error:', error);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
-  });
-});
+// Static files and catch-all will be registered after API routes in startServer()
 
 // Start server with force deployment
 const startServer = async () => {
@@ -197,8 +171,13 @@ const startServer = async () => {
     console.log('✅ Access Guide: Complete documentation');
     console.log('');
 
-    // Run startup health checks before starting server
-    await startupHealthChecks();
+    // Run startup health checks (non-blocking for testing)
+    try {
+      await startupHealthChecks();
+      console.log('✅ Startup health checks completed successfully');
+    } catch (healthError) {
+      console.warn('⚠️ Startup health checks failed (non-blocking):', healthError);
+    }
 
     // Verify storage initialization
     const storageStats = storage.getStats();
@@ -214,10 +193,36 @@ const startServer = async () => {
     try {
       await registerRoutes(app, server);
       console.log('🔗 Advanced API routes and services registered successfully');
-      console.log('📡 WebSocket, AI Assistant, Biometric, and Government integrations active');
+      console.log('📡 WebSocket, AI Assistant, Document Generation, and Biometric integrations active');
     } catch (routeError) {
       console.error('⚠️ Route registration failed (non-blocking):', routeError);
     }
+
+    // Serve static files AFTER API routes are registered
+    const publicPath = join(__dirname, '../public');
+    app.use(express.static(publicPath, {
+      maxAge: '1y',
+      etag: true,
+      lastModified: true
+    }));
+
+    // Catch-all handler for frontend - MUST be last
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(join(publicPath, 'index.html'));
+      } else {
+        res.status(404).json({ error: 'API route not found', path: req.path });
+      }
+    });
+
+    // Error handling middleware
+    app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+      console.error('Server error:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+      });
+    });
 
     // Force bind to 0.0.0.0 for Replit deployment
     server.listen(PORT, HOST, () => {

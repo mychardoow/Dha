@@ -8,6 +8,17 @@ import {
   type SystemMetric
 } from '../shared/schema';
 
+// Export types for use in other files
+export type { 
+  User, 
+  Conversation, 
+  Message, 
+  Document, 
+  SecurityEvent,
+  FraudAlert,
+  SystemMetric 
+} from '../shared/schema';
+
 /**
  * Simple MemStorage implementation for DHA Digital Services
  * Provides in-memory storage for development and testing
@@ -70,6 +81,11 @@ export class MemStorage {
 
   async getUserByUsername(username: string): Promise<User | null> {
     return this.users.find(user => user.username === username) || null;
+  }
+
+  async getUser(identifier: string): Promise<User | null> {
+    // Try to get by ID first, then by username
+    return this.getUserById(identifier) || this.getUserByUsername(identifier);
   }
 
   async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
@@ -153,6 +169,17 @@ export class MemStorage {
       status: 'healthy',
       tables: ['users', 'documents', 'conversations', 'messages', 'security_events', 'fraud_alerts', 'system_metrics']
     };
+  }
+
+  // API Key management (simplified for development)
+  async getAllApiKeys(): Promise<any[]> {
+    // For development, return empty array - no API keys stored
+    return [];
+  }
+
+  async updateApiKeyLastUsed(apiKeyId: string): Promise<void> {
+    // For development, this is a no-op
+    console.log(`API key ${apiKeyId} used (development mode)`);
   }
 
   // Get storage statistics

@@ -3,10 +3,10 @@ import { createServer } from 'http';
 import { initializeWebSocket } from './websocket';
 
 // Import route modules
-import { healthRoutes } from './routes/health';
-import { monitoringRoutes } from './routes/monitoring';
-import { aiAssistantRoutes } from './routes/ai-assistant';
-import { biometricUltraAdminRoutes } from './routes/biometric-ultra-admin';
+import { healthRouter as healthRoutes } from './routes/health';
+import monitoringRoutes from './routes/monitoring';
+import aiAssistantRoutes from './routes/ai-assistant';
+import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 
 export async function registerRoutes(app: Express, httpServer?: any): Promise<any> {
