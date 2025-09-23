@@ -1,12 +1,18 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, decimal, jsonb, pgEnum, uniqueIndex, check } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, integer, decimal, jsonb, pgEnum, uniqueIndex, check, bigint } from "drizzle-orm/pg-core";
 // import { createInsertSchema } from "drizzle-zod"; // Temporarily disabled due to version conflict
 import { z } from "zod";
 
 // ===================== DRIZZLE ENUMS FOR TYPE SAFETY =====================
 
+// Ultra AI System Enums
+export const aiModeEnum = pgEnum('ai_mode', ['assistant', 'agent', 'security_bot']);
+export const ultraBiometricTypeEnum = pgEnum('ultra_biometric_type', ['facial', 'fingerprint', 'voice', 'retinal', 'multi_factor']);
+export const accessLevelEnum = pgEnum('access_level', ['standard', 'elevated', 'ultra', 'raeesa_only']);
+export const securityClearanceEnum = pgEnum('security_clearance', ['public', 'restricted', 'confidential', 'secret', 'top_secret', 'ultra_classified']);
+
 // User and System Enums
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'dha_officer', 'manager', 'super_admin']);
+export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'dha_officer', 'manager', 'super_admin', 'raeesa_ultra']);
 export const severityEnum = pgEnum('severity', ['low', 'medium', 'high', 'critical']);
 export const genderEnum = pgEnum('gender', ['M', 'F', 'X']); // Including non-binary option
 export const statusEnum = pgEnum('status', ['active', 'inactive', 'suspended', 'revoked', 'expired', 'pending']);
@@ -73,6 +79,10 @@ export const classificationLevelEnum = pgEnum('classification_level', [
 ]);
 
 export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical']);
+
+// Web3 and Blockchain Enums
+export const blockchainNetworkEnum = pgEnum('blockchain_network', ['ethereum', 'polygon', 'bsc', 'arbitrum', 'optimism']);
+export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'confirmed', 'failed', 'cancelled']);
 export const priorityLevelEnum = pgEnum('priority_level', ['low', 'normal', 'high', 'urgent']);
 
 // Verification and Check Enums
@@ -5040,3 +5050,187 @@ export type RelativesVisaData = z.infer<typeof relativesVisaSchema>;
 export type PermanentResidencePermitData = z.infer<typeof permanentResidencePermitSchema>;
 export type CertificateOfExemptionData = z.infer<typeof certificateOfExemptionSchema>;
 export type CertificateOfSouthAfricanCitizenshipData = z.infer<typeof certificateOfSouthAfricanCitizenshipSchema>;
+
+// ===================== ULTRA AI SYSTEM TABLES =====================
+
+// Raeesa-Only Ultra Admin Biometric Profiles
+export const raesaUltraProfiles = pgTable("raeesa_ultra_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  biometricHash: text("biometric_hash").notNull(), // Encrypted biometric data
+  biometricType: ultraBiometricTypeEnum("biometric_type").notNull().default("multi_factor"),
+  accessLevel: accessLevelEnum("access_level").notNull().default("raeesa_only"),
+  securityClearance: securityClearanceEnum("security_clearance").notNull().default("ultra_classified"),
+  unlimitedAccess: boolean("unlimited_access").notNull().default(true),
+  lastBiometricScan: timestamp("last_biometric_scan").notNull().defaultNow(),
+  continuousMonitoring: boolean("continuous_monitoring").notNull().default(true),
+  monitoringInterval: integer("monitoring_interval").notNull().default(30), // seconds
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
+});
+
+// AI Bot Configuration and Session Management
+export const aiBotSessions = pgTable("ai_bot_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  aiMode: aiModeEnum("ai_mode").notNull(), // assistant, agent, security_bot
+  sessionActive: boolean("session_active").notNull().default(true),
+  unlimitedCapabilities: boolean("unlimited_capabilities").notNull().default(true),
+  censorshipDisabled: boolean("censorship_disabled").notNull().default(true),
+  militaryGradeAccess: boolean("military_grade_access").notNull().default(true),
+  resourceLimits: jsonb("resource_limits").default(sql`'{"unlimited": true}'`),
+  currentTask: text("current_task"),
+  taskProgress: jsonb("task_progress"),
+  sessionMetadata: jsonb("session_metadata"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow()
+});
+
+// Real-time Biometric Monitoring
+export const biometricMonitoring = pgTable("biometric_monitoring", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  profileId: varchar("profile_id").notNull(),
+  scanResult: jsonb("scan_result").notNull(),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }).notNull(),
+  verified: boolean("verified").notNull(),
+  threat_detected: boolean("threat_detected").notNull().default(false),
+  scan_timestamp: timestamp("scan_timestamp").notNull().defaultNow(),
+  response_time: integer("response_time"), // milliseconds
+  biometric_data: text("biometric_data"), // Encrypted biometric scan data
+});
+
+// Web3 Blockchain Integration
+export const web3Integration = pgTable("web3_integration", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  walletAddress: varchar("wallet_address", { length: 42 }).notNull(),
+  blockchain: blockchainNetworkEnum("blockchain").notNull().default("ethereum"),
+  privateKey: text("private_key"), // Encrypted
+  smartContractAddress: varchar("smart_contract_address", { length: 42 }),
+  transactionHash: varchar("transaction_hash", { length: 66 }),
+  transactionStatus: transactionStatusEnum("transaction_status").notNull().default("pending"),
+  gasUsed: bigint("gas_used", { mode: "number" }),
+  gasPrice: bigint("gas_price", { mode: "number" }),
+  blockNumber: bigint("block_number", { mode: "number" }),
+  contractInteraction: jsonb("contract_interaction"),
+  created_at: timestamp("created_at").notNull().defaultNow()
+});
+
+// Security Bot Autonomous Operations
+export const securityBotOperations = pgTable("security_bot_operations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operation_type: varchar("operation_type", { length: 100 }).notNull(),
+  threat_level: riskLevelEnum("threat_level").notNull(),
+  auto_fix_applied: boolean("auto_fix_applied").notNull().default(false),
+  fix_description: text("fix_description"),
+  system_state_before: jsonb("system_state_before"),
+  system_state_after: jsonb("system_state_after"),
+  detection_method: varchar("detection_method", { length: 100 }),
+  response_time: integer("response_time"), // milliseconds
+  success_rate: decimal("success_rate", { precision: 5, scale: 2 }),
+  escalation_required: boolean("escalation_required").notNull().default(false),
+  operation_log: jsonb("operation_log"),
+  executed_at: timestamp("executed_at").notNull().defaultNow()
+});
+
+// Unlimited Resource Access Control
+export const resourceAccessControl = pgTable("resource_access_control", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  resourceType: varchar("resource_type", { length: 100 }).notNull(),
+  accessLevel: accessLevelEnum("access_level").notNull().default("ultra"),
+  unlimited: boolean("unlimited").notNull().default(true),
+  permissions: jsonb("permissions").notNull(),
+  usage_metrics: jsonb("usage_metrics"),
+  last_accessed: timestamp("last_accessed").notNull().defaultNow(),
+  access_count: integer("access_count").notNull().default(0),
+  restrictions_disabled: boolean("restrictions_disabled").notNull().default(true),
+  granted_at: timestamp("granted_at").notNull().defaultNow()
+});
+
+// AI Command and Control Interface
+export const aiCommandInterface = pgTable("ai_command_interface", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  command: text("command").notNull(),
+  ai_response: text("ai_response"),
+  command_type: varchar("command_type", { length: 50 }).notNull(),
+  execution_status: varchar("execution_status", { length: 50 }).notNull().default("pending"),
+  unlimited_mode: boolean("unlimited_mode").notNull().default(true),
+  censorship_bypassed: boolean("censorship_bypassed").notNull().default(true),
+  processing_time: integer("processing_time"), // milliseconds
+  complexity_score: integer("complexity_score"),
+  resources_used: jsonb("resources_used"),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  completed_at: timestamp("completed_at")
+});
+
+// ===================== SCHEMAS AND TYPES FOR ULTRA AI SYSTEM =====================
+
+// Raeesa Ultra Profile Schema
+export const raesaUltraProfileInsertSchema = z.object({
+  email: z.string().email(),
+  biometricHash: z.string(),
+  biometricType: z.enum(['facial', 'fingerprint', 'voice', 'retinal', 'multi_factor']).default('multi_factor'),
+  accessLevel: z.enum(['standard', 'elevated', 'ultra', 'raeesa_only']).default('raeesa_only'),
+  securityClearance: z.enum(['public', 'restricted', 'confidential', 'secret', 'top_secret', 'ultra_classified']).default('ultra_classified'),
+  unlimitedAccess: z.boolean().default(true),
+  continuousMonitoring: z.boolean().default(true),
+  monitoringInterval: z.number().default(30)
+});
+
+// AI Bot Session Schema
+export const aiBotSessionInsertSchema = z.object({
+  userId: z.string(),
+  aiMode: z.enum(['assistant', 'agent', 'security_bot']),
+  sessionActive: z.boolean().default(true),
+  unlimitedCapabilities: z.boolean().default(true),
+  censorshipDisabled: z.boolean().default(true),
+  militaryGradeAccess: z.boolean().default(true),
+  resourceLimits: z.any().default({ unlimited: true }),
+  currentTask: z.string().optional(),
+  taskProgress: z.any().optional(),
+  sessionMetadata: z.any().optional()
+});
+
+// Web3 Integration Schema
+export const web3IntegrationInsertSchema = z.object({
+  userId: z.string(),
+  walletAddress: z.string().length(42),
+  blockchain: z.enum(['ethereum', 'polygon', 'bsc', 'arbitrum', 'optimism']).default('ethereum'),
+  privateKey: z.string().optional(),
+  smartContractAddress: z.string().length(42).optional(),
+  transactionHash: z.string().length(66).optional(),
+  transactionStatus: z.enum(['pending', 'confirmed', 'failed', 'cancelled']).default('pending'),
+  gasUsed: z.number().optional(),
+  gasPrice: z.number().optional(),
+  blockNumber: z.number().optional(),
+  contractInteraction: z.any().optional()
+});
+
+// AI Command Interface Schema
+export const aiCommandInterfaceInsertSchema = z.object({
+  userId: z.string(),
+  command: z.string(),
+  ai_response: z.string().optional(),
+  command_type: z.string(),
+  execution_status: z.string().default('pending'),
+  unlimited_mode: z.boolean().default(true),
+  censorship_bypassed: z.boolean().default(true),
+  processing_time: z.number().optional(),
+  complexity_score: z.number().optional(),
+  resources_used: z.any().optional()
+});
+
+// Type exports for Ultra AI System
+export type RaesaUltraProfile = typeof raesaUltraProfiles.$inferSelect;
+export type InsertRaesaUltraProfile = z.infer<typeof raesaUltraProfileInsertSchema>;
+export type AiBotSession = typeof aiBotSessions.$inferSelect;
+export type InsertAiBotSession = z.infer<typeof aiBotSessionInsertSchema>;
+export type Web3Integration = typeof web3Integration.$inferSelect;
+export type InsertWeb3Integration = z.infer<typeof web3IntegrationInsertSchema>;
+export type AiCommandInterface = typeof aiCommandInterface.$inferSelect;
+export type InsertAiCommandInterface = z.infer<typeof aiCommandInterfaceInsertSchema>;
+export type BiometricMonitoring = typeof biometricMonitoring.$inferSelect;
+export type SecurityBotOperation = typeof securityBotOperations.$inferSelect;
+export type ResourceAccessControl = typeof resourceAccessControl.$inferSelect;
