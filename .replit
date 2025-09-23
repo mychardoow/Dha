@@ -105,12 +105,11 @@ author = 47813314
 mode = "sequential"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm install"
+task = "workflow.run"
+args = "Start application"
 
 [[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run build"
+task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
