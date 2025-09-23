@@ -9,6 +9,7 @@ import { createServer } from 'http';
 import { startupHealthChecks } from "./startup-health-checks";
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
 import { storage } from "./mem-storage";
+import { registerRoutes } from "./routes";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -236,6 +237,15 @@ const startServer = async () => {
     const adminUser = await storage.getUserByUsername('admin');
     if (adminUser) {
       console.log(`👑 Admin user ready: ${adminUser.username} (${adminUser.role})`);
+    }
+
+    // Register all application routes and services
+    try {
+      const httpServer = await registerRoutes(app);
+      console.log('🔗 Advanced API routes and services registered successfully');
+      console.log('📡 WebSocket, AI Assistant, Biometric, and Government integrations active');
+    } catch (routeError) {
+      console.error('⚠️ Route registration failed (non-blocking):', routeError);
     }
 
     // Force bind to 0.0.0.0 for Replit deployment
