@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
 import { startupHealthChecks } from "./startup-health-checks";
-import { environmentValidator } from "./services/environment-validator";
+import { EnvironmentValidator } from "./services/environment-validator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,7 +21,7 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
 // Set up environment fallbacks for testing deployment
-environmentValidator.setupDevelopmentFallbacks();
+EnvironmentValidator.setupDevelopmentFallbacks();
 
 // Create HTTP server
 const server = createServer(app);
