@@ -11,6 +11,7 @@ import { startupHealthChecks } from "./startup-health-checks";
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
 import { storage } from "./mem-storage";
 import { registerRoutes } from "./routes";
+import { setupVite } from "./vite";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -236,22 +237,30 @@ const startServer = async () => {
       console.error('⚠️ Route registration failed (non-blocking):', routeError);
     }
 
-    // Serve static files AFTER API routes are registered
-    const publicPath = join(__dirname, '../public');
-    app.use(express.static(publicPath, {
-      maxAge: '1y',
-      etag: true,
-      lastModified: true
-    }));
+    // Setup Vite for development or serve static files for production
+    if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+      // Development mode: Use Vite middleware for hot reloading
+      console.log('🎯 Setting up Vite development server...');
+      await setupVite(app, server);
+      console.log('✅ Vite development server configured');
+    } else {
+      // Production mode: Serve static files
+      const publicPath = join(__dirname, '../public');
+      app.use(express.static(publicPath, {
+        maxAge: '1y',
+        etag: true,
+        lastModified: true
+      }));
 
-    // Catch-all handler for frontend - MUST be last
-    app.get('*', (req, res) => {
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(join(publicPath, 'index.html'));
-      } else {
-        res.status(404).json({ error: 'API route not found', path: req.path });
-      }
-    });
+      // Catch-all handler for frontend - MUST be last
+      app.get('*', (req, res) => {
+        if (!req.path.startsWith('/api')) {
+          res.sendFile(join(publicPath, 'index.html'));
+        } else {
+          res.status(404).json({ error: 'API route not found', path: req.path });
+        }
+      });
+    }
 
     // Error handling middleware
     app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
