@@ -92,5 +92,8 @@ mode = "sequential"
 author = 47909382
 
 [[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "node standalone-dha-test-server.mjs"
