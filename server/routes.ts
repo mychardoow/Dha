@@ -7,6 +7,7 @@ import { healthRoutes } from './routes/health.js';
 import { monitoringRoutes } from './routes/monitoring.js';
 import { aiAssistantRoutes } from './routes/ai-assistant.js';
 import { biometricUltraAdminRoutes } from './routes/biometric-ultra-admin.js';
+import ultraAIRoutes from "./routes/ultra-ai";
 
 export async function registerRoutes(app: Express): Promise<any> {
   console.log('[Routes] Registering all application routes...');
