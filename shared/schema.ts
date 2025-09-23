@@ -775,7 +775,7 @@ export const workflowTransitions = pgTable("workflow_transitions", {
   fromStageId: varchar("from_stage_id").references(() => workflowStages.id),
   toStageId: varchar("to_stage_id").notNull().references(() => workflowStages.id),
 
-  // Transition Rules
+  // Transition Type
   transitionType: text("transition_type").notNull(), // 'normal', 'rejection', 'escalation', 'skip'
   isAutomated: boolean("is_automated").notNull().default(false),
   requiresApproval: boolean("requires_approval").notNull().default(false),
