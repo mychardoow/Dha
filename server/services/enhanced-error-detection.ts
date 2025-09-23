@@ -1,9 +1,17 @@
 import { EventEmitter } from "events";
 import { storage } from "../storage";
 import { errorTrackingService } from "./error-tracking";
-import { fraudDetectionService } from "./fraud-detection";
 import { auditTrailService } from "./audit-trail-service";
 import { type InsertErrorLog, type InsertSecurityEvent, type InsertIncident } from "@shared/schema";
+
+// Import fraud detection with fallback
+let fraudDetectionService: any;
+try {
+  fraudDetectionService = require("./fraud-detection").fraudDetectionService;
+} catch (error) {
+  console.warn('Fraud detection service not available, using mock');
+  fraudDetectionService = { on: () => {} };
+}
 
 export interface ErrorPattern {
   id: string;

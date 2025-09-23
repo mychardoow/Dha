@@ -9,6 +9,10 @@ import { bootstrap } from './bootstrap.js'; // Assuming bootstrap is in bootstra
 import { WebSocketService } from './websocket.js'; // Assuming WebSocketService is in websocket.js
 import { createServer } from 'http';
 import { configService } from './services/setup-services.js'; // Assuming setup-services.js exists
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic } from "./vite";
+import { startupHealthChecks } from "./startup-health-checks";
+import { environmentValidator } from "./services/environment-validator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -16,9 +20,6 @@ const __dirname = dirname(__filename);
 // Force production mode
 process.env.NODE_ENV = 'production';
 process.env.PORT = '5000';
-
-const app = express();
-const port = parseInt(process.env.PORT || '5000', 10); // Ensure port is an integer
 
 // Create HTTP server
 const server = createServer(app);

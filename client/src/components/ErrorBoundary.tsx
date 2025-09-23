@@ -53,23 +53,23 @@ export class ErrorBoundary extends Component<Props, State> {
         const userId = localStorage.getItem("userId");
         const token = localStorage.getItem("token");
         
-        // Collect browser context
+        // Collect browser context with null checks
         const context = {
           viewport: {
-            width: window.innerWidth,
-            height: window.innerHeight
+            width: window.innerWidth || 0,
+            height: window.innerHeight || 0
           },
           screen: {
-            width: window.screen.width,
-            height: window.screen.height
+            width: window.screen?.width || 0,
+            height: window.screen?.height || 0
           },
-          memory: (navigator as any).deviceMemory,
-          cores: navigator.hardwareConcurrency,
-          language: navigator.language,
-          platform: navigator.platform,
-          cookieEnabled: navigator.cookieEnabled,
-          onLine: navigator.onLine,
-          referrer: document.referrer,
+          memory: (navigator as any)?.deviceMemory || 'unknown',
+          cores: navigator?.hardwareConcurrency || 'unknown',
+          language: navigator?.language || 'unknown',
+          platform: navigator?.platform || 'unknown',
+          cookieEnabled: navigator?.cookieEnabled || false,
+          onLine: navigator?.onLine || false,
+          referrer: document?.referrer || '',
           timestamp: new Date().toISOString()
         };
 

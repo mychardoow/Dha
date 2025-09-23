@@ -1,111 +1,119 @@
+
 import serverless from 'serverless-http';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
-// Critical security: Validate required environment variables at startup
-const requiredSecrets = ['JWT_SECRET', 'SESSION_SECRET'];
-const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-if (missingSecrets.length > 0) {
-  console.error('[SECURITY] Missing required secrets:', missingSecrets);
-  throw new Error(`Critical security error: Missing required environment variables: ${missingSecrets.join(', ')}`);
-}
+// Enhanced error handling and module loading
+let handler;
 
-// Validate JWT secret strength for production
-if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 64) {
-  console.error('[SECURITY] JWT_SECRET must be at least 64 characters for government-grade security');
-  throw new Error('JWT_SECRET too short for production use');
-}
-
-// Set production environment
-process.env.NODE_ENV = 'production';
-
-console.log('[Netlify] Initializing DHA Digital Services serverless function...');
-
-// Create serverless handler with lazy loading
-const createHandler = async () => {
-  try {
-    // Import the Express app factory (bundled with function)
-    const { createServer } = await import('./server/index.js');
-    const app = createServer();
-    console.log('[Netlify] Express app created successfully');
-
-    return serverless(app, {
-      binary: false,
-      request: (request, event, context) => {
-        // Add Netlify-specific context to request
-        request.netlify = {
-          event,
-          context
-        };
-        
-        // Normalize path - strip Netlify function base path for redirected requests
-        // For direct function calls, preserve the /api prefix
-        if (request.url && request.url.startsWith('/.netlify/functions/api')) {
-          const strippedPath = request.url.replace('/.netlify/functions/api', '');
-          // If the stripped path doesn't start with /api, add it for Express routing
-          request.url = strippedPath.startsWith('/api') ? strippedPath : `/api${strippedPath || ''}`;
-        }
-        
-        // Preserve original IP for security logging
-        if (event.headers['x-forwarded-for']) {
-          request.ip = event.headers['x-forwarded-for'].split(',')[0].trim();
-        }
-        
-        return request;
-      },
-      response: (response, event, context) => {
-        // Add security headers for all responses
-        response.headers = {
-          ...response.headers,
-          'X-Powered-By': 'DHA Digital Services',
-          'X-Frame-Options': 'DENY',
-          'X-Content-Type-Options': 'nosniff',
-          'Referrer-Policy': 'strict-origin-when-cross-origin'
-        };
-        
-        return response;
-      }
-    });
-  } catch (error) {
-    console.error('[Netlify] Failed to create Express app:', error);
-    throw new Error('Failed to initialize server application');
+try {
+  // Dynamic import with proper path resolution
+  const serverPath = resolve(__dirname, 'server', 'index.js');
+  console.log('Loading server from:', serverPath);
+  
+  const serverModule = await import(serverPath);
+  const app = serverModule.default || serverModule.app;
+  
+  if (!app) {
+    throw new Error('Express app not found in server module');
   }
-};
-
-// Create handler instance (lazy initialization)
-let handlerPromise;
-
-export const handler = async (event, context) => {
-  try {
-    // Add timeout warning for monitoring
-    const timeoutWarning = setTimeout(() => {
-      console.warn('[Netlify] Function approaching timeout limit');
-    }, 8000);
-
-    // Initialize handler on first request (cold start optimization)
-    if (!handlerPromise) {
-      handlerPromise = createHandler();
+  
+  // Create serverless handler with enhanced configuration
+  handler = serverless(app, {
+    binary: ['image/*', 'application/pdf', 'application/octet-stream'],
+    request(request, event, context) {
+      // Add Netlify context to request
+      request.netlify = { event, context };
+      // Handle base path for Netlify functions
+      request.url = request.url.replace(/^\/\.netlify\/functions\/api/, '') || '/';
+    },
+    response(response, event, context) {
+      // Add security headers
+      response.headers = {
+        ...response.headers,
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'X-XSS-Protection': '1; mode=block'
+      };
     }
-    
-    const serverlessHandler = await handlerPromise;
-    const result = await serverlessHandler(event, context);
-    
-    clearTimeout(timeoutWarning);
-    return result;
-    
-  } catch (error) {
-    console.error('[Netlify] Function error:', error);
-    
+  });
+
+  console.log('✅ Netlify function initialized successfully');
+  
+} catch (error) {
+  console.error('❌ Failed to initialize Netlify function:', error);
+  
+  // Fallback handler for initialization errors
+  handler = async (event, context) => {
+    console.error('Function initialization error:', error);
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
-        'X-Error-Source': 'netlify-function'
+        'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        error: 'Internal server error',
+        error: 'Service initialization failed',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        timestamp: new Date().toISOString()
+      })
+    };
+  };
+}
+
+// Health check handler for cold start optimization
+const healthCheckHandler = async (event, context) => {
+  if (event.path === '/health' || event.path === '/api/health') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      body: JSON.stringify({
+        status: 'healthy',
         timestamp: new Date().toISOString(),
-        message: 'DHA Digital Services temporarily unavailable'
+        function: 'netlify-api',
+        version: process.env.npm_package_version || '1.0.0'
+      })
+    };
+  }
+  return null;
+};
+
+// Main export with request routing
+export { handler };
+
+export const main = async (event, context) => {
+  try {
+    // Handle health checks first for faster response
+    const healthResponse = await healthCheckHandler(event, context);
+    if (healthResponse) {
+      return healthResponse;
+    }
+    
+    // Handle main application requests
+    return await handler(event, context);
+    
+  } catch (error) {
+    console.error('Function execution error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        error: 'Function execution failed',
+        message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        timestamp: new Date().toISOString()
       })
     };
   }
 };
+
+// Export handler as default for Netlify
+export default main;

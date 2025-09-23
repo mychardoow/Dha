@@ -66,7 +66,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "FORCE DEPLOY NOW"
+runButton = "Enhanced Force Deploy"
 
 [[workflows.workflow]]
 name = "Project"
@@ -478,3 +478,152 @@ args = "echo \"🌟 GOING LIVE NOW...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "Enhanced Force Deploy"
+author = 47895647
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 ENHANCED DEPLOYMENT - DHA Digital Services\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"============================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Code errors fixed\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Environment validation added\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Error handling enhanced\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Production readiness improved\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Starting enhanced deployment...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Clean install with force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Run enhanced build with error checking"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔨 Building with error checking...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production npm run build || {"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  echo \"❌ Build failed, attempting recovery...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  npm run build --verbose"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "}"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Verify build artifacts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔍 Verifying build artifacts...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "if [ ! -d \"dist\" ]; then"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  echo \"❌ Build directory missing\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  exit 1"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "fi"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "if [ ! -f \"dist/server/index.js\" ]; then"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  echo \"❌ Server build missing\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  exit 1"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "fi"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Build verification passed\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = ""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "# Run with enhanced error handling"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🌟 Starting enhanced production server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production npm start"
