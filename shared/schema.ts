@@ -634,7 +634,7 @@ export const dhaOffices = pgTable("dha_offices", {
   sundayOpen: text("sunday_open"), // Optional for Sunday service
   sundayClose: text("sunday_close"),
 
-  servicesOffered: text().array(), // Array of services
+  servicesOffered: text("services_offered").array(), // Array of services
   hasRefugeeServices: boolean("has_refugee_services").notNull().default(false),
   hasDiplomaticServices: boolean("has_diplomatic_services").notNull().default(false),
   collectionAvailable: boolean("collection_available").notNull().default(true),
@@ -4009,6 +4009,46 @@ export const complianceRequirementEnum = pgEnum('compliance_requirement', [
   'popia', 'pfma', 'government_uptime', 'security_incident_response',
   'data_protection', 'audit_trail', 'regulatory_reporting'
 ]);
+
+// ===================== AUDIT LOGS TABLE =====================
+// Comprehensive audit trail for government compliance
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  action: text("action").notNull(), // 'create', 'read', 'update', 'delete', 'login', 'logout', etc.
+  resource: text("resource").notNull(), // 'document', 'user', 'biometric', 'system', etc.
+  resourceId: varchar("resource_id"), // ID of the specific resource affected
+  
+  // Event Details
+  eventType: text("event_type").notNull(), // 'security', 'data_access', 'system_change', 'user_action'
+  severity: severityEnum("severity").notNull().default("low"),
+  description: text("description").notNull(),
+  
+  // Context Information
+  requestData: jsonb("request_data"), // Request parameters/body
+  responseData: jsonb("response_data"), // Response data (sanitized)
+  changes: jsonb("changes"), // Before/after values for updates
+  
+  // Technical Details
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  sessionId: text("session_id"),
+  requestId: text("request_id"),
+  
+  // Compliance and Legal
+  legalBasis: text("legal_basis"), // POPIA legal basis for processing
+  dataCategory: text("data_category"), // Category of personal data processed
+  retentionPeriod: text("retention_period"), // How long to retain this audit entry
+  
+  // Status and Results
+  success: boolean("success").notNull().default(true),
+  errorMessage: text("error_message"),
+  errorCode: text("error_code"),
+  
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  archivedAt: timestamp("archived_at"), // When moved to long-term storage
+});
 
 // Autonomous Operations Log - Track all autonomous actions
 export const autonomousOperations = pgTable("autonomous_operations", {
