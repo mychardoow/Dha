@@ -769,6 +769,135 @@ export const workflowStages = pgTable("workflow_stages", {
 // Unique index for workflowStages: stage order must be unique
 // export const workflowStagesOrderIdx = uniqueIndex("workflow_stages_order_idx").on(workflowStages.stageOrder);
 
+// ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
+// NOTE: Moving these tables here to resolve dependency ordering
+
+// DHA Applicants - Personal details and citizenship information
+export const dhaApplicants = pgTable("dha_applicants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+
+  // Personal Information
+  fullName: text("full_name").notNull(),
+  surNames: text("sur_names").notNull(),
+  dateOfBirth: timestamp("date_of_birth").notNull(),
+  placeOfBirth: text("place_of_birth").notNull(),
+  countryOfBirth: text("country_of_birth").notNull(),
+  sex: text("sex").notNull(), // 'M', 'F', 'X'
+  nationality: text("nationality").notNull(),
+
+  // Contact Information
+  residentialAddress: text("residential_address").notNull(),
+  postalAddress: text("postal_address"),
+  phoneNumber: text("phone_number").notNull(),
+  emailAddress: text("email_address").notNull().unique(), // UNIQUE CONSTRAINT ADDED
+
+  // Identity Information - WITH PRODUCTION CONSTRAINTS
+  idNumber: text("id_number").unique(), // South African ID number - UNIQUE CONSTRAINT ADDED
+  passportNumber: text("passport_number").unique(), // Current passport number - UNIQUE CONSTRAINT ADDED
+  previousPassportNumbers: text("previous_passport_numbers").array(), // Array of previous passport numbers - STRUCTURED
+
+  // Citizenship Status
+  citizenshipStatus: text("citizenship_status").notNull(), // 'citizen', 'permanent_resident', 'refugee', 'asylum_seeker'
+  citizenshipAcquisitionDate: timestamp("citizenship_acquisition_date"),
+  citizenshipAcquisitionMethod: text("citizenship_acquisition_method"), // 'birth', 'naturalization', 'descent'
+
+  // Parents Information
+  motherFullName: text("mother_full_name"),
+  motherMaidenName: text("mother_maiden_name"),
+  motherIdNumber: text("mother_id_number"),
+  fatherFullName: text("father_full_name"),
+  fatherIdNumber: text("father_id_number"),
+
+  // Biometric Information
+  biometricTemplates: jsonb("biometric_templates"), // Fingerprint, facial recognition templates
+  biometricQualityScores: jsonb("biometric_quality_scores"),
+
+  // Document Information
+  photoUrl: text("photo_url"),
+  signatureUrl: text("signature_url"),
+
+  // Verification Status
+  isVerified: boolean("is_verified").notNull().default(false),
+  verificationScore: integer("verification_score"),
+  verificationNotes: text("verification_notes"),
+
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+}, (table) => ({
+  // ===================== PRODUCTION CONSTRAINTS AND VALIDATIONS =====================
+  // Check constraint for South African ID number format (13 digits)
+  saIdFormatCheck: check("sa_id_format", sql`${table.idNumber} IS NULL OR ${table.idNumber} ~ '^[0-9]{13}$'`),
+  // Check constraint for passport number format (Letter + 8 digits)
+  passportFormatCheck: check("passport_format", sql`${table.passportNumber} IS NULL OR ${table.passportNumber} ~ '^[A-Z][0-9]{8}$'`),
+  // Check constraint for email format
+  emailFormatCheck: check("email_format", sql`${table.emailAddress} ~ '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$'`),
+  // Check constraint for phone number format (SA format: +27 or 0 followed by 9 digits)
+  phoneFormatCheck: check("phone_format", sql`${table.phoneNumber} ~ '^(\\+27|0)[0-9]{9}$'`),
+  // Check constraint for gender values
+  genderCheck: check("gender_check", sql`${table.sex} IN ('M', 'F', 'X')`),
+  // Check constraint for citizenship status
+  citizenshipCheck: check("citizenship_check", sql`${table.citizenshipStatus} IN ('citizen', 'permanent_resident', 'refugee', 'asylum_seeker')`),
+}));
+
+// DHA Applications - Permit/certificate applications with workflow states
+export const dhaApplications = pgTable("dha_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+
+  // Application Details
+  applicationType: text("application_type").notNull(), // 'passport', 'id_document', 'visa', 'permit', 'certificate'
+  applicationSubtype: text("application_subtype"), // 'renewal', 'replacement', 'new', 'amendment'
+  applicationNumber: text("application_number").notNull().unique(),
+
+  // DHA Workflow States
+  currentState: text("current_state").notNull().default("draft"),
+  // States: draft → identity_verification → eligibility_check → background_verification → payment_processing → adjudication → approved → issued → active
+  previousStates: jsonb("previous_states"), // Array of state history with timestamps
+
+  // Application Data
+  applicationData: jsonb("application_data").notNull(), // Form data specific to application type
+  documentsSubmitted: jsonb("documents_submitted"), // References to uploaded documents
+
+  // Processing Information
+  priorityLevel: text("priority_level").notNull().default("standard"), // 'urgent', 'standard', 'low'
+  processingFee: integer("processing_fee"), // Fee in cents
+  paymentStatus: text("payment_status").default("pending"), // 'pending', 'paid', 'refunded', 'failed'
+  paymentReference: text("payment_reference"),
+
+  // DHA Officer Assignment
+  assignedOfficer: text("assigned_officer"),
+  assignedOffice: text("assigned_office"),
+  assignedDate: timestamp("assigned_date"),
+
+  // Verification Results
+  identityVerificationResult: text("identity_verification_result"), // 'passed', 'failed', 'pending'
+  eligibilityCheckResult: text("eligibility_check_result"),
+  backgroundVerificationResult: text("background_verification_result"),
+
+  // Decision Information
+  decisionStatus: text("decision_status"), // 'approved', 'rejected', 'pending'
+  decisionDate: timestamp("decision_date"),
+  decisionReason: text("decision_reason"),
+  decisionNotes: text("decision_notes"),
+
+  // Issuance Information
+  issuedDocumentNumber: text("issued_document_number"),
+  issuedDate: timestamp("issued_date"),
+  expiryDate: timestamp("expiry_date"),
+
+  // Collection Information
+  collectionMethod: text("collection_method"), // 'office', 'courier', 'post'
+  collectionOffice: text("collection_office"),
+  collectionDate: timestamp("collection_date"),
+
+  // Metadata
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
 // Workflow Transitions - Defines valid transitions between stages
 export const workflowTransitions = pgTable("workflow_transitions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1353,14 +1482,16 @@ export const insertQuantumKeySchema = createInsertSchema(quantumKeys).omit({
   createdAt: true,
 });
 
-// ===================== DHA SOUTH AFRICA INTEGRATION TABLES =====================
+// NOTE: The dhaApplicants and dhaApplications tables have been moved earlier in the schema
+// to resolve dependency ordering issues. They now appear around line 779.
 
-// DHA Applicants - Personal details and citizenship information
-export const dhaApplicants = pgTable("dha_applicants", {
+// DHA Verifications - Record of NPR, ABIS, SAPS, PKD verification results
+export const dhaVerifications = pgTable("dha_verifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
 
-  // Personal Information
+  // Verification Type and Service
   fullName: text("full_name").notNull(),
   surNames: text("sur_names").notNull(),
   dateOfBirth: timestamp("date_of_birth").notNull(),
