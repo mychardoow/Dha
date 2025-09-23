@@ -1,12 +1,12 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer } from 'http';
-import { initializeWebSocket } from './websocket.js';
+import { initializeWebSocket } from './websocket';
 
 // Import route modules
-import { healthRoutes } from './routes/health.js';
-import { monitoringRoutes } from './routes/monitoring.js';
-import { aiAssistantRoutes } from './routes/ai-assistant.js';
-import { biometricUltraAdminRoutes } from './routes/biometric-ultra-admin.js';
+import { healthRoutes } from './routes/health';
+import { monitoringRoutes } from './routes/monitoring';
+import { aiAssistantRoutes } from './routes/ai-assistant';
+import { biometricUltraAdminRoutes } from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 
 export async function registerRoutes(app: Express): Promise<any> {

@@ -1,3 +1,4 @@
+// @ts-ignore - better-sqlite3 types are available but LSP having issues
 import Database from 'better-sqlite3';
 import { join } from 'path';
 
