@@ -143,36 +143,7 @@ app.get('/api/db/health', async (req, res) => {
   }
 });
 
-// Authentication endpoint for admin login
-app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  
-  if (!username || !password) {
-    return res.status(400).json({
-      success: false,
-      error: 'Username and password required'
-    });
-  }
-  
-  // Simple authentication for deployment
-  if (username === 'admin' && password === 'admin123') {
-    res.json({
-      success: true,
-      user: {
-        id: 1,
-        username: 'admin',
-        role: 'ULTRA_ADMIN',
-        permissions: ['all']
-      },
-      token: 'admin-session-token'
-    });
-  } else {
-    res.status(401).json({
-      success: false,
-      error: 'Invalid credentials'
-    });
-  }
-});
+// Note: Authentication endpoints moved to routes.ts for comprehensive session management
 
 // Serve static files
 const publicPath = join(__dirname, '../public');
@@ -241,7 +212,7 @@ const startServer = async () => {
 
     // Register all application routes and services
     try {
-      const httpServer = await registerRoutes(app);
+      await registerRoutes(app, server);
       console.log('🔗 Advanced API routes and services registered successfully');
       console.log('📡 WebSocket, AI Assistant, Biometric, and Government integrations active');
     } catch (routeError) {
