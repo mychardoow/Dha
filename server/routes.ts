@@ -7,7 +7,7 @@ import rateLimit from 'express-rate-limit';
 // Import route modules
 import { healthRouter as healthRoutes } from './routes/health';
 import monitoringRoutes from './routes/monitoring';
-import aiAssistantRoutes from './routes/ai-assistant';
+// import aiAssistantRoutes from './routes/ai-assistant'; // Temporarily disabled due to dependency conflict
 import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 import { storage } from './mem-storage';
@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
 
     // Register AI assistant routes
     try {
-      app.use('/api', aiAssistantRoutes);
+      // app.use('/api', aiAssistantRoutes); // Temporarily disabled due to dependency conflict
       console.log('[Routes] ✅ AI assistant routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register AI assistant routes:', error);

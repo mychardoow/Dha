@@ -4267,7 +4267,7 @@ export class MemStorage implements IStorage {
       failureCount: 0,
       status: task.status ?? 'initiated',
       description: task.description ?? null,
-      maxRetries: task.maxRetries ?? 3
+      maxRetries: task.maxRetries ?? 3,
       createdAt: new Date(),
       updatedAt: new Date()
     };
