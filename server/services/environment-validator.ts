@@ -23,6 +23,39 @@ export class EnvironmentValidator {
       process.env.ADMIN_PASSWORD = 'admin123';
     }
   }
+
+  async validateProductionEnvironment(): Promise<{
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Check critical environment variables
+    const criticalVars = ['NODE_ENV', 'PORT'];
+    
+    for (const varName of criticalVars) {
+      if (!process.env[varName]) {
+        errors.push(varName);
+      }
+    }
+
+    // Check optional variables
+    const optionalVars = ['JWT_SECRET', 'ADMIN_EMAIL'];
+    
+    for (const varName of optionalVars) {
+      if (!process.env[varName]) {
+        warnings.push(varName);
+      }
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
 }
 
 export const environmentValidator = new EnvironmentValidator();
