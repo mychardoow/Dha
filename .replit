@@ -8,7 +8,7 @@ packages = ["libuuid", "cairo", "pango", "giflib", "jq"]
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm dev"]
+run = ["sh", "-c", "npm run dev"]
 build = ["sh", "-c", "npm run build"]
 
 [[ports]]
