@@ -88,7 +88,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow]]
 name = "Start application "
-mode = "sequential"
+mode = "parallel"
 author = 47909382
 
 [[workflows.workflow.tasks]]
@@ -97,6 +97,15 @@ args = "Start application"
 
 [[workflows.workflow.tasks]]
 task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Alternatively "
+mode = "sequential"
+author = 47909382
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
