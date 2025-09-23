@@ -23,6 +23,7 @@ import { MessageSquare } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import BiometricInitialSetup from "@/components/BiometricInitialSetup";
+import { UltraAI } from "./pages/UltraAI";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -219,6 +220,11 @@ function App() {
                   </Suspense>
                 </AdminGuard>
               </AuthGuard>
+            </Route>
+
+            {/* Ultra AI Route - Raeesa Only */}
+            <Route path="/ultra-ai">
+              <UltraAI />
             </Route>
 
             <Route component={NotFoundPage} />

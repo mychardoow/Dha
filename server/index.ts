@@ -221,6 +221,15 @@ const startServer = async () => {
     // Register all application routes and services
     try {
       await registerRoutes(app, server);
+      
+      // Register Ultra AI Routes
+      try {
+        const { default: ultraAIRoutes } = await import('./routes/ultra-ai-routes');
+        app.use('/api/ultra-ai', ultraAIRoutes);
+        console.log('🚀 Ultra AI routes registered successfully');
+      } catch (error) {
+        console.warn('Ultra AI routes registration failed:', error instanceof Error ? error.message : String(error));
+      }
       console.log('🔗 Advanced API routes and services registered successfully');
       console.log('📡 WebSocket, AI Assistant, Document Generation, and Biometric integrations active');
     } catch (routeError) {
