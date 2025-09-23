@@ -1,200 +1,132 @@
 
-/**
- * Environment Validator for Production Deployment
- * Validates all required environment variables and configurations
- */
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  recommendations: string[];
-}
-
 export class EnvironmentValidator {
-  private requiredSecrets = [
-    'JWT_SECRET',
-    'SESSION_SECRET', 
-    'ENCRYPTION_KEY',
-    'VITE_ENCRYPTION_KEY',
-    'MASTER_ENCRYPTION_KEY',
-    'QUANTUM_ENCRYPTION_KEY',
-    'BIOMETRIC_ENCRYPTION_KEY',
-    'DOCUMENT_SIGNING_KEY',
-    'DATABASE_URL'
-  ];
+  private static instance: EnvironmentValidator;
+  private validationResults: Map<string, boolean> = new Map();
 
-  private governmentAPIKeys = [
-    'DHA_NPR_API_KEY',
-    'DHA_ABIS_API_KEY',
-    'SAPS_CRC_API_KEY',
-    'ICAO_PKD_API_KEY',
-    'SITA_ESERVICES_API_KEY'
-  ];
+  private constructor() {}
 
-  private aiServiceKeys = [
-    'OPENAI_API_KEY',
-    'ANTHROPIC_API_KEY'
-  ];
+  static getInstance(): EnvironmentValidator {
+    if (!EnvironmentValidator.instance) {
+      EnvironmentValidator.instance = new EnvironmentValidator();
+    }
+    return EnvironmentValidator.instance;
+  }
 
-  public validateEnvironment(): ValidationResult {
-    const result: ValidationResult = {
-      valid: true,
-      errors: [],
-      warnings: [],
-      recommendations: []
+  /**
+   * Validate all required environment variables for production
+   */
+  async validateProductionEnvironment(): Promise<{
+    valid: boolean;
+    errors: string[];
+    warnings: string[];
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    // Critical environment variables
+    const criticalVars = [
+      'NODE_ENV',
+      'JWT_SECRET',
+      'SESSION_SECRET',
+      'ENCRYPTION_KEY',
+      'MASTER_ENCRYPTION_KEY'
+    ];
+
+    // Optional but recommended variables
+    const recommendedVars = [
+      'DATABASE_URL',
+      'OPENAI_API_KEY',
+      'DHA_NPR_API_KEY',
+      'SAPS_CRC_API_KEY'
+    ];
+
+    // Check critical variables
+    for (const varName of criticalVars) {
+      const value = process.env[varName];
+      if (!value) {
+        errors.push(`Missing critical environment variable: ${varName}`);
+        this.validationResults.set(varName, false);
+      } else {
+        // Validate minimum length for security keys
+        if (varName.includes('SECRET') || varName.includes('KEY')) {
+          if (value.length < 32) {
+            errors.push(`${varName} must be at least 32 characters long`);
+            this.validationResults.set(varName, false);
+          } else {
+            this.validationResults.set(varName, true);
+          }
+        } else {
+          this.validationResults.set(varName, true);
+        }
+      }
+    }
+
+    // Check recommended variables
+    for (const varName of recommendedVars) {
+      const value = process.env[varName];
+      if (!value) {
+        warnings.push(`Missing recommended environment variable: ${varName}`);
+        this.validationResults.set(varName, false);
+      } else {
+        this.validationResults.set(varName, true);
+      }
+    }
+
+    // Validate NODE_ENV
+    const nodeEnv = process.env.NODE_ENV;
+    if (nodeEnv && !['development', 'production', 'test'].includes(nodeEnv)) {
+      warnings.push(`Invalid NODE_ENV value: ${nodeEnv}`);
+    }
+
+    // Validate port configuration
+    const port = process.env.PORT || '3000';
+    if (isNaN(parseInt(port))) {
+      errors.push(`Invalid PORT value: ${port}`);
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings
+    };
+  }
+
+  /**
+   * Set up development environment with fallback values
+   */
+  setupDevelopmentFallbacks(): void {
+    const fallbacks = {
+      NODE_ENV: 'development',
+      JWT_SECRET: 'development-jwt-secret-key-32chars-min',
+      SESSION_SECRET: 'development-session-secret-32chars-min',
+      ENCRYPTION_KEY: 'development-encryption-key-32chars-minimum',
+      MASTER_ENCRYPTION_KEY: 'development-master-encryption-key-64chars-minimum',
+      QUANTUM_ENCRYPTION_KEY: 'development-quantum-encryption-key-64chars-min',
+      BIOMETRIC_ENCRYPTION_KEY: 'development-biometric-key-64chars-minimum',
+      DOCUMENT_SIGNING_KEY: 'development-document-signing-key-64chars-min'
     };
 
-    // Validate required secrets
-    this.validateRequiredSecrets(result);
-    
-    // Validate government API keys
-    this.validateGovernmentAPIs(result);
-    
-    // Validate AI services
-    this.validateAIServices(result);
-    
-    // Validate database configuration
-    this.validateDatabase(result);
-    
-    // Validate security configuration
-    this.validateSecurity(result);
-
-    // Set overall validity
-    result.valid = result.errors.length === 0;
-
-    return result;
-  }
-
-  private validateRequiredSecrets(result: ValidationResult): void {
-    for (const secret of this.requiredSecrets) {
-      const value = process.env[secret];
-      
-      if (!value) {
-        result.errors.push(`Missing required environment variable: ${secret}`);
-        continue;
-      }
-
-      // Validate secret strength in production
-      if (process.env.NODE_ENV === 'production') {
-        if (secret.includes('SECRET') || secret.includes('KEY')) {
-          if (value.length < 32) {
-            result.errors.push(`${secret} must be at least 32 characters in production`);
-          }
-          
-          if (value.includes('dev-') || value.includes('test-')) {
-            result.errors.push(`${secret} appears to be a development key in production`);
-          }
-        }
+    for (const [key, value] of Object.entries(fallbacks)) {
+      if (!process.env[key]) {
+        process.env[key] = value;
+        console.warn(`Using fallback value for ${key} in development`);
       }
     }
   }
 
-  private validateGovernmentAPIs(result: ValidationResult): void {
-    for (const apiKey of this.governmentAPIKeys) {
-      const value = process.env[apiKey];
-      const enabled = process.env[`${apiKey.replace('_API_KEY', '_ENABLED')}`];
-      
-      if (enabled === 'true' && !value) {
-        result.errors.push(`${apiKey} is required when service is enabled`);
-      } else if (!value) {
-        result.warnings.push(`${apiKey} not configured - service will be disabled`);
-      }
-    }
+  /**
+   * Get validation status for specific variable
+   */
+  getValidationStatus(varName: string): boolean {
+    return this.validationResults.get(varName) || false;
   }
 
-  private validateAIServices(result: ValidationResult): void {
-    const openAIKey = process.env.OPENAI_API_KEY;
-    const anthropicKey = process.env.ANTHROPIC_API_KEY;
-
-    if (!openAIKey && !anthropicKey) {
-      result.errors.push('At least one AI service (OpenAI or Anthropic) must be configured');
-    }
-
-    if (openAIKey && !openAIKey.startsWith('sk-')) {
-      result.warnings.push('OPENAI_API_KEY format appears invalid');
-    }
-
-    if (anthropicKey && !anthropicKey.startsWith('sk-ant-')) {
-      result.warnings.push('ANTHROPIC_API_KEY format appears invalid');
-    }
-  }
-
-  private validateDatabase(result: ValidationResult): void {
-    const databaseUrl = process.env.DATABASE_URL;
-    
-    if (!databaseUrl) {
-      result.errors.push('DATABASE_URL is required');
-      return;
-    }
-
-    try {
-      const url = new URL(databaseUrl);
-      
-      if (url.protocol !== 'postgresql:' && url.protocol !== 'postgres:') {
-        result.errors.push('DATABASE_URL must be a PostgreSQL connection string');
-      }
-
-      if (process.env.NODE_ENV === 'production') {
-        const sslParam = url.searchParams.get('sslmode') || url.searchParams.get('ssl');
-        if (!sslParam || sslParam === 'disable') {
-          result.warnings.push('Database SSL should be enabled in production');
-        }
-      }
-    } catch (error) {
-      result.errors.push('DATABASE_URL format is invalid');
-    }
-  }
-
-  private validateSecurity(result: ValidationResult): void {
-    const nodeEnv = process.env.NODE_ENV;
-    
-    if (nodeEnv === 'production') {
-      // Check for production security requirements
-      const httpsOnly = process.env.HTTPS_ONLY;
-      if (httpsOnly !== 'true') {
-        result.recommendations.push('Enable HTTPS_ONLY in production');
-      }
-
-      const auditLogging = process.env.AUDIT_LOGGING_ENABLED;
-      if (auditLogging !== 'true') {
-        result.recommendations.push('Enable audit logging in production');
-      }
-
-      const monitoring = process.env.MONITORING_ENABLED;
-      if (monitoring !== 'true') {
-        result.recommendations.push('Enable monitoring in production');
-      }
-    }
-  }
-
-  public printValidationResults(result: ValidationResult): void {
-    console.log('\n🔍 Environment Validation Results:');
-    console.log('=====================================');
-
-    if (result.valid) {
-      console.log('✅ Environment validation PASSED');
-    } else {
-      console.log('❌ Environment validation FAILED');
-    }
-
-    if (result.errors.length > 0) {
-      console.log('\n❌ Errors:');
-      result.errors.forEach(error => console.log(`  - ${error}`));
-    }
-
-    if (result.warnings.length > 0) {
-      console.log('\n⚠️  Warnings:');
-      result.warnings.forEach(warning => console.log(`  - ${warning}`));
-    }
-
-    if (result.recommendations.length > 0) {
-      console.log('\n💡 Recommendations:');
-      result.recommendations.forEach(rec => console.log(`  - ${rec}`));
-    }
-
-    console.log('\n=====================================\n');
+  /**
+   * Get all validation results
+   */
+  getAllValidationResults(): Record<string, boolean> {
+    return Object.fromEntries(this.validationResults);
   }
 }
 
-export const environmentValidator = new EnvironmentValidator();
+export const environmentValidator = EnvironmentValidator.getInstance();

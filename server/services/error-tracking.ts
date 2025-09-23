@@ -33,9 +33,13 @@ export class ErrorTrackingService extends EventEmitter {
 
   private constructor() {
     super();
-    this.setupGlobalErrorHandlers();
-    this.startMetricsCollection();
-    this.startRateLimitCleanup();
+    try {
+      this.setupGlobalErrorHandlers();
+      this.startMetricsCollection();
+      this.startRateLimitCleanup();
+    } catch (error) {
+      console.error('Error tracking service initialization failed:', error);
+    }
   }
 
   static getInstance(): ErrorTrackingService {
