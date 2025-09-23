@@ -38,18 +38,14 @@ app.get('/api/system/status', (req, res) => {
   });
 });
 
-// Simple login endpoint for demo
+// SECURITY NOTICE: Dev server authentication disabled for production safety
+// Use the main server authentication system instead
 app.post('/api/auth/login', (req, res) => {
-  const { username, password } = req.body;
-  if (username === 'admin' && password === 'admin123') {
-    res.json({
-      success: true,
-      token: 'demo-jwt-token',
-      user: { username: 'admin', role: 'admin' }
-    });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
+  res.status(503).json({ 
+    success: false, 
+    message: 'Dev server authentication disabled. Use main authentication system.',
+    redirect: '/api/auth/login'
+  });
 });
 
 // Serve React app for all other routes
@@ -60,6 +56,6 @@ app.get('*', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 DHA Digital Services Platform running on port ${PORT}`);
   console.log(`🎯 Government Demo Server Ready!`);
-  console.log(`🔒 Admin Login: admin/admin123`);
+  console.log(`🔒 Admin Login: admin/[PASSWORD-HIDDEN]`);
   console.log(`📊 Health Check: http://localhost:${PORT}/api/health`);
 });
