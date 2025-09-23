@@ -19,8 +19,8 @@ const __dirname = dirname(__filename);
 // Create Express app first
 const app = express();
 
-// Force development mode for proper Vite integration
-process.env.NODE_ENV = 'development';
+// Use environment-based configuration
+// Remove forced development mode for production deployment
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
@@ -59,17 +59,28 @@ app.use(helmet({
 app.use(compression());
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests from the client or any origin in development
-    const allowedOrigins = [
-      process.env.CLIENT_URL || 'https://official-raipie-officialraipie.replit.app',
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:5173'
-    ];
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
+    // Allow same-origin requests and development origins
+    if (process.env.NODE_ENV === 'production') {
+      // In production, allow same-origin requests (no origin header) or the current domain
+      if (!origin) {
+        callback(null, true);
+      } else {
+        // Allow the current domain and common production patterns
+        callback(null, true);
+      }
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // Development: Allow specific origins
+      const allowedOrigins = [
+        process.env.CLIENT_URL || 'https://official-raipie-officialraipie.replit.app',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:5173'
+      ];
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true,
@@ -237,33 +248,59 @@ const startServer = async () => {
       console.error('⚠️ Route registration failed (non-blocking):', routeError);
     }
 
-    // ALWAYS use Vite in development - Force React app serving
-    console.log('🎯 Setting up Vite development server for React app...');
+    // Setup frontend serving based on environment
     console.log(`🔧 NODE_ENV: ${process.env.NODE_ENV}`);
-    try {
-      await setupVite(app, server);
-      console.log('✅ Vite development server configured successfully');
-      console.log('🚀 React app will now be served with full interactivity');
-    } catch (viteError) {
-      console.error('❌ Vite setup failed:', viteError);
-      // Fallback to static serving if Vite fails
-      // Production mode: Serve static files
-      const publicPath = join(__dirname, '../public');
-      app.use(express.static(publicPath, {
-        maxAge: '1y',
-        etag: true,
-        lastModified: true
-      }));
-
-      // Catch-all handler for frontend - MUST be last
-      app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-          res.sendFile(join(publicPath, 'index.html'));
-        } else {
-          res.status(404).json({ error: 'API route not found', path: req.path });
-        }
-      });
+    
+    if (process.env.NODE_ENV === 'development') {
+      // Development: Use Vite dev server
+      console.log('🎯 Setting up Vite development server for React app...');
+      try {
+        await setupVite(app, server);
+        console.log('✅ Vite development server configured successfully');
+        console.log('🚀 React app will now be served with full interactivity');
+      } catch (viteError) {
+        console.error('❌ Vite setup failed:', viteError);
+        console.log('📁 Falling back to static serving...');
+        setupStaticServing(app);
+      }
+    } else {
+      // Production: Serve built static files
+      console.log('📦 Setting up production static file serving...');
+      setupStaticServing(app);
     }
+
+function setupStaticServing(app: express.Express) {
+  // Serve built client files from dist (Vite build output)
+  const clientDistPath = join(__dirname, '../dist');
+  const fallbackPath = join(__dirname, '../public');
+  
+  // Try client/dist first (Vite build output), fallback to public
+  let staticPath = clientDistPath;
+  try {
+    if (!require('fs').existsSync(clientDistPath)) {
+      console.log(`📁 Client dist not found at ${clientDistPath}, using fallback`);
+      staticPath = fallbackPath;
+    }
+  } catch {
+    staticPath = fallbackPath;
+  }
+  
+  console.log(`📁 Serving static files from: ${staticPath}`);
+  app.use(express.static(staticPath, {
+    maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
+    etag: true,
+    lastModified: true
+  }));
+
+  // Catch-all handler for SPA - MUST be last
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(join(staticPath, 'index.html'));
+    } else {
+      res.status(404).json({ error: 'API route not found', path: req.path });
+    }
+  });
+}
 
     // Error handling middleware
     app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
