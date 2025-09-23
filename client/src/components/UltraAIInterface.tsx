@@ -479,7 +479,7 @@ Ready for your commands, Raeesa.`,
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <MessageSquare className="h-4 w-4" />
                   )}
                 </Button>
               </div>

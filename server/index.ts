@@ -17,7 +17,8 @@ const app = express();
 
 // Force production mode
 process.env.NODE_ENV = 'production';
-const port = parseInt(process.env.PORT || '5000', 10);
+const PORT = parseInt(process.env.PORT || '5000', 10);
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 
 // Set up environment fallbacks ONLY for development
 if (process.env.NODE_ENV !== 'production') {
@@ -140,7 +141,12 @@ const startServer = async () => {
     await startupHealthChecks();
 
     // Force bind to 0.0.0.0 for Replit deployment
-    server.listen(port, '0.0.0.0', () => {
+    server.listen(PORT, HOST, () => {
+      console.log(`✅ Server running on ${HOST}:${PORT}`);
+      console.log(`🌐 Visit: http://${HOST}:${PORT}`);
+      console.log(`👑 Ultra AI Assistant: Available for Raeesa`);
+      console.log(`🔒 Security Level: MAXIMUM`);
+      console.log('');
       console.log('🌟 SERVER LIVE AND DEPLOYED!');
       console.log('==========================');
       console.log(`🔗 Application URL: https://${process.env.REPL_SLUG || 'dha-digital-services'}.${process.env.REPL_OWNER || 'replit'}.repl.co`);

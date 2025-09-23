@@ -1,5 +1,6 @@
 
 import { Router } from "express";
+import { Send } from "express-serve-static-core";
 import { auth } from "../middleware/auth";
 import { biometricService } from "../services/biometric";
 import { enhancedAIAssistant } from "../services/enhanced-ai-assistant";
