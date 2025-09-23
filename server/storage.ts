@@ -4108,7 +4108,15 @@ export class MemStorage implements IStorage {
       ...snapshot,
       id,
       timestamp: new Date(),
-      createdAt: new Date()
+      createdAt: new Date(),
+      cpuUsage: snapshot.cpuUsage ?? null,
+      memoryUsage: snapshot.memoryUsage ?? null,
+      diskUsage: snapshot.diskUsage ?? null,
+      networkLatency: snapshot.networkLatency ?? null,
+      activeConnections: snapshot.activeConnections ?? null,
+      uptimePercentage: snapshot.uptimePercentage ?? null,
+      responseTime: snapshot.responseTime ?? null,
+      errorRate: snapshot.errorRate ?? null
     };
     this.systemHealthSnapshots.set(id, healthSnapshot);
     return healthSnapshot;
@@ -4171,7 +4179,11 @@ export class MemStorage implements IStorage {
       ...state,
       id,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      averageResponseTime: state.averageResponseTime ?? null,
+      nextRetryAt: state.nextRetryAt ?? null,
+      lastRecoveryAt: state.lastRecoveryAt ?? null,
+      state: state.state ?? 'closed'
     };
     this.circuitBreakerStates.set(id, breakerState);
     return breakerState;
@@ -4194,7 +4206,7 @@ export class MemStorage implements IStorage {
         totalRequests: totalCalls,
         successCount: success ? state.successCount + 1 : state.successCount,
         failureCount: success ? state.failureCount : state.failureCount + 1,
-        averageResponseTime: ((state.averageResponseTime * (totalCalls - 1)) + responseTime) / totalCalls,
+        averageResponseTime: (((state.averageResponseTime || 0) * (totalCalls - 1)) + responseTime) / totalCalls,
         lastRequestAt: new Date()
       };
       await this.updateCircuitBreakerState(serviceName, updates);
@@ -4218,7 +4230,7 @@ export class MemStorage implements IStorage {
     return {
       state: state.state,
       successRate,
-      avgResponseTime: state.averageResponseTime,
+      avgResponseTime: state.averageResponseTime || 0,
       isHealthy: state.state === 'closed' && successRate >= 90
     };
   }
@@ -4251,9 +4263,11 @@ export class MemStorage implements IStorage {
     const maintenanceTask: MaintenanceTask = {
       ...task,
       id,
-      runCount: 0,
       successCount: 0,
       failureCount: 0,
+      status: task.status ?? 'initiated',
+      description: task.description ?? null,
+      maxRetries: task.maxRetries ?? 3
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -4320,7 +4334,6 @@ export class MemStorage implements IStorage {
       id,
       triggerCount: 0,
       falsePositiveCount: 0,
-      accuracy: 0,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -4344,19 +4357,24 @@ export class MemStorage implements IStorage {
 
     for (const rule of rules) {
       let triggered = false;
-      switch (rule.operator) {
-        case 'greater_than':
-          triggered = value > rule.threshold;
-          break;
-        case 'less_than':
-          triggered = value < rule.threshold;
-          break;
-        case 'equals':
-          triggered = value === rule.threshold;
-          break;
-        case 'not_equals':
-          triggered = value !== rule.threshold;
-          break;
+      const thr = Number(rule.threshold);
+      const val = Number(value);
+      
+      if (Number.isFinite(thr) && Number.isFinite(val)) {
+        switch (rule.operator) {
+          case 'greater_than':
+            triggered = val > thr;
+            break;
+          case 'less_than':
+            triggered = val < thr;
+            break;
+          case 'equals':
+            triggered = val === thr;
+            break;
+          case 'not_equals':
+            triggered = val !== thr;
+            break;
+        }
       }
 
       if (triggered) {
@@ -4383,9 +4401,6 @@ export class MemStorage implements IStorage {
         updates.falsePositiveCount = rule.falsePositiveCount + 1;
       }
 
-      if (rule.triggerCount > 0) {
-        updates.accuracy = ((rule.triggerCount - rule.falsePositiveCount) / rule.triggerCount) * 100;
-      }
 
       await this.updateAlertRule(ruleId, updates);
     }
@@ -4425,7 +4440,6 @@ export class MemStorage implements IStorage {
     const newIncident: Incident = {
       ...incident,
       id,
-      incidentId: `INC-${Date.now()}-${randomUUID().substring(0, 8).toUpperCase()}`,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -4442,7 +4456,7 @@ export class MemStorage implements IStorage {
   }
 
   async assignIncident(id: string, assignedTo: string, assignedTeam?: string): Promise<void> {
-    await this.updateIncident(id, { assignedTo, assignedTeam, status: 'assigned' });
+    await this.updateIncident(id, { assignedTo, assignedTeam, status: 'investigating' });
   }
 
   async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
@@ -4489,7 +4503,7 @@ export class MemStorage implements IStorage {
       .filter(incident => incident.createdAt >= cutoffTime);
 
     const totalIncidents = incidents.length;
-    const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'assigned').length;
+    const openIncidents = incidents.filter(i => i.status === 'open' || i.status === 'investigating').length;
     const resolvedIncidents = incidents.filter(i => i.status === 'resolved' || i.status === 'closed').length;
 
     const resolvedWithTime = incidents.filter(i => i.resolvedAt);
