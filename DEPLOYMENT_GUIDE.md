@@ -9,7 +9,7 @@
 ### 📋 REQUIRED ENVIRONMENT VARIABLES
 
 ```bash
-NODE_ENV=production
+NODE_ENV=development
 SESSION_SECRET=RaeesaDHASecureSession2025UltraAI32Chars
 ADMIN_PASSWORD=RaeesaDHA2025!
 DOCUMENTS_DIR=/tmp/documents

@@ -7,6 +7,7 @@ The DHA Digital Services Platform is a comprehensive government-grade digital se
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Deployment mode: Development mode (for cost optimization and flexibility)
 
 ## System Architecture
 
@@ -22,7 +23,7 @@ Preferred communication style: Simple, everyday language.
 ### Backend Architecture
 - **Express.js + TypeScript**: RESTful API server with comprehensive middleware stack
 - **Modular Route Structure**: Organized routes for health, AI assistant, monitoring, and biometric services
-- **Multi-Server Setup**: Development, production, and emergency server configurations
+- **Multi-Server Setup**: Optimized for development mode deployment with fallback configurations
 - **WebSocket Support**: Real-time communication for system status and notifications
 - **Serverless Deployment**: Netlify Functions support for scalable cloud deployment
 

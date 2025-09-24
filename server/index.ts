@@ -21,9 +21,12 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Use environment-based configuration
-// Remove forced development mode for production deployment
+// Set to development mode for cost optimization
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
+
+// Force development mode for cost optimization
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Set up environment fallbacks for testing deployment
 EnvironmentValidator.setupDevelopmentFallbacks();
