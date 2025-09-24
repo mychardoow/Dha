@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 import { createServer } from 'http';
 import { startupHealthChecks } from "./startup-health-checks";
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
@@ -270,19 +271,17 @@ const startServer = async () => {
     }
 
 function setupStaticServing(app: express.Express) {
-  // Serve built client files from dist (Vite build output)
-  const clientDistPath = join(__dirname, '../dist');
+  // Serve built client files from client/dist (Vite build output)
+  const clientDistPath = join(__dirname, '../../client/dist');
   const fallbackPath = join(__dirname, '../public');
   
-  // Try client/dist first (Vite build output), fallback to public
+  // Use client/dist (Vite build output)
   let staticPath = clientDistPath;
-  try {
-    if (!require('fs').existsSync(clientDistPath)) {
-      console.log(`📁 Client dist not found at ${clientDistPath}, using fallback`);
-      staticPath = fallbackPath;
-    }
-  } catch {
-    staticPath = fallbackPath;
+  if (!existsSync(clientDistPath)) {
+    console.error(`❌ Client dist not found at ${clientDistPath}`);
+    console.error(`🚨 Frontend build failed - app will not work properly`);
+    // Don't fallback - better to fail fast and show the real issue
+    staticPath = clientDistPath; // Keep trying, let sendFile error properly
   }
   
   console.log(`📁 Serving static files from: ${staticPath}`);
