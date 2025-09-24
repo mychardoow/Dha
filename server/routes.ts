@@ -38,7 +38,7 @@ const requireAuth = (req: Request, res: Response, next: any) => {
   
   // Check session timeout (30 minutes of inactivity)
   if (lastActivity && Date.now() - lastActivity > 30 * 60 * 1000) {
-    req.session.destroy(() => {});
+    req.session?.destroy?.(() => {});
     return res.status(401).json({
       success: false,
       error: 'Session expired due to inactivity'
