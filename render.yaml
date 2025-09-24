@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: dha-digital-services
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:server && cd client && npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
