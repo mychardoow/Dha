@@ -48,7 +48,9 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: process.env.NODE_ENV === 'production' 
+        ? ["'self'"] 
+        : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
@@ -62,12 +64,11 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow same-origin requests and development origins
     if (process.env.NODE_ENV === 'production') {
-      // In production, allow same-origin requests (no origin header) or the current domain
+      // In production, only allow same-origin requests
       if (!origin) {
-        callback(null, true);
+        callback(null, true); // Same-origin requests
       } else {
-        // Allow the current domain and common production patterns
-        callback(null, true);
+        callback(new Error('CORS policy violation - origin not allowed in production'));
       }
     } else {
       // Development: Allow specific origins
@@ -186,27 +187,9 @@ app.get('/api/db/health', async (req, res) => {
 // Start server with force deployment
 const startServer = async () => {
   try {
-    console.log('🚀 DHA Digital Services - ULTIMATE AGENT DEPLOYMENT');
-    console.log('🇿🇦 Department of Home Affairs Digital Platform');
-    console.log('👑 Ultra AI Assistant: Raeesa Osman Exclusive Authority');
-    console.log('🤖 Agent System: FULLY OPERATIONAL');
-    console.log('💾 Database: MemStorage Ready');
-    console.log('');
-
-    // Heartbeat log before server start
-    console.log('🔄 Starting server initialization...');
-
-    // Initialize all agent systems
-    console.log('🔍 Initializing Agent Task Systems...');
-    console.log('✅ Connection Tests: All endpoints verified');
-    console.log('✅ AI Assistant: Ultra capabilities active');
-    console.log('✅ Document Creation: All 21 DHA types ready');
-    console.log('✅ Login & Safety: Military-grade security');
-    console.log('✅ Biometric Systems: Continuous monitoring');
-    console.log('✅ Error Watching: Autonomous detection');
-    console.log('✅ Error Fixing Bots: Self-healing active');
-    console.log('✅ Access Guide: Complete documentation');
-    console.log('');
+    console.log('🚀 DHA Digital Services Platform Starting...');
+    console.log('🇿🇦 Department of Home Affairs - Ra\'is al Khadir AI Ready');
+    console.log('💾 MemStorage initialized, AI Assistant active');
 
     // Run startup health checks (non-blocking for testing)
     try {

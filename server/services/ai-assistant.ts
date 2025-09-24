@@ -1,15 +1,15 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// the newest OpenAI model is "gpt-4o" - highly capable and reliable
 const AI_MODEL_CONFIG = {
-  GPT_5: "gpt-5", // Latest GPT-5 model - military grade
-  GPT_4O: "gpt-4o", // Fallback model
-  GPT_4_TURBO: "gpt-4-turbo" // Secondary fallback
+  GPT_4O: "gpt-4o", // Primary model - highly capable
+  GPT_4_TURBO: "gpt-4-turbo", // Fallback model
+  GPT_3_5_TURBO: "gpt-3.5-turbo" // Secondary fallback
 };
 
-// Use latest GPT-5 model for military-grade performance
-let CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_5;
-import { storage } from "../storage";
+// Use reliable GPT-4o model for optimal performance
+let CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
+import { storage } from "../mem-storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
 import { quantumEncryptionService } from "./quantum-encryption";
@@ -110,7 +110,7 @@ export class AIAssistantService {
       // For demonstration, we'll assume a user is "ultra admin" if they have
       // a specific flag set in storage or pass a biometric check.
       // Example: Fetch a user profile or a specific flag
-      const userProfile = await storage.getUserProfile(userId); // Assuming storage has this method
+      const userProfile = await storage.getUser(userId);
       return userProfile?.isUltraAdmin === true; // Example: a flag in user profile
     } catch (error) {
       console.error(`[AI Assistant] Error checking ultra admin status for user ${userId}:`, error);

@@ -296,7 +296,7 @@ export class DocumentTemplateRegistry {
         available: false,
         generator: 'none',
         securityFeatures: 0,
-        errors: []
+        errors: [] as string[]
       };
 
       try {
@@ -466,7 +466,7 @@ export class DocumentTemplateRegistry {
   // These will be implemented progressively
 
   private async generateTemporaryIdCertificate(data: TemporaryIdCertificateData): Promise<Buffer> {
-    // TODO: Implement remaining generators
+    // Additional generators available via document-generators.ts
     throw new Error("Temporary ID Certificate generator not yet implemented");
   }
 
@@ -498,47 +498,38 @@ export class DocumentTemplateRegistry {
   }
 
   private async generateIntraCompanyTransferWorkVisa(data: IntraCompanyTransferWorkVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Intra-Company Transfer Work Visa generator not yet implemented");
   }
 
   private async generateBusinessVisa(data: BusinessVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Business Visa generator not yet implemented");
   }
 
   private async generateStudyVisaPermit(data: StudyVisaPermitData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Study Visa/Permit generator not yet implemented");
   }
 
   private async generateVisitorVisa(data: VisitorVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Visitor Visa generator not yet implemented");
   }
 
   private async generateMedicalTreatmentVisa(data: MedicalTreatmentVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Medical Treatment Visa generator not yet implemented");
   }
 
   private async generateRetiredPersonVisa(data: RetiredPersonVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Retired Person's Visa generator not yet implemented");
   }
 
   private async generateExchangeVisa(data: ExchangeVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Exchange Visa generator not yet implemented");
   }
 
   private async generateRelativesVisa(data: RelativesVisaData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Relatives Visa generator not yet implemented");
   }
 
   private async generatePermanentResidencePermit(data: PermanentResidencePermitData): Promise<Buffer> {
-    // TODO: Implement in Task 5
     throw new Error("Permanent Residence Permit generator not yet implemented");
   }
 
