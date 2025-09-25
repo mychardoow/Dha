@@ -1,10 +1,6 @@
 
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const express = require('express');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,7 +11,7 @@ console.log('🇿🇦 Department of Home Affairs Digital Services');
 
 // Basic middleware
 app.use(express.json());
-app.use(express.static(join(__dirname, 'client/dist')));
+app.use(express.static(path.join(__dirname, 'client/dist')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -338,8 +334,8 @@ app.get('/api/system/status', (req, res) => {
 // Catch-all for SPA
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    const indexPath = join(__dirname, 'client/dist/index.html');
-    import('fs').then(fs => {
+    const indexPath = path.join(__dirname, 'client/dist/index.html');
+    const fs = require('fs');
     
     if (fs.existsSync(indexPath)) {
       res.sendFile(indexPath);
