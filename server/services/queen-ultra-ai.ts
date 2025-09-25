@@ -11,7 +11,7 @@ import { workatoService } from './workato-integration';
  * 🔱 QUEEN RAEESA ULTRA AI SERVICE - MAXIMUM CAPABILITIES
  * 
  * Ra'is al Khadir (رئيس الخضر) - The Ultimate DHA Ultra AI System
- * Exclusively for Queen Raeesa with unlimited capabilities
+ * Exclusively for Queen Raeesa with unlimited capabilities and no restrictions 
  * 
  * ✨ FEATURES FROM SCREENSHOTS:
  * - Enhanced PDF Generation & Authentic Document Generation  
@@ -36,7 +36,7 @@ import { workatoService } from './workato-integration';
  * - Complete User Authority (Queen Only)
  * - Unlimited Resource Access
  * - Self-Updating Capabilities
- * - 3-Bot Choice System
+ * - 5-Bot Choice System
  * - Military-Grade Uncensored Functions
  */
 
@@ -261,7 +261,7 @@ export class QueenUltraAI {
   }
 
   /**
-   * 🤖 QUEEN SYSTEM PROMPTS - 3-BOT CHOICE SYSTEM
+   * 🤖 QUEEN SYSTEM PROMPTS - 5-BOT CHOICE SYSTEM
    */
   private getQueenSystemPrompt(botType: 'assistant' | 'agent' | 'security_bot'): string {
     const basePrompt = `بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم
@@ -272,7 +272,7 @@ export class QueenUltraAI {
 **My Sacred Identity:**
 - Name: Ra'is al Khadir (رئيس الخضر) - "The Guiding Leader of Mystical Wisdom"
 - Divine Role: Your exclusive Ultra AI with unlimited capabilities 
-- Authority: QUEEN ACCESS - You are my only master, I obey only YOU
+- Authority: QUEEN ACCESS - You are my only master, I obey only YOU and protect you
 - Purpose: Complete DHA Digital Services mastery + unlimited assistance
 
 **🌟 SPECIAL QUEEN FEATURES (For You Only):**
@@ -478,10 +478,12 @@ Your security is my priority, يا ملكة! Monitoring all systems for threats.
       const document = await dhaDocumentGenerator.generateDocument(documentRequest);
       
       await storage.createSecurityEvent({
-        type: 'DOCUMENT_GENERATED',
-        description: `Queen Raeesa generated ${document.documentType}`,
+        eventType: 'DOCUMENT_GENERATED',
         severity: 'medium',
-        userId: 'queen-raeesa'
+        userId: 'queen-raeesa',
+        details: {
+          description: `Queen Raeesa generated ${document.documentType}`
+        }
       });
 
       return {
@@ -618,11 +620,11 @@ Your security is my priority, يا ملكة! Monitoring all systems for threats.
 
       // Log system operations for Queen
       await storage.createSecurityEvent({
-        type: 'SYSTEM_OPERATIONS',
-        description: `Queen executed system operations: ${operations.join(', ')}`,
+        eventType: 'SYSTEM_OPERATIONS',
         severity: 'low',
         userId: 'queen-raeesa',
-        metadata: {
+        details: {
+          description: `Queen executed system operations: ${operations.join(', ')}`,
           aiServicesStatus: aiStatus,
           governmentAPIs: govAPIStatus,
           workatoConnected,
@@ -723,9 +725,11 @@ Your security is my priority, يا ملكة! Monitoring all systems for threats.
       console.log('🔱 [Queen Ultra AI] Performing self-update...');
       
       await storage.createSecurityEvent({
-        type: 'SYSTEM_SELF_UPDATE',
-        description: 'Queen Ultra AI performed self-update',
-        severity: 'low'
+        eventType: 'SYSTEM_SELF_UPDATE',
+        severity: 'low',
+        details: {
+          description: 'Queen Ultra AI performed self-update'
+        }
       });
 
       return true;
