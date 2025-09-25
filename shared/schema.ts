@@ -1,161 +1,81 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, integer, decimal, jsonb, pgEnum, uniqueIndex, check, bigint } from "drizzle-orm/pg-core";
+import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
 // import { createInsertSchema } from "drizzle-zod"; // Temporarily disabled due to version conflict
 import { z } from "zod";
 
-// ===================== DRIZZLE ENUMS FOR TYPE SAFETY =====================
+// ===================== SQLITE COMPATIBLE SCHEMA =====================
 
-// Ultra AI System Enums
-export const aiModeEnum = pgEnum('ai_mode', ['assistant', 'agent', 'security_bot']);
-export const ultraBiometricTypeEnum = pgEnum('ultra_biometric_type', ['facial', 'fingerprint', 'voice', 'retinal', 'multi_factor']);
-export const accessLevelEnum = pgEnum('access_level', ['standard', 'elevated', 'ultra', 'raeesa_only']);
-export const securityClearanceEnum = pgEnum('security_clearance', ['public', 'restricted', 'confidential', 'secret', 'top_secret', 'ultra_classified']);
+// SQLite uses text fields instead of enums - we'll use type definitions for type safety
 
-// User and System Enums
-export const userRoleEnum = pgEnum('user_role', ['user', 'admin', 'dha_officer', 'manager', 'super_admin', 'raeesa_ultra']);
-export const severityEnum = pgEnum('severity', ['low', 'medium', 'high', 'critical']);
-export const genderEnum = pgEnum('gender', ['M', 'F', 'X']); // Including non-binary option
-export const statusEnum = pgEnum('status', ['active', 'inactive', 'suspended', 'revoked', 'expired', 'pending']);
+// Type definitions for enum-like values
+export type AuditAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'GENERATE_DOCUMENT' | 'VALIDATE_BIOMETRIC';
+export type ComplianceEventType = 'POPIA_CONSENT' | 'DATA_ACCESS' | 'DATA_EXPORT' | 'BIOMETRIC_CAPTURE' | 'DOCUMENT_GENERATION';
+export type UserRole = 'user' | 'admin' | 'dha_officer' | 'manager' | 'super_admin' | 'raeesa_ultra';
+export type DocumentType = 'smart_id_card' | 'identity_document_book' | 'south_african_passport' | 'birth_certificate';
+export type ProcessingStatus = 'pending' | 'processing' | 'validated' | 'verified' | 'approved' | 'rejected' | 'issued';
 
-// Document and Processing Enums - Complete 21 DHA Document Types
-export const documentTypeEnum = pgEnum('document_type', [
-  // Identity Documents (3)
-  'smart_id_card',
-  'identity_document_book',
-  'temporary_id_certificate',
+// Export constants for backwards compatibility
+export const AuditAction = {
+  CREATE: 'CREATE' as const,
+  READ: 'READ' as const,
+  UPDATE: 'UPDATE' as const,
+  DELETE: 'DELETE' as const,
+  LOGIN: 'LOGIN' as const,
+  LOGOUT: 'LOGOUT' as const,
+  GENERATE_DOCUMENT: 'GENERATE_DOCUMENT' as const,
+  VALIDATE_BIOMETRIC: 'VALIDATE_BIOMETRIC' as const
+} as const;
 
-  // Travel Documents (3)
-  'south_african_passport',
-  'emergency_travel_certificate',
-  'refugee_travel_document',
+export const ComplianceEventType = {
+  POPIA_CONSENT: 'POPIA_CONSENT' as const,
+  DATA_ACCESS: 'DATA_ACCESS' as const,
+  DATA_EXPORT: 'DATA_EXPORT' as const,
+  BIOMETRIC_CAPTURE: 'BIOMETRIC_CAPTURE' as const,
+  DOCUMENT_GENERATION: 'DOCUMENT_GENERATION' as const
+} as const;
 
-  // Civil Documents (4)
-  'birth_certificate',
-  'death_certificate',
-  'marriage_certificate',
-  'divorce_certificate',
+// Security and Classification Types (SQLite compatible)
+export type ClassificationLevel = 'unclassified' | 'official' | 'confidential' | 'secret' | 'top_secret';
 
-  // Immigration Documents (11)
-  'general_work_visa',
-  'critical_skills_work_visa',
-  'intra_company_transfer_work_visa',
-  'business_visa',
-  'study_visa_permit',
-  'visitor_visa',
-  'medical_treatment_visa',
-  'retired_person_visa',
-  'exchange_visa',
-  'relatives_visa',
-  'permanent_residence_permit',
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
 
-  // Additional DHA Documents (2)
-  'certificate_of_exemption',
-  'certificate_of_south_african_citizenship',
+// Web3 and Blockchain Types (SQLite compatible)
+export type BlockchainNetwork = 'ethereum' | 'polygon' | 'bsc' | 'arbitrum' | 'optimism';
+export type TransactionStatus = 'pending' | 'confirmed' | 'failed' | 'cancelled';
+export type PriorityLevel = 'low' | 'normal' | 'high' | 'urgent';
 
-  // Legacy compatibility (keep existing data working)
-  'passport', 'sa_id', 'smart_id', 'temporary_id',
-  'study_permit', 'work_permit', 'business_permit', 'transit_visa',
-  'permanent_residence', 'temporary_residence', 'refugee_permit', 'asylum_permit',
-  'diplomatic_passport', 'exchange_permit'
-]);
+// Verification and Check Types (SQLite compatible)
+export type VerificationType = 'npr' | 'abis' | 'saps_crc' | 'icao_pkd' | 'mrz' | 'biometric' | 'document_authenticity';
+export type VerificationResult = 'verified' | 'not_verified' | 'inconclusive' | 'failed' | 'pending';
 
-export const processingStatusEnum = pgEnum('processing_status', [
-  'pending', 'processing', 'validated', 'verified', 'approved', 'rejected', 'issued', 'delivered'
-]);
+// Payment and Delivery Types (SQLite compatible)
+export type PaymentStatus = 'pending' | 'processing' | 'paid' | 'failed' | 'refunded' | 'cancelled';
+export type PaymentMethod = 'card' | 'eft' | 'cash' | 'bank_transfer' | 'mobile_payment';
+export type DeliveryMethod = 'collection' | 'courier' | 'registered_mail' | 'secure_courier';
+export type DeliveryStatus = 'pending' | 'in_transit' | 'delivered' | 'failed' | 'returned';
 
-// DHA 8-Stage Workflow Enums
-export const workflowStageEnum = pgEnum('workflow_stage', [
-  'draft', 'identity_verification', 'eligibility_check', 'background_verification',
-  'payment', 'adjudication', 'approved', 'issued'
-]);
+// Print Status and Contact Types (SQLite compatible)
+export type PrintStatus = 'queued' | 'printing' | 'printed' | 'quality_check' | 'ready' | 'failed';
+export type PreferredContactMethod = 'sms' | 'email' | 'phone' | 'mail' | 'whatsapp';
 
-export const workflowStatusEnum = pgEnum('workflow_status', [
-  'in_progress', 'completed', 'rejected', 'on_hold', 'cancelled'
-]);
+// Diplomatic Immunity Status Type (SQLite compatible)
+export type ImmunityStatus = 'full' | 'partial' | 'none' | 'consular';
 
-// Security and Classification Enums
-export const classificationLevelEnum = pgEnum('classification_level', [
-  'unclassified', 'official', 'confidential', 'secret', 'top_secret'
-]);
+// Document Verification Stage Type (SQLite compatible)
+export type VerificationStage = 'initial' | 'document_check' | 'biometric_check' | 'background_check' | 'final_review' | 'completed';
 
-export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical']);
+// Biometric and Security Types (SQLite compatible)
+export type BiometricType = 'fingerprint' | 'faceprint' | 'iris' | 'voiceprint' | 'signature';
 
-// Web3 and Blockchain Enums
-export const blockchainNetworkEnum = pgEnum('blockchain_network', ['ethereum', 'polygon', 'bsc', 'arbitrum', 'optimism']);
-export const transactionStatusEnum = pgEnum('transaction_status', ['pending', 'confirmed', 'failed', 'cancelled']);
-export const priorityLevelEnum = pgEnum('priority_level', ['low', 'normal', 'high', 'urgent']);
+export type EncryptionAlgorithm = 'AES-256-GCM' | 'ChaCha20-Poly1305' | 'RSA-OAEP' | 'ECIES';
 
-// Verification and Check Enums
-export const verificationTypeEnum = pgEnum('verification_type', [
-  'npr', 'abis', 'saps_crc', 'icao_pkd', 'mrz', 'biometric', 'document_authenticity'
-]);
+export type SignatureAlgorithm = 'RSA-PSS' | 'ECDSA' | 'EdDSA' | 'RSASSA-PKCS1-v1_5';
 
-export const verificationResultEnum = pgEnum('verification_result', [
-  'verified', 'not_verified', 'inconclusive', 'failed', 'pending'
-]);
+// Nationality and Country Types (SQLite compatible) 
+export type Country = 'ZA' | 'ZW' | 'MZ' | 'BW' | 'LS' | 'SZ' | 'NA' | 'MW' | 'ZM' | 'TZ' | 'KE' | 'UG' | 'RW' | 'US' | 'UK' | 'DE' | 'FR' | 'CN' | 'IN' | 'BR' | 'AU' | 'CA' | 'OTHER';
+export type Province = 'Eastern Cape' | 'Free State' | 'Gauteng' | 'KwaZulu-Natal' | 'Limpopo' | 'Mpumalanga' | 'Northern Cape' | 'North West' | 'Western Cape';
 
-// Payment and Delivery Enums
-export const paymentStatusEnum = pgEnum('payment_status', [
-  'pending', 'processing', 'paid', 'failed', 'refunded', 'cancelled'
-]);
-
-export const paymentMethodEnum = pgEnum('payment_method', [
-  'card', 'eft', 'cash', 'bank_transfer', 'mobile_payment'
-]);
-
-export const deliveryMethodEnum = pgEnum('delivery_method', [
-  'collection', 'courier', 'registered_mail', 'secure_courier'
-]);
-
-export const deliveryStatusEnum = pgEnum('delivery_status', [
-  'pending', 'in_transit', 'delivered', 'failed', 'returned'
-]);
-
-// Print Status Enum (for document printing pipeline)
-export const printStatusEnum = pgEnum('print_status', [
-  'queued', 'printing', 'printed', 'quality_check', 'ready', 'failed'
-]);
-
-// Contact Method Enum
-export const preferredContactMethodEnum = pgEnum('preferred_contact_method', [
-  'sms', 'email', 'phone', 'mail', 'whatsapp'
-]);
-
-// Diplomatic Immunity Status Enum
-export const immunityStatusEnum = pgEnum('immunity_status', [
-  'full', 'partial', 'none', 'consular'
-]);
-
-// Document Verification Stage Enum
-export const verificationStageEnum = pgEnum('verification_stage', [
-  'initial', 'document_check', 'biometric_check', 'background_check', 'final_review', 'completed'
-]);
-
-// Biometric and Security Enums
-export const biometricTypeEnum = pgEnum('biometric_type', [
-  'fingerprint', 'faceprint', 'iris', 'voiceprint', 'signature'
-]);
-
-export const encryptionAlgorithmEnum = pgEnum('encryption_algorithm', [
-  'AES-256-GCM', 'ChaCha20-Poly1305', 'RSA-OAEP', 'ECIES'
-]);
-
-export const signatureAlgorithmEnum = pgEnum('signature_algorithm', [
-  'RSA-PSS', 'ECDSA', 'EdDSA', 'RSASSA-PKCS1-v1_5'
-]);
-
-// Nationality and Country Enums (key ones for DHA)
-export const countryEnum = pgEnum('country', [
-  'ZA', 'ZW', 'MZ', 'BW', 'LS', 'SZ', 'NA', 'MW', 'ZM', 'TZ', 'KE', 'UG', 'RW',
-  'US', 'UK', 'DE', 'FR', 'CN', 'IN', 'BR', 'AU', 'CA', 'OTHER'
-]);
-
-export const provinceEnum = pgEnum('province', [
-  'Eastern Cape', 'Free State', 'Gauteng', 'KwaZulu-Natal',
-  'Limpopo', 'Mpumalanga', 'Northern Cape', 'North West', 'Western Cape'
-]);
-
-export const users = pgTable("users", {
+export const users = sqliteTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
