@@ -175,12 +175,20 @@ export class MemStorage {
     return [...this.securityEvents];
   }
 
-  async createSecurityEvent(eventData: any): Promise<SecurityEvent> {
-    // Support both new format (type, description) and schema format (eventType, severity)
+  async createSecurityEvent(eventData: Partial<SecurityEvent> & { 
+    type?: string; 
+    description?: string; 
+    timestamp?: Date;
+  }): Promise<SecurityEvent> {
+    // Complete mapping supporting both old and new formats while preserving all data
     const mappedData = {
-      eventType: eventData.eventType || eventData.type || 'unknown',
-      severity: eventData.severity || 'medium',
-      details: eventData.details || { description: eventData.description || 'No description' },
+      eventType: eventData.eventType || eventData.type || 'SECURITY_EVENT',
+      severity: eventData.severity || 'medium' as any,
+      details: eventData.details || { 
+        description: eventData.description || 'Security event logged',
+        timestamp: eventData.timestamp || new Date(),
+        ...eventData
+      },
       ipAddress: eventData.ipAddress || null,
       userAgent: eventData.userAgent || null,
       location: eventData.location || null,
@@ -190,7 +198,7 @@ export class MemStorage {
     const event: SecurityEvent = {
       ...mappedData,
       id: (this.securityEvents.length + 1).toString(),
-      createdAt: new Date()
+      createdAt: eventData.timestamp || new Date()
     };
     this.securityEvents.push(event);
     return event;
