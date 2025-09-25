@@ -2,6 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import { RateLimiterMemory, RateLimiterRedis, RateLimiterAbstract } from 'rate-limiter-flexible';
 import { createHash } from 'crypto';
 import { storage } from '../storage';
+import { enhancedSecurityResponseService } from '../services/enhanced-security-response';
+
+// Use singleton Enhanced Security Response Service for threat handling
+const securityResponseService = enhancedSecurityResponseService;
 
 /**
  * Enhanced Rate Limiting with Automatic Backoff
@@ -272,6 +276,42 @@ export function enhancedRateLimit(customConfig?: Partial<RateLimitConfig>) {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
+      
+      // CRITICAL: Trigger Enhanced Security Response Service for rate limit violations
+      const behaviorScore = userBehaviorScores.get(userId);
+      const isRepeatedOffender = behaviorScore && behaviorScore.violations >= 3;
+      const isHighVolumeAttack = (rateLimiterRes.points || 0) > 50;
+      
+      try {
+        await securityResponseService.handleSecurityThreat({
+          type: isHighVolumeAttack ? 'ddos_attack' : 'rate_limit_violation',
+          sourceIp: req.ip,
+          severity: isRepeatedOffender ? 'high' : isHighVolumeAttack ? 'critical' : 'medium',
+          description: `Rate limit exceeded: ${rateLimiterRes.points || 0} requests in ${limiterType} endpoint`,
+          confidence: isRepeatedOffender ? 85 : isHighVolumeAttack ? 95 : 70,
+          indicators: [
+            `Path: ${req.path}`,
+            `Method: ${req.method}`,
+            `Violations: ${behaviorScore?.violations || 1}`,
+            `Points: ${rateLimiterRes.points || 0}`,
+            `User Agent: ${req.get('User-Agent') || 'unknown'}`
+          ],
+          userId: req.user?.id,
+          details: {
+            limiterType,
+            behaviorScore: behaviorScore,
+            rateLimiterData: rateLimiterRes,
+            requestDetails: {
+              path: req.path,
+              method: req.method,
+              headers: req.headers
+            }
+          }
+        });
+        console.log(`🛡️ Enhanced Security Response triggered for rate limit violation from ${req.ip}`);
+      } catch (securityError) {
+        console.error('❌ Failed to trigger Enhanced Security Response:', securityError);
+      }
       
       // Calculate retry after based on backoff
       const behaviorScore = userBehaviorScores.get(userId)!;

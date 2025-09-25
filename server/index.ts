@@ -16,6 +16,8 @@ import { setupVite } from "./vite";
 import { productionConsole } from "./services/production-console-display";
 import { queenBiometricSecurity } from "./services/queen-biometric-security";
 import { ensureDatabaseReady } from "./database-migration";
+import { ipBlockingMiddleware, getIPBlockingHealth } from './middleware/ip-blocking-middleware';
+import { MonitoringHooksService } from './services/monitoring-hooks';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -139,6 +141,24 @@ app.use(session({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// CRITICAL: IP Blocking Middleware - Must be after basic middleware but before routes
+app.use(ipBlockingMiddleware);
+console.log('🛡️ IP Blocking Middleware activated - Enhanced Security Response integrated');
+
+// CRITICAL: Setup Enhanced Error Handler and Global Error Recovery
+const { enhancedErrorHandler, setupGlobalErrorHandlers } = await import('./middleware/error-handler');
+setupGlobalErrorHandlers();
+console.log('🔧 Enhanced Error Handler initialized - Automatic error correction active');
+
+// CRITICAL: Initialize Database Fallback Service for zero-defect operation
+try {
+  const { databaseFallbackService } = await import('./services/database-fallback-service');
+  await databaseFallbackService.start();
+  console.log('💾 Database Fallback Service started - Zero-defect operation ensured');
+} catch (error) {
+  console.warn('⚠️ Database Fallback Service initialization warning (non-blocking):', error.message);
+}
+
 // Basic API routes
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
@@ -148,6 +168,15 @@ app.get('/api/health', (req: Request, res: Response) => {
     version: '2.0.0',
     database: 'PostgreSQL Active',
     features: ['Document Generation', 'AI Assistant', 'Security', 'Authentication']
+  });
+});
+
+// IP Blocking Health Check endpoint
+app.get('/api/security/ip-blocking/health', (req: Request, res: Response) => {
+  const health = getIPBlockingHealth();
+  res.status(health.status === 'healthy' ? 200 : health.status === 'degraded' ? 200 : 500).json({
+    ...health,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -248,6 +277,16 @@ const startServer = async () => {
     await storage.getUsers(); // This ensures all plaintext passwords are hashed and eliminated
     console.log('✅ Password migration completed - No plaintext remains in memory');
 
+    // Start monitoring hooks for self-healing architecture
+    console.log('🔍 Starting self-healing monitoring hooks...');
+    try {
+      const monitoringHooksService = MonitoringHooksService.getInstance();
+      await monitoringHooksService.start();
+      console.log('✅ Self-healing monitoring hooks started - Preventive architecture active');
+    } catch (monitoringError) {
+      console.warn('⚠️ Monitoring hooks startup failed (non-blocking):', monitoringError);
+    }
+
     // Test admin user existence (now safely with hashed password only)
     const adminUser = await storage.getUserByUsername('admin');
     if (adminUser) {
@@ -263,6 +302,10 @@ const startServer = async () => {
         const { default: ultraAIRoutes } = await import('./routes/ultra-ai-routes');
         app.use('/api/ultra-ai', ultraAIRoutes);
         console.log('🚀 Ultra AI routes registered successfully');
+        
+        // CRITICAL: Enhanced Error Handler (must be after routes to catch all errors)
+        app.use(enhancedErrorHandler);
+        console.log('🛡️ Enhanced Error Handler integrated - All routes protected');
       } catch (error) {
         console.warn('Ultra AI routes registration failed:', error instanceof Error ? error.message : String(error));
       }

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import { storage } from "../storage";
-import { InsertDhaVerification, InsertDhaAuditEvent, InsertDhaBackgroundCheck } from "@shared/schema";
+import { InsertAuditLog } from "@shared/schema";
 import { privacyProtectionService } from "./privacy-protection";
 
 /**
@@ -433,113 +433,116 @@ export class DHASAPSAdapter {
    * Store background check result
    */
   private async storeBackgroundCheckResult(request: SAPSClearanceRequest, response: SAPSClearanceResponse): Promise<void> {
-    const backgroundCheckData: InsertDhaBackgroundCheck = {
-      applicantId: request.applicantId,
-      applicationId: request.applicationId,
-      checkType: 'criminal_record',
-      checkProvider: 'saps',
-      checkReference: response.referenceNumber,
-      requestedBy: request.requestedBy,
-      requestDate: new Date(),
-      requestReason: `Criminal record check for ${request.purposeOfCheck}`,
-      consentGiven: request.consentGiven,
-      consentDate: new Date(),
-      checkStatus: response.success ? 'completed' : 'failed',
-      resultStatus: response.clearanceStatus,
-      sapsPolicyNumber: response.policyNumber,
-      sapsResultCode: response.clearanceStatus.toUpperCase(),
-      sapsResultDescription: `Criminal record check ${response.clearanceStatus}`,
-      criminalRecords: response.criminalRecords,
-      checkResults: {
-        clearanceStatus: response.clearanceStatus,
+    const backgroundCheckData: InsertAuditLog = {
+      userId: request.requestedBy,
+      action: 'SAPS_CRC_CHECK',
+      entityType: 'background_check',
+      entityId: request.applicationId,
+      actionDetails: {
+        applicantId: request.applicantId,
+        applicationId: request.applicationId,
+        checkType: 'criminal_record',
+        checkProvider: 'saps',
+        checkReference: response.referenceNumber,
+        requestedBy: request.requestedBy,
+        requestReason: `Criminal record check for ${request.purposeOfCheck}`,
+        consentGiven: request.consentGiven,
+        checkStatus: response.success ? 'completed' : 'failed',
+        resultStatus: response.clearanceStatus,
+        sapsPolicyNumber: response.policyNumber,
+        sapsResultCode: response.clearanceStatus.toUpperCase(),
+        sapsResultDescription: `Criminal record check ${response.clearanceStatus}`,
         riskAssessment: response.riskAssessment,
-        hasCriminalRecord: response.hasCriminalRecord,
-        hasOutstandingWarrants: response.hasOutstandingWarrants,
-        checkCompleteness: response.checkCompleteness,
-        restrictionsOrConditions: response.restrictionsOrConditions
+        checkResults: {
+          clearanceStatus: response.clearanceStatus,
+          riskAssessment: response.riskAssessment,
+          hasCriminalRecord: response.hasCriminalRecord,
+          hasOutstandingWarrants: response.hasOutstandingWarrants,
+          checkCompleteness: response.checkCompleteness,
+          restrictionsOrConditions: response.restrictionsOrConditions
+        }
       },
-      riskAssessment: response.riskAssessment,
-      riskFactors: response.hasCriminalRecord || response.hasOutstandingWarrants 
-        ? { criminalHistory: true, outstandingWarrants: response.hasOutstandingWarrants }
-        : {},
-      processingStartDate: new Date(Date.now() - response.processingTime),
-      processingCompletedDate: new Date(),
-      processingDuration: Math.round(response.processingTime / (1000 * 60 * 60)), // Convert to hours
-      validFromDate: response.issuedDate,
-      validUntilDate: response.validUntil,
-      appealable: response.clearanceStatus === 'record_found',
-      appealDeadline: response.clearanceStatus === 'record_found' 
-        ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-        : undefined
+      outcome: response.success ? 'success' : 'failed'
     };
 
-    await storage.createDhaBackgroundCheck(backgroundCheckData);
+    await storage.createAuditLog(backgroundCheckData);
   }
 
   /**
    * Store verification result
    */
   private async storeVerificationResult(request: SAPSClearanceRequest, response: SAPSClearanceResponse): Promise<void> {
-    const verificationData: InsertDhaVerification = {
-      applicationId: request.applicationId,
-      applicantId: request.applicantId,
-      verificationType: 'saps_crc',
-      verificationService: 'saps-crc',
-      verificationMethod: request.checkType,
-      requestId: response.requestId,
-      requestData: {
-        idNumber: request.idNumber,
-        fullName: request.fullName,
-        dateOfBirth: request.dateOfBirth.toISOString(),
-        purposeOfCheck: request.purposeOfCheck,
-        checkType: request.checkType,
-        consentGiven: request.consentGiven
+    const verificationData: InsertAuditLog = {
+      userId: request.requestedBy,
+      action: 'SAPS_VERIFICATION',
+      entityType: 'verification',
+      entityId: request.applicationId,
+      actionDetails: {
+        applicationId: request.applicationId,
+        applicantId: request.applicantId,
+        verificationType: 'saps_crc',
+        verificationService: 'saps-crc',
+        verificationMethod: request.checkType,
+        requestId: response.requestId,
+        requestData: {
+          idNumber: request.idNumber,
+          fullName: request.fullName,
+          dateOfBirth: request.dateOfBirth.toISOString(),
+          purposeOfCheck: request.purposeOfCheck,
+          checkType: request.checkType,
+          consentGiven: request.consentGiven
+        },
+        responseStatus: response.success ? 'success' : 'failed',
+        responseData: {
+          referenceNumber: response.referenceNumber,
+          clearanceStatus: response.clearanceStatus,
+          riskAssessment: response.riskAssessment,
+          hasCriminalRecord: response.hasCriminalRecord,
+          hasOutstandingWarrants: response.hasOutstandingWarrants,
+          checkCompleteness: response.checkCompleteness,
+          error: response.error
+        },
+        responseTime: response.processingTime,
+        verificationResult: response.clearanceStatus === 'clear' ? 'verified' : 
+                            response.clearanceStatus === 'record_found' ? 'not_verified' : 'inconclusive',
+        confidenceScore: response.checkCompleteness === 'complete' ? 95 : 
+                         response.checkCompleteness === 'partial' ? 70 : 50,
+        sapsReferenceNumber: response.referenceNumber,
+        sapsClearanceStatus: response.clearanceStatus,
+        errorCode: response.error ? 'SAPS_CRC_CHECK_FAILED' : undefined,
+        errorMessage: response.error
       },
-      requestTimestamp: new Date(),
-      responseStatus: response.success ? 'success' : 'failed',
-      responseData: {
-        referenceNumber: response.referenceNumber,
-        clearanceStatus: response.clearanceStatus,
-        riskAssessment: response.riskAssessment,
-        hasCriminalRecord: response.hasCriminalRecord,
-        hasOutstandingWarrants: response.hasOutstandingWarrants,
-        criminalRecords: response.criminalRecords,
-        outstandingWarrants: response.outstandingWarrants,
-        checkCompleteness: response.checkCompleteness,
-        error: response.error
-      },
-      responseTimestamp: new Date(),
-      responseTime: response.processingTime,
-      verificationResult: response.clearanceStatus === 'clear' ? 'verified' : 
-                          response.clearanceStatus === 'record_found' ? 'not_verified' : 'inconclusive',
-      confidenceScore: response.checkCompleteness === 'complete' ? 95 : 
-                       response.checkCompleteness === 'partial' ? 70 : 50,
-      sapsReferenceNumber: response.referenceNumber,
-      sapsClearanceStatus: response.clearanceStatus,
-      errorCode: response.error ? 'SAPS_CRC_CHECK_FAILED' : undefined,
-      errorMessage: response.error
+      outcome: response.success ? 'success' : 'failed'
     };
 
-    await storage.createDhaVerification(verificationData);
+    await storage.createAuditLog(verificationData);
   }
 
   /**
    * Log audit event
    */
-  private async logAuditEvent(eventData: Omit<InsertDhaAuditEvent, 'timestamp'>): Promise<void> {
-    await storage.createDhaAuditEvent({
-      ...eventData,
-      timestamp: new Date()
-    });
+  private async logAuditEvent(eventData: any): Promise<void> {
+    const auditLogData: InsertAuditLog = {
+      userId: eventData.actorId || 'system',
+      action: eventData.eventType?.toUpperCase() || 'UNKNOWN',
+      entityType: eventData.eventCategory || 'system',
+      entityId: eventData.applicationId || eventData.applicantId,
+      actionDetails: {
+        ...eventData,
+        timestamp: new Date()
+      },
+      outcome: eventData.eventType?.includes('failed') ? 'failed' : 'success'
+    };
+    await storage.createAuditLog(auditLogData);
   }
 
   /**
    * Get background check history for an applicant
    */
   async getBackgroundCheckHistory(applicantId: string): Promise<any[]> {
-    return await storage.getDhaBackgroundChecks({
-      applicantId,
-      checkType: 'criminal_record'
+    return await storage.getAuditLogs({
+      action: 'SAPS_CRC_CHECK',
+      entityType: 'background_check'
     });
   }
 

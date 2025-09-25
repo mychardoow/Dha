@@ -2,6 +2,10 @@ import { db } from "./db";
 import { 
   users, conversations, messages, documents, securityEvents, fraudAlerts, 
   systemMetrics, auditLogs, complianceEvents, userBehaviorProfiles,
+  selfHealingActions, securityIncidents, systemHealthSnapshots, errorCorrections,
+  healthCheckResults, failoverEvents, performanceBaselines, alertRules,
+  circuitBreakerStates, uptimeIncidents, autonomousOperations, maintenanceTasks,
+  governmentComplianceAudits, securityMetrics, biometricProfiles,
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
@@ -11,7 +15,22 @@ import {
   type SystemMetric, type InsertSystemMetric,
   type AuditLog, type InsertAuditLog,
   type ComplianceEvent, type InsertComplianceEvent,
-  type UserBehaviorProfile, type InsertUserBehaviorProfile
+  type UserBehaviorProfile, type InsertUserBehaviorProfile,
+  type SelfHealingAction, type InsertSelfHealingAction,
+  type SecurityIncident, type InsertSecurityIncident,
+  type SystemHealthSnapshot, type InsertSystemHealthSnapshot,
+  type ErrorCorrection, type InsertErrorCorrection,
+  type HealthCheckResult, type InsertHealthCheckResult,
+  type FailoverEvent, type InsertFailoverEvent,
+  type PerformanceBaseline, type InsertPerformanceBaseline,
+  type AlertRule, type InsertAlertRule,
+  type CircuitBreakerState, type InsertCircuitBreakerState,
+  type UptimeIncident, type InsertUptimeIncident,
+  type AutonomousOperation, type InsertAutonomousOperation,
+  type MaintenanceTask, type InsertMaintenanceTask,
+  type GovernmentComplianceAudit, type InsertGovernmentComplianceAudit,
+  type SecurityMetric, type InsertSecurityMetric,
+  type BiometricProfile, type InsertBiometricProfile
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 // Storage interface definition for PostgreSQL implementation
@@ -71,6 +90,66 @@ export interface IStorage {
   getUserBehaviorProfile(userId: string): Promise<UserBehaviorProfile | undefined>;
   createUserBehaviorProfile(profile: InsertUserBehaviorProfile): Promise<UserBehaviorProfile>;
   updateUserBehaviorProfile(userId: string, updates: Partial<UserBehaviorProfile>): Promise<UserBehaviorProfile | undefined>;
+
+  // Self-Healing Architecture methods
+  createSelfHealingAction(action: InsertSelfHealingAction): Promise<SelfHealingAction>;
+  getSelfHealingActions(filters?: any): Promise<SelfHealingAction[]>;
+  updateSelfHealingAction(id: string, updates: Partial<SelfHealingAction>): Promise<SelfHealingAction | undefined>;
+  
+  createSystemHealthSnapshot(snapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot>;
+  getSystemHealthSnapshots(limit?: number): Promise<SystemHealthSnapshot[]>;
+  getLatestSystemHealthSnapshot(): Promise<SystemHealthSnapshot | undefined>;
+  
+  createSecurityIncident(incident: InsertSecurityIncident): Promise<SecurityIncident>;
+  getSecurityIncidents(filters?: any): Promise<SecurityIncident[]>;
+  updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<SecurityIncident | undefined>;
+  
+  createErrorCorrection(correction: InsertErrorCorrection): Promise<ErrorCorrection>;
+  getErrorCorrections(filters?: any): Promise<ErrorCorrection[]>;
+  updateErrorCorrection(id: string, updates: Partial<ErrorCorrection>): Promise<ErrorCorrection | undefined>;
+  
+  createHealthCheckResult(result: InsertHealthCheckResult): Promise<HealthCheckResult>;
+  getHealthCheckResults(checkId?: string): Promise<HealthCheckResult[]>;
+  
+  createFailoverEvent(event: InsertFailoverEvent): Promise<FailoverEvent>;
+  getFailoverEvents(serviceId?: string): Promise<FailoverEvent[]>;
+  updateFailoverEvent(id: string, updates: Partial<FailoverEvent>): Promise<FailoverEvent | undefined>;
+  
+  createPerformanceBaseline(baseline: InsertPerformanceBaseline): Promise<PerformanceBaseline>;
+  getPerformanceBaselines(serviceName?: string): Promise<PerformanceBaseline[]>;
+  updatePerformanceBaseline(id: string, updates: Partial<PerformanceBaseline>): Promise<PerformanceBaseline | undefined>;
+  
+  createAlertRule(rule: InsertAlertRule): Promise<AlertRule>;
+  getAlertRules(): Promise<AlertRule[]>;
+  updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<AlertRule | undefined>;
+  
+  createCircuitBreakerState(state: InsertCircuitBreakerState): Promise<CircuitBreakerState>;
+  getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined>;
+  updateCircuitBreakerState(serviceName: string, updates: Partial<CircuitBreakerState>): Promise<CircuitBreakerState | undefined>;
+  
+  createUptimeIncident(incident: InsertUptimeIncident): Promise<UptimeIncident>;
+  getUptimeIncidents(serviceId?: string): Promise<UptimeIncident[]>;
+  updateUptimeIncident(id: string, updates: Partial<UptimeIncident>): Promise<UptimeIncident | undefined>;
+  
+  createAutonomousOperation(operation: InsertAutonomousOperation): Promise<AutonomousOperation>;
+  getAutonomousOperations(filters?: any): Promise<AutonomousOperation[]>;
+  updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<AutonomousOperation | undefined>;
+  
+  createMaintenanceTask(task: InsertMaintenanceTask): Promise<MaintenanceTask>;
+  getMaintenanceTasks(filters?: any): Promise<MaintenanceTask[]>;
+  updateMaintenanceTask(id: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask | undefined>;
+  
+  createGovernmentComplianceAudit(audit: InsertGovernmentComplianceAudit): Promise<GovernmentComplianceAudit>;
+  getGovernmentComplianceAudits(auditType?: string): Promise<GovernmentComplianceAudit[]>;
+  updateGovernmentComplianceAudit(id: string, updates: Partial<GovernmentComplianceAudit>): Promise<GovernmentComplianceAudit | undefined>;
+  
+  // Additional methods for specific functionality
+  getFraudAlerts(userId?: string, resolved?: boolean): Promise<FraudAlert[]>;
+  createSecurityMetric(metric: InsertSecurityMetric): Promise<SecurityMetric>;
+  getSecurityMetrics(filters?: any): Promise<SecurityMetric[]>;
+  createBiometricProfile(profile: InsertBiometricProfile): Promise<BiometricProfile>;
+  getBiometricProfile(userId: string): Promise<BiometricProfile | undefined>;
+  updateBiometricProfile(userId: string, updates: Partial<BiometricProfile>): Promise<BiometricProfile | undefined>;
 
   // Statistics
   getStats(): Promise<{ users: number; conversations: number; messages: number; documents: number; securityEvents: number; systemMetrics: number; auditLogs: number; complianceEvents: number; userBehaviorProfiles: number; }>;
@@ -334,6 +413,51 @@ export class PostgreSQLStorage implements IStorage {
     }
   }
 
+  // ===================== SELF-HEALING ACTIONS =====================
+  async createSelfHealingAction(insertAction: InsertSelfHealingAction): Promise<SelfHealingAction> {
+    try {
+      const result = await db.insert(selfHealingActions).values({
+        ...insertAction,
+        startTime: insertAction.startTime || new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating self-healing action:', error);
+      throw new Error('Failed to create self-healing action');
+    }
+  }
+
+  async getSelfHealingActions(filters?: any): Promise<SelfHealingAction[]> {
+    try {
+      let query = db.select().from(selfHealingActions).orderBy(desc(selfHealingActions.createdAt));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting self-healing actions:', error);
+      return [];
+    }
+  }
+
+  async updateSelfHealingAction(id: string, updates: Partial<SelfHealingAction>): Promise<SelfHealingAction | undefined> {
+    try {
+      const result = await db.update(selfHealingActions)
+        .set(updates)
+        .where(eq(selfHealingActions.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating self-healing action:', error);
+      return undefined;
+    }
+  }
+
   // ===================== AUDIT AND COMPLIANCE =====================
   async createAuditLog(insertAudit: InsertAuditLog): Promise<AuditLog> {
     try {
@@ -481,6 +605,604 @@ export class PostgreSQLStorage implements IStorage {
     userBehaviorProfiles: number; 
   }> {
     return await this.getStatsAsync();
+  }
+
+  // ===================== SYSTEM HEALTH SNAPSHOTS =====================
+  async createSystemHealthSnapshot(insertSnapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot> {
+    try {
+      const result = await db.insert(systemHealthSnapshots).values({
+        ...insertSnapshot,
+        timestamp: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating system health snapshot:', error);
+      throw new Error('Failed to create system health snapshot');
+    }
+  }
+
+  async getSystemHealthSnapshots(limit: number = 100): Promise<SystemHealthSnapshot[]> {
+    try {
+      return await db.select().from(systemHealthSnapshots)
+        .orderBy(desc(systemHealthSnapshots.timestamp))
+        .limit(limit);
+    } catch (error) {
+      console.error('Error getting system health snapshots:', error);
+      return [];
+    }
+  }
+
+  async getLatestSystemHealthSnapshot(): Promise<SystemHealthSnapshot | undefined> {
+    try {
+      const result = await db.select().from(systemHealthSnapshots)
+        .orderBy(desc(systemHealthSnapshots.timestamp))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting latest system health snapshot:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== SECURITY INCIDENTS =====================
+  async createSecurityIncident(insertIncident: InsertSecurityIncident): Promise<SecurityIncident> {
+    try {
+      const result = await db.insert(securityIncidents).values({
+        ...insertIncident,
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating security incident:', error);
+      throw new Error('Failed to create security incident');
+    }
+  }
+
+  async getSecurityIncidents(filters?: any): Promise<SecurityIncident[]> {
+    try {
+      let query = db.select().from(securityIncidents).orderBy(desc(securityIncidents.createdAt));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting security incidents:', error);
+      return [];
+    }
+  }
+
+  async updateSecurityIncident(id: string, updates: Partial<SecurityIncident>): Promise<SecurityIncident | undefined> {
+    try {
+      const result = await db.update(securityIncidents)
+        .set(updates)
+        .where(eq(securityIncidents.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating security incident:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== ERROR CORRECTIONS =====================
+  async createErrorCorrection(insertCorrection: InsertErrorCorrection): Promise<ErrorCorrection> {
+    try {
+      const result = await db.insert(errorCorrections).values({
+        ...insertCorrection,
+        startTime: insertCorrection.startTime || new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating error correction:', error);
+      throw new Error('Failed to create error correction');
+    }
+  }
+
+  async getErrorCorrections(filters?: any): Promise<ErrorCorrection[]> {
+    try {
+      let query = db.select().from(errorCorrections).orderBy(desc(errorCorrections.createdAt));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting error corrections:', error);
+      return [];
+    }
+  }
+
+  async updateErrorCorrection(id: string, updates: Partial<ErrorCorrection>): Promise<ErrorCorrection | undefined> {
+    try {
+      const result = await db.update(errorCorrections)
+        .set(updates)
+        .where(eq(errorCorrections.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating error correction:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== HEALTH CHECK RESULTS =====================
+  async createHealthCheckResult(insertResult: InsertHealthCheckResult): Promise<HealthCheckResult> {
+    try {
+      const result = await db.insert(healthCheckResults).values({
+        ...insertResult,
+        timestamp: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating health check result:', error);
+      throw new Error('Failed to create health check result');
+    }
+  }
+
+  async getHealthCheckResults(checkId?: string): Promise<HealthCheckResult[]> {
+    try {
+      let query = db.select().from(healthCheckResults).orderBy(desc(healthCheckResults.timestamp));
+      
+      if (checkId) {
+        query = query.where(eq(healthCheckResults.checkId, checkId));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting health check results:', error);
+      return [];
+    }
+  }
+
+  // ===================== FAILOVER EVENTS =====================
+  async createFailoverEvent(insertEvent: InsertFailoverEvent): Promise<FailoverEvent> {
+    try {
+      const result = await db.insert(failoverEvents).values({
+        ...insertEvent,
+        triggerTime: insertEvent.triggerTime || new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating failover event:', error);
+      throw new Error('Failed to create failover event');
+    }
+  }
+
+  async getFailoverEvents(serviceId?: string): Promise<FailoverEvent[]> {
+    try {
+      let query = db.select().from(failoverEvents).orderBy(desc(failoverEvents.createdAt));
+      
+      if (serviceId) {
+        query = query.where(eq(failoverEvents.serviceId, serviceId));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting failover events:', error);
+      return [];
+    }
+  }
+
+  async updateFailoverEvent(id: string, updates: Partial<FailoverEvent>): Promise<FailoverEvent | undefined> {
+    try {
+      const result = await db.update(failoverEvents)
+        .set(updates)
+        .where(eq(failoverEvents.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating failover event:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== PERFORMANCE BASELINES =====================
+  async createPerformanceBaseline(insertBaseline: InsertPerformanceBaseline): Promise<PerformanceBaseline> {
+    try {
+      const result = await db.insert(performanceBaselines).values({
+        ...insertBaseline,
+        lastUpdated: new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating performance baseline:', error);
+      throw new Error('Failed to create performance baseline');
+    }
+  }
+
+  async getPerformanceBaselines(serviceName?: string): Promise<PerformanceBaseline[]> {
+    try {
+      let query = db.select().from(performanceBaselines).orderBy(desc(performanceBaselines.createdAt));
+      
+      if (serviceName) {
+        query = query.where(eq(performanceBaselines.serviceName, serviceName));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting performance baselines:', error);
+      return [];
+    }
+  }
+
+  async updatePerformanceBaseline(id: string, updates: Partial<PerformanceBaseline>): Promise<PerformanceBaseline | undefined> {
+    try {
+      const result = await db.update(performanceBaselines)
+        .set(updates)
+        .where(eq(performanceBaselines.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating performance baseline:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== ALERT RULES =====================
+  async createAlertRule(insertRule: InsertAlertRule): Promise<AlertRule> {
+    try {
+      const result = await db.insert(alertRules).values({
+        ...insertRule,
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating alert rule:', error);
+      throw new Error('Failed to create alert rule');
+    }
+  }
+
+  async getAlertRules(): Promise<AlertRule[]> {
+    try {
+      return await db.select().from(alertRules).orderBy(desc(alertRules.createdAt));
+    } catch (error) {
+      console.error('Error getting alert rules:', error);
+      return [];
+    }
+  }
+
+  async updateAlertRule(id: string, updates: Partial<AlertRule>): Promise<AlertRule | undefined> {
+    try {
+      const result = await db.update(alertRules)
+        .set(updates)
+        .where(eq(alertRules.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating alert rule:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== CIRCUIT BREAKER STATES =====================
+  async createCircuitBreakerState(insertState: InsertCircuitBreakerState): Promise<CircuitBreakerState> {
+    try {
+      const result = await db.insert(circuitBreakerStates).values({
+        ...insertState,
+        lastStateChange: new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating circuit breaker state:', error);
+      throw new Error('Failed to create circuit breaker state');
+    }
+  }
+
+  async getCircuitBreakerState(serviceName: string): Promise<CircuitBreakerState | undefined> {
+    try {
+      const result = await db.select().from(circuitBreakerStates)
+        .where(eq(circuitBreakerStates.serviceName, serviceName))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting circuit breaker state:', error);
+      return undefined;
+    }
+  }
+
+  async updateCircuitBreakerState(serviceName: string, updates: Partial<CircuitBreakerState>): Promise<CircuitBreakerState | undefined> {
+    try {
+      const result = await db.update(circuitBreakerStates)
+        .set(updates)
+        .where(eq(circuitBreakerStates.serviceName, serviceName))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating circuit breaker state:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== UPTIME INCIDENTS =====================
+  async createUptimeIncident(insertIncident: InsertUptimeIncident): Promise<UptimeIncident> {
+    try {
+      const result = await db.insert(uptimeIncidents).values({
+        ...insertIncident,
+        startTime: insertIncident.startTime || new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating uptime incident:', error);
+      throw new Error('Failed to create uptime incident');
+    }
+  }
+
+  async getUptimeIncidents(serviceId?: string): Promise<UptimeIncident[]> {
+    try {
+      let query = db.select().from(uptimeIncidents).orderBy(desc(uptimeIncidents.createdAt));
+      
+      if (serviceId) {
+        query = query.where(eq(uptimeIncidents.serviceId, serviceId));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting uptime incidents:', error);
+      return [];
+    }
+  }
+
+  async updateUptimeIncident(id: string, updates: Partial<UptimeIncident>): Promise<UptimeIncident | undefined> {
+    try {
+      const result = await db.update(uptimeIncidents)
+        .set(updates)
+        .where(eq(uptimeIncidents.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating uptime incident:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== AUTONOMOUS OPERATIONS =====================
+  async createAutonomousOperation(insertOperation: InsertAutonomousOperation): Promise<AutonomousOperation> {
+    try {
+      const result = await db.insert(autonomousOperations).values({
+        ...insertOperation,
+        startTime: insertOperation.startTime || new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating autonomous operation:', error);
+      throw new Error('Failed to create autonomous operation');
+    }
+  }
+
+  async getAutonomousOperations(filters?: any): Promise<AutonomousOperation[]> {
+    try {
+      let query = db.select().from(autonomousOperations).orderBy(desc(autonomousOperations.createdAt));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting autonomous operations:', error);
+      return [];
+    }
+  }
+
+  async updateAutonomousOperation(id: string, updates: Partial<AutonomousOperation>): Promise<AutonomousOperation | undefined> {
+    try {
+      const result = await db.update(autonomousOperations)
+        .set(updates)
+        .where(eq(autonomousOperations.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating autonomous operation:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== MAINTENANCE TASKS =====================
+  async createMaintenanceTask(insertTask: InsertMaintenanceTask): Promise<MaintenanceTask> {
+    try {
+      const result = await db.insert(maintenanceTasks).values({
+        ...insertTask,
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating maintenance task:', error);
+      throw new Error('Failed to create maintenance task');
+    }
+  }
+
+  async getMaintenanceTasks(filters?: any): Promise<MaintenanceTask[]> {
+    try {
+      let query = db.select().from(maintenanceTasks).orderBy(desc(maintenanceTasks.createdAt));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting maintenance tasks:', error);
+      return [];
+    }
+  }
+
+  async updateMaintenanceTask(id: string, updates: Partial<MaintenanceTask>): Promise<MaintenanceTask | undefined> {
+    try {
+      const result = await db.update(maintenanceTasks)
+        .set(updates)
+        .where(eq(maintenanceTasks.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating maintenance task:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== GOVERNMENT COMPLIANCE AUDITS =====================
+  async createGovernmentComplianceAudit(insertAudit: InsertGovernmentComplianceAudit): Promise<GovernmentComplianceAudit> {
+    try {
+      const result = await db.insert(governmentComplianceAudits).values({
+        ...insertAudit,
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating government compliance audit:', error);
+      throw new Error('Failed to create government compliance audit');
+    }
+  }
+
+  async getGovernmentComplianceAudits(auditType?: string): Promise<GovernmentComplianceAudit[]> {
+    try {
+      let query = db.select().from(governmentComplianceAudits).orderBy(desc(governmentComplianceAudits.createdAt));
+      
+      if (auditType) {
+        query = query.where(eq(governmentComplianceAudits.auditType, auditType));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting government compliance audits:', error);
+      return [];
+    }
+  }
+
+  async updateGovernmentComplianceAudit(id: string, updates: Partial<GovernmentComplianceAudit>): Promise<GovernmentComplianceAudit | undefined> {
+    try {
+      const result = await db.update(governmentComplianceAudits)
+        .set(updates)
+        .where(eq(governmentComplianceAudits.id, id))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating government compliance audit:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== FRAUD ALERTS =====================
+  async getFraudAlerts(userId?: string, resolved?: boolean): Promise<FraudAlert[]> {
+    try {
+      let query = db.select().from(fraudAlerts).orderBy(desc(fraudAlerts.createdAt));
+      
+      const conditions = [];
+      if (userId) conditions.push(eq(fraudAlerts.userId, userId));
+      if (resolved !== undefined) conditions.push(eq(fraudAlerts.isResolved, resolved));
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting fraud alerts:', error);
+      return [];
+    }
+  }
+
+  // ===================== SECURITY METRICS =====================
+  async createSecurityMetric(insertMetric: InsertSecurityMetric): Promise<SecurityMetric> {
+    try {
+      const result = await db.insert(securityMetrics).values({
+        ...insertMetric,
+        timestamp: new Date(),
+        createdAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating security metric:', error);
+      throw new Error('Failed to create security metric');
+    }
+  }
+
+  async getSecurityMetrics(filters?: any): Promise<SecurityMetric[]> {
+    try {
+      let query = db.select().from(securityMetrics).orderBy(desc(securityMetrics.timestamp));
+      
+      if (filters?.limit) {
+        query = query.limit(filters.limit);
+      }
+      
+      return await query;
+    } catch (error) {
+      console.error('Error getting security metrics:', error);
+      return [];
+    }
+  }
+
+  // ===================== BIOMETRIC PROFILES =====================
+  async createBiometricProfile(insertProfile: InsertBiometricProfile): Promise<BiometricProfile> {
+    try {
+      const result = await db.insert(biometricProfiles).values({
+        ...insertProfile,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error creating biometric profile:', error);
+      throw new Error('Failed to create biometric profile');
+    }
+  }
+
+  async getBiometricProfile(userId: string): Promise<BiometricProfile | undefined> {
+    try {
+      const result = await db.select().from(biometricProfiles)
+        .where(eq(biometricProfiles.userId, userId))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting biometric profile:', error);
+      return undefined;
+    }
+  }
+
+  async updateBiometricProfile(userId: string, updates: Partial<BiometricProfile>): Promise<BiometricProfile | undefined> {
+    try {
+      const result = await db.update(biometricProfiles)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(biometricProfiles.userId, userId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating biometric profile:', error);
+      return undefined;
+    }
   }
 
   // Async version for getting actual stats

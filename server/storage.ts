@@ -65,6 +65,66 @@ export interface IStorage {
 
   // Statistics
   getStats(): Promise<any>;
+
+  // Self-Healing Architecture methods
+  createSelfHealingAction(action: any): Promise<any>;
+  getSelfHealingActions(filters?: any): Promise<any[]>;
+  updateSelfHealingAction(id: string, updates: any): Promise<any>;
+  
+  createSystemHealthSnapshot(snapshot: any): Promise<any>;
+  getSystemHealthSnapshots(limit?: number): Promise<any[]>;
+  getLatestSystemHealthSnapshot(): Promise<any>;
+  
+  createSecurityIncident(incident: any): Promise<any>;
+  getSecurityIncidents(filters?: any): Promise<any[]>;
+  updateSecurityIncident(id: string, updates: any): Promise<any>;
+  
+  createErrorCorrection(correction: any): Promise<any>;
+  getErrorCorrections(filters?: any): Promise<any[]>;
+  updateErrorCorrection(id: string, updates: any): Promise<any>;
+  
+  createHealthCheckResult(result: any): Promise<any>;
+  getHealthCheckResults(checkId?: string): Promise<any[]>;
+  
+  createFailoverEvent(event: any): Promise<any>;
+  getFailoverEvents(serviceId?: string): Promise<any[]>;
+  updateFailoverEvent(id: string, updates: any): Promise<any>;
+  
+  createPerformanceBaseline(baseline: any): Promise<any>;
+  getPerformanceBaselines(serviceName?: string): Promise<any[]>;
+  updatePerformanceBaseline(id: string, updates: any): Promise<any>;
+  
+  createAlertRule(rule: any): Promise<any>;
+  getAlertRules(): Promise<any[]>;
+  updateAlertRule(id: string, updates: any): Promise<any>;
+  
+  createCircuitBreakerState(state: any): Promise<any>;
+  getCircuitBreakerState(serviceName: string): Promise<any>;
+  updateCircuitBreakerState(serviceName: string, updates: any): Promise<any>;
+  
+  createUptimeIncident(incident: any): Promise<any>;
+  getUptimeIncidents(serviceId?: string): Promise<any[]>;
+  updateUptimeIncident(id: string, updates: any): Promise<any>;
+  
+  createAutonomousOperation(operation: any): Promise<any>;
+  getAutonomousOperations(filters?: any): Promise<any[]>;
+  updateAutonomousOperation(id: string, updates: any): Promise<any>;
+  
+  createMaintenanceTask(task: any): Promise<any>;
+  getMaintenanceTasks(filters?: any): Promise<any[]>;
+  updateMaintenanceTask(id: string, updates: any): Promise<any>;
+  
+  createGovernmentComplianceAudit(audit: any): Promise<any>;
+  getGovernmentComplianceAudits(auditType?: string): Promise<any[]>;
+  updateGovernmentComplianceAudit(id: string, updates: any): Promise<any>;
+  
+  // Additional methods for specific functionality
+  getFraudAlerts(userId?: string, resolved?: boolean): Promise<any[]>;
+  createSecurityMetric(metric: any): Promise<any>;
+  getSecurityMetrics(filters?: any): Promise<any[]>;
+  createBiometricProfile(profile: any): Promise<any>;
+  getBiometricProfile(userId: string): Promise<any>;
+  updateBiometricProfile(userId: string, updates: any): Promise<any>;
 }
 
 // Create and export PostgreSQL storage instance
