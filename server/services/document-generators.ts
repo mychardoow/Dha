@@ -4,7 +4,7 @@
  * with exact design specifications and full security features
  */
 
-import PDFDocument from "pdfkit";
+// import PDFDocument from "pdfkit"; // Temporarily disabled - missing dependency
 import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
@@ -41,7 +41,7 @@ import type {
   CertificateOfSouthAfricanCitizenshipData
 } from "../../shared/schema";
 
-type PDFKit = InstanceType<typeof PDFDocument>;
+// type PDFKit = InstanceType<typeof PDFDocument>; // Temporarily disabled
 
 /**
  * Identity Document Book Generator (Green Book)
