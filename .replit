@@ -67,7 +67,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "EMERGENCY START NOW"
+runButton = "RELIABLE START"
 
 [[workflows.workflow]]
 name = "Project"
@@ -230,6 +230,55 @@ args = "npm install --force"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "echo \"🚀 STARTING COMPLETE SERVER WITH ALL FUNCTIONS...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev:server"
+
+[[workflows.workflow]]
+name = "RELIABLE START"
+author = 47991298
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔧 RELIABLE DHA STARTUP SEQUENCE\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🧹 Cleaning up any stale processes...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pkill -f \"node.*server\" || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"📦 Installing dependencies with force flag...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Dependencies installed\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting DHA Server with full error handling...\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
