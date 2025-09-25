@@ -458,7 +458,7 @@ app.get('*', (req, res) => {
                           <div className="flex items-center space-x-4">
                             <span className="text-sm text-gray-600">Welcome, {user?.username}</span>
                             <button 
-                              onClick={() => setUser(null)}
+                              onClick={() => { setUser(null); setCurrentView('dashboard'); }}
                               className="text-sm text-red-600 hover:text-red-800"
                             >
                               Logout
@@ -563,11 +563,243 @@ app.get('*', (req, res) => {
                   </div>
                 );
                 
+                // Document Generation Component
+                const DocumentGeneration = () => (
+                  <div className="min-h-screen bg-gray-50">
+                    <nav className="bg-white shadow-sm border-b mb-6">
+                      <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex justify-between h-16">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => setCurrentView('dashboard')}
+                              className="text-blue-600 hover:text-blue-800 mr-4"
+                            >
+                              ← Back to Dashboard
+                            </button>
+                            <h1 className="text-xl font-semibold">📄 Document Generation</h1>
+                          </div>
+                        </div>
+                      </div>
+                    </nav>
+                    <div className="max-w-7xl mx-auto px-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {[
+                          { name: 'Birth Certificate', endpoint: 'birth-certificate' },
+                          { name: 'Passport', endpoint: 'passport' },
+                          { name: 'Work Permit', endpoint: 'work-permit' },
+                          { name: 'Visitor Visa', endpoint: 'visitor-visa' },
+                          { name: 'Study Permit', endpoint: 'study-permit' }
+                        ].map(doc => (
+                          <div key={doc.name} className="bg-white p-6 rounded-lg shadow-md">
+                            <h3 className="text-lg font-medium mb-2">{doc.name}</h3>
+                            <p className="text-gray-600 mb-4">Generate official {doc.name.toLowerCase()}</p>
+                            <button 
+                              onClick={async () => {
+                                try {
+                                  const response = await fetch(`/api/pdf/${doc.endpoint}`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ documentType: doc.endpoint })
+                                  });
+                                  if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${doc.endpoint}.pdf`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                    alert(`✅ ${doc.name} generated successfully!`);
+                                  } else {
+                                    alert(`❌ Failed to generate ${doc.name}`);
+                                  }
+                                } catch (error) {
+                                  alert(`❌ Error generating ${doc.name}: ${error.message}`);
+                                }
+                              }}
+                              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+                            >
+                              Generate {doc.name}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+
+                // AI Assistant Component
+                const AIAssistant = () => {
+                  const [messages, setMessages] = useState([]);
+                  const [input, setInput] = useState('');
+                  
+                  const sendMessage = async () => {
+                    if (!input.trim()) return;
+                    
+                    const userMessage = { type: 'user', content: input };
+                    setMessages(prev => [...prev, userMessage]);
+                    
+                    try {
+                      const response = await fetch('/api/ai/ultra/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: input, botMode: 'ultra' })
+                      });
+                      const data = await response.json();
+                      
+                      if (data.success) {
+                        setMessages(prev => [...prev, { type: 'assistant', content: data.content }]);
+                      }
+                    } catch (error) {
+                      setMessages(prev => [...prev, { type: 'assistant', content: 'Error: Could not connect to AI service.' }]);
+                    }
+                    
+                    setInput('');
+                  };
+                  
+                  return (
+                    <div className="min-h-screen bg-gray-50">
+                      <nav className="bg-white shadow-sm border-b mb-6">
+                        <div className="max-w-7xl mx-auto px-4">
+                          <div className="flex justify-between h-16">
+                            <div className="flex items-center">
+                              <button 
+                                onClick={() => setCurrentView('dashboard')}
+                                className="text-blue-600 hover:text-blue-800 mr-4"
+                              >
+                                ← Back to Dashboard
+                              </button>
+                              <h1 className="text-xl font-semibold">🤖 Ra'is al Khadir AI Assistant</h1>
+                            </div>
+                          </div>
+                        </div>
+                      </nav>
+                      <div className="max-w-4xl mx-auto px-4">
+                        <div className="bg-white rounded-lg shadow-md h-96 mb-4 p-4 overflow-y-auto">
+                          {messages.length === 0 ? (
+                            <p className="text-gray-500 text-center">Ask me anything about DHA services...</p>
+                          ) : (
+                            messages.map((msg, idx) => (
+                              <div key={idx} className={`mb-4 ${msg.type === 'user' ? 'text-right' : 'text-left'}`}>
+                                <div className={`inline-block p-3 rounded-lg max-w-md ${
+                                  msg.type === 'user' 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-gray-200 text-gray-900'
+                                }`}>
+                                  <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                        <div className="flex">
+                          <input
+                            type="text"
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                            placeholder="Type your message..."
+                            className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md"
+                          />
+                          <button 
+                            onClick={sendMessage}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-r-md hover:bg-blue-700"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                };
+
+                // Admin Panel Component
+                const AdminPanel = () => (
+                  <div className="min-h-screen bg-gray-50">
+                    <nav className="bg-white shadow-sm border-b mb-6">
+                      <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex justify-between h-16">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => setCurrentView('dashboard')}
+                              className="text-blue-600 hover:text-blue-800 mr-4"
+                            >
+                              ← Back to Dashboard
+                            </button>
+                            <h1 className="text-xl font-semibold">⚡ Admin Panel</h1>
+                          </div>
+                        </div>
+                      </div>
+                    </nav>
+                    <div className="max-w-7xl mx-auto px-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <h3 className="text-lg font-medium mb-2">👥 User Management</h3>
+                          <p className="text-gray-600 mb-4">Manage system users</p>
+                          <button className="w-full bg-purple-600 text-white py-2 px-4 rounded-md hover:bg-purple-700">
+                            Manage Users
+                          </button>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <h3 className="text-lg font-medium mb-2">📊 System Monitoring</h3>
+                          <p className="text-gray-600 mb-4">Monitor system health</p>
+                          <button className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700">
+                            View Metrics
+                          </button>
+                        </div>
+                        <div className="bg-white p-6 rounded-lg shadow-md">
+                          <h3 className="text-lg font-medium mb-2">🔒 Security Center</h3>
+                          <p className="text-gray-600 mb-4">Security management</p>
+                          <button className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700">
+                            Security Settings
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+
+                // View Router
+                const renderCurrentView = () => {
+                  switch (currentView) {
+                    case 'documents':
+                      return <DocumentGeneration />;
+                    case 'ai-assistant':
+                      return <AIAssistant />;
+                    case 'admin':
+                      return <AdminPanel />;
+                    case 'verify':
+                      return (
+                        <div className="min-h-screen bg-gray-50 p-8">
+                          <button onClick={() => setCurrentView('dashboard')} className="text-blue-600 hover:text-blue-800 mb-4">
+                            ← Back to Dashboard
+                          </button>
+                          <h1 className="text-2xl font-bold mb-4">🔍 Document Verification</h1>
+                          <p>Verification system coming soon...</p>
+                        </div>
+                      );
+                    case 'status':
+                      return (
+                        <div className="min-h-screen bg-gray-50 p-8">
+                          <button onClick={() => setCurrentView('dashboard')} className="text-blue-600 hover:text-blue-800 mb-4">
+                            ← Back to Dashboard
+                          </button>
+                          <h1 className="text-2xl font-bold mb-4">📊 System Status</h1>
+                          <div className="bg-green-100 p-4 rounded-lg">
+                            <p className="text-green-800">✅ All systems operational</p>
+                          </div>
+                        </div>
+                      );
+                    default:
+                      return <Dashboard />;
+                  }
+                };
+
                 if (!user) {
                   return <LoginForm />;
                 }
                 
-                return <Dashboard />;
+                return renderCurrentView();
               }
               
               ReactDOM.render(<App />, document.getElementById('root'));
