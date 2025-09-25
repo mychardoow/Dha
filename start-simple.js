@@ -1,5 +1,10 @@
-const express = require('express');
-const path = require('path');
+
+import express from 'express';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -10,7 +15,7 @@ console.log('🇿🇦 Department of Home Affairs Digital Services');
 
 // Basic middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'client/dist')));
+app.use(express.static(join(__dirname, 'client/dist')));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -36,7 +41,7 @@ app.get('/api/status', (req, res) => {
 // Catch-all for SPA
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, 'client/dist/index.html'));
+    res.sendFile(join(__dirname, 'client/dist/index.html'));
   } else {
     res.status(404).json({ error: 'API endpoint not found' });
   }
