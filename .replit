@@ -67,7 +67,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "Ultimate Force Deploy"
+runButton = "Start application"
 
 [[workflows.workflow]]
 name = "Project"
@@ -115,40 +115,3 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
-
-[[workflows.workflow]]
-name = "Complete System Validation2"
-author = 47817466
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "chmod +x setup-complete-secrets.sh"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "chmod +x test-pdf-security.js  "
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "chmod +x test-authentication-security.js"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "chmod +x run-final-system-tests.sh"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "echo \"🔍 Running complete system validation...\""
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "./setup-complete-secrets.sh"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "./run-final-system-tests.sh"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "echo \"✅ System validation complete - ready for Replit deployment!\""
