@@ -10,11 +10,11 @@ export interface AuditContext {
   location?: string;
   entityType?: string;
   entityId?: string;
-  previousState?: any;
-  newState?: any;
-  actionDetails: any;
+  previousState?: unknown;
+  newState?: unknown;
+  actionDetails: unknown;
   riskScore?: number;
-  complianceFlags?: any;
+  complianceFlags?: unknown;
 }
 
 export class AuditTrailService extends EventEmitter {
@@ -43,7 +43,6 @@ export class AuditTrailService extends EventEmitter {
       // Create audit log entry
       const auditLog: InsertAuditLog = {
         userId: context.userId || null,
-        sessionId: context.sessionId || null,
         action,
         entityType: context.entityType || null,
         entityId: context.entityId || null,
@@ -159,7 +158,7 @@ export class AuditTrailService extends EventEmitter {
         entityId: targetEntityId,
         actionDetails: {
           adminAction: true,
-          ...context?.actionDetails
+          ...(context?.actionDetails && typeof context.actionDetails === 'object' ? context.actionDetails as Record<string, unknown> : {})
         }
       }
     );
@@ -193,7 +192,7 @@ export class AuditTrailService extends EventEmitter {
           endpoint,
           method,
           statusCode,
-          ...context.actionDetails
+          ...(context.actionDetails && typeof context.actionDetails === 'object' ? context.actionDetails as Record<string, unknown> : {})
         }
       }
     );
@@ -212,7 +211,7 @@ export class AuditTrailService extends EventEmitter {
       AuditAction.USER_UPDATED
     ];
 
-    if (!complianceActions.includes(action as any) || !context.userId) {
+    if (!complianceActions.includes(action as (typeof complianceActions)[number]) || !context.userId) {
       return;
     }
 
@@ -227,7 +226,6 @@ export class AuditTrailService extends EventEmitter {
 
     const complianceEvent: InsertComplianceEvent = {
       eventType: eventTypeMap[action],
-      regulation: 'POPIA',
       userId: context.userId,
       dataSubjectId: context.userId, // In most cases, user is acting on their own data
       dataCategory: context.entityType === 'document' ? 'document' : 'personal',
