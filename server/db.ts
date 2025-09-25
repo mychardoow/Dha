@@ -1,82 +1,76 @@
-// @ts-ignore - better-sqlite3 types are available but LSP having issues
-import Database from 'better-sqlite3';
-import { join } from 'path';
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "@shared/schema";
 
-// Force SQLite for Replit deployment
-const dbPath = join(process.cwd(), 'dha_database.sqlite');
+// Get DATABASE_URL from environment - critical for Railway deployment
+const databaseUrl = process.env.DATABASE_URL;
 
-let db: Database.Database;
-
-try {
-  db = new Database(dbPath);
-
-  // Create essential tables
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      email TEXT UNIQUE,
-      password_hash TEXT NOT NULL,
-      role TEXT DEFAULT 'USER',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS documents (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT NOT NULL,
-      user_id INTEGER,
-      status TEXT DEFAULT 'GENERATED',
-      metadata TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS audit_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action TEXT NOT NULL,
-      user_id INTEGER,
-      details TEXT,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  // Insert default users if not exists
-  const adminExists = db.prepare('SELECT COUNT(*) as count FROM users WHERE username = ?').get('admin');
-  if (!adminExists.count) {
-    db.prepare(`
-      INSERT INTO users (username, email, password_hash, role) 
-      VALUES (?, ?, ?, ?)
-    `).run('admin', 'admin@dha.gov.za', 'admin123', 'ULTRA_ADMIN');
-
-    db.prepare(`
-      INSERT INTO users (username, email, password_hash, role) 
-      VALUES (?, ?, ?, ?)
-    `).run('user', 'user@dha.gov.za', 'password123', 'USER');
-  }
-
-  console.log('✅ Database initialized successfully');
-} catch (error) {
-  console.error('❌ Database initialization failed:', error);
-  // Create minimal in-memory fallback
-  db = new Database(':memory:');
-  db.exec(`
-    CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT, role TEXT);
-    INSERT INTO users (username, role) VALUES ('admin', 'ULTRA_ADMIN');
-  `);
+if (!databaseUrl) {
+  console.error('❌ CRITICAL ERROR: DATABASE_URL environment variable is not set');
+  console.error('This is required for PostgreSQL connection and Railway deployment');
+  process.exit(1);
 }
 
-// Add connection status function
-export function getConnectionStatus() {
+console.log('🔗 Connecting to PostgreSQL database...');
+
+// Create PostgreSQL client with connection pooling
+// Enhanced for Railway/Replit PostgreSQL connection
+const client = postgres(databaseUrl, {
+  max: 10, // Maximum connection pool size
+  idle_timeout: 20,
+  connect_timeout: 10,
+  ssl: databaseUrl.includes('localhost') ? false : 'require', // Enable SSL for production
+  transform: {
+    undefined: null // Handle undefined values properly
+  }
+});
+
+// Create Drizzle database instance with schema
+export const db = drizzle(client, { schema });
+
+// Connection health check function
+export async function checkDatabaseConnection(): Promise<{
+  connected: boolean;
+  status: string;
+  error?: string;
+}> {
   try {
-    if (db) {
-      // Test the connection by running a simple query
-      db.prepare('SELECT 1').get();
-      return { connected: true, status: 'healthy' };
-    }
-    return { connected: false, status: 'disconnected' };
+    // Test connection with a simple query
+    await client`SELECT 1 as test`;
+    return { connected: true, status: 'healthy' };
   } catch (error) {
-    return { connected: false, status: 'error', error: error instanceof Error ? error.message : String(error) };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Database connection failed:', errorMessage);
+    return { 
+      connected: false, 
+      status: 'error', 
+      error: errorMessage 
+    };
   }
 }
 
-export { db };
+// Initialize database connection and log status
+async function initializeDatabase() {
+  try {
+    const connectionStatus = await checkDatabaseConnection();
+    if (connectionStatus.connected) {
+      console.log('✅ PostgreSQL database connected successfully');
+      console.log('🔗 Database URL configured from environment variable');
+    } else {
+      console.error('❌ PostgreSQL database connection failed:', connectionStatus.error);
+      throw new Error(`Database connection failed: ${connectionStatus.error}`);
+    }
+  } catch (error) {
+    console.error('❌ CRITICAL: Database initialization failed:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+}
+
+// Initialize connection immediately
+initializeDatabase().catch((error) => {
+  console.error('❌ CRITICAL: Failed to initialize database connection');
+  console.error('This will prevent Railway deployment from working properly');
+  process.exit(1);
+});
+
 export default db;
