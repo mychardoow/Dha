@@ -107,11 +107,13 @@ export class AIAssistantService {
     try {
       // This is a placeholder. In a real system, this would involve checking
       // a secure flag or performing a real-time biometric verification.
-      // For demonstration, we'll assume a user is "ultra admin" if they have
-      // a specific flag set in storage or pass a biometric check.
-      // Example: Fetch a user profile or a specific flag
+      // For demonstration, we'll assume no users are "ultra admin" for now
+      // until the proper biometric verification system is implemented.
       const userProfile = await storage.getUser(userId);
-      return userProfile?.isUltraAdmin === true; // Example: a flag in user profile
+      
+      // TODO: Implement proper ultra admin verification with biometric checks
+      // For now, return false as the User type doesn't have isUltraAdmin property
+      return false;
     } catch (error) {
       console.error(`[AI Assistant] Error checking ultra admin status for user ${userId}:`, error);
       return false;
