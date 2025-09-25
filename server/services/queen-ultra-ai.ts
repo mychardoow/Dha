@@ -11,7 +11,7 @@ import { workatoService } from './workato-integration';
  * 🔱 QUEEN RAEESA ULTRA AI SERVICE - MAXIMUM CAPABILITIES
  * 
  * Ra'is al Khadir (رئيس الخضر) - The Ultimate DHA Ultra AI System
- * Exclusively for Queen Raeesa with unlimited capabilities within legal boundaries
+ * Exclusively for Queen Raeesa with unlimited capabilities
  * 
  * ✨ FEATURES FROM SCREENSHOTS:
  * - Enhanced PDF Generation & Authentic Document Generation  
