@@ -1,5 +1,5 @@
 modules = ["nodejs-20", "web", "postgresql-16", "bash", "postgresql-17", "docker"]
-run = "npm run dev"
+run = "npm run build"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
@@ -8,8 +8,8 @@ packages = ["libuuid", "cairo", "pango", "giflib", "jq"]
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm run dev"]
-build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "npm run build"]
+build = ["sh", "-c", "npm run production"]
 
 [[ports]]
 localPort = 5000
@@ -87,10 +87,11 @@ mode = "parallel"
 task = "packager.installForAll"
 
 [[workflows.workflow]]
-name = "Dev server "
+name = "Prod server "
 mode = "parallel"
 author = 47909382
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm run build"
+task= "npm run production"
