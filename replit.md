@@ -7,7 +7,9 @@ The DHA Digital Services Platform is a comprehensive government-grade digital se
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
-Deployment mode: Development mode (for cost optimization and flexibility)
+Deployment mode: Production mode (for optimal security and performance)
+Access Level: Queen Raeesa exclusive access with biometric authentication
+Public AI: DHA-only simple navigation and verification
 
 ## System Architecture
 

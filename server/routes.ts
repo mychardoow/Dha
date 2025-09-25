@@ -10,6 +10,8 @@ import monitoringRoutes from './routes/monitoring';
 // import aiAssistantRoutes from './routes/ai-assistant'; // Temporarily disabled due to dependency conflict
 import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
+import queenAccessRoutes from "./routes/queen-access";
+import dhaPublicRoutes from "./routes/dha-public";
 import { storage } from './mem-storage';
 
 // Authentication rate limiter - Enhanced security
@@ -73,6 +75,22 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ Health routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register health routes:', error);
+    }
+
+    // Register Queen access routes
+    try {
+      app.use('/api/queen', queenAccessRoutes);
+      console.log('[Routes] ✅ Queen access routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Queen access routes:', error);
+    }
+
+    // Register DHA public routes
+    try {
+      app.use('/api/public', dhaPublicRoutes);
+      console.log('[Routes] ✅ DHA public routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register DHA public routes:', error);
     }
 
     // Register monitoring routes

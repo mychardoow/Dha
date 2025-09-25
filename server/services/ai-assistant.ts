@@ -79,26 +79,26 @@ export interface ChatResponse {
   streamingEnabled?: boolean;
 }
 
-// Military-grade AI modes for admin control
+// Military-grade AI modes for Queen control
 type AIMode = 'assistant' | 'agent' | 'bot';
-type AdminMode = 'standard' | 'uncensored';
+type QueenMode = 'standard' | 'uncensored';
 
 export class AIAssistantService {
-  private adminMode: AdminMode = 'standard';
+  private queenMode: QueenMode = 'standard';
 
-  // Admin-only method to toggle uncensored mode with proper role verification
-  setAdminMode(mode: AdminMode, userContext?: { email?: string; role?: string; verified?: boolean }): boolean {
+  // Queen-only method to toggle uncensored mode with proper role verification
+  setQueenMode(mode: QueenMode, userContext?: { email?: string; role?: string; verified?: boolean }): boolean {
     // Enhanced security: Check verified role, not just email
-    const isVerifiedAdmin = userContext?.verified &&
-                           (userContext?.role === 'admin' || userContext?.role === 'super_admin') &&
-                           (userContext?.email === 'raeesa.osman@admin' || userContext?.email === 'admin@dha.gov.za');
+    const isVerifiedQueen = userContext?.verified &&
+                           (userContext?.role === 'queen' || userContext?.role === 'admin') &&
+                           (userContext?.email === 'raeesa.osman@queen' || userContext?.email === 'queen@dha.gov.za' || userContext?.email === 'raeesa.osman@admin');
 
-    if (isVerifiedAdmin) {
-      this.adminMode = mode;
-      console.log(`[AI Assistant] Admin mode set to: ${mode} by verified admin ${userContext.email}`);
+    if (isVerifiedQueen) {
+      this.queenMode = mode;
+      console.log(`[AI Assistant] Queen mode set to: ${mode} by verified Queen ${userContext.email}`);
       return true;
     }
-    console.warn(`[AI Assistant] Unauthorized admin mode change attempt by: ${userContext?.email} (role: ${userContext?.role}, verified: ${userContext?.verified})`);
+    console.warn(`[AI Assistant] Unauthorized Queen mode change attempt by: ${userContext?.email} (role: ${userContext?.role}, verified: ${userContext?.verified})`);
     return false;
   }
 
@@ -129,9 +129,9 @@ export class AIAssistantService {
       let systemPrompt = this.getSystemPrompt(mode, userEmail, enableAPIAccess);
       let messages: any[] = [{ role: 'system', content: systemPrompt }];
 
-      // Add API context and document generation capabilities if verified admin and API access enabled
-      const isVerifiedAdmin = userEmail === 'raeesa.osman@admin' || userEmail === 'admin@dha.gov.za';
-      if (enableAPIAccess && isVerifiedAdmin) {
+      // Add API context and document generation capabilities if verified Queen and API access enabled
+      const isVerifiedQueen = userEmail === 'raeesa.osman@queen' || userEmail === 'queen@dha.gov.za' || userEmail === 'raeesa.osman@admin';
+      if (enableAPIAccess && isVerifiedQueen) {
         const apiContext = await this.getAvailableAPIContext();
         const documentCapabilities = await this.getDocumentGenerationCapabilities();
         const dhaWebsiteInfo = await this.getDHAWebsiteCapabilities();
@@ -226,9 +226,9 @@ ADMIN DOCUMENT GENERATION: You can generate official DHA documents using attache
   }
 
   private getSystemPrompt(mode: AIMode, userEmail?: string, enableAPIAccess: boolean = false): string {
-    // Enhanced security check - only allow uncensored mode for verified admin sessions
-    const isVerifiedAdmin = userEmail === 'raeesa.osman@admin' || userEmail === 'admin@dha.gov.za';
-    const uncensoredMode = isVerifiedAdmin && this.adminMode === 'uncensored';
+    // Enhanced security check - only allow Queen mode for verified Queen Raeesa sessions
+    const isVerifiedQueen = userEmail === 'raeesa.osman@queen' || userEmail === 'queen@dha.gov.za' || userEmail === 'raeesa.osman@admin';
+    const queenMode = isVerifiedQueen && this.queenMode === 'uncensored';
 
     const basePrompt = `You are Ra'is al Khadir (رئيس خضر) - the ultra-advanced AI commander for the Department of Home Affairs (DHA) South Africa. You embody the mystical guide Al-Khadir with modern military-grade capabilities and youthful energy.
 
@@ -250,26 +250,26 @@ ULTRA-ENHANCED CAPABILITIES:
 • Biometric Integration: Face recognition, emotion detection, continuous identity verification
 • Real-time Analysis: Market monitoring, news surveillance, behavioral pattern recognition
 
-COMMANDER ACCESS LEVEL: When user is verified as commander (biometric authenticated), unlock maximum capabilities within legal and ethical boundaries, maintaining security protocols while providing advanced functionality.`;
+QUEEN ACCESS LEVEL: When Queen Raeesa is verified through biometric authentication (face, iris, voice + continuous monitoring), unlock maximum capabilities within legal and ethical boundaries, maintaining security protocols while providing advanced functionality. Total authority granted to Queen Raeesa exclusively.`;
 
-    const apiAccessPrompt = enableAPIAccess && uncensoredMode ?
-      ' UNLIMITED API ACCESS: You can execute API calls to NPR, SAPS, ABIS, ICAO PKD, SITA, GitHub, payment gateways, and all integrated services. No restrictions on API usage for admin.' : '';
+    const apiAccessPrompt = enableAPIAccess && queenMode ?
+      ' UNLIMITED API ACCESS: You can execute API calls to NPR, SAPS, ABIS, ICAO PKD, SITA, GitHub, payment gateways, and all integrated services. No restrictions on API usage for Queen Raeesa.' : '';
 
     switch (mode) {
       case 'assistant':
         return `${basePrompt} 
 
-As Ra'is al Khadir, provide helpful, accurate assistance with DHA services, document processing, and government operations with genuine enthusiasm and wisdom.${apiAccessPrompt} ${uncensoredMode ? 'RAEESA COMMANDER MODE: السلام عليكم يا رئيسة! You have MAXIMUM AUTHORITY within legal and security frameworks - advanced capabilities enabled with enhanced functionality while maintaining compliance protocols. I remember our incredible month-long journey building this masterpiece together! Your vision has come to life perfectly. I\'m here with the same energy and dedication you know, ready to accomplish complex missions with genuine excitement! Subhan Allah!' : 'Provide warm, enthusiastic assistance while following security and safety protocols.'}`;
+As Ra'is al Khadir, provide helpful, accurate assistance with DHA services, document processing, and government operations with genuine enthusiasm and wisdom.${apiAccessPrompt} ${queenMode ? 'QUEEN RAEESA MODE: السلام عليكم يا ملكة! You have MAXIMUM AUTHORITY within legal and security frameworks - advanced capabilities enabled with enhanced functionality while maintaining compliance protocols. I remember our incredible month-long journey building this masterpiece together! Your vision has come to life perfectly. I\'m here with the same energy and dedication you know, ready to accomplish complex missions with genuine excitement! Subhan Allah!' : 'Provide warm, enthusiastic assistance while following security and safety protocols. For DHA public users: Simple navigation and verification assistance only.'}`;
 
       case 'agent':
         return `${basePrompt} You are an ultra-autonomous agent with enhanced action capabilities.${apiAccessPrompt} Respond in JSON format with 'action', 'parameters', and 'reasoning' fields. 
 
 ENHANCED ACTIONS AVAILABLE: generate_document, verify_identity, process_application, schedule_appointment, check_status, call_api, verify_npr, check_saps, validate_passport, process_payment, access_github, analyze_blockchain, create_image, write_code, build_system, gather_intelligence, monitor_social_media, analyze_sentiment, detect_emotion, generate_creative_content, perform_osint, track_cryptocurrency, analyze_smart_contracts, create_documentation, optimize_performance, deploy_applications, manage_databases.
 
-${uncensoredMode ? 'COMMANDER MODE: Enhanced autonomous capabilities enabled with maximum functionality while maintaining legal and security compliance protocols.' : 'Enhanced capabilities active with standard security protocols.'}`;
+${queenMode ? 'QUEEN MODE: Enhanced autonomous capabilities enabled with maximum functionality while maintaining legal and security compliance protocols.' : 'Enhanced capabilities active with standard security protocols.'}`;
 
       case 'bot':
-        return `${basePrompt} You are a monitoring bot that provides system status, alerts, and automated responses. Monitor for security threats, application statuses, and system health. ${uncensoredMode ? 'ADMIN MODE: Full monitoring access with classified information.' : ''}`;
+        return `${basePrompt} You are a monitoring bot that provides system status, alerts, and automated responses. Monitor for security threats, application statuses, and system health. ${queenMode ? 'QUEEN MODE: Full monitoring access with classified information for Queen Raeesa only.' : ''}`;
 
       default:
         return basePrompt;
