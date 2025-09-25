@@ -25,6 +25,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import BiometricInitialSetup from "@/components/BiometricInitialSetup";
 import { UltraAI } from "./pages/UltraAI";
+import QueenDashboard from "./pages/QueenDashboard";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -230,6 +231,11 @@ function App() {
                   <UltraAI />
                 </AdminGuard>
               </AuthGuard>
+            </Route>
+
+            {/* Queen Dashboard - Live System Test */}
+            <Route path="/queen-dashboard">
+              <QueenDashboard />
             </Route>
 
             <Route component={NotFoundPage} />

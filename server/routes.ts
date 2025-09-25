@@ -12,6 +12,10 @@ import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 import queenAccessRoutes from "./routes/queen-access";
 import dhaPublicRoutes from "./routes/dha-public";
+import { queenUltraAI } from "./services/queen-ultra-ai";
+import { dhaPublicAI } from "./services/dha-public-ai";
+import { dhaDocumentGenerator } from "./services/dha-document-generator";
+import { governmentAPIs } from "./services/government-api-integrations";
 import { storage } from './mem-storage';
 
 // Authentication rate limiter - Enhanced security
@@ -729,6 +733,65 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       }
     });
 
+    // ========================================
+    // 🔱 QUEEN DASHBOARD API ENDPOINTS - LIVE SYSTEM TEST
+    // ========================================
+    
+    // Get government API connection status
+    app.get('/api/government-status', (req, res) => {
+      try {
+        const status = governmentAPIs.getConnectionStatus();
+        res.json(status);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get API status' });
+      }
+    });
+
+    // Get Queen Ultra AI capabilities
+    app.get('/api/queen-capabilities', (req, res) => {
+      try {
+        const capabilities = queenUltraAI.getQueenCapabilitiesStatus();
+        res.json(capabilities);
+      } catch (error) {
+        res.status(500).json({ error: 'Failed to get Queen capabilities' });
+      }
+    });
+
+    // Test Queen Ultra AI
+    app.post('/api/queen-ultra-ai', async (req, res) => {
+      try {
+        const response = await queenUltraAI.processQueenRequest(req.body);
+        res.json(response);
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: 'Queen Ultra AI processing failed',
+          content: 'يا ملكة، I encountered an error. Let me resolve this immediately.'
+        });
+      }
+    });
+
+    // Test authentic document generation
+    app.post('/api/generate-document', async (req, res) => {
+      try {
+        const document = await dhaDocumentGenerator.generateDocument(req.body);
+        res.json({
+          success: true,
+          documentId: document.documentId,
+          documentType: document.documentType,
+          securityFeatures: document.securityFeatures,
+          message: 'Authentic DHA document generated successfully'
+        });
+      } catch (error) {
+        res.status(500).json({ 
+          success: false, 
+          error: 'Document generation failed',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
+    console.log('[Routes] ✅ Queen Dashboard API endpoints registered');
     console.log('[Routes] ✅ All routes registered successfully');
     return server;
 

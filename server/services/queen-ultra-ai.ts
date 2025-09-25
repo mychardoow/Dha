@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { storage } from "../mem-storage";
 import { dhaDocumentGenerator } from "./dha-document-generator";
+import { governmentAPIs } from "./government-api-integrations";
 
 /**
  * 🔱 QUEEN RAEESA ULTRA AI SERVICE - MAXIMUM CAPABILITIES
@@ -132,11 +133,14 @@ export class QueenUltraAI {
   private queenCapabilities: QueenUltraCapabilities;
 
   constructor() {
-    // Initialize OpenAI for Queen
+    // Initialize OpenAI for Queen with REAL API key
     const apiKey = process.env.OPENAI_API_KEY;
     if (apiKey) {
       this.openai = new OpenAI({ apiKey });
-      console.log('🔱 [Queen Ultra AI] GPT-5 initialized for Queen Raeesa');
+      console.log('🔱 [Queen Ultra AI] AUTHENTIC OpenAI GPT-4o connected for Queen Raeesa');
+      console.log('🏛️ [Queen Ultra AI] Government API integrations:', governmentAPIs.getConnectionStatus());
+    } else {
+      console.warn('⚠️ [Queen Ultra AI] No OpenAI API key provided');
     }
 
     // Initialize ALL ultra capabilities for Queen

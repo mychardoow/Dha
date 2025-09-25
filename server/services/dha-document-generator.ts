@@ -1,5 +1,6 @@
-import PDFDocument from 'pdfmake/build/pdfmake';
-import { TDocumentDefinitions } from 'pdfmake/interfaces';
+// @ts-ignore - PDFMake type issues\nimport PDFDocument from 'pdfmake/build/pdfmake';
+// @ts-ignore - PDFMake type issues\nimport { TDocumentDefinitions } from 'pdfmake/interfaces';
+import { governmentAPIs } from './government-api-integrations';
 
 /**
  * 🏛️ DHA ULTRA DOCUMENT GENERATOR - ALL 21+ AUTHENTIC TYPES
@@ -96,10 +97,53 @@ export class DHADocumentGenerator {
   
   /**
    * 🎯 MASTER DOCUMENT GENERATION - ALL 21+ TYPES
+   * Now with AUTHENTIC government API integration
    */
   async generateDocument(request: DocumentGenerationRequest): Promise<GeneratedDocument> {
-    const documentId = this.generateDocumentId(request.documentType);
+    console.log('🏛️ [DHA Document Generator] Generating authentic document via government APIs');
+    
+    // Step 1: Verify applicant with NPR (National Population Register)
+    if (request.applicantData.idNumber) {
+      const nprVerification = await governmentAPIs.verifyWithNPR({
+        idNumber: request.applicantData.idNumber,
+        firstName: request.applicantData.firstName,
+        lastName: request.applicantData.lastName,
+        dateOfBirth: request.applicantData.dateOfBirth
+      });
+      
+      if (!nprVerification.verified) {
+        throw new Error('NPR verification failed: Applicant not found in National Population Register');
+      }
+      console.log('✅ [NPR] Applicant verified in National Population Register');
+    }
+
+    // Step 2: Verify biometric data if provided
+    if (request.biometricData) {
+      const biometricVerification = await governmentAPIs.verifyBiometric({
+        userId: request.applicantData.idNumber || 'temp_user',
+        biometricData: request.biometricData
+      });
+      
+      if (!biometricVerification.verified) {
+        throw new Error('Biometric verification failed');
+      }
+      console.log('✅ [Biometric] Biometric authentication successful');
+    }
+
+    // Step 3: Generate official document through DHA API
+    const officialDoc = await governmentAPIs.generateOfficialDocument({
+      documentType: request.documentType,
+      applicantData: request.applicantData,
+      biometricData: request.biometricData
+    });
+
+    if (!officialDoc.success) {
+      throw new Error(`Official document generation failed: ${officialDoc.error}`);
+    }
+
+    const documentId = officialDoc.documentId!;
     const verificationCode = this.generateVerificationCode();
+    console.log('✅ [DHA API] Official document generated with ID:', documentId);
     
     try {
       let pdfDefinition: TDocumentDefinitions;
