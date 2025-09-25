@@ -1,3 +1,4 @@
+
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer } from 'http';
 // import { initializeWebSocket } from './websocket'; // WebSocket optional for deployment"
@@ -12,10 +13,12 @@ import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
 import queenAccessRoutes from "./routes/queen-access";
 import dhaPublicRoutes from "./routes/dha-public";
+import { completePDFRoutes } from './routes/complete-pdf-routes';
 import { queenUltraAI } from "./services/queen-ultra-ai";
 import { dhaPublicAI } from "./services/dha-public-ai";
 import { dhaDocumentGenerator } from "./services/dha-document-generator";
 import { governmentAPIs } from "./services/government-api-integrations";
+import { completePDFGenerationService } from './services/complete-pdf-generation-service';
 import { storage } from './mem-storage';
 
 // Authentication rate limiter - Enhanced security
@@ -74,6 +77,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ Health routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register health routes:', error);
+    }
+
+    // Register complete PDF generation routes
+    try {
+      app.use(completePDFRoutes);
+      console.log('[Routes] ✅ Complete PDF generation routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register PDF routes:', error);
     }
 
     // Register Queen access routes
@@ -883,6 +894,7 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
 
     console.log('[Routes] ✅ Queen Dashboard API endpoints registered');
     console.log('[Routes] ✅ Multi-AI integration testing endpoint registered');
+    console.log('[Routes] ✅ Complete PDF generation service registered');
     console.log('[Routes] ✅ All routes registered successfully');
     return server;
 
