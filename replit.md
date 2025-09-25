@@ -25,14 +25,14 @@ Public AI: DHA-only simple navigation and verification
 ### Backend Architecture
 - **Express.js + TypeScript**: RESTful API server with comprehensive middleware stack
 - **Modular Route Structure**: Organized routes for health, AI assistant, monitoring, and biometric services
-- **Multi-Server Setup**: Optimized for development mode deployment with fallback configurations
+- **Multi-Server Setup**: Optimized for production mode deployment with military-grade security configurations
 - **WebSocket Support**: Real-time communication for system status and notifications
 - **Serverless Deployment**: Netlify Functions support for scalable cloud deployment
 
 ### Database & ORM
 - **Drizzle ORM**: Type-safe database operations with PostgreSQL support
 - **Comprehensive Schema**: 21 DHA document types, user management, audit trails, biometric profiles
-- **SQLite Fallback**: Development mode support with automatic table creation
+- **SQLite Fallback**: Production mode support with automatic table creation
 - **Migration System**: Database versioning and schema evolution support
 
 ### Security & Compliance
@@ -67,7 +67,7 @@ Public AI: DHA-only simple navigation and verification
 
 ### Core Technologies
 - **Node.js/Express**: Server runtime and web framework
-- **PostgreSQL**: Primary database (with SQLite development fallback)
+- **PostgreSQL**: Primary database (with SQLite production fallback)
 - **Redis**: Caching and session storage (optional)
 
 ### AI & Machine Learning
