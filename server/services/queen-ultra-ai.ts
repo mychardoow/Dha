@@ -238,7 +238,7 @@ export class QueenUltraAI {
         capabilities: this.queenCapabilities,
         executedOperations: [],
         securityLevel: 'queen_only',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
@@ -360,8 +360,11 @@ Your security is my priority, يا ملكة! Monitoring all systems for threats.
     let systemOps: string[] = [];
     let creative: any = null;
 
-    // Build messages
-    const messages = [
+    // Build messages with proper OpenAI types
+    const messages: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }> = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: request.message }
     ];
