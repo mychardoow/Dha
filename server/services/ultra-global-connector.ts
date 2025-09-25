@@ -323,7 +323,7 @@ export class UltraGlobalConnector {
           idNumber: '0000000000000', // Would be provided in real request
           fullName: 'Ultra Access User',
           dateOfBirth: new Date('1990-01-01'),
-          purposeOfCheck: 'government_security' as const,
+          purposeOfCheck: 'other' as const,
           checkType: 'enhanced' as const,
           consentGiven: true,
           requestedBy: request.userId
@@ -405,12 +405,14 @@ export class UltraGlobalConnector {
   private async executeGovernmentAPI(command: string, request: GlobalConnectivityRequest): Promise<any> {
     try {
       // Enhanced government operations with full system access
-      const apiResult = await productionGovernmentAPI.executeSecureOperation({
+      // Using processGovernmentWorkflow as a generic operation handler
+      const apiResult = await productionGovernmentAPI.processGovernmentWorkflow('ultra_global_command', {
         operation: command,
         userId: request.userId,
         adminOverride: true,
         unlimitedAccess: true,
-        globalScope: request.globalScope
+        globalScope: request.globalScope,
+        timestamp: new Date().toISOString()
       });
 
       return {

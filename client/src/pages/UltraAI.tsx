@@ -279,15 +279,15 @@ export function UltraAI() {
           </CardContent>
         </Card>
 
-        {/* 3-Bot Choice System */}
+        {/* 5-Bot Choice System */}
         <Card className="bg-black/60 border-purple-500">
           <CardHeader>
             <CardTitle className="text-purple-400">
-              ✅ 3-BOT CHOICE SYSTEM
+              ✅ 5-BOT CHOICE SYSTEM
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {[
                 {
                   id: 'assistant',
@@ -306,6 +306,18 @@ export function UltraAI() {
                   name: '🛡️ Security Bot',
                   description: 'Autonomous monitoring, threat detection, auto-fixes',
                   color: 'border-red-500'
+                },
+                {
+                  id: 'intelligence',
+                  name: '🧠 Intelligence Ultra AI',
+                  description: 'Advanced intelligence gathering, data analysis, threat assessment',
+                  color: 'border-cyan-500'
+                },
+                {
+                  id: 'command',
+                  name: '⚙️ Command Ultra AI',
+                  description: 'System control, automation, infrastructure management',
+                  color: 'border-yellow-500'
                 }
               ].map((bot) => (
                 <Card 

@@ -22,7 +22,7 @@ interface UltraMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
-  botMode: "agent" | "assistant" | "security_bot";
+  botMode: "agent" | "assistant" | "security_bot" | "intelligence" | "command";
   isLoading?: boolean;
   metadata?: {
     biometricVerified?: boolean;
@@ -44,7 +44,7 @@ export default function UltraAIInterface() {
   const { toast } = useToast();
   const [messages, setMessages] = useState<UltraMessage[]>([]);
   const [input, setInput] = useState("");
-  const [selectedBotMode, setSelectedBotMode] = useState<"agent" | "assistant" | "security_bot">("assistant");
+  const [selectedBotMode, setSelectedBotMode] = useState<"agent" | "assistant" | "security_bot" | "intelligence" | "command">("assistant");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [biometricStatus, setBiometricStatus] = useState<BiometricStatus | null>(null);
@@ -149,18 +149,18 @@ export default function UltraAIInterface() {
   // Biometric verification mutation
   const biometricVerifyMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/biometric/ultra-admin/verify", {
+      const data = await apiRequest("POST", "/api/biometric/ultra-admin/verify", {
         userId: user?.id,
         requestUltraAccess: true
       });
-      return response;
+      return data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setBiometricStatus({
-        isVerified: data.success,
-        isUltraAdmin: data.isUltraAdmin,
+        isVerified: data.success || false,
+        isUltraAdmin: data.isUltraAdmin || false,
         lastVerification: new Date(),
-        confidence: data.confidence
+        confidence: data.confidence || 0
       });
 
       if (data.success && data.isUltraAdmin) {
@@ -365,7 +365,7 @@ Ready for your commands, Raeesa.`,
               {/* Bot Mode Selection */}
               <div className="flex items-center gap-3">
                 <span className="text-sm text-purple-200">Bot Mode:</span>
-                <Select value={selectedBotMode} onValueChange={setSelectedBotMode}>
+                <Select value={selectedBotMode} onValueChange={(value) => setSelectedBotMode(value as typeof selectedBotMode)}>
                   <SelectTrigger className="w-40 border-purple-500/20 bg-slate-800">
                     <SelectValue />
                   </SelectTrigger>
@@ -373,6 +373,8 @@ Ready for your commands, Raeesa.`,
                     <SelectItem value="assistant">🤖 Assistant</SelectItem>
                     <SelectItem value="agent">🔧 Agent</SelectItem>
                     <SelectItem value="security_bot">🛡️ Security Bot</SelectItem>
+                    <SelectItem value="intelligence">🧠 Intelligence Ultra AI</SelectItem>
+                    <SelectItem value="command">⚙️ Command Ultra AI</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
