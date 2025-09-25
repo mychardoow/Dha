@@ -23,6 +23,14 @@ export const AuditAction = {
   VALIDATE_BIOMETRIC: 'VALIDATE_BIOMETRIC' as const
 } as const;
 
+export const ComplianceEventType = {
+  POPIA_CONSENT: 'POPIA_CONSENT' as const,
+  DATA_ACCESS: 'DATA_ACCESS' as const,
+  DATA_EXPORT: 'DATA_EXPORT' as const,
+  BIOMETRIC_CAPTURE: 'BIOMETRIC_CAPTURE' as const,
+  DOCUMENT_GENERATION: 'DOCUMENT_GENERATION' as const
+} as const;
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
@@ -110,6 +118,27 @@ export const systemMetrics = pgTable("system_metrics", {
   timestamp: timestamp("timestamp").notNull().default(sql`now()`),
 });
 
+export const auditLogs = pgTable("audit_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  entityType: text("entity_type"),
+  entityId: varchar("entity_id"),
+  details: jsonb("details"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const complianceEvents = pgTable("compliance_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  eventType: text("event_type").notNull(),
+  details: jsonb("details"),
+  complianceFlags: jsonb("compliance_flags"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -125,6 +154,10 @@ export type FraudAlert = typeof fraudAlerts.$inferSelect;
 export type InsertFraudAlert = typeof fraudAlerts.$inferInsert;
 export type SystemMetric = typeof systemMetrics.$inferSelect;
 export type InsertSystemMetric = typeof systemMetrics.$inferInsert;
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+export type ComplianceEvent = typeof complianceEvents.$inferSelect;
+export type InsertComplianceEvent = typeof complianceEvents.$inferInsert;
 
 // ===================== DOCUMENT GENERATION SCHEMAS =====================
 
