@@ -548,3 +548,328 @@ export type RelativesVisaData = z.infer<typeof relativesVisaSchema>;
 export type PermanentResidencePermitData = z.infer<typeof permanentResidencePermitSchema>;
 export type CertificateOfExemptionData = z.infer<typeof certificateOfExemptionSchema>;
 export type CertificateOfSouthAfricanCitizenshipData = z.infer<typeof certificateOfSouthAfricanCitizenshipSchema>;
+
+// ===================== SELF-HEALING ARCHITECTURE SCHEMAS =====================
+
+// Self-Healing Actions and Operations
+export const selfHealingActions = pgTable("self_healing_actions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  type: text("type").notNull(), // 'preventive' | 'reactive' | 'predictive' | 'corrective'
+  category: text("category").notNull(), // 'performance' | 'security' | 'availability' | 'data' | 'network'
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  description: text("description").notNull(),
+  target: text("target").notNull(), // service/component name
+  action: text("action").notNull(), // specific action taken
+  trigger: jsonb("trigger"), // what triggered this action
+  status: text("status").notNull().default("initiated"), // 'initiated' | 'executing' | 'completed' | 'failed' | 'rolled_back'
+  result: jsonb("result"), // action results
+  metrics: jsonb("metrics"), // performance metrics
+  aiAssisted: boolean("ai_assisted").notNull().default(false),
+  confidence: integer("confidence"), // 0-100
+  rollbackPlan: jsonb("rollback_plan"),
+  startTime: timestamp("start_time").notNull().default(sql`now()`),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// System Health Snapshots
+export const systemHealthSnapshots = pgTable("system_health_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  overallStatus: text("overall_status").notNull(), // 'optimal' | 'good' | 'degraded' | 'critical' | 'emergency'
+  overallScore: integer("overall_score").notNull(), // 0-100
+  components: jsonb("components").notNull(), // health of all components
+  predictions: jsonb("predictions"), // predicted issues
+  performance: jsonb("performance"), // performance metrics
+  resources: jsonb("resources"), // resource utilization
+  trends: jsonb("trends"), // health trends
+  recommendations: jsonb("recommendations").array(), // recommended actions
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+});
+
+// Security Incidents and Responses
+export const securityIncidents = pgTable("security_incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  threatId: varchar("threat_id"),
+  type: text("type").notNull(), // threat type
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical' | 'emergency'
+  confidence: integer("confidence").notNull(), // 0-100
+  source: text("source").notNull(),
+  target: text("target"),
+  details: jsonb("details"),
+  indicators: jsonb("indicators").array(),
+  riskScore: integer("risk_score").notNull(), // 0-100
+  status: text("status").notNull().default("open"), // 'open' | 'investigating' | 'mitigated' | 'resolved'
+  responseActions: jsonb("response_actions").array(),
+  impact: jsonb("impact"),
+  resolvedAt: timestamp("resolved_at"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  userId: varchar("user_id").references(() => users.id),
+  geolocation: jsonb("geolocation"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Error Corrections and Fixes
+export const errorCorrections = pgTable("error_corrections", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  errorId: varchar("error_id"),
+  patternId: varchar("pattern_id"),
+  type: text("type").notNull(), // 'automatic' | 'guided' | 'manual'
+  errorType: text("error_type").notNull(), // 'syntax' | 'runtime' | 'logic' | 'memory' | 'database' | 'network'
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  description: text("description").notNull(),
+  target: text("target").notNull(),
+  correctionSteps: jsonb("correction_steps").array(),
+  status: text("status").notNull().default("pending"), // 'pending' | 'executing' | 'completed' | 'failed' | 'aborted'
+  success: boolean("success").notNull().default(false),
+  result: jsonb("result"),
+  rollbackPlan: jsonb("rollback_plan"),
+  aiAssisted: boolean("ai_assisted").notNull().default(false),
+  confidence: integer("confidence"), // 0-100
+  startTime: timestamp("start_time").notNull().default(sql`now()`),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Health Check Results
+export const healthCheckResults = pgTable("health_check_results", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  checkId: varchar("check_id").notNull(),
+  checkName: text("check_name").notNull(),
+  category: text("category").notNull(), // 'system' | 'database' | 'api' | 'security' | 'performance' | 'storage' | 'network' | 'application'
+  status: text("status").notNull(), // 'healthy' | 'warning' | 'critical' | 'unknown'
+  score: integer("score").notNull(), // 0-100
+  responseTime: integer("response_time").notNull(), // milliseconds
+  message: text("message").notNull(),
+  details: jsonb("details"),
+  metrics: jsonb("metrics"),
+  error: text("error"),
+  recommendations: jsonb("recommendations").array(),
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+});
+
+// Failover Events
+export const failoverEvents = pgTable("failover_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  policyId: varchar("policy_id"),
+  serviceId: varchar("service_id").notNull(),
+  triggerReason: text("trigger_reason").notNull(),
+  sourceNode: varchar("source_node").notNull(),
+  targetNode: varchar("target_node").notNull(),
+  status: text("status").notNull().default("initiated"), // 'initiated' | 'in_progress' | 'completed' | 'failed' | 'rolled_back'
+  triggeredBy: text("triggered_by").notNull(), // 'automatic' | 'manual' | 'ai_predicted'
+  actions: jsonb("actions").array(),
+  impact: jsonb("impact"), // downtime, affected requests, data loss
+  rollbackPlan: jsonb("rollback_plan"),
+  success: boolean("success").notNull().default(false),
+  triggerTime: timestamp("trigger_time").notNull().default(sql`now()`),
+  completionTime: timestamp("completion_time"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Performance Baselines
+export const performanceBaselines = pgTable("performance_baselines", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: text("service_name").notNull(),
+  metricName: text("metric_name").notNull(),
+  baselineValue: integer("baseline_value").notNull(),
+  unit: text("unit").notNull(),
+  measurementPeriod: text("measurement_period").notNull(), // '1h' | '24h' | '7d' | '30d'
+  confidenceLevel: integer("confidence_level").notNull(), // 0-100
+  dataPoints: integer("data_points").notNull(),
+  variance: integer("variance"), // acceptable variance percentage
+  lastUpdated: timestamp("last_updated").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Alert Rules and Configurations
+export const alertRules = pgTable("alert_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'threshold' | 'anomaly' | 'pattern' | 'predictive'
+  category: text("category").notNull(), // 'performance' | 'security' | 'availability' | 'error'
+  conditions: jsonb("conditions").array(),
+  actions: jsonb("actions").array(),
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  priority: integer("priority").notNull().default(5),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  threshold: integer("threshold"), // threshold value
+  timeWindow: integer("time_window"), // milliseconds
+  maxTriggers: integer("max_triggers").default(10),
+  cooldown: integer("cooldown").default(60000), // milliseconds
+  lastTriggered: timestamp("last_triggered"),
+  triggerCount: integer("trigger_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Circuit Breaker States
+export const circuitBreakerStates = pgTable("circuit_breaker_states", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: text("service_name").notNull().unique(),
+  state: text("state").notNull().default("closed"), // 'closed' | 'open' | 'half_open'
+  failures: integer("failures").notNull().default(0),
+  successes: integer("successes").notNull().default(0),
+  lastFailureTime: timestamp("last_failure_time"),
+  failureThreshold: integer("failure_threshold").notNull().default(5),
+  successThreshold: integer("success_threshold").notNull().default(2),
+  timeout: integer("timeout").notNull().default(30000), // milliseconds
+  resetTimeout: integer("reset_timeout").notNull().default(60000), // milliseconds
+  halfOpenRequests: integer("half_open_requests").notNull().default(3),
+  lastStateChange: timestamp("last_state_change").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Uptime Incidents
+export const uptimeIncidents = pgTable("uptime_incidents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: varchar("service_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  incidentType: text("incident_type").notNull(), // 'downtime' | 'degradation' | 'outage'
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  status: text("status").notNull().default("open"), // 'open' | 'investigating' | 'mitigating' | 'resolved'
+  rootCause: text("root_cause"),
+  impact: text("impact"),
+  resolution: text("resolution"),
+  preventiveMeasures: jsonb("preventive_measures").array(),
+  affectedUsers: integer("affected_users").default(0),
+  startTime: timestamp("start_time").notNull().default(sql`now()`),
+  endTime: timestamp("end_time"),
+  duration: integer("duration"), // milliseconds
+  mttr: integer("mttr"), // Mean Time To Recovery in milliseconds
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Autonomous Operations Log
+export const autonomousOperations = pgTable("autonomous_operations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  operationType: text("operation_type").notNull(), // 'healing' | 'security' | 'optimization' | 'maintenance'
+  category: text("category").notNull(), // 'preventive' | 'reactive' | 'predictive'
+  description: text("description").notNull(),
+  target: text("target").notNull(),
+  status: text("status").notNull().default("initiated"), // 'initiated' | 'in_progress' | 'completed' | 'failed'
+  trigger: jsonb("trigger"),
+  parameters: jsonb("parameters"),
+  result: jsonb("result"),
+  confidence: integer("confidence"), // 0-100 for AI-driven operations
+  aiModel: text("ai_model"), // which AI model was used
+  executionTime: integer("execution_time"), // milliseconds
+  resourcesUsed: jsonb("resources_used"),
+  impact: jsonb("impact"),
+  success: boolean("success").notNull().default(false),
+  startTime: timestamp("start_time").notNull().default(sql`now()`),
+  endTime: timestamp("end_time"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Maintenance Tasks
+export const maintenanceTasks = pgTable("maintenance_tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // 'scheduled' | 'preventive' | 'corrective' | 'emergency'
+  priority: text("priority").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  description: text("description").notNull(),
+  target: text("target").notNull(),
+  schedule: text("schedule"), // cron expression for scheduled tasks
+  status: text("status").notNull().default("pending"), // 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+  autoExecute: boolean("auto_execute").notNull().default(false),
+  maxDuration: integer("max_duration"), // maximum duration in milliseconds
+  dependencies: jsonb("dependencies").array(), // other task IDs this depends on
+  parameters: jsonb("parameters"),
+  result: jsonb("result"),
+  executionLog: text("execution_log"),
+  scheduledAt: timestamp("scheduled_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  nextRun: timestamp("next_run"), // for recurring tasks
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Government Compliance Audits
+export const governmentComplianceAudits = pgTable("government_compliance_audits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  auditType: text("audit_type").notNull(), // 'popia' | 'gdpr' | 'security' | 'operational'
+  regulation: text("regulation").notNull(),
+  scope: text("scope").notNull(),
+  status: text("status").notNull().default("pending"), // 'pending' | 'in_progress' | 'completed' | 'failed'
+  complianceScore: integer("compliance_score"), // 0-100
+  findings: jsonb("findings").array(),
+  violations: jsonb("violations").array(),
+  recommendations: jsonb("recommendations").array(),
+  remedialActions: jsonb("remedial_actions").array(),
+  auditor: text("auditor"),
+  evidence: jsonb("evidence"),
+  reportPath: text("report_path"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  nextAudit: timestamp("next_audit"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Security Metrics
+export const securityMetrics = pgTable("security_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  metricType: text("metric_type").notNull(), // 'threat_detection' | 'response_time' | 'incident_count' | 'blocked_attacks'
+  category: text("category").notNull(), // 'authentication' | 'authorization' | 'network' | 'malware' | 'ddos'
+  value: integer("value").notNull(),
+  unit: text("unit").notNull(),
+  severity: text("severity").notNull(), // 'low' | 'medium' | 'high' | 'critical'
+  source: text("source").notNull(), // service/component name
+  details: jsonb("details"),
+  threshold: integer("threshold"), // alert threshold
+  trend: text("trend"), // 'increasing' | 'decreasing' | 'stable'
+  timestamp: timestamp("timestamp").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+// Biometric Profiles
+export const biometricProfiles = pgTable("biometric_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  fingerprintTemplate: text("fingerprint_template"),
+  faceTemplate: text("face_template"),
+  voiceTemplate: text("voice_template"),
+  irisTemplate: text("iris_template"),
+  palmTemplate: text("palm_template"),
+  encryptionKey: text("encryption_key").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  confidence: integer("confidence").notNull(), // 0-100
+  verificationAttempts: integer("verification_attempts").notNull().default(0),
+  lastVerification: timestamp("last_verification"),
+  biometricHash: text("biometric_hash").notNull().unique(),
+  metadata: jsonb("metadata"), // additional biometric data
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Type exports for self-healing schemas
+export type SelfHealingAction = typeof selfHealingActions.$inferSelect;
+export type InsertSelfHealingAction = typeof selfHealingActions.$inferInsert;
+export type SystemHealthSnapshot = typeof systemHealthSnapshots.$inferSelect;
+export type InsertSystemHealthSnapshot = typeof systemHealthSnapshots.$inferInsert;
+export type SecurityIncident = typeof securityIncidents.$inferSelect;
+export type InsertSecurityIncident = typeof securityIncidents.$inferInsert;
+export type ErrorCorrection = typeof errorCorrections.$inferSelect;
+export type InsertErrorCorrection = typeof errorCorrections.$inferInsert;
+export type HealthCheckResult = typeof healthCheckResults.$inferSelect;
+export type InsertHealthCheckResult = typeof healthCheckResults.$inferInsert;
+export type FailoverEvent = typeof failoverEvents.$inferSelect;
+export type InsertFailoverEvent = typeof failoverEvents.$inferInsert;
+export type PerformanceBaseline = typeof performanceBaselines.$inferSelect;
+export type InsertPerformanceBaseline = typeof performanceBaselines.$inferInsert;
+export type AlertRule = typeof alertRules.$inferSelect;
+export type InsertAlertRule = typeof alertRules.$inferInsert;
+export type CircuitBreakerState = typeof circuitBreakerStates.$inferSelect;
+export type InsertCircuitBreakerState = typeof circuitBreakerStates.$inferInsert;
+export type UptimeIncident = typeof uptimeIncidents.$inferSelect;
+export type InsertUptimeIncident = typeof uptimeIncidents.$inferInsert;
+export type AutonomousOperation = typeof autonomousOperations.$inferSelect;
+export type InsertAutonomousOperation = typeof autonomousOperations.$inferInsert;
+export type MaintenanceTask = typeof maintenanceTasks.$inferSelect;
+export type InsertMaintenanceTask = typeof maintenanceTasks.$inferInsert;
+export type GovernmentComplianceAudit = typeof governmentComplianceAudits.$inferSelect;
+export type InsertGovernmentComplianceAudit = typeof governmentComplianceAudits.$inferInsert;
+export type SecurityMetric = typeof securityMetrics.$inferSelect;
+export type InsertSecurityMetric = typeof securityMetrics.$inferInsert;
+export type BiometricProfile = typeof biometricProfiles.$inferSelect;
+export type InsertBiometricProfile = typeof biometricProfiles.$inferInsert;
