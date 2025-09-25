@@ -23,7 +23,10 @@ interface StartupValidationResult {
   warnings: string[];
   healthChecks: HealthCheckResult[];
   configurationIssues: string[];
-  securityValidation: any;
+  securityValidation: {
+    valid: boolean;
+    blockers: string[];
+  };
 }
 
 interface HealthCheck {
@@ -109,7 +112,7 @@ export class StartupHealthChecksService {
   }
 
   private async performBasicHealthChecks(result: StartupValidationResult): Promise<void> {
-    const checks = ['Memory', 'File System', 'Process'];
+    const checks: string[] = ['Memory', 'File System', 'Process'];
 
     for (const checkName of checks) {
       const healthCheck: HealthCheckResult = {
@@ -151,7 +154,8 @@ export async function startupHealthChecks(): Promise<void> {
 
     // Node.js version check
     const nodeVersion = process.version;
-    const majorVersion = parseInt(nodeVersion.substring(1).split('.')[0]);
+    const versionParts = nodeVersion.substring(1).split('.');
+    const majorVersion = parseInt(versionParts[0], 10);
     checks.push({
       name: 'Node.js Version',
       status: majorVersion >= 18 ? 'passed' : majorVersion >= 16 ? 'warning' : 'failed',

@@ -4116,7 +4116,8 @@ export class MemStorage implements IStorage {
       activeConnections: snapshot.activeConnections ?? null,
       uptimePercentage: snapshot.uptimePercentage ?? null,
       responseTime: snapshot.responseTime ?? null,
-      errorRate: snapshot.errorRate ?? null
+      errorRate: snapshot.errorRate ?? null,
+      throughput: snapshot.throughput ?? null
     };
     this.systemHealthSnapshots.set(id, healthSnapshot);
     return healthSnapshot;
@@ -4183,7 +4184,14 @@ export class MemStorage implements IStorage {
       averageResponseTime: state.averageResponseTime ?? null,
       nextRetryAt: state.nextRetryAt ?? null,
       lastRecoveryAt: state.lastRecoveryAt ?? null,
-      state: state.state ?? 'closed'
+      state: state.state ?? 'closed',
+      failureCount: state.failureCount ?? 0,
+      timeout: state.timeout ?? 30000,
+      failureThreshold: state.failureThreshold ?? 5,
+      successCount: state.successCount ?? 0,
+      successThreshold: state.successThreshold ?? 3,
+      totalRequests: state.totalRequests ?? 0,
+      totalFailures: state.totalFailures ?? 0
     };
     this.circuitBreakerStates.set(id, breakerState);
     return breakerState;
@@ -4268,6 +4276,8 @@ export class MemStorage implements IStorage {
       status: task.status ?? 'initiated',
       description: task.description ?? null,
       maxRetries: task.maxRetries ?? 3,
+      timeout: task.timeout ?? 300000,
+      lastRunTime: task.lastRunTime ?? null,
       createdAt: new Date(),
       updatedAt: new Date()
     };
@@ -4335,7 +4345,11 @@ export class MemStorage implements IStorage {
       triggerCount: 0,
       falsePositiveCount: 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      severity: rule.severity ?? 'low',
+      description: rule.description ?? null,
+      isEnabled: rule.isEnabled ?? true,
+      lastTriggeredAt: rule.lastTriggeredAt ?? null
     };
     this.alertRules.set(id, alertRule);
     return alertRule;
@@ -4441,7 +4455,9 @@ export class MemStorage implements IStorage {
       ...incident,
       id,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      severity: incident.severity ?? 'low',
+      status: incident.status ?? 'open'
     };
     this.incidents.set(id, newIncident);
     return newIncident;
@@ -5846,9 +5862,6 @@ export class DbStorage implements IStorage {
     return memStorage.assignIncidentTo(incidentId, assignedTo);
   }
 
-  async resolveIncident(incidentId: string, resolution: string, resolvedBy: string): Promise<void> {
-    return memStorage.resolveIncident(incidentId, resolution, resolvedBy);
-  }
 
   async closeSecurityIncident(incidentId: string, closedBy: string): Promise<void> {
     return memStorage.closeSecurityIncident(incidentId, closedBy);
@@ -6402,9 +6415,6 @@ export class DbStorage implements IStorage {
     return memStorage.assignIncident(id, assignedTo, assignedTeam);
   }
 
-  async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
-    return memStorage.resolveIncident(id, resolution, resolvedBy);
-  }
 
   async closeIncident(id: string, closedBy: string): Promise<void> {
     return memStorage.closeIncident(id, closedBy);
