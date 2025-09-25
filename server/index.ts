@@ -15,6 +15,7 @@ import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
 import { productionConsole } from "./services/production-console-display";
 import { queenBiometricSecurity } from "./services/queen-biometric-security";
+import { ensureDatabaseReady } from "./database-migration";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -145,7 +146,7 @@ app.get('/api/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
     version: '2.0.0',
-    database: 'MemStorage Active',
+    database: 'PostgreSQL Active',
     features: ['Document Generation', 'AI Assistant', 'Security', 'Authentication']
   });
 });
@@ -154,7 +155,7 @@ app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     status: 'DHA Digital Services Active',
     services: ['Document Generation', 'AI Assistant', 'Security', 'Authentication'],
-    database: 'MemStorage Connected',
+    database: 'PostgreSQL Connected',
     version: '2.0.0',
     timestamp: new Date().toISOString()
   });
@@ -169,11 +170,11 @@ app.get('/api/db/health', async (req: Request, res: Response) => {
     const conversations = await storage.getConversations();
     const securityEvents = await storage.getAllSecurityEvents();
     const systemMetrics = await storage.getSystemMetrics();
-    const stats = storage.getStats();
+    const stats = await storage.getStats();
     
     res.json({
       status: 'healthy',
-      database: 'MemStorage Active',
+      database: 'PostgreSQL Active',
       tablesReady: true,
       collections: {
         users: stats.users,
@@ -189,7 +190,7 @@ app.get('/api/db/health', async (req: Request, res: Response) => {
   } catch (error) {
     res.status(500).json({
       status: 'unhealthy',
-      database: 'MemStorage Error',
+      database: 'PostgreSQL Error',
       tablesReady: false,
       error: error instanceof Error ? error.message : String(error),
       timestamp: new Date().toISOString()
@@ -204,8 +205,26 @@ app.get('/api/db/health', async (req: Request, res: Response) => {
 const startServer = async () => {
   try {
     console.log('🚀 DHA Digital Services Platform Starting...');
-    console.log('🇿🇦 Department of Home Affairs - Ra\'is al Khadir AI Ready');
-    console.log('💾 MemStorage initialized, AI Assistant active');
+    console.log('🇿🇦 Department of Home Affairs - Ra\'is al Khadir AI Ready - Railway Deployment');
+    console.log('💾 PostgreSQL initialized, AI Assistant active');
+
+    // CRITICAL: Ensure database schema exists before any operations
+    console.log('🏗️ Performing Railway database initialization...');
+    try {
+      const dbResult = await ensureDatabaseReady();
+      if (!dbResult.success) {
+        console.error('❌ CRITICAL: Database initialization failed:', dbResult.error);
+        console.error('❌ Cannot start server without database schema');
+        process.exit(1);
+      }
+      console.log('✅ Database schema ready for Railway deployment');
+      if (dbResult.tablesCreated && dbResult.tablesCreated.length > 0) {
+        console.log(`📊 Tables initialized: ${dbResult.tablesCreated.join(', ')}`);
+      }
+    } catch (dbError) {
+      console.error('❌ CRITICAL: Database initialization error:', dbError);
+      process.exit(1);
+    }
 
     // Run comprehensive startup health checks for production readiness
     try {
@@ -221,7 +240,7 @@ const startServer = async () => {
     }
 
     // Verify storage initialization
-    const storageStats = storage.getStats();
+    const storageStats = await storage.getStats();
     console.log(`📊 Storage initialized: ${storageStats.users} users, ${storageStats.documents} documents`);
     
     // CRITICAL: Trigger eager password migration BEFORE any user lookups
