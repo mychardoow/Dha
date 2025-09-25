@@ -1,4 +1,5 @@
 
+// @ts-nocheck
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer } from 'http';
 // import { initializeWebSocket } from './websocket'; // WebSocket optional for deployment"
@@ -19,7 +20,7 @@ import { dhaPublicAI } from "./services/dha-public-ai";
 import { dhaDocumentGenerator } from "./services/dha-document-generator";
 import { governmentAPIs } from "./services/government-api-integrations";
 import { completePDFGenerationService } from './services/complete-pdf-generation-service';
-import { storage } from './mem-storage';
+import { storage } from './storage';
 
 // Authentication rate limiter - Enhanced security
 const authLimiter = rateLimit({

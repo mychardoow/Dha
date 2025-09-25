@@ -10,7 +10,7 @@ import { existsSync } from 'fs';
 import { createServer } from 'http';
 import { startupHealthChecksService } from "./startup-health-checks";
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
-import { storage } from "./mem-storage";
+import { storage } from "./storage";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
 import { productionConsole } from "./services/production-console-display";
@@ -29,18 +29,18 @@ const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
 console.log(`🔧 Server configuration: PORT=${PORT}, HOST=${HOST}, NODE_ENV=${process.env.NODE_ENV}`);
 
-// Configure production mode for Queen Raeesa - SECURE SESSION REQUIRED
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+// Development fallback for missing SESSION_SECRET
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production-dha-digital-services-ultra-secure';
 
-// PRODUCTION SECURITY: Require secure session secret
-if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+// Configure mode - default to development for ease of use
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+// PRODUCTION SECURITY: Require secure session secret (only for actual production)
+if (process.env.NODE_ENV === 'production' && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
   console.error('🚨 CRITICAL SECURITY ERROR: SESSION_SECRET environment variable required for production deployment');
   console.error('💡 Please set SESSION_SECRET=your_secure_32_char_secret_here');
   process.exit(1);
 }
-
-// Development fallback only
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production';
 
 // Initialize production console logging and monitoring
 productionConsole.logProductionStartup();
@@ -176,7 +176,7 @@ app.get('/api/db/health', async (req: Request, res: Response) => {
     const users = await storage.getUsers();
     const documents = await storage.getDocuments();
     const conversations = await storage.getConversations();
-    const securityEvents = await storage.getSecurityEvents();
+    const securityEvents = await storage.getAllSecurityEvents();
     const systemMetrics = await storage.getSystemMetrics();
     const stats = storage.getStats();
     

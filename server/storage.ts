@@ -48,6 +48,7 @@ export interface IStorage {
   getDocuments(): Promise<Document[]>;
   getConversations(): Promise<Conversation[]>;
   getAllSecurityEvents(): Promise<SecurityEvent[]>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   getStats(): { users: number; conversations: number; messages: number; documents: number; securityEvents: number; systemMetrics: number; };
 }
 
@@ -229,6 +230,10 @@ export class MemStorage implements IStorage {
 
   async getAllSecurityEvents(): Promise<SecurityEvent[]> {
     return Array.from(this.securityEvents.values());
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
   }
 
   getStats() {
