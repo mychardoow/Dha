@@ -790,7 +790,99 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       }
     });
 
+    // Multi-AI Integration Testing Route  
+    app.post('/api/test/multi-ai', requireAuth, async (req: Request, res: Response) => {
+      try {
+        const { testType = 'all' } = req.body;
+        const results: any = {};
+
+        console.log(`[Routes] Testing multi-AI integrations: ${testType}`);
+
+        // Test Perplexity
+        if (testType === 'all' || testType === 'perplexity') {
+          try {
+            const perplexityModule = await import('./services/perplexity-integration');
+            const testResult = await perplexityModule.perplexityService.getFactualAnswer('What is the capital of South Africa?');
+            results.perplexity = {
+              status: 'success',
+              answer: testResult.answer?.substring(0, 100) + '...',
+              citations: testResult.citations?.length || 0
+            };
+            console.log(`[Routes] ✅ Perplexity test passed`);
+          } catch (error) {
+            results.perplexity = { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+            console.log(`[Routes] ❌ Perplexity test failed:`, error);
+          }
+        }
+
+        // Test Gemini
+        if (testType === 'all' || testType === 'gemini') {
+          try {
+            const geminiModule = await import('./services/gemini-integration');
+            const testResult = await geminiModule.geminiService.summarizeDocument('Test document for Queen Raeesa DHA system capabilities verification');
+            results.gemini = {
+              status: 'success',
+              summary: testResult?.substring(0, 100) + '...'
+            };
+            console.log(`[Routes] ✅ Gemini test passed`);
+          } catch (error) {
+            results.gemini = { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+            console.log(`[Routes] ❌ Gemini test failed:`, error);
+          }
+        }
+
+        // Test Anthropic
+        if (testType === 'all' || testType === 'anthropic') {
+          try {
+            const anthropicModule = await import('./services/anthropic-integration');
+            const testResult = await anthropicModule.anthropicService.generateSecureResponse('Test Queen Raeesa Ultra AI system capabilities');
+            results.anthropic = {
+              status: 'success',
+              content: testResult.content?.substring(0, 100) + '...',
+              confidence: testResult.confidence
+            };
+            console.log(`[Routes] ✅ Anthropic test passed`);
+          } catch (error) {
+            results.anthropic = { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+            console.log(`[Routes] ❌ Anthropic test failed:`, error);
+          }
+        }
+
+        // Test Workato
+        if (testType === 'all' || testType === 'workato') {
+          try {
+            const workatoModule = await import('./services/workato-integration');
+            const testResult = await workatoModule.workatoService.testConnection();
+            results.workato = {
+              status: 'success',
+              connected: testResult
+            };
+            console.log(`[Routes] ✅ Workato test passed`);
+          } catch (error) {
+            results.workato = { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+            console.log(`[Routes] ❌ Workato test failed:`, error);
+          }
+        }
+
+        res.json({
+          success: true,
+          message: 'Multi-AI integration tests completed',
+          testResults: results,
+          timestamp: new Date().toISOString()
+        });
+
+      } catch (error) {
+        console.error('[Routes] Multi-AI test error:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Multi-AI integration test failed',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
     console.log('[Routes] ✅ Queen Dashboard API endpoints registered');
+    console.log('[Routes] ✅ Multi-AI integration testing endpoint registered');
     console.log('[Routes] ✅ All routes registered successfully');
     return server;
 
