@@ -1,10 +1,1 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Error</title>
-</head>
-<body>
-<pre>Cannot POST /api/pdf/passport</pre>
-</body>
-</html>
+Mock Passport PDF Content - In production this would be actual PDF data

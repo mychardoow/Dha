@@ -592,7 +592,7 @@ app.get('*', (req, res) => {
                             <button 
                               onClick={async () => {
                                 try {
-                                  const response = await fetch(`/api/pdf/${doc.endpoint}`, {
+                                  const response = await fetch('/api/pdf/' + doc.endpoint, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ documentType: doc.endpoint })
@@ -602,15 +602,15 @@ app.get('*', (req, res) => {
                                     const url = URL.createObjectURL(blob);
                                     const a = document.createElement('a');
                                     a.href = url;
-                                    a.download = `${doc.endpoint}.pdf`;
+                                    a.download = doc.endpoint + '.pdf';
                                     a.click();
                                     URL.revokeObjectURL(url);
-                                    alert(`✅ ${doc.name} generated successfully!`);
+                                    alert('✅ ' + doc.name + ' generated successfully!');
                                   } else {
-                                    alert(`❌ Failed to generate ${doc.name}`);
+                                    alert('❌ Failed to generate ' + doc.name);
                                   }
                                 } catch (error) {
-                                  alert(`❌ Error generating ${doc.name}: ${error.message}`);
+                                  alert('❌ Error generating ' + doc.name + ': ' + error.message);
                                 }
                               }}
                               className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
@@ -676,12 +676,12 @@ app.get('*', (req, res) => {
                             <p className="text-gray-500 text-center">Ask me anything about DHA services...</p>
                           ) : (
                             messages.map((msg, idx) => (
-                              <div key={idx} className={`mb-4 ${msg.type === 'user' ? 'text-right' : 'text-left'}`}>
-                                <div className={`inline-block p-3 rounded-lg max-w-md ${
+                              <div key={idx} className={'mb-4 ' + (msg.type === 'user' ? 'text-right' : 'text-left')}>
+                                <div className={'inline-block p-3 rounded-lg max-w-md ' + (
                                   msg.type === 'user' 
                                     ? 'bg-blue-600 text-white' 
                                     : 'bg-gray-200 text-gray-900'
-                                }`}>
+                                )}>
                                   <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
                                 </div>
                               </div>
@@ -811,34 +811,6 @@ app.get('*', (req, res) => {
         </html>
       `);
     }
-    }).catch(() => {
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>DHA Emergency Portal</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-            .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .header { text-align: center; margin-bottom: 30px; }
-            .status { padding: 20px; background: #e8f5e8; border-left: 4px solid #4caf50; margin: 20px 0; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🇿🇦 Department of Home Affairs</h1>
-              <h2>Emergency Portal Active</h2>
-            </div>
-            <div class="status">
-              <h3>✅ System Status: ONLINE</h3>
-              <p>Emergency DHA services are operational</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `);
-    });
   } else {
     res.status(404).json({ error: 'API endpoint not found' });
   }
