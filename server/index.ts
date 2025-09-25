@@ -9,7 +9,7 @@ import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
 import { startupHealthChecksService } from "./startup-health-checks";
-import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
+import { initializeConfig, getConfigService } from "./middleware/provider-config";
 import { storage } from "./storage";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
@@ -19,38 +19,35 @@ import { queenBiometricSecurity } from "./services/queen-biometric-security";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Create Express app first
-const app = express();
+console.log('\n🚀 DHA Digital Services - Server Startup Beginning...');
+console.log('🇿🇦 Department of Home Affairs Digital Platform');
 
-// Use environment-based configuration
-// Set to production mode for maximum security and performance
-const PORT = parseInt(process.env.PORT || '5000', 10);
-const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
-
-console.log(`🔧 Server configuration: PORT=${PORT}, HOST=${HOST}, NODE_ENV=${process.env.NODE_ENV}`);
-
-// Development fallback for missing SESSION_SECRET
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production-dha-digital-services-ultra-secure';
-
-// Configure mode - default to development for ease of use
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
-
-// PRODUCTION SECURITY: Require secure session secret (only for actual production)
-if (process.env.NODE_ENV === 'production' && (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32)) {
-  console.error('🚨 CRITICAL SECURITY ERROR: SESSION_SECRET environment variable required for production deployment');
-  console.error('💡 Please set SESSION_SECRET=your_secure_32_char_secret_here');
+// CRITICAL: Initialize configuration service FIRST before anything else
+console.log('🔧 Initializing configuration service...');
+let configService;
+try {
+  configService = initializeConfig();
+  console.log('✅ Configuration service initialized successfully');
+} catch (error) {
+  console.error('❌ CRITICAL: Configuration service failed to initialize:', error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
-// Initialize production console logging and monitoring
-productionConsole.logProductionStartup();
-// productionConsole.startSystemMonitoring(); // Method not available in current implementation
+// Get validated configuration
+const config = configService.getConfig();
+const PORT = config.PORT;
+const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
-// Set up environment configuration based on deployment mode
-if (process.env.NODE_ENV === 'production') {
-  EnvironmentValidator.setupProductionDefaults();
-} else {
-  EnvironmentValidator.setupDevelopmentFallbacks();
+console.log(`🔧 Server configuration: PORT=${PORT}, HOST=${HOST}, NODE_ENV=${config.NODE_ENV}`);
+
+// Create Express app with validated configuration
+const app = express();
+
+// Initialize production console logging (after config is ready)
+try {
+  productionConsole.logProductionStartup();
+} catch (error) {
+  console.warn('⚠️ Production console logging failed (non-blocking):', error instanceof Error ? error.message : String(error));
 }
 
 // Create HTTP server
@@ -124,22 +121,16 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Session management with military-grade security
-const sessionSecret = process.env.SESSION_SECRET;
-if (process.env.NODE_ENV === 'production' && (!sessionSecret || sessionSecret.length < 32)) {
-  console.error('🚨 SECURITY ERROR: SESSION_SECRET must be set and at least 32 characters in production');
-  process.exit(1);
-}
-
+// Session management with military-grade security using validated config
 app.use(session({
-  secret: sessionSecret || 'dha-ultra-secure-session-secret-2024-military-grade-authentication-system',
+  secret: config.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   name: 'dha.session.id',
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: configService.isProduction(),
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: config.SESSION_MAX_AGE,
     sameSite: 'strict'
   }
 }));

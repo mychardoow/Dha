@@ -4,10 +4,11 @@ import bcryptjs from "bcryptjs";
 import { storage } from "../mem-storage";
 import type { User } from "../mem-storage";
 import { privacyProtectionService } from "../services/privacy-protection";
-import { configService, config } from "./provider-config";
+import { getConfig } from "./provider-config";
 
 // SECURITY: JWT_SECRET now comes from centralized configuration service
 // No hardcoded fallbacks - production will fail fast if not properly configured
+const config = getConfig();
 const JWT_SECRET = config.JWT_SECRET;
 
 // Type for authenticated user in request object (excludes sensitive fields)
