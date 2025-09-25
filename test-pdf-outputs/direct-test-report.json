@@ -1,0 +1,252 @@
+{
+  "summary": {
+    "totalTests": 30,
+    "successfulTests": 30,
+    "failedTests": 0,
+    "successRate": 100,
+    "avgResponseTime": 24.166666666666668
+  },
+  "results": [
+    {
+      "documentType": "smart_id_card",
+      "success": true,
+      "processingTime": 117,
+      "pdfGenerated": true,
+      "pdfSize": 4500,
+      "fileName": "smart_id_card_1758824477067.pdf"
+    },
+    {
+      "documentType": "green_barcoded_id",
+      "success": true,
+      "processingTime": 31,
+      "pdfGenerated": true,
+      "pdfSize": 4538,
+      "fileName": "green_barcoded_id_1758824477512.pdf"
+    },
+    {
+      "documentType": "temporary_id_certificate",
+      "success": true,
+      "processingTime": 15,
+      "pdfGenerated": true,
+      "pdfSize": 4547,
+      "fileName": "temporary_id_certificate_1758824477631.pdf"
+    },
+    {
+      "documentType": "birth_certificate",
+      "success": true,
+      "processingTime": 17,
+      "pdfGenerated": true,
+      "pdfSize": 4610,
+      "fileName": "birth_certificate_1758824477751.pdf"
+    },
+    {
+      "documentType": "abridged_birth_certificate",
+      "success": true,
+      "processingTime": 20,
+      "pdfGenerated": true,
+      "pdfSize": 4516,
+      "fileName": "abridged_birth_certificate_1758824477875.pdf"
+    },
+    {
+      "documentType": "late_registration_birth",
+      "success": true,
+      "processingTime": 16,
+      "pdfGenerated": true,
+      "pdfSize": 4537,
+      "fileName": "late_registration_birth_1758824477998.pdf"
+    },
+    {
+      "documentType": "marriage_certificate",
+      "success": true,
+      "processingTime": 20,
+      "pdfGenerated": true,
+      "pdfSize": 4531,
+      "fileName": "marriage_certificate_1758824478121.pdf"
+    },
+    {
+      "documentType": "marriage_register_extract",
+      "success": true,
+      "processingTime": 17,
+      "pdfGenerated": true,
+      "pdfSize": 4551,
+      "fileName": "marriage_register_extract_1758824478241.pdf"
+    },
+    {
+      "documentType": "customary_marriage_certificate",
+      "success": true,
+      "processingTime": 24,
+      "pdfGenerated": true,
+      "pdfSize": 4564,
+      "fileName": "customary_marriage_certificate_1758824478370.pdf"
+    },
+    {
+      "documentType": "death_certificate",
+      "success": true,
+      "processingTime": 41,
+      "pdfGenerated": true,
+      "pdfSize": 4524,
+      "fileName": "death_certificate_1758824478517.pdf"
+    },
+    {
+      "documentType": "death_register_extract",
+      "success": true,
+      "processingTime": 23,
+      "pdfGenerated": true,
+      "pdfSize": 4548,
+      "fileName": "death_register_extract_1758824478645.pdf"
+    },
+    {
+      "documentType": "ordinary_passport",
+      "success": true,
+      "processingTime": 20,
+      "pdfGenerated": true,
+      "pdfSize": 4610,
+      "fileName": "ordinary_passport_1758824478777.pdf"
+    },
+    {
+      "documentType": "diplomatic_passport",
+      "success": true,
+      "processingTime": 16,
+      "pdfGenerated": true,
+      "pdfSize": 4535,
+      "fileName": "diplomatic_passport_1758824478895.pdf"
+    },
+    {
+      "documentType": "official_passport",
+      "success": true,
+      "processingTime": 19,
+      "pdfGenerated": true,
+      "pdfSize": 4554,
+      "fileName": "official_passport_1758824479016.pdf"
+    },
+    {
+      "documentType": "emergency_travel_document",
+      "success": true,
+      "processingTime": 25,
+      "pdfGenerated": true,
+      "pdfSize": 4548,
+      "fileName": "emergency_travel_document_1758824479151.pdf"
+    },
+    {
+      "documentType": "study_permit",
+      "success": true,
+      "processingTime": 16,
+      "pdfGenerated": true,
+      "pdfSize": 4504,
+      "fileName": "study_permit_1758824479273.pdf"
+    },
+    {
+      "documentType": "work_permit",
+      "success": true,
+      "processingTime": 15,
+      "pdfGenerated": true,
+      "pdfSize": 4578,
+      "fileName": "work_permit_1758824479395.pdf"
+    },
+    {
+      "documentType": "business_permit",
+      "success": true,
+      "processingTime": 35,
+      "pdfGenerated": true,
+      "pdfSize": 4516,
+      "fileName": "business_permit_1758824479538.pdf"
+    },
+    {
+      "documentType": "critical_skills_visa",
+      "success": true,
+      "processingTime": 29,
+      "pdfGenerated": true,
+      "pdfSize": 4544,
+      "fileName": "critical_skills_visa_1758824479673.pdf"
+    },
+    {
+      "documentType": "permanent_residence_permit",
+      "success": true,
+      "processingTime": 21,
+      "pdfGenerated": true,
+      "pdfSize": 4541,
+      "fileName": "permanent_residence_permit_1758824479796.pdf"
+    },
+    {
+      "documentType": "asylum_seeker_permit",
+      "success": true,
+      "processingTime": 16,
+      "pdfGenerated": true,
+      "pdfSize": 4526,
+      "fileName": "asylum_seeker_permit_1758824479916.pdf"
+    },
+    {
+      "documentType": "visitor_visa",
+      "success": true,
+      "processingTime": 34,
+      "pdfGenerated": true,
+      "pdfSize": 4514,
+      "fileName": "visitor_visa_1758824480052.pdf"
+    },
+    {
+      "documentType": "transit_visa",
+      "success": true,
+      "processingTime": 17,
+      "pdfGenerated": true,
+      "pdfSize": 4519,
+      "fileName": "transit_visa_1758824480175.pdf"
+    },
+    {
+      "documentType": "medical_treatment_visa",
+      "success": true,
+      "processingTime": 13,
+      "pdfGenerated": true,
+      "pdfSize": 4545,
+      "fileName": "medical_treatment_visa_1758824480290.pdf"
+    },
+    {
+      "documentType": "relatives_visa",
+      "success": true,
+      "processingTime": 15,
+      "pdfGenerated": true,
+      "pdfSize": 4517,
+      "fileName": "relatives_visa_1758824480407.pdf"
+    },
+    {
+      "documentType": "corporate_visa",
+      "success": true,
+      "processingTime": 13,
+      "pdfGenerated": true,
+      "pdfSize": 4484,
+      "fileName": "corporate_visa_1758824480524.pdf"
+    },
+    {
+      "documentType": "treaty_visa",
+      "success": true,
+      "processingTime": 21,
+      "pdfGenerated": true,
+      "pdfSize": 4540,
+      "fileName": "treaty_visa_1758824480646.pdf"
+    },
+    {
+      "documentType": "retirement_visa",
+      "success": true,
+      "processingTime": 19,
+      "pdfGenerated": true,
+      "pdfSize": 4518,
+      "fileName": "retirement_visa_1758824480768.pdf"
+    },
+    {
+      "documentType": "radiological_report",
+      "success": true,
+      "processingTime": 20,
+      "pdfGenerated": true,
+      "pdfSize": 4541,
+      "fileName": "radiological_report_1758824480893.pdf"
+    },
+    {
+      "documentType": "medical_certificate",
+      "success": true,
+      "processingTime": 20,
+      "pdfGenerated": true,
+      "pdfSize": 4595,
+      "fileName": "medical_certificate_1758824481016.pdf"
+    }
+  ],
+  "deploymentReady": true
+}
