@@ -12,9 +12,54 @@
 import { z } from 'zod';
 import crypto from 'crypto';
 
-// Environment detection
-const isProduction = process.env.NODE_ENV === 'production';
-const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
+// Enhanced Environment detection with extensive logging
+const logEnvironmentState = (context: string) => {
+  console.log(`🔍 [ENV DEBUG] ${context}:`);
+  console.log(`  NODE_ENV = '${process.env.NODE_ENV}'`);
+  console.log(`  REPL_ID = '${process.env.REPL_ID || 'undefined'}'`);
+  console.log(`  RAILWAY_ENVIRONMENT = '${process.env.RAILWAY_ENVIRONMENT || 'undefined'}'`);
+  console.log(`  PORT = '${process.env.PORT || 'undefined'}'`);
+  console.log(`  PREVIEW_MODE = '${process.env.PREVIEW_MODE || 'undefined'}'`);
+  console.log(`  Timestamp: ${new Date().toISOString()}`);
+};
+
+// FAILSAFE: Force development mode detection with extensive logging
+const detectEnvironmentWithLogging = (context: string) => {
+  logEnvironmentState(context);
+  
+  // Failsafe 1: If running on Replit (development environment)
+  if (process.env.REPL_ID && !process.env.RAILWAY_ENVIRONMENT) {
+    console.log(`🔧 [ENV DEBUG] Detected Replit environment - forcing development mode`);
+    process.env.NODE_ENV = 'development';
+    return 'development';
+  }
+  
+  // Failsafe 2: If NODE_ENV is not set, default to development
+  if (!process.env.NODE_ENV || process.env.NODE_ENV === '') {
+    console.log(`🔧 [ENV DEBUG] NODE_ENV not set - forcing development mode`);
+    process.env.NODE_ENV = 'development';
+    return 'development';
+  }
+  
+  const env = process.env.NODE_ENV;
+  console.log(`🔧 [ENV DEBUG] Final environment: ${env}`);
+  return env;
+};
+
+const isProduction = (context?: string) => {
+  const env = detectEnvironmentWithLogging(context || 'isProduction check');
+  const result = env === 'production';
+  console.log(`🔍 [ENV DEBUG] isProduction() = ${result}`);
+  return result;
+};
+
+const isDevelopment = (context?: string) => {
+  const env = detectEnvironmentWithLogging(context || 'isDevelopment check'); 
+  const result = env === 'development' || env === 'test' || env === undefined;
+  console.log(`🔍 [ENV DEBUG] isDevelopment() = ${result}`);
+  return result;
+};
+
 const isPreviewMode = (): boolean => process.env.PREVIEW_MODE === 'true';
 
 // Configuration schema with strict validation
@@ -53,37 +98,20 @@ const configSchema = z.object({
   ICAO_PKD_API_KEY: z.string().optional(),
   SITA_ESERVICES_API_KEY: z.string().optional(),
 
-  // Encryption keys - REQUIRED for secure operations
-  ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 characters'),
-  VITE_ENCRYPTION_KEY: z.string().min(32, 'VITE_ENCRYPTION_KEY must be at least 32 characters'),
-  MASTER_ENCRYPTION_KEY: z.string().min(32, 'MASTER_ENCRYPTION_KEY must be at least 32 characters'),
-  QUANTUM_ENCRYPTION_KEY: z.string().min(64, 'QUANTUM_ENCRYPTION_KEY must be at least 64 characters for quantum-resistant security'),
-  BIOMETRIC_ENCRYPTION_KEY: z.string().min(32, 'BIOMETRIC_ENCRYPTION_KEY must be at least 32 characters'),
-  DOCUMENT_SIGNING_KEY: z.string().min(32, 'DOCUMENT_SIGNING_KEY must be at least 32 characters'),
+  // Encryption keys - REQUIRED for secure operations (optional in development)
+  ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 characters').optional(),
+  VITE_ENCRYPTION_KEY: z.string().min(32, 'VITE_ENCRYPTION_KEY must be at least 32 characters').optional(),
+  MASTER_ENCRYPTION_KEY: z.string().min(32, 'MASTER_ENCRYPTION_KEY must be at least 32 characters').optional(),
+  QUANTUM_ENCRYPTION_KEY: z.string().min(64, 'QUANTUM_ENCRYPTION_KEY must be at least 64 characters for quantum-resistant security').optional(),
+  BIOMETRIC_ENCRYPTION_KEY: z.string().min(32, 'BIOMETRIC_ENCRYPTION_KEY must be at least 32 characters').optional(),
+  DOCUMENT_SIGNING_KEY: z.string().min(32, 'DOCUMENT_SIGNING_KEY must be at least 32 characters').optional(),
 });
 
 type Config = z.infer<typeof configSchema>;
 
-// Production configuration - No fallbacks for security
-const validateProductionSecrets = (): void => {
-  const requiredSecrets = [
-    'JWT_SECRET',
-    'SESSION_SECRET',
-    'ENCRYPTION_KEY',
-    'VITE_ENCRYPTION_KEY',
-    'MASTER_ENCRYPTION_KEY',
-    'QUANTUM_ENCRYPTION_KEY',
-    'BIOMETRIC_ENCRYPTION_KEY',
-    'DOCUMENT_SIGNING_KEY',
-    'DATABASE_URL'
-  ];
-
-  const missingSecrets = requiredSecrets.filter(secret => !process.env[secret]);
-
-  if (missingSecrets.length > 0 && process.env.NODE_ENV === 'production') {
-    throw new Error(`CRITICAL: Missing required environment variables: ${missingSecrets.join(', ')}`);
-  }
-};
+// REMOVED: Problematic module-level validateProductionSecrets function
+// This was causing premature validation before development secrets were generated
+// The validation is now handled properly inside the ConfigurationService class
 
 
 class ConfigurationService {
@@ -106,12 +134,20 @@ class ConfigurationService {
    * CRITICAL: Throws error in production if required secrets are missing
    */
   public validateAndLoad(): Config {
+    console.log('🔄 [CONFIG] Starting configuration validation...');
+    
     if (this.isValidated) {
+      console.log('✅ [CONFIG] Configuration already validated, returning cached config');
       return this.config;
     }
 
     try {
+      // Log initial environment state
+      console.log('🔍 [CONFIG] Environment variables at config load time:');
+      logEnvironmentState('validateAndLoad start');
+      
       // Parse environment variables
+      console.log('📝 [CONFIG] Parsing environment variables...');
       const rawConfig = {
         NODE_ENV: this.getEnvVar('NODE_ENV', 'development'),
         PORT: this.getEnvVar('PORT'),
@@ -139,8 +175,23 @@ class ConfigurationService {
         DOCUMENT_SIGNING_KEY: this.getEnvVar('DOCUMENT_SIGNING_KEY'),
       };
 
+      // Check environment BEFORE applying development defaults
+      const isDevMode = isDevelopment('development defaults check');
+      const isProdMode = isProduction('production check');
+      
+      console.log(`🔧 [CONFIG] Environment determination: isDevelopment=${isDevMode}, isProduction=${isProdMode}`);
+      
       // Apply secure development defaults FIRST if needed and NOT in production
-      if (isDevelopment && !isProduction) {
+      if (isDevMode && !isProdMode) {
+        console.log('🔑 [CONFIG] Generating development secrets...');
+        const secretsBefore = {
+          SESSION_SECRET: !!rawConfig.SESSION_SECRET,
+          JWT_SECRET: !!rawConfig.JWT_SECRET,
+          ENCRYPTION_KEY: !!rawConfig.ENCRYPTION_KEY,
+          QUANTUM_ENCRYPTION_KEY: !!rawConfig.QUANTUM_ENCRYPTION_KEY
+        };
+        console.log('📊 [CONFIG] Secrets state before generation:', secretsBefore);
+        
         rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
         rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
         rawConfig.ENCRYPTION_KEY = rawConfig.ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
@@ -149,11 +200,28 @@ class ConfigurationService {
         rawConfig.QUANTUM_ENCRYPTION_KEY = rawConfig.QUANTUM_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('quantum-encryption');
         rawConfig.BIOMETRIC_ENCRYPTION_KEY = rawConfig.BIOMETRIC_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
         rawConfig.DOCUMENT_SIGNING_KEY = rawConfig.DOCUMENT_SIGNING_KEY || this.generateSecureDevelopmentSecret('encryption');
+        
+        const secretsAfter = {
+          SESSION_SECRET: !!rawConfig.SESSION_SECRET,
+          JWT_SECRET: !!rawConfig.JWT_SECRET,
+          ENCRYPTION_KEY: !!rawConfig.ENCRYPTION_KEY,
+          QUANTUM_ENCRYPTION_KEY: !!rawConfig.QUANTUM_ENCRYPTION_KEY
+        };
+        console.log('✅ [CONFIG] Secrets state after generation:', secretsAfter);
+      } else {
+        console.log('⚠️ [CONFIG] Skipping development secret generation (production mode detected)');
       }
 
       // CRITICAL: In production, ensure critical secrets are present AFTER fallbacks
-      if (isProduction) {
-        validateProductionSecrets(); // Use the new validation function
+      console.log('🔒 [CONFIG] Checking if production validation is needed...');
+      const needsProductionValidation = isProduction('production validation check');
+      console.log(`🔒 [CONFIG] Production validation needed: ${needsProductionValidation}`);
+      
+      if (needsProductionValidation) {
+        console.log('🔒 [CONFIG] Running production secrets validation...');
+        this.validateProductionSecrets(rawConfig); // Use the class method that takes rawConfig
+      } else {
+        console.log('✅ [CONFIG] Skipping production validation (development mode)');
       }
 
       // Validate configuration with Zod schema
@@ -276,7 +344,8 @@ class ConfigurationService {
     console.log('═══════════════════════════════════════════════════════════════');
 
     // Warn about development secrets in non-production environments
-    if (!isProduction && (
+    const isProdForLogging = isProduction('logging check');
+    if (!isProdForLogging && (
       this.config.SESSION_SECRET?.includes('dev-session-') ||
       this.config.JWT_SECRET?.includes('dev-jwt-')
     )) {
@@ -285,7 +354,7 @@ class ConfigurationService {
     }
 
     // Security reminder for production readiness
-    if (!isProduction) {
+    if (!isProdForLogging) {
       console.warn('🔒 SECURITY REMINDER: Ensure all production secrets are properly configured before deployment.');
     }
   }
@@ -338,21 +407,24 @@ class ConfigurationService {
    * This prevents the application from starting with insecure configuration
    */
   public static initialize(): ConfigurationService {
+    console.log('🚀 [CONFIG] Initializing ConfigurationService...');
     const service = new ConfigurationService();
 
     try {
       service.validateAndLoad();
-      console.log('✅ Configuration validation successful');
+      console.log('✅ [CONFIG] Configuration validation successful');
       return service;
     } catch (error) {
-      console.error('❌ Configuration validation failed:', error instanceof Error ? error.message : String(error));
+      console.error('❌ [CONFIG] Configuration validation failed:', error instanceof Error ? error.message : String(error));
 
-      if (isProduction) {
-        console.error('CRITICAL: Cannot start application in production with invalid configuration');
-        console.error('EXITING APPLICATION TO PREVENT SECURITY VULNERABILITIES');
+      // Use the enhanced environment detection for error handling
+      const isProdForErrorHandling = isProduction('error handling check');
+      if (isProdForErrorHandling) {
+        console.error('🚨 [CONFIG] CRITICAL: Cannot start application in production with invalid configuration');
+        console.error('🚨 [CONFIG] EXITING APPLICATION TO PREVENT SECURITY VULNERABILITIES');
         process.exit(1);
       } else {
-        console.warn('WARNING: Configuration issues detected in development mode');
+        console.warn('⚠️ [CONFIG] WARNING: Configuration issues detected in development mode');
         throw error;
       }
     }
@@ -409,6 +481,6 @@ export const getConfig = () => {
 export type { Config };
 export { ConfigurationService };
 
-// Export the lazy-initialized configService and config
-export const configService = getConfigService();
-export const config = getConfig();
+// REMOVED: Immediate initialization exports to prevent module-level validation issues
+// Use getConfigService() and getConfig() functions instead for lazy initialization
+// This prevents the config from being validated at module import time

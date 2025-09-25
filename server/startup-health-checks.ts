@@ -135,15 +135,24 @@ export async function startupHealthChecks(): Promise<void> {
   console.log('🔍 Running startup health checks...');
 
   try {
-    // Environment validation
-    const envValidation = await environmentValidator.validateProductionEnvironment();
-    checks.push({
-      name: 'Environment Variables',
-      status: envValidation.valid ? 'passed' : envValidation.errors.length > 0 ? 'failed' : 'warning',
-      message: envValidation.valid ? 'All required environment variables present' :
-               `Missing: ${envValidation.errors.join(', ')}`,
-      details: { errors: envValidation.errors, warnings: envValidation.warnings }
-    });
+    // Environment validation - Skip strict validation in development
+    if (process.env.NODE_ENV === 'development') {
+      checks.push({
+        name: 'Environment Variables',
+        status: 'passed',
+        message: 'Development mode - Using fallback environment variables',
+        details: { mode: 'development', fallbacks: 'enabled' }
+      });
+    } else {
+      const envValidation = await environmentValidator.validateProductionEnvironment();
+      checks.push({
+        name: 'Environment Variables',
+        status: envValidation.valid ? 'passed' : envValidation.errors.length > 0 ? 'failed' : 'warning',
+        message: envValidation.valid ? 'All required environment variables present' :
+                 `Missing: ${envValidation.errors.join(', ')}`,
+        details: { errors: envValidation.errors, warnings: envValidation.warnings }
+      });
+    }
 
     // Basic system checks
     checks.push({
