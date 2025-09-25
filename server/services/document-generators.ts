@@ -4,13 +4,11 @@
  * with exact design specifications and full security features
  */
 
-// import PDFDocument from "pdfkit"; // Temporarily disabled - missing dependency
+import { PDFDocument, rgb, StandardFonts, PageSizes } from "pdf-lib";
 import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
 import QRCode from "qrcode";
-import JsBarcode from "jsbarcode";
-import { Canvas } from "canvas";
 import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template";
 import { cryptographicSignatureService } from "./cryptographic-signature-service";
 import { SecurityFeaturesV2, MRZData } from "./security-features-v2";
@@ -41,73 +39,190 @@ import type {
   CertificateOfSouthAfricanCitizenshipData
 } from "../../shared/schema";
 
-// type PDFKit = InstanceType<typeof PDFDocument>; // Temporarily disabled
+// Modern PDF-lib based document generation
 
 /**
  * Identity Document Book Generator (Green Book)
  */
 export class IdentityDocumentBookGenerator extends BaseDocumentTemplate {
   async generateDocument(data: IdentityDocumentBookData, isPreview: boolean = false): Promise<Buffer> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const doc = new PDFDocument({
-          size: 'A4',
-          margin: 50,
-          info: {
-            Title: 'South African Identity Document Book',
-            Author: 'Department of Home Affairs - Republic of South Africa',
-            Subject: 'Official Identity Document',
-            Creator: 'DHA Document Generation System v2.0'
-          }
-        });
+    try {
+      // Create new PDF document with pdf-lib
+      const pdfDoc = await PDFDocument.create();
+      
+      // Set document metadata
+      pdfDoc.setTitle('South African Identity Document Book');
+      pdfDoc.setAuthor('Department of Home Affairs - Republic of South Africa');
+      pdfDoc.setSubject('Official Identity Document');
+      pdfDoc.setCreator('DHA Document Generation System v2.0');
+      
+      // Add a page
+      const page = pdfDoc.addPage(PageSizes.A4);
+      const { width, height } = page.getSize();
+      
+      // Get fonts
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-        const chunks: Buffer[] = [];
-        doc.on('data', (chunk) => chunks.push(chunk));
-        doc.on('error', reject);
-        doc.on('end', () => resolve(Buffer.concat(chunks)));
+      let yPos = height - 140;
 
-        // Add security background
-        this.addSecurityBackground(doc, isPreview);
+      // Add government header
+      page.drawText("DEPARTMENT OF HOME AFFAIRS", {
+        x: 50,
+        y: yPos,
+        size: 14,
+        font: boldFont,
+        color: rgb(0, 0.4, 0.2) // Government green
+      });
 
-        // Add government header
-        this.addGovernmentHeader(doc, "IDENTITY DOCUMENT", "BI-9");
+      page.drawText("REPUBLIC OF SOUTH AFRICA", {
+        x: 50,
+        y: yPos - 20,
+        size: 12,
+        font: regularFont,
+        color: rgb(0, 0.4, 0.2)
+      });
 
-        let yPos = 140;
+      yPos -= 60;
 
-        // Green Book specific styling
-        doc.save();
-        doc.rect(30, yPos, 535, 400)
-           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .lineWidth(3)
-           .stroke();
-        
-        // Green book background
-        doc.rect(35, yPos + 5, 525, 390)
-           .fill(SA_GOVERNMENT_DESIGN.colors.light_teal);
-        doc.restore();
+      // Green Book border
+      page.drawRectangle({
+        x: 30,
+        y: yPos - 400,
+        width: 535,
+        height: 400,
+        borderColor: rgb(0, 0.6, 0.3), // Green border
+        borderWidth: 3
+      });
 
-        yPos += 30;
+      // Background
+      page.drawRectangle({
+        x: 35,
+        y: yPos - 395,
+        width: 525,
+        height: 390,
+        color: rgb(0.9, 0.98, 0.95) // Light green background
+      });
 
-        // Document title in Afrikaans and English
-        doc.fontSize(16)
-           .font(SA_GOVERNMENT_DESIGN.fonts.header)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .text("IDENTITEITSDOKUMENT / IDENTITY DOCUMENT", 50, yPos, { align: "center" });
+      yPos -= 30;
 
-        yPos += 50;
+      // Document title
+      page.drawText("IDENTITEITSDOKUMENT / IDENTITY DOCUMENT", {
+        x: 50,
+        y: yPos,
+        size: 16,
+        font: boldFont,
+        color: rgb(0, 0.4, 0.2)
+      });
 
-        // Personal information fields
-        this.addBilingualField(doc, 'id_number', data.idNumber, 70, yPos);
-        yPos += 45;
+      yPos -= 50;
 
-        this.addBilingualField(doc, 'full_name', data.personal.fullName, 70, yPos);
-        yPos += 45;
+      // Personal information
+      page.drawText(`ID Number: ${data.idNumber}`, {
+        x: 70,
+        y: yPos,
+        size: 12,
+        font: regularFont,
+        color: rgb(0, 0, 0)
+      });
 
-        this.addBilingualField(doc, 'date_of_birth', this.formatSADate(data.personal.dateOfBirth), 70, yPos);
-        yPos += 45;
+      yPos -= 30;
 
-        this.addBilingualField(doc, 'place_of_birth', data.personal.placeOfBirth, 70, yPos);
-        yPos += 45;
+      page.drawText(`Full Name: ${data.personal.fullName}`, {
+        x: 70,
+        y: yPos,
+        size: 12,
+        font: regularFont,
+        color: rgb(0, 0, 0)
+      });
+
+      // Generate QR Code for verification
+      if (data.idNumber) {
+        try {
+          const qrCodeData = `DHA:ID:${data.idNumber}:${new Date().getTime()}`;
+          const qrCodeBuffer = await QRCode.toBuffer(qrCodeData, { 
+            width: 100, 
+            margin: 1,
+            color: { dark: '#000000', light: '#FFFFFF' }
+          });
+          
+          const qrImage = await pdfDoc.embedPng(qrCodeBuffer);
+          page.drawImage(qrImage, {
+            x: width - 150,
+            y: yPos - 100,
+            width: 80,
+            height: 80
+          });
+        } catch (qrError) {
+          console.warn('QR code generation failed:', qrError);
+        }
+      }
+
+      // Serialize PDF and return as buffer
+      const pdfBytes = await pdfDoc.save();
+      return Buffer.from(pdfBytes);
+      
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      throw new Error(`Failed to generate Identity Document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+}
+
+/**
+ * Passport Generator - South African Passport
+ */
+export class SouthAfricanPassportGenerator extends BaseDocumentTemplate {
+  async generateDocument(data: SouthAfricanPassportData, isPreview: boolean = false): Promise<Buffer> {
+    try {
+      const pdfDoc = await PDFDocument.create();
+      pdfDoc.setTitle('South African Passport');
+      pdfDoc.setAuthor('Department of Home Affairs - Republic of South Africa');
+      
+      const page = pdfDoc.addPage(PageSizes.A4);
+      const { width, height } = page.getSize();
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+      const regularFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+      let yPos = height - 100;
+
+      // Passport header
+      page.drawText("SOUTH AFRICAN PASSPORT", {
+        x: 50,
+        y: yPos,
+        size: 18,
+        font: boldFont,
+        color: rgb(0, 0.2, 0.6) // Dark blue
+      });
+
+      yPos -= 40;
+
+      // Passport details
+      page.drawText(`Passport Number: ${data.passportNumber}`, {
+        x: 70,
+        y: yPos,
+        size: 12,
+        font: regularFont
+      });
+
+      yPos -= 25;
+
+      page.drawText(`Full Name: ${data.personal.fullName}`, {
+        x: 70,
+        y: yPos,
+        size: 12,
+        font: regularFont
+      });
+
+      const pdfBytes = await pdfDoc.save();
+      return Buffer.from(pdfBytes);
+      
+    } catch (error) {
+      console.error('Passport generation error:', error);
+      throw new Error(`Failed to generate Passport: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+}
 
         this.addBilingualField(doc, 'nationality', data.personal.nationality, 70, yPos);
         yPos += 45;
