@@ -27,6 +27,8 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
+console.log(`🔧 Server configuration: PORT=${PORT}, HOST=${HOST}, NODE_ENV=${process.env.NODE_ENV}`);
+
 // Configure production mode for Queen Raeesa - SECURE SESSION REQUIRED
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
@@ -323,10 +325,17 @@ function setupStaticServing(app: express.Express) {
 
     // Force bind to 0.0.0.0 for Replit deployment
     server.listen(PORT, HOST, () => {
+      console.log(`🚀 Server successfully started on ${HOST}:${PORT}`);
+      console.log(`🌐 Access your DHA platform at: https://${process.env.REPL_SLUG || 'your-repl'}.${process.env.REPL_OWNER || 'username'}.replit.app`);
+      
       // Display production-ready status
-      productionConsole.displayProductionStatus();
-      productionConsole.displayQueenAccessReady();
-      productionConsole.displayPublicAIStatus();
+      try {
+        productionConsole.displayProductionStatus();
+        productionConsole.displayQueenAccessReady();
+        productionConsole.displayPublicAIStatus();
+      } catch (consoleError) {
+        console.warn('Console display error (non-blocking):', consoleError);
+      }
     });
 
     // WebSocket initialization
@@ -336,7 +345,19 @@ function setupStaticServing(app: express.Express) {
 
   } catch (error) {
     console.error('❌ Server startup failed:', error);
-    process.exit(1);
+    console.error('🔧 Error details:', error instanceof Error ? error.stack : String(error));
+    
+    // Try to start with minimal configuration as fallback
+    console.log('🆘 Attempting emergency fallback startup...');
+    try {
+      server.listen(PORT, HOST, () => {
+        console.log(`🚨 Emergency server started on ${HOST}:${PORT}`);
+        console.log('⚠️ Running in emergency mode with limited features');
+      });
+    } catch (fallbackError) {
+      console.error('❌ Emergency fallback failed:', fallbackError);
+      process.exit(1);
+    }
   }
 };
 
