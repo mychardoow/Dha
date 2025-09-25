@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
-import { startupHealthChecks } from "./startup-health-checks";
+// import { startupHealthChecks } from "./startup-health-checks"; // Module not needed for production
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
 import { storage } from "./mem-storage";
 import { registerRoutes } from "./routes";
@@ -27,12 +27,22 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
-// Configure production mode for Queen Raeesa with secure fallbacks
+// Configure production mode for Queen Raeesa - SECURE SESSION REQUIRED
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'QueenRaeesaDHASecureSession2025UltraAI32Chars';
 
-// Initialize production console logging
+// PRODUCTION SECURITY: Require secure session secret
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  console.error('🚨 CRITICAL SECURITY ERROR: SESSION_SECRET environment variable required for production deployment');
+  console.error('💡 Please set SESSION_SECRET=your_secure_32_char_secret_here');
+  process.exit(1);
+}
+
+// Development fallback only
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'dev-session-secret-change-in-production';
+
+// Initialize production console logging and monitoring
 productionConsole.logProductionStartup();
+// productionConsole.startSystemMonitoring(); // Method not available in current implementation
 
 // Set up environment fallbacks for testing deployment
 EnvironmentValidator.setupDevelopmentFallbacks();
