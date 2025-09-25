@@ -175,9 +175,20 @@ export class MemStorage {
     return [...this.securityEvents];
   }
 
-  async createSecurityEvent(eventData: Omit<SecurityEvent, 'id' | 'createdAt'>): Promise<SecurityEvent> {
+  async createSecurityEvent(eventData: any): Promise<SecurityEvent> {
+    // Support both new format (type, description) and schema format (eventType, severity)
+    const mappedData = {
+      eventType: eventData.eventType || eventData.type || 'unknown',
+      severity: eventData.severity || 'medium',
+      details: eventData.details || { description: eventData.description || 'No description' },
+      ipAddress: eventData.ipAddress || null,
+      userAgent: eventData.userAgent || null,
+      location: eventData.location || null,
+      userId: eventData.userId || null
+    };
+
     const event: SecurityEvent = {
-      ...eventData,
+      ...mappedData,
       id: (this.securityEvents.length + 1).toString(),
       createdAt: new Date()
     };

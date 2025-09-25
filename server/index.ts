@@ -13,6 +13,8 @@ import { EnvironmentValidator, environmentValidator } from "./services/environme
 import { storage } from "./mem-storage";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
+import { productionConsole } from "./services/production-console-display";
+import { queenBiometricSecurity } from "./services/queen-biometric-security";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,8 +27,12 @@ const app = express();
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
-// Force development mode for cost optimization
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+// Configure production mode for Queen Raeesa with secure fallbacks
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'QueenRaeesaDHASecureSession2025UltraAI32Chars';
+
+// Initialize production console logging
+productionConsole.logProductionStartup();
 
 // Set up environment fallbacks for testing deployment
 EnvironmentValidator.setupDevelopmentFallbacks();
@@ -298,22 +304,10 @@ function setupStaticServing(app: express.Express) {
 
     // Force bind to 0.0.0.0 for Replit deployment
     server.listen(PORT, HOST, () => {
-      console.log(`✅ Server running on ${HOST}:${PORT}`);
-      console.log(`🌐 Visit: http://${HOST}:${PORT}`);
-      console.log(`👑 Ultra AI Assistant: Available for Raeesa`);
-      console.log(`🔒 Security Level: MAXIMUM`);
-      console.log('');
-      console.log('🌟 SERVER LIVE AND DEPLOYED!');
-      console.log('==========================');
-      console.log(`🔗 Application URL: https://${process.env.REPL_SLUG || 'dha-digital-services'}.${process.env.REPL_OWNER || 'replit'}.repl.co`);
-      console.log(`📊 Health Check: /api/health`);
-      console.log(`👑 Admin Authentication: Configured`);
-      console.log(`🏛️ All 21 DHA document types ready`);
-      console.log(`🔒 Military-grade security active`);
-      console.log(`🤖 Ultra AI Assistant ready`);
-      console.log('');
-      console.log('🎉 DEPLOYMENT SUCCESSFUL - SITE IS LIVE!');
-      console.log('======================================');
+      // Display production-ready status
+      productionConsole.displayProductionStatus();
+      productionConsole.displayQueenAccessReady();
+      productionConsole.displayPublicAIStatus();
     });
 
     // WebSocket initialization
