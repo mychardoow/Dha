@@ -12,7 +12,7 @@ interface RaesaUltraProfile {
 interface AiBotSession {
   id: string;
   userId: string;
-  aiMode: 'assistant' | 'agent' | 'security_bot';
+  aiMode: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command';
   unlimitedCapabilities: boolean;
   militaryGradeAccess: boolean;
 }
@@ -23,11 +23,21 @@ interface SecurityBotOperation {
   threat_level: string;
   success_rate: number; // Fixed type
   auto_fix_applied: boolean;
+  fix_description?: string;
+  detection_method?: string;
+  response_time?: number;
+  escalation_required?: boolean;
+  operation_log?: {
+    timestamp: string;
+    action: string;
+    result: string;
+    military_grade: boolean;
+  };
 }
 
 /**
  * Ultra AI System Service
- * Implements Raeesa-only unlimited AI capabilities with 3-bot choice system
+ * Implements Raeesa-only unlimited AI capabilities with 5-bot choice system
  * Military-grade security with no content filters or restrictions
  */
 
@@ -51,6 +61,7 @@ export interface UltraAIResponse {
 export class UltraAISystemService {
   private raesaEmail = "raeesaosman48@gmail.com"; // From the screenshots
   private monitoringActive = false;
+  private monitoringInterval: NodeJS.Timeout | null = null;
   private lastBiometricScan: Date = new Date();
 
   // ===================== RAEESA-ONLY BIOMETRIC AUTHENTICATION =====================
@@ -63,7 +74,7 @@ export class UltraAISystemService {
       // Simulate biometric hash generation (in production, use actual biometric processing)
       const biometricHash = await this.generateBiometricHash(biometricData);
       
-      const profileData: InsertRaesaUltraProfile = {
+      const profileData = {
         email: this.raesaEmail,
         biometricHash,
         biometricType: 'multi_factor',
@@ -135,10 +146,21 @@ export class UltraAISystemService {
    * Start continuous biometric monitoring every 30 seconds
    */
   private startContinuousMonitoring(): void {
+    // Guard against spawning duplicate intervals
+    if (this.monitoringActive && this.monitoringInterval) {
+      console.log('🔄 Continuous biometric monitoring already active for Raeesa');
+      return;
+    }
+
+    // Clear any existing interval before starting a new one
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+    }
+
     this.monitoringActive = true;
     console.log('🔍 Continuous biometric monitoring activated for Raeesa');
     
-    setInterval(async () => {
+    this.monitoringInterval = setInterval(async () => {
       if (this.monitoringActive) {
         console.log('🔄 Continuous biometric verification - Raeesa authenticated');
         this.lastBiometricScan = new Date();
@@ -146,13 +168,13 @@ export class UltraAISystemService {
     }, 30000); // Every 30 seconds
   }
 
-  // ===================== 3-BOT CHOICE SYSTEM =====================
+  // ===================== 5-BOT CHOICE SYSTEM =====================
 
   /**
    * Initialize AI Bot Session with selected mode
    */
-  async initializeAIBot(mode: 'assistant' | 'agent' | 'security_bot', userId: string): Promise<UltraAIResponse> {
-    const sessionData: InsertAiBotSession = {
+  async initializeAIBot(mode: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command', userId: string): Promise<UltraAIResponse> {
+    const sessionData = {
       userId,
       aiMode: mode,
       sessionActive: true,
@@ -191,7 +213,7 @@ export class UltraAISystemService {
   /**
    * Get specific capabilities for each bot type
    */
-  private getBotCapabilities(mode: 'assistant' | 'agent' | 'security_bot') {
+  private getBotCapabilities(mode: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command') {
     switch (mode) {
       case 'assistant':
         return {
@@ -240,6 +262,38 @@ export class UltraAISystemService {
           restrictions: 'None - Military-grade clearance'
         };
       
+      case 'intelligence':
+        return {
+          type: 'Intelligence Ultra AI',
+          icon: '🧠',
+          capabilities: [
+            'Advanced data analysis',
+            'Pattern recognition',
+            'Predictive modeling',
+            'Intelligence gathering',
+            'Strategic planning',
+            'Risk assessment',
+            'Decision support'
+          ],
+          restrictions: 'None - Ultra intelligence clearance'
+        };
+      
+      case 'command':
+        return {
+          type: 'Command Ultra AI',
+          icon: '⚙️',
+          capabilities: [
+            'System command execution',
+            'Infrastructure control',
+            'Resource management',
+            'Operational coordination',
+            'Mission planning',
+            'Strategic oversight',
+            'Command and control'
+          ],
+          restrictions: 'None - Supreme command authority'
+        };
+      
       default:
         return {};
     }
@@ -250,8 +304,8 @@ export class UltraAISystemService {
   /**
    * Process unlimited AI command with no restrictions
    */
-  async processUnlimitedCommand(command: string, userId: string, botMode: string): Promise<UltraAIResponse> {
-    const commandData: InsertAiCommandInterface = {
+  async processUnlimitedCommand(command: string, userId: string, botMode: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command'): Promise<UltraAIResponse> {
+    const commandData = {
       userId,
       command,
       command_type: botMode,
@@ -310,7 +364,7 @@ export class UltraAISystemService {
    * Initialize Web3 integration with unlimited blockchain access
    */
   async initializeWeb3Integration(userId: string, walletAddress: string): Promise<UltraAIResponse> {
-    const web3Data: InsertWeb3Integration = {
+    const web3Data = {
       userId,
       walletAddress,
       blockchain: 'ethereum',

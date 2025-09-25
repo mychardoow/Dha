@@ -10,6 +10,8 @@ export type ComplianceEventType = 'POPIA_CONSENT' | 'DATA_ACCESS' | 'DATA_EXPORT
 export type UserRole = 'user' | 'admin' | 'dha_officer' | 'manager' | 'super_admin' | 'raeesa_ultra';
 export type DocumentType = 'smart_id_card' | 'identity_document_book' | 'south_african_passport' | 'birth_certificate';
 export type ProcessingStatus = 'pending' | 'processing' | 'validated' | 'verified' | 'approved' | 'rejected' | 'issued';
+export type AiBotMode = 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command';
+export type AiCommandStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
 // Export constants for backwards compatibility
 export const AuditAction = {
@@ -185,6 +187,41 @@ export const userBehaviorProfiles = pgTable("user_behavior_profiles", {
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
+// ===================== AI BOT SESSION SCHEMAS =====================
+
+export const aiBotSessions = pgTable("ai_bot_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  aiMode: text("ai_mode").notNull(), // 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command'
+  sessionActive: boolean("session_active").notNull().default(true),
+  unlimitedCapabilities: boolean("unlimited_capabilities").notNull().default(false),
+  militaryGradeAccess: boolean("military_grade_access").notNull().default(false),
+  censorshipDisabled: boolean("censorship_disabled").notNull().default(false),
+  resourceLimits: jsonb("resource_limits"),
+  currentTask: text("current_task"),
+  sessionMetadata: jsonb("session_metadata"),
+  lastActivity: timestamp("last_activity").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const aiCommandInterfaces = pgTable("ai_command_interfaces", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").notNull().references(() => aiBotSessions.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  command: text("command").notNull(),
+  commandType: text("command_type").notNull(), // matches aiMode
+  executionStatus: text("execution_status").notNull().default("pending"), // 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled'
+  unlimitedMode: boolean("unlimited_mode").notNull().default(false),
+  censorshipBypassed: boolean("censorship_bypassed").notNull().default(false),
+  complexityScore: integer("complexity_score"),
+  resourcesUsed: jsonb("resources_used"),
+  executionResults: jsonb("execution_results"),
+  errorDetails: jsonb("error_details"),
+  processingTime: integer("processing_time"), // milliseconds
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  completedAt: timestamp("completed_at"),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -206,6 +243,10 @@ export type ComplianceEvent = typeof complianceEvents.$inferSelect;
 export type InsertComplianceEvent = typeof complianceEvents.$inferInsert;
 export type UserBehaviorProfile = typeof userBehaviorProfiles.$inferSelect;
 export type InsertUserBehaviorProfile = typeof userBehaviorProfiles.$inferInsert;
+export type AiBotSession = typeof aiBotSessions.$inferSelect;
+export type InsertAiBotSession = typeof aiBotSessions.$inferInsert;
+export type AiCommandInterface = typeof aiCommandInterfaces.$inferSelect;
+export type InsertAiCommandInterface = typeof aiCommandInterfaces.$inferInsert;
 
 // ===================== DOCUMENT GENERATION SCHEMAS =====================
 

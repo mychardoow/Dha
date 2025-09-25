@@ -49,6 +49,20 @@ export interface IStorage {
   createUserBehaviorProfile(profile: any): Promise<any>;
   updateUserBehaviorProfile(userId: string, updates: any): Promise<any>;
 
+  // AI Bot Session methods
+  getAiBotSession(id: string): Promise<any>;
+  getUserAiBotSessions(userId: string): Promise<any[]>;
+  createAiBotSession(session: any): Promise<any>;
+  updateAiBotSession(id: string, updates: any): Promise<any>;
+  deactivateAiBotSession(id: string): Promise<any>;
+
+  // AI Command Interface methods
+  getAiCommandInterface(id: string): Promise<any>;
+  getSessionAiCommands(sessionId: string): Promise<any[]>;
+  createAiCommandInterface(command: any): Promise<any>;
+  updateAiCommandInterface(id: string, updates: any): Promise<any>;
+  getAiCommandsByStatus(status: string): Promise<any[]>;
+
   // Statistics
   getStats(): Promise<any>;
 }
@@ -70,5 +84,8 @@ export type {
   SystemMetric, InsertSystemMetric,
   AuditLog, InsertAuditLog,
   ComplianceEvent, InsertComplianceEvent,
-  UserBehaviorProfile, InsertUserBehaviorProfile
+  UserBehaviorProfile, InsertUserBehaviorProfile,
+  AiBotSession, InsertAiBotSession,
+  AiCommandInterface, InsertAiCommandInterface,
+  AiBotMode, AiCommandStatus
 } from "@shared/schema";

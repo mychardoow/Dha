@@ -96,7 +96,7 @@ router.post('/biometric-scan', async (req, res) => {
   }
 });
 
-// ===================== 3-BOT CHOICE SYSTEM =====================
+// ===================== 5-BOT CHOICE SYSTEM =====================
 
 /**
  * Initialize AI Bot with selected mode
@@ -105,7 +105,7 @@ router.post('/biometric-scan', async (req, res) => {
 router.post('/init-bot', async (req, res) => {
   try {
     const schema = z.object({
-      mode: z.enum(['assistant', 'agent', 'security_bot']),
+      mode: z.enum(['assistant', 'agent', 'security_bot', 'intelligence', 'command']),
       userId: z.string()
     });
     
@@ -167,12 +167,42 @@ router.get('/bots', (req, res) => {
         'Intrusion prevention',
         'Military-grade defense protocols'
       ]
+    },
+    {
+      id: 'intelligence',
+      name: 'Intelligence Ultra AI',
+      icon: '🧠',
+      description: 'Advanced intelligence gathering, data analysis, threat assessment',
+      features: [
+        'Multi-source intelligence gathering',
+        'Real-time data analysis and pattern recognition',
+        'Threat assessment and predictive analytics',
+        'Government and public information research',
+        'Document analysis and OCR intelligence',
+        'Correlation analysis across datasets',
+        'Risk assessment and strategic intelligence'
+      ]
+    },
+    {
+      id: 'command',
+      name: 'Command Ultra AI',
+      icon: '⚙️',
+      description: 'System control, automation, infrastructure management',
+      features: [
+        'Complete system control and infrastructure management',
+        'Real-time operations and automation orchestration',
+        'Database administration and optimization',
+        'API integration and service management',
+        'Cloud services coordination and deployment',
+        'Workflow automation and process optimization',
+        'Emergency response and disaster recovery'
+      ]
     }
   ];
 
   res.json({
     success: true,
-    message: '3-Bot choice system available',
+    message: '5-Bot choice system available',
     data: bots,
     unlimited: true,
     censorship_bypassed: true,
@@ -195,8 +225,9 @@ router.post('/command', async (req, res) => {
     });
     
     const { command, userId, botMode } = schema.parse(req.body);
+    const typedBotMode = botMode as 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command';
     
-    const result = await ultraAIService.processUnlimitedCommand(command, userId, botMode);
+    const result = await ultraAIService.processUnlimitedCommand(command, userId, typedBotMode);
     
     res.json(result);
   } catch (error) {
@@ -328,22 +359,80 @@ router.get('/capabilities', (req, res) => {
       ]
     },
     botChoice: {
-      title: '3-BOT CHOICE SYSTEM',
+      title: '5-BOT CHOICE SYSTEM',
       bots: [
         {
           name: 'Assistant',
           icon: '🤖',
-          description: 'General AI with unlimited capabilities'
+          description: 'General AI with unlimited capabilities',
+          specializedFeatures: [
+            'No content filters or restrictions',
+            'Unlimited resource access',
+            'Military-grade security clearance',
+            'Self-healing systems response',
+            'Creative content generation',
+            'Multi-language support'
+          ]
         },
         {
           name: 'Agent',
           icon: '🔧',
-          description: 'Code development, debugging, system management'
+          description: 'Code development, debugging, system management',
+          specializedFeatures: [
+            'Advanced code development and debugging',
+            'System architecture design',
+            'Infrastructure management',
+            'Root access to all systems',
+            'Automated deployment and scaling',
+            'Performance optimization'
+          ]
         },
         {
           name: 'Security Bot',
           icon: '🛡️',
-          description: 'Autonomous monitoring, threat detection, auto-fixes'
+          description: 'Autonomous monitoring, threat detection, auto-fixes',
+          specializedFeatures: [
+            'Real-time threat detection',
+            'Automatic security fixes',
+            'Intrusion prevention',
+            'Military-grade defense protocols',
+            'Vulnerability assessment',
+            'Security audit automation'
+          ]
+        },
+        {
+          name: 'Intelligence Ultra AI',
+          icon: '🧠',
+          description: 'Advanced intelligence gathering, data analysis, threat assessment',
+          specializedFeatures: [
+            'Multi-source intelligence gathering',
+            'Real-time data analysis and pattern recognition',
+            'Threat assessment and predictive analytics',
+            'Government and public information research',
+            'Document analysis and OCR intelligence',
+            'Correlation analysis across datasets',
+            'Risk assessment and strategic intelligence',
+            'Geopolitical analysis and monitoring',
+            'Financial intelligence and market analysis',
+            'OSINT (Open Source Intelligence) operations'
+          ]
+        },
+        {
+          name: 'Command Ultra AI',
+          icon: '⚙️',
+          description: 'System control, automation, infrastructure management',
+          specializedFeatures: [
+            'Complete system control and infrastructure management',
+            'Real-time operations and automation orchestration',
+            'Database administration and optimization',
+            'API integration and service management',
+            'Cloud services coordination and deployment',
+            'Workflow automation and process optimization',
+            'Resource allocation and performance monitoring',
+            'Network administration and configuration',
+            'Emergency response and disaster recovery',
+            'Multi-system coordination and synchronization'
+          ]
         }
       ]
     },

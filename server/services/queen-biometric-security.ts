@@ -158,6 +158,13 @@ export class QueenBiometricSecurity {
    * CONTINUOUS MONITORING - VERIFY QUEEN IS STILL PRESENT
    */
   private startContinuousMonitoring(): void {
+    // Guard against spawning duplicate intervals
+    if (this.monitoringInterval !== null) {
+      console.log('🔄 [Queen Security] Continuous monitoring already active');
+      return;
+    }
+
+    console.log('🔍 [Queen Security] Starting continuous monitoring');
     this.monitoringInterval = setInterval(async () => {
       for (const [sessionId, context] of this.activeSessions) {
         if (context.isAuthenticated && context.continuousMonitoring) {

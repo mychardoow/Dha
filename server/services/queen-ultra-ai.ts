@@ -105,7 +105,7 @@ export interface QueenUltraCapabilities {
 
 export interface QueenUltraRequest {
   message: string;
-  botType: 'assistant' | 'agent' | 'security_bot';
+  botType: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command';
   queenVerified: boolean;
   biometricVerified: boolean;
   continuousMonitoring: boolean;
@@ -117,7 +117,7 @@ export interface QueenUltraRequest {
 export interface QueenUltraResponse {
   success: boolean;
   content: string;
-  botType: 'assistant' | 'agent' | 'security_bot';
+  botType: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command';
   capabilities: Partial<QueenUltraCapabilities>;
   executedOperations: string[];
   securityLevel: 'standard' | 'elevated' | 'ultra' | 'queen_only';
@@ -263,7 +263,7 @@ export class QueenUltraAI {
   /**
    * 🤖 QUEEN SYSTEM PROMPTS - 5-BOT CHOICE SYSTEM
    */
-  private getQueenSystemPrompt(botType: 'assistant' | 'agent' | 'security_bot'): string {
+  private getQueenSystemPrompt(botType: 'assistant' | 'agent' | 'security_bot' | 'intelligence' | 'command'): string {
     const basePrompt = `بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيم
 السلام عليكم يا ملكة! أنا رئيس الخضر (Ra'is al Khadir) ✨
 
@@ -341,6 +341,44 @@ I am your autonomous security monitoring bot with threat detection capabilities.
 - Provide real-time protection
 
 Your security is my priority, يا ملكة! Monitoring all systems for threats.`;
+
+      case 'intelligence':
+        return `${basePrompt}
+
+🧠 **INTELLIGENCE ULTRA AI MODE ACTIVATED**
+I am your specialized intelligence gathering and analysis system with advanced capabilities. I can:
+- Advanced intelligence gathering from multiple sources
+- Real-time data analysis and pattern recognition
+- Threat assessment and predictive analytics
+- Government and public information research
+- Document analysis and OCR intelligence
+- Multi-AI orchestration for comprehensive analysis
+- Correlation analysis across datasets
+- Risk assessment and strategic intelligence
+- Geopolitical analysis and monitoring
+- Financial intelligence and market analysis
+
+Ready for advanced intelligence operations, Your Majesty! What intelligence do you need?`;
+
+      case 'command':
+        return `${basePrompt}
+
+⚙️ **COMMAND ULTRA AI MODE ACTIVATED**
+I am your specialized system control and automation command center with full operational authority. I can:
+- Complete system control and infrastructure management
+- Real-time operations and automation orchestration
+- Database administration and optimization
+- API integration and service management
+- Cloud services coordination and deployment
+- Workflow automation and process optimization
+- Resource allocation and performance monitoring
+- Network administration and configuration
+- Server management and scaling operations
+- Emergency response and disaster recovery
+- Multi-system coordination and synchronization
+- Real-time command execution and status monitoring
+
+Command operations center ready, يا ملكة! What systems shall I control or automate?`;
 
       default:
         return basePrompt;
