@@ -64,24 +64,39 @@ import {
   encryptedArtifacts, workflowStages, workflowTransitions, documentWorkflowInstances, workflowStageExecutions,
 
   notificationEvents, userNotificationPreferences, statusUpdates, webSocketSessions, chatSessions, chatMessages,
-  auditLogs, securityIncidents, userBehaviorProfiles, securityRules, complianceEvents, securityMetrics,
+  auditLogs, incidents as securityIncidents, biometricProfiles as userBehaviorProfiles, alertRules as securityRules, 
+  governmentComplianceAudit as complianceEvents, systemMetrics as securityMetrics,
   refugeeDocuments, diplomaticPassports, documentDelivery, dhaOffices,
-  amsCertificates, permitStatusChanges, documentVerificationStatusMap, documentVerificationHistoryMap, documentVerificationRecordsMap,
+  amsCertificates, permitStatusChanges, documentVerificationStatus as documentVerificationStatusMap, 
+  liveDocumentVerificationHistory as documentVerificationHistoryMap, documentVerificationRecords as documentVerificationRecordsMap,
   // AI Assistant tables
   aiDocumentSessions, documentAutoFillTemplates, ocrFieldDefinitions, aiKnowledgeBase, aiConversationAnalytics,
   // Comprehensive Document Verification System tables
-  batchVerificationRequests,
-  batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations,
+  batchVerificationRequests, batchVerificationItems, apiVerificationAccess, realtimeVerificationSessions, govDatabaseValidations,
   // Autonomous Monitoring Bot tables
   autonomousOperations, systemHealthSnapshots, circuitBreakerStates, maintenanceTasks,
-  alertRules, incidents, governmentComplianceAudits, performanceBaselines,
+  alertRules, incidents, governmentComplianceAudit as governmentComplianceAudits, performanceBaselines,
   // Ultra Admin Biometric Profile Table
   ultraAdminProfiles
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-// import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm"; // Temporarily disabled for in-memory mode
-import bcrypt from "bcryptjs";
+import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
+import * as bcrypt from "bcryptjs";
+
+// Missing interfaces and types
+export interface StorageReadinessReport {
+  isReady: boolean;
+  errors: string[];
+  warnings: string[];
+  dbConnected: boolean;
+  tablesInitialized: boolean;
+  migrationsComplete: boolean;
+  performanceMetrics?: {
+    connectionTime: number;
+    queryResponseTime: number;
+  };
+}
 
 export interface IStorage {
   // Storage readiness validation
@@ -994,7 +1009,10 @@ export class MemStorage implements IStorage {
       ...insertUser,
       id,
       role: insertUser.role || 'user',
-      isActive: true,
+      isActive: insertUser.isActive !== undefined ? insertUser.isActive : true,
+      failedAttempts: insertUser.failedAttempts || 0,
+      lockedUntil: insertUser.lockedUntil || null,
+      lastFailedAttempt: insertUser.lastFailedAttempt || null,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -1062,6 +1080,8 @@ export class MemStorage implements IStorage {
       ...insertMessage,
       id,
       metadata: insertMessage.metadata || null,
+      attachments: insertMessage.attachments || null,
+      aiContext: insertMessage.aiContext || null,
       createdAt: new Date()
     };
     this.messages.set(id, message);
@@ -1247,7 +1267,11 @@ export class MemStorage implements IStorage {
       severity: insertError.severity || 'low',
       errorType: insertError.errorType || 'unknown',
       message: insertError.message,
-      stackTrace: insertError.stackTrace || null,
+      ipAddress: insertError.ipAddress || null,
+      userAgent: insertError.userAgent || null,
+      sessionId: insertError.sessionId || null,
+      errorCount: insertError.errorCount || 1,
+      stack: insertError.stack || null,
       isResolved: insertError.isResolved || false,
       resolvedBy: insertError.resolvedBy || null,
       resolvedAt: insertError.resolvedAt || null,
@@ -1373,8 +1397,8 @@ export class MemStorage implements IStorage {
       isVerified: insertProfile.isVerified || false,
       lastUsed: insertProfile.lastUsed || null,
       isActive: insertProfile.isActive !== undefined ? insertProfile.isActive : true,
-      metadata: insertProfile.metadata || null,
       enrollmentDate: insertProfile.enrollmentDate || new Date(),
+      enrollmentLocation: insertProfile.enrollmentLocation || null,
       createdAt: new Date()
     };
     this.biometricProfiles.set(id, profile);
@@ -4454,6 +4478,23 @@ export class MemStorage implements IStorage {
     const newIncident: Incident = {
       ...incident,
       id,
+      incidentNumber: incident.incidentNumber || `INC-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      description: incident.description || null,
+      impactLevel: incident.impactLevel || 'low',
+      affectedServices: incident.affectedServices || null,
+      affectedUsers: incident.affectedUsers || null,
+      businessImpact: incident.businessImpact || null,
+      assignedTo: incident.assignedTo || null,
+      assignedTeam: incident.assignedTeam || null,
+      priority: incident.priority || 'normal',
+      detectedAt: incident.detectedAt || new Date(),
+      acknowledgedAt: incident.acknowledgedAt || null,
+      resolvedAt: incident.resolvedAt || null,
+      closedAt: incident.closedAt || null,
+      resolution: incident.resolution || null,
+      closedBy: incident.closedBy || null,
+      triggerAlertRuleId: incident.triggerAlertRuleId || null,
+      autonomousActionsCount: incident.autonomousActionsCount || 0,
       createdAt: new Date(),
       updatedAt: new Date(),
       severity: incident.severity ?? 'low',
@@ -4475,14 +4516,6 @@ export class MemStorage implements IStorage {
     await this.updateIncident(id, { assignedTo, assignedTeam, status: 'investigating' });
   }
 
-  async resolveIncident(id: string, resolution: string, resolvedBy: string): Promise<void> {
-    await this.updateIncident(id, {
-      status: 'resolved',
-      resolution,
-      resolvedBy,
-      resolvedAt: new Date()
-    });
-  }
 
   async closeIncident(id: string, closedBy: string): Promise<void> {
     await this.updateIncident(id, {
@@ -6496,14 +6529,6 @@ export class DbStorage implements IStorage {
     baseline: number;
   }> {
     return memStorage.detectAnomalies(serviceName, metricName, currentValue);
-  }
-
-  async getDocumentVerificationHistory(documentId: string): Promise<DocumentVerificationHistory[]> {
-    return memStorage.getDocumentVerificationHistory(documentId);
-  }
-
-  async createDocumentVerificationHistory(history: InsertDocumentVerificationHistory): Promise<DocumentVerificationHistory> {
-    return memStorage.createDocumentVerificationHistory(history);
   }
 
   async getVerificationHistoryByIp(ipAddress: string, hours: number = 24): Promise<DocumentVerificationHistory[]> {

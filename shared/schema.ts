@@ -1565,124 +1565,6 @@ export const dhaVerifications = pgTable("dha_verifications", {
   citizenshipCheck: check("citizenship_check", sql`${table.citizenshipStatus} IN ('citizen', 'permanent_resident', 'refugee', 'asylum_seeker')`),
 }));
 
-// DHA Applications - Permit/certificate applications with workflow states
-export const dhaApplications = pgTable("dha_applications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
-  userId: varchar("user_id").notNull().references(() => users.id),
-
-  // Application Details
-  applicationType: text("application_type").notNull(), // 'passport', 'id_document', 'visa', 'permit', 'certificate'
-  applicationSubtype: text("application_subtype"), // 'renewal', 'replacement', 'new', 'amendment'
-  applicationNumber: text("application_number").notNull().unique(),
-
-  // DHA Workflow States
-  currentState: text("current_state").notNull().default("draft"),
-  // States: draft → identity_verification → eligibility_check → background_verification → payment_processing → adjudication → approved → issued → active
-  previousStates: jsonb("previous_states"), // Array of state history with timestamps
-
-  // Application Data
-  applicationData: jsonb("application_data").notNull(), // Form data specific to application type
-  documentsSubmitted: jsonb("documents_submitted"), // References to uploaded documents
-
-  // Processing Information
-  priorityLevel: text("priority_level").notNull().default("standard"), // 'urgent', 'standard', 'low'
-  processingFee: integer("processing_fee"), // Fee in cents
-  paymentStatus: text("payment_status").default("pending"), // 'pending', 'paid', 'refunded', 'failed'
-  paymentReference: text("payment_reference"),
-
-  // DHA Officer Assignment
-  assignedOfficer: text("assigned_officer"),
-  assignedOffice: text("assigned_office"),
-  assignedDate: timestamp("assigned_date"),
-
-  // Verification Results
-  identityVerificationResult: text("identity_verification_result"), // 'passed', 'failed', 'pending'
-  eligibilityCheckResult: text("eligibility_check_result"),
-  backgroundVerificationResult: text("background_verification_result"),
-
-  // Decision Information
-  decisionStatus: text("decision_status"), // 'approved', 'rejected', 'pending'
-  decisionDate: timestamp("decision_date"),
-  decisionReason: text("decision_reason"),
-  decisionNotes: text("decision_notes"),
-
-  // Issuance Information
-  issuedDocumentNumber: text("issued_document_number"),
-  issuedDate: timestamp("issued_date"),
-  expiryDate: timestamp("expiry_date"),
-
-  // Collection Information
-  collectionMethod: text("collection_method"), // 'office', 'courier', 'post'
-  collectionOffice: text("collection_office"),
-  collectionDate: timestamp("collection_date"),
-
-  // Metadata
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
-});
-
-// DHA Verifications - Record of NPR, ABIS, SAPS, PKD verification results
-export const dhaVerifications = pgTable("dha_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  applicationId: varchar("application_id").notNull().references(() => dhaApplications.id),
-  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
-
-  // Verification Type and Service
-  verificationType: text("verification_type").notNull(), // 'npr', 'abis', 'saps_crc', 'icao_pkd', 'mrz'
-  verificationService: text("verification_service").notNull(), // External service used
-  verificationMethod: text("verification_method"), // Specific method within service
-
-  // Request Information
-  requestId: text("request_id").notNull().unique(), // External service request ID
-  requestData: jsonb("request_data"), // Data sent to external service
-  requestTimestamp: timestamp("request_timestamp").notNull().default(sql`now()`),
-
-  // Response Information
-  responseStatus: text("response_status").notNull(), // 'success', 'failed', 'timeout', 'error'
-  responseData: jsonb("response_data"), // Full response from external service
-  responseTimestamp: timestamp("response_timestamp"),
-  responseTime: integer("response_time"), // Response time in milliseconds
-
-  // Verification Results
-  verificationResult: text("verification_result"), // 'verified', 'not_verified', 'inconclusive'
-  confidenceScore: integer("confidence_score"), // 0-100 confidence in verification
-  matchScore: integer("match_score"), // 0-100 match score for biometric verifications
-
-  // NPR Specific Fields
-  nprPersonId: text("npr_person_id"), // NPR person identifier
-  nprMatchLevel: text("npr_match_level"), // 'exact', 'probable', 'possible'
-
-  // ABIS Specific Fields
-  abisMatchId: text("abis_match_id"), // ABIS match identifier
-  abisBiometricType: text("abis_biometric_type"), // 'fingerprint', 'facial', 'iris'
-
-  // SAPS Specific Fields
-  sapsReferenceNumber: text("saps_reference_number"),
-  sapsClearanceStatus: text("saps_clearance_status"), // 'clear', 'pending', 'record_found'
-
-  // PKD Specific Fields
-  pkdCertificateStatus: text("pkd_certificate_status"), // 'valid', 'invalid', 'revoked', 'expired'
-  pkdIssuerCountry: text("pkd_issuer_country"),
-  pkdCertificateSerial: text("pkd_certificate_serial"),
-
-  // MRZ Specific Fields
-  mrzValidationResult: text("mrz_validation_result"), // 'valid', 'invalid', 'checksum_failed'
-  mrzParsedData: jsonb("mrz_parsed_data"),
-
-  // Error Information
-  errorCode: text("error_code"),
-  errorMessage: text("error_message"),
-  errorDetails: jsonb("error_details"),
-
-  // Retry Information
-  retryCount: integer("retry_count").notNull().default(0),
-  lastRetryAt: timestamp("last_retry_at"),
-
-  // Metadata
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-});
-
 // DHA Audit Events - Complete audit trail of all DHA interactions
 export const dhaAuditEvents = pgTable("dha_audit_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -3192,11 +3074,23 @@ export const chatMessages = pgTable("chat_messages", {
 
 // ===================== NOTIFICATION SCHEMAS =====================
 
-// export const insertNotificationEventSchema = createInsertSchema(notificationEvents).omit({
-  id: true,
-  createdAt: true,
-  readAt: true,
-  deliveredAt: true,
+export const insertNotificationEventSchema = z.object({
+  userId: z.string().optional(),
+  category: z.string(),
+  eventType: z.string(),
+  priority: z.string(),
+  title: z.string(),
+  message: z.string(),
+  payload: z.any().optional(),
+  isRead: z.boolean().default(false),
+  isArchived: z.boolean().default(false),
+  requiresAction: z.boolean().default(false),
+  actionUrl: z.string().optional(),
+  actionLabel: z.string().optional(),
+  expiresAt: z.date().optional(),
+  relatedEntityType: z.string().optional(),
+  relatedEntityId: z.string().optional(),
+  createdBy: z.string().optional()
 });
 
 // System notification schema for admin-to-users broadcasts
@@ -3211,32 +3105,58 @@ export const criticalAlertSchema = insertNotificationEventSchema.extend({
   escalationLevel: z.enum(["low", "medium", "high", "critical"]).default("critical")
 }).omit({ userId: true, createdBy: true, priority: true }); // Priority is auto-set to critical
 
-// export const insertUserNotificationPreferencesSchema = createInsertSchema(userNotificationPreferences).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const insertUserNotificationPreferencesSchema = z.object({
+  userId: z.string(),
+  emailNotifications: z.boolean().default(true),
+  pushNotifications: z.boolean().default(true),
+  smsNotifications: z.boolean().default(false),
+  categories: z.any().default({}),
+  quietHours: z.any().optional()
 });
 
-// export const insertStatusUpdateSchema = createInsertSchema(statusUpdates).omit({
-  id: true,
-  createdAt: true,
+export const insertStatusUpdateSchema = z.object({
+  entityType: z.string(),
+  entityId: z.string(),
+  previousStatus: z.string().optional(),
+  currentStatus: z.string(),
+  statusDetails: z.any().optional(),
+  progressPercentage: z.number().optional(),
+  estimatedCompletion: z.date().optional(),
+  userId: z.string().optional(),
+  updatedBy: z.string().optional(),
+  isPublic: z.boolean().default(false)
 });
 
-// export const insertWebSocketSessionSchema = createInsertSchema(webSocketSessions).omit({
-  id: true,
-  createdAt: true,
+export const insertWebSocketSessionSchema = z.object({
+  userId: z.string(),
+  socketId: z.string(),
+  sessionData: z.any().optional(),
+  subscribedEvents: z.array(z.string()).default([]),
+  lastSeen: z.date().default(() => new Date()),
+  ipAddress: z.string().optional(),
+  userAgent: z.string().optional(),
+  isActive: z.boolean().default(true)
 });
 
-// export const insertChatSessionSchema = createInsertSchema(chatSessions).omit({
-  id: true,
-  createdAt: true,
+export const insertChatSessionSchema = z.object({
+  userId: z.string(),
+  adminId: z.string().optional(),
+  sessionType: z.string().default('support'),
+  status: z.string().default('active'),
+  priority: z.string().default('medium'),
+  subject: z.string().optional(),
+  metadata: z.any().optional(),
+  lastMessageAt: z.date().default(() => new Date()),
+  closedAt: z.date().optional()
 });
 
-// export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
-  id: true,
-  createdAt: true,
-  readAt: true,
-  editedAt: true,
+export const insertChatMessageSchema = z.object({
+  chatSessionId: z.string(),
+  senderId: z.string(),
+  messageType: z.string().default('text'),
+  content: z.string(),
+  metadata: z.any().optional(),
+  isRead: z.boolean().default(false)
 });
 
 // Update notification preferences schema
@@ -4409,6 +4329,10 @@ export const incidents = pgTable("incidents", {
   acknowledgedAt: timestamp("acknowledged_at"),
   resolvedAt: timestamp("resolved_at"),
   closedAt: timestamp("closed_at"),
+  
+  // Resolution information
+  resolution: text("resolution"),
+  closedBy: varchar("closed_by").references(() => users.id),
 
   // Autonomous actions
   triggerAlertRuleId: varchar("trigger_alert_rule_id").references(() => alertRules.id),
@@ -4473,6 +4397,7 @@ export const governmentComplianceAudit = pgTable("government_compliance_audit", 
   reportRecipients: jsonb("report_recipients"), // Who received the report
 
   // Timeline
+  scheduledDate: timestamp("scheduled_date"),
   auditStartedAt: timestamp("audit_started_at").notNull().default(sql`now()`),
   auditCompletedAt: timestamp("audit_completed_at"),
   nextAuditScheduled: timestamp("next_audit_scheduled"),
@@ -5222,6 +5147,162 @@ export const aiCommandInterfaceInsertSchema = z.object({
   resources_used: z.any().optional()
 });
 
+// ===================== TYPE EXPORTS =====================
+
+// Core User and System Types
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+
+// AI Assistant Types
+export type AiDocumentSession = typeof aiDocumentSessions.$inferSelect;
+export type InsertAiDocumentSession = typeof aiDocumentSessions.$inferInsert;
+export type DocumentAutoFillTemplate = typeof documentAutoFillTemplates.$inferSelect;
+export type InsertDocumentAutoFillTemplate = typeof documentAutoFillTemplates.$inferInsert;
+export type OcrFieldDefinition = typeof ocrFieldDefinitions.$inferSelect;
+export type InsertOcrFieldDefinition = typeof ocrFieldDefinitions.$inferInsert;
+export type AiKnowledgeBase = typeof aiKnowledgeBase.$inferSelect;
+export type InsertAiKnowledgeBase = typeof aiKnowledgeBase.$inferInsert;
+export type AiConversationAnalytics = typeof aiConversationAnalytics.$inferSelect;
+export type InsertAiConversationAnalytics = typeof aiConversationAnalytics.$inferInsert;
+
+// Document Types
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = typeof documents.$inferInsert;
+export type SecurityEvent = typeof securityEvents.$inferSelect;
+export type InsertSecurityEvent = typeof securityEvents.$inferInsert;
+export type FraudAlert = typeof fraudAlerts.$inferSelect;
+export type InsertFraudAlert = typeof fraudAlerts.$inferInsert;
+export type SystemMetric = typeof systemMetrics.$inferSelect;
+export type InsertSystemMetric = typeof systemMetrics.$inferInsert;
+export type QuantumKey = typeof quantumKeys.$inferSelect;
+export type InsertQuantumKey = typeof quantumKeys.$inferInsert;
+export type ErrorLog = typeof errorLogs.$inferSelect;
+export type InsertErrorLog = typeof errorLogs.$inferInsert;
+
+// Refugee and Diplomatic Types
+export type RefugeeDocument = typeof refugeeDocuments.$inferSelect;
+export type InsertRefugeeDocument = typeof refugeeDocuments.$inferInsert;
+export type DiplomaticPassport = typeof diplomaticPassports.$inferSelect;
+export type InsertDiplomaticPassport = typeof diplomaticPassports.$inferInsert;
+export type DocumentDelivery = typeof documentDelivery.$inferSelect;
+export type InsertDocumentDelivery = typeof documentDelivery.$inferInsert;
+
+// AMS Certificate Types
+export type AmsCertificate = typeof amsCertificates.$inferSelect;
+export type InsertAmsCertificate = typeof amsCertificates.$inferInsert;
+export type PermitStatusChange = typeof permitStatusChanges.$inferSelect;
+export type InsertPermitStatusChange = typeof permitStatusChanges.$inferInsert;
+export type DocumentVerificationStatus = typeof documentVerificationStatus.$inferSelect;
+export type InsertDocumentVerificationStatus = typeof documentVerificationStatus.$inferInsert;
+export type DocumentVerificationHistory = typeof liveDocumentVerificationHistory.$inferSelect;
+export type InsertDocumentVerificationHistory = typeof liveDocumentVerificationHistory.$inferInsert;
+
+// DHA Office Types
+export type DhaOffice = typeof dhaOffices.$inferSelect;
+export type InsertDhaOffice = typeof dhaOffices.$inferInsert;
+
+// Security and Workflow Types
+export type EncryptedArtifact = typeof encryptedArtifacts.$inferSelect;
+export type InsertEncryptedArtifact = typeof encryptedArtifacts.$inferInsert;
+export type BiometricProfile = typeof biometricProfiles.$inferSelect;
+export type InsertBiometricProfile = typeof biometricProfiles.$inferInsert;
+export type WorkflowStage = typeof workflowStages.$inferSelect;
+export type InsertWorkflowStage = typeof workflowStages.$inferInsert;
+
+// DHA Applicant and Application Types
+export type DhaApplicant = typeof dhaApplicants.$inferSelect;
+export type InsertDhaApplicant = typeof dhaApplicants.$inferInsert;
+export type DhaApplication = typeof dhaApplications.$inferSelect;
+export type InsertDhaApplication = typeof dhaApplications.$inferInsert;
+export type WorkflowTransition = typeof workflowTransitions.$inferSelect;
+export type InsertWorkflowTransition = typeof workflowTransitions.$inferInsert;
+export type DocumentWorkflowInstance = typeof documentWorkflowInstances.$inferSelect;
+export type InsertDocumentWorkflowInstance = typeof documentWorkflowInstances.$inferInsert;
+export type WorkflowStageExecution = typeof workflowStageExecutions.$inferSelect;
+export type InsertWorkflowStageExecution = typeof workflowStageExecutions.$inferInsert;
+
+// API and Certificate Types
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+export type Certificate = typeof certificates.$inferSelect;
+export type InsertCertificate = typeof certificates.$inferInsert;
+export type Permit = typeof permits.$inferSelect;
+export type InsertPermit = typeof permits.$inferInsert;
+export type DocumentTemplate = typeof documentTemplates.$inferSelect;
+export type InsertDocumentTemplate = typeof documentTemplates.$inferInsert;
+
+// Document Certificate Types
+export type BirthCertificate = typeof birthCertificates.$inferSelect;
+export type InsertBirthCertificate = typeof birthCertificates.$inferInsert;
+export type MarriageCertificate = typeof marriageCertificates.$inferSelect;
+export type InsertMarriageCertificate = typeof marriageCertificates.$inferInsert;
+export type Passport = typeof passports.$inferSelect;
+export type InsertPassport = typeof passports.$inferInsert;
+export type DeathCertificate = typeof deathCertificates.$inferSelect;
+export type InsertDeathCertificate = typeof deathCertificates.$inferInsert;
+export type WorkPermit = typeof workPermits.$inferSelect;
+export type InsertWorkPermit = typeof workPermits.$inferInsert;
+export type PermanentVisa = typeof permanentVisas.$inferSelect;
+export type InsertPermanentVisa = typeof permanentVisas.$inferInsert;
+export type IdCard = typeof idCards.$inferSelect;
+export type InsertIdCard = typeof idCards.$inferInsert;
+
+// Document Verification Types
+export type DocumentVerification = typeof documentVerifications.$inferSelect;
+export type InsertDocumentVerification = typeof documentVerifications.$inferInsert;
+export type DhaVerification = typeof dhaVerifications.$inferSelect;
+export type InsertDhaVerification = typeof dhaVerifications.$inferInsert;
+export type DhaAuditEvent = typeof dhaAuditEvents.$inferSelect;
+export type InsertDhaAuditEvent = typeof dhaAuditEvents.$inferInsert;
+export type DhaConsentRecord = typeof dhaConsentRecords.$inferSelect;
+export type InsertDhaConsentRecord = typeof dhaConsentRecords.$inferInsert;
+export type DhaBackgroundCheck = typeof dhaBackgroundChecks.$inferSelect;
+export type InsertDhaBackgroundCheck = typeof dhaBackgroundChecks.$inferInsert;
+
+// Notification Types
+export type NotificationEvent = typeof notificationEvents.$inferSelect;
+export type InsertNotificationEvent = typeof notificationEvents.$inferInsert;
+export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
+export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;
+export type StatusUpdate = typeof statusUpdates.$inferSelect;
+export type InsertStatusUpdate = typeof statusUpdates.$inferInsert;
+export type WebSocketSession = typeof webSocketSessions.$inferSelect;
+export type InsertWebSocketSession = typeof webSocketSessions.$inferInsert;
+
+// Chat Types
+export type ChatSession = typeof chatSessions.$inferSelect;
+export type InsertChatSession = typeof chatSessions.$inferInsert;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+// Document Verification Record Types  
+export type DocumentVerificationRecord = typeof documentVerificationRecords.$inferSelect;
+export type InsertDocumentVerificationRecord = typeof documentVerificationRecords.$inferInsert;
+
+// Batch Verification Types
+export type BatchVerificationRequest = typeof batchVerificationRequests.$inferSelect;
+export type InsertBatchVerificationRequest = typeof batchVerificationRequests.$inferInsert;
+export type BatchVerificationItem = typeof batchVerificationItems.$inferSelect;
+export type InsertBatchVerificationItem = typeof batchVerificationItems.$inferInsert;
+export type ApiVerificationAccess = typeof apiVerificationAccess.$inferSelect;
+export type InsertApiVerificationAccess = typeof apiVerificationAccess.$inferInsert;
+export type RealtimeVerificationSession = typeof realtimeVerificationSessions.$inferSelect;
+export type InsertRealtimeVerificationSession = typeof realtimeVerificationSessions.$inferInsert;
+export type GovDatabaseValidation = typeof govDatabaseValidations.$inferSelect;
+export type InsertGovDatabaseValidation = typeof govDatabaseValidations.$inferInsert;
+
+// Audit and Monitoring Types
+export type AuditLog = typeof auditLogs.$inferSelect;
+export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+// Ultra Admin and Security Types
+export type UltraAdminProfile = typeof ultraAdminProfiles.$inferSelect;
+export type InsertUltraAdminProfile = typeof ultraAdminProfiles.$inferInsert;
+
 // Type exports for Ultra AI System
 export type RaesaUltraProfile = typeof raesaUltraProfiles.$inferSelect;
 export type InsertRaesaUltraProfile = z.infer<typeof raesaUltraProfileInsertSchema>;
@@ -5234,3 +5315,18 @@ export type InsertAiCommandInterface = z.infer<typeof aiCommandInterfaceInsertSc
 export type BiometricMonitoring = typeof biometricMonitoring.$inferSelect;
 export type SecurityBotOperation = typeof securityBotOperations.$inferSelect;
 export type ResourceAccessControl = typeof resourceAccessControl.$inferSelect;
+
+// Security Incident and Compliance Types (additional types that may be referenced)
+export type SecurityIncident = typeof incidents.$inferSelect;
+export type InsertSecurityIncident = typeof incidents.$inferInsert;
+export type UserBehaviorProfile = typeof biometricProfiles.$inferSelect; // Aliased for compatibility
+export type InsertUserBehaviorProfile = typeof biometricProfiles.$inferInsert;
+export type SecurityRule = typeof alertRules.$inferSelect; // Aliased for compatibility
+export type InsertSecurityRule = typeof alertRules.$inferInsert;
+export type ComplianceEvent = typeof governmentComplianceAudit.$inferSelect; // Aliased for compatibility
+export type InsertComplianceEvent = typeof governmentComplianceAudit.$inferInsert;
+export type SecurityMetric = typeof systemMetrics.$inferSelect; // Aliased for compatibility
+export type InsertSecurityMetric = typeof systemMetrics.$inferInsert;
+
+// Note: Zod schemas are defined earlier in the file (lines 5053-5104)
+// The proper schema definitions exist and are used for type exports
