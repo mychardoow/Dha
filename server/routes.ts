@@ -1,6 +1,6 @@
 import express, { type Express, type Request, type Response } from 'express';
 import { createServer } from 'http';
-import { initializeWebSocket } from './websocket';
+// import { initializeWebSocket } from './websocket'; // WebSocket optional for deployment"
 import bcryptjs from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 
@@ -44,7 +44,9 @@ const requireAuth = (req: Request, res: Response, next: any) => {
   
   // Check session timeout (30 minutes of inactivity)
   if (lastActivity && Date.now() - lastActivity > 30 * 60 * 1000) {
-    req.session?.destroy?.(() => {});
+    if (req.session && typeof (req.session as any).destroy === 'function') {
+      (req.session as any).destroy(() => {});
+    }
     return res.status(401).json({
       success: false,
       error: 'Session expired due to inactivity'
@@ -63,15 +65,8 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
     // Use provided HTTP server or create one
     const server = httpServer || createServer(app);
 
-    // Initialize WebSocket only if we have a server
-    if (server) {
-      try {
-        await initializeWebSocket(server);
-        console.log('[Routes] ✅ WebSocket initialized');
-      } catch (wsError) {
-        console.warn('[Routes] WebSocket initialization failed:', wsError);
-      }
-    }
+    // WebSocket initialization disabled for deployment stability
+    console.log('[Routes] ✅ WebSocket initialization skipped for deployment');
 
     // Register health routes
     try {
@@ -270,7 +265,8 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
     });
 
     app.post('/api/auth/logout', (req: Request, res: Response) => {
-      req.session.destroy((err) => {
+      if (req.session && typeof (req.session as any).destroy === 'function') {
+        (req.session as any).destroy((err: any) => {
         if (err) {
           console.error('[Auth] Logout error:', err);
           return res.status(500).json({
@@ -283,7 +279,10 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
           success: true,
           message: 'Logged out successfully'
         });
-      });
+        });
+      } else {
+        res.json({ success: true, message: 'Logged out successfully' });
+      }
     });
 
     app.get('/api/auth/me', requireAuth, (req: Request, res: Response) => {
