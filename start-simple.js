@@ -1,8 +1,6 @@
 
-// EMERGENCY DEPLOYMENT - DHA Digital Services
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { spawn } from 'child_process';
+import { existsSync, mkdirSync, copyFileSync } from 'fs';
 
 console.log('🚀 EMERGENCY DEPLOYMENT - DHA Digital Services');
 console.log('===============================================');
@@ -12,16 +10,16 @@ console.log('🔥 FORCING DEPLOYMENT NOW...');
 // Create required directories
 const requiredDirs = ['dist', 'dist/server', 'dist/public'];
 requiredDirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
     console.log(`📁 Created directory: ${dir}`);
   }
 });
 
 // Copy essential files
 try {
-  if (fs.existsSync('client/index.html')) {
-    fs.copyFileSync('client/index.html', 'dist/public/index.html');
+  if (existsSync('client/index.html')) {
+    copyFileSync('client/index.html', 'dist/public/index.html');
     console.log('📋 Copied index.html to dist/public');
   }
 } catch (error) {
@@ -48,7 +46,7 @@ server.on('close', (code) => {
   if (code !== 0) {
     console.log('🔄 Attempting restart...');
     // Auto-restart on failure
-    require('child_process').spawn(process.argv[0], [__filename], {
+    spawn(process.argv[0], [process.argv[1]], {
       stdio: 'inherit',
       detached: true
     });
