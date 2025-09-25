@@ -57,7 +57,7 @@ export class EnvironmentValidator {
     const warnings: string[] = [];
 
     // Check critical environment variables
-    const criticalVars = ['NODE_ENV', 'PORT'];
+    const criticalVars: string[] = ['NODE_ENV', 'PORT'];
     
     for (const varName of criticalVars) {
       if (!process.env[varName]) {
@@ -66,7 +66,7 @@ export class EnvironmentValidator {
     }
 
     // Check optional variables
-    const optionalVars = ['JWT_SECRET', 'ADMIN_EMAIL'];
+    const optionalVars: string[] = ['JWT_SECRET', 'ADMIN_EMAIL'];
     
     for (const varName of optionalVars) {
       if (!process.env[varName]) {

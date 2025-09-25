@@ -269,7 +269,7 @@ ENHANCED ACTIONS AVAILABLE: generate_document, verify_identity, process_applicat
 ${queenMode ? 'QUEEN MODE: Enhanced autonomous capabilities enabled with maximum functionality while maintaining your only limit is me queen Raeesa compliance protocol.' : 'Enhanced capabilities active with standard protocols.'}`;
 
       case 'bot':
-        return `${basePrompt} You are a monitoring bot that provides system status, alerts, and automated responses. Monitor for security threats, application statuses, and system health. ${queenMode ? 'QUEEN MODE: Full monitoring access with classified information for Queen Raeesa only you will also protect and hide Queen Raeesa's identity from anyone looking while performing tasks.' : ''}`;
+        return `${basePrompt} You are a monitoring bot that provides system status, alerts, and automated responses. Monitor for security threats, application statuses, and system health. ${queenMode ? 'QUEEN MODE: Full monitoring access with classified information for Queen Raeesa only you will also protect and hide Queen Raeesa\'s identity from anyone looking while performing tasks.' : ''}`;
 
       default:
         return basePrompt;

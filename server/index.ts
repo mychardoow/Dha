@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -84,7 +84,7 @@ app.use(helmet({
 
 app.use(compression());
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
     // Allow same-origin requests and development origins
     if (process.env.NODE_ENV === 'production') {
       // In production, only allow same-origin requests
@@ -95,7 +95,7 @@ app.use(cors({
       }
     } else {
       // Development: Allow specific origins
-      const allowedOrigins = [
+      const allowedOrigins: string[] = [
         process.env.CLIENT_URL || 'https://official-raipie-officialraipie.replit.app',
         'http://localhost:3000',
         'http://localhost:5173',
@@ -146,7 +146,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Basic API routes
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
@@ -157,7 +157,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/status', (req, res) => {
+app.get('/api/status', (req: Request, res: Response) => {
   res.json({
     status: 'DHA Digital Services Active',
     services: ['Document Generation', 'AI Assistant', 'Security', 'Authentication'],
@@ -168,7 +168,7 @@ app.get('/api/status', (req, res) => {
 });
 
 // Database health check endpoint
-app.get('/api/db/health', async (req, res) => {
+app.get('/api/db/health', async (req: Request, res: Response) => {
   try {
     // Test all storage collections
     const users = await storage.getUsers();
@@ -190,7 +190,7 @@ app.get('/api/db/health', async (req, res) => {
         securityEvents: stats.securityEvents,
         systemMetrics: stats.systemMetrics
       },
-      totalRecords: Object.values(stats).reduce((a, b) => a + b, 0),
+      totalRecords: (Object.values(stats) as number[]).reduce((a: number, b: number) => a + b, 0),
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -303,7 +303,7 @@ function setupStaticServing(app: express.Express) {
   }));
 
   // Catch-all handler for SPA - MUST be last
-  app.get('*', (req, res) => {
+  app.get('*', (req: Request, res: Response) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile(join(staticPath, 'index.html'));
     } else {
@@ -313,7 +313,7 @@ function setupStaticServing(app: express.Express) {
 }
 
     // Error handling middleware
-    app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    app.use((error: any, req: Request, res: Response, next: NextFunction) => {
       console.error('Server error:', error);
       res.status(500).json({
         error: 'Internal server error',
