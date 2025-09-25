@@ -64,5 +64,19 @@ try {
   `);
 }
 
+// Add connection status function
+export function getConnectionStatus() {
+  try {
+    if (db) {
+      // Test the connection by running a simple query
+      db.prepare('SELECT 1').get();
+      return { connected: true, status: 'healthy' };
+    }
+    return { connected: false, status: 'disconnected' };
+  } catch (error) {
+    return { connected: false, status: 'error', error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 export { db };
 export default db;
