@@ -9,18 +9,96 @@
 import express from 'express';
 import { completePDFGenerationService, DHADocumentType, type DocumentData, type GenerationOptions } from '../services/complete-pdf-generation-service';
 import { storage } from '../mem-storage';
+import { requireAuth, requireRole, type AuthenticatedUser } from '../middleware/auth';
 
 const router = express.Router();
 
-// Middleware for authentication (simplified for deployment)
-const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // For development/demo purposes, allow all requests
-  // In production, implement proper authentication
+// Define document access permissions by role
+const getDocumentPermissions = (role: string): DHADocumentType[] => {
+  switch (role) {
+    case 'super_admin':
+    case 'raeesa_ultra':
+      return Object.values(DHADocumentType); // Access to all documents
+    
+    case 'admin':
+    case 'dha_officer':
+      return [
+        DHADocumentType.BIRTH_CERTIFICATE,
+        DHADocumentType.ABRIDGED_BIRTH_CERTIFICATE,
+        DHADocumentType.LATE_REGISTRATION_BIRTH,
+        DHADocumentType.DEATH_CERTIFICATE,
+        DHADocumentType.DEATH_REGISTER_EXTRACT,
+        DHADocumentType.MARRIAGE_CERTIFICATE,
+        DHADocumentType.CUSTOMARY_MARRIAGE_CERTIFICATE,
+        DHADocumentType.MARRIAGE_REGISTER_EXTRACT,
+        DHADocumentType.SMART_ID_CARD,
+        DHADocumentType.GREEN_BARCODED_ID,
+        DHADocumentType.TEMPORARY_ID_CERTIFICATE,
+        DHADocumentType.ORDINARY_PASSPORT,
+        DHADocumentType.EMERGENCY_TRAVEL_DOCUMENT,
+        DHADocumentType.WORK_PERMIT,
+        DHADocumentType.STUDY_PERMIT,
+        DHADocumentType.VISITOR_VISA,
+        DHADocumentType.BUSINESS_PERMIT,
+        DHADocumentType.PERMANENT_RESIDENCE_PERMIT,
+        DHADocumentType.ASYLUM_SEEKER_PERMIT
+      ];
+    
+    case 'manager':
+      return [
+        DHADocumentType.BIRTH_CERTIFICATE,
+        DHADocumentType.DEATH_CERTIFICATE,
+        DHADocumentType.MARRIAGE_CERTIFICATE,
+        DHADocumentType.SMART_ID_CARD,
+        DHADocumentType.ORDINARY_PASSPORT,
+        DHADocumentType.WORK_PERMIT,
+        DHADocumentType.STUDY_PERMIT,
+        DHADocumentType.VISITOR_VISA
+      ];
+      
+    case 'user':
+      return [
+        DHADocumentType.BIRTH_CERTIFICATE,
+        DHADocumentType.ABRIDGED_BIRTH_CERTIFICATE,
+        DHADocumentType.SMART_ID_CARD,
+        DHADocumentType.TEMPORARY_ID_CERTIFICATE,
+        DHADocumentType.ORDINARY_PASSPORT
+      ];
+      
+    default:
+      return []; // No access for unknown roles
+  }
+};
+
+// Middleware to check document access authorization
+const requireDocumentAccess = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const user = req.user as AuthenticatedUser;
+  const { documentType } = req.params;
+  
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+      message: 'Please authenticate before accessing document generation'
+    });
+  }
+
+  const allowedDocuments = getDocumentPermissions(user.role);
+  
+  if (!allowedDocuments.includes(documentType as DHADocumentType)) {
+    return res.status(403).json({
+      success: false,
+      error: 'Insufficient permissions',
+      message: `User role '${user.role}' does not have access to generate '${documentType}' documents`,
+      allowedDocuments: allowedDocuments
+    });
+  }
+
   next();
 };
 
-// Generate any DHA document
-router.post('/api/pdf/generate/:documentType', requireAuth, async (req, res) => {
+// Generate any DHA document - with authentication and authorization
+router.post('/api/pdf/generate/:documentType', requireAuth, requireDocumentAccess, async (req, res) => {
   try {
     const { documentType } = req.params;
     const documentData = req.body as DocumentData;
@@ -36,13 +114,13 @@ router.post('/api/pdf/generate/:documentType', requireAuth, async (req, res) => 
 
     // Set default values for required fields
     const completeData: DocumentData = {
+      ...documentData,
       fullName: documentData.fullName || 'Test User',
       dateOfBirth: documentData.dateOfBirth || '1990-01-01',
       gender: documentData.gender || 'M',
       nationality: documentData.nationality || 'South African',
-      issuanceDate: new Date().toISOString().split('T')[0],
-      issuingOffice: 'DHA Digital Services',
-      ...documentData
+      issuanceDate: documentData.issuanceDate || new Date().toISOString().split('T')[0],
+      issuingOffice: documentData.issuingOffice || 'DHA Digital Services'
     };
 
     const options: GenerationOptions = {
@@ -55,6 +133,19 @@ router.post('/api/pdf/generate/:documentType', requireAuth, async (req, res) => 
     };
 
     const result = await completePDFGenerationService.generateDocument(completeData, options);
+
+    // Audit log document generation
+    const user = req.user as AuthenticatedUser;
+    await storage.createSecurityEvent({
+      eventType: 'DOCUMENT_GENERATED',
+      description: `User ${user.username} generated ${documentType} document`,
+      userId: user.id,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || '',
+      details: { documentType, controlNumber: result.controlNumber },
+      severity: 'low',
+      timestamp: new Date()
+    });
 
     if (result.success && result.pdfBuffer) {
       res.setHeader('Content-Type', 'application/pdf');
@@ -79,55 +170,64 @@ router.post('/api/pdf/generate/:documentType', requireAuth, async (req, res) => 
   }
 });
 
+// Document type mapping for legacy endpoints
+const documentTypeMap: Record<string, DHADocumentType> = {
+  'birth-certificate': DHADocumentType.BIRTH_CERTIFICATE,
+  'work-permit': DHADocumentType.WORK_PERMIT,
+  'passport': DHADocumentType.ORDINARY_PASSPORT,
+  'visitor-visa': DHADocumentType.VISITOR_VISA,
+  'study-permit': DHADocumentType.STUDY_PERMIT,
+  'business-permit': DHADocumentType.BUSINESS_PERMIT,
+  'medical-certificate': DHADocumentType.MEDICAL_CERTIFICATE,
+  'radiological-report': DHADocumentType.RADIOLOGICAL_REPORT,
+  'asylum-visa': DHADocumentType.ASYLUM_SEEKER_PERMIT,
+  'residence-permit': DHADocumentType.PERMANENT_RESIDENCE_PERMIT,
+  'critical-skills': DHADocumentType.CRITICAL_SKILLS_VISA,
+  'business-visa': DHADocumentType.BUSINESS_PERMIT,
+  'retirement-visa': DHADocumentType.RETIREMENT_VISA,
+  'relatives-visa': DHADocumentType.RELATIVES_VISA,
+  'corporate-visa': DHADocumentType.CORPORATE_VISA,
+  'temporary-residence': DHADocumentType.PERMANENT_RESIDENCE_PERMIT,
+  'general-work': DHADocumentType.WORK_PERMIT,
+  'transit-visa': DHADocumentType.TRANSIT_VISA,
+  'medical-treatment-visa': DHADocumentType.MEDICAL_TREATMENT_VISA
+};
+
+// Authorization middleware for legacy endpoints
+const requireLegacyDocumentAccess = (endpoint: string) => {
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const user = req.user as AuthenticatedUser;
+    const documentType = documentTypeMap[endpoint];
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'Please authenticate before accessing document generation'
+      });
+    }
+
+    const allowedDocuments = getDocumentPermissions(user.role);
+    
+    if (!allowedDocuments.includes(documentType)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+        message: `User role '${user.role}' does not have access to generate '${endpoint}' documents`,
+        allowedDocuments: allowedDocuments
+      });
+    }
+
+    next();
+  };
+};
+
 // Specific document type endpoints for backward compatibility
-const documentEndpoints = [
-  'birth-certificate',
-  'work-permit', 
-  'passport',
-  'visitor-visa',
-  'study-permit',
-  'business-permit',
-  'medical-certificate',
-  'radiological-report',
-  'asylum-visa',
-  'residence-permit',
-  'critical-skills',
-  'business-visa',
-  'retirement-visa',
-  'relatives-visa',
-  'corporate-visa',
-  'temporary-residence',
-  'general-work',
-  'transit-visa',
-  'medical-treatment-visa'
-];
+const documentEndpoints = Object.keys(documentTypeMap);
 
 documentEndpoints.forEach(endpoint => {
-  router.post(`/api/pdf/${endpoint}`, requireAuth, async (req, res) => {
+  router.post(`/api/pdf/${endpoint}`, requireAuth, requireLegacyDocumentAccess(endpoint), async (req, res) => {
     try {
-      // Map endpoint to document type
-      const documentTypeMap: Record<string, DHADocumentType> = {
-        'birth-certificate': DHADocumentType.BIRTH_CERTIFICATE,
-        'work-permit': DHADocumentType.WORK_PERMIT,
-        'passport': DHADocumentType.ORDINARY_PASSPORT,
-        'visitor-visa': DHADocumentType.VISITOR_VISA,
-        'study-permit': DHADocumentType.STUDY_PERMIT,
-        'business-permit': DHADocumentType.BUSINESS_PERMIT,
-        'medical-certificate': DHADocumentType.MEDICAL_CERTIFICATE,
-        'radiological-report': DHADocumentType.RADIOLOGICAL_REPORT,
-        'asylum-visa': DHADocumentType.ASYLUM_SEEKER_PERMIT,
-        'residence-permit': DHADocumentType.PERMANENT_RESIDENCE_PERMIT,
-        'critical-skills': DHADocumentType.CRITICAL_SKILLS_VISA,
-        'business-visa': DHADocumentType.BUSINESS_PERMIT,
-        'retirement-visa': DHADocumentType.RETIREMENT_VISA,
-        'relatives-visa': DHADocumentType.RELATIVES_VISA,
-        'corporate-visa': DHADocumentType.CORPORATE_VISA,
-        'temporary-residence': DHADocumentType.PERMANENT_RESIDENCE_PERMIT,
-        'general-work': DHADocumentType.WORK_PERMIT,
-        'transit-visa': DHADocumentType.TRANSIT_VISA,
-        'medical-treatment-visa': DHADocumentType.MEDICAL_TREATMENT_VISA
-      };
-
       const documentType = documentTypeMap[endpoint] || DHADocumentType.BIRTH_CERTIFICATE;
       
       // Extract data from different possible structures
@@ -166,6 +266,19 @@ documentEndpoints.forEach(endpoint => {
       };
 
       const result = await completePDFGenerationService.generateDocument(documentData, options);
+
+      // Audit log document generation for legacy endpoints
+      const user = req.user as AuthenticatedUser;
+      await storage.createSecurityEvent({
+        eventType: 'DOCUMENT_GENERATED',
+        description: `User ${user.username} generated ${endpoint} document via legacy endpoint`,
+        userId: user.id,
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'] || '',
+        details: { documentType, endpoint, controlNumber: result.controlNumber },
+        severity: 'low',
+        timestamp: new Date()
+      });
 
       if (result.success && result.pdfBuffer) {
         res.setHeader('Content-Type', 'application/pdf');
