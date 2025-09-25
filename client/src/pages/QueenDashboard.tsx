@@ -21,7 +21,7 @@ interface QueenCapabilities {
   militaryAiAssistant: boolean;
   biometricVerifiedAccess: boolean;
   maximumCapabilities: boolean;
-  web3Integration: boolean;
+  web23Integration: boolean;
   completeUserAuthority: boolean;
 }
 
@@ -163,7 +163,7 @@ export default function QueenDashboard() {
                       <StatusIndicator status={capabilities.militaryAiAssistant} label="Military AI Assistant" />
                       <StatusIndicator status={capabilities.biometricVerifiedAccess} label="Biometric Access" />
                       <StatusIndicator status={capabilities.maximumCapabilities} label="Maximum Capabilities" />
-                      <StatusIndicator status={capabilities.web3Integration} label="Web3 Integration" />
+                      <StatusIndicator status={capabilities.web23Integration} label="Web2,3 Integration" />
                       <StatusIndicator status={capabilities.completeUserAuthority} label="Complete Authority" />
                     </div>
                   ) : (
