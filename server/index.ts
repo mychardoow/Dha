@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { createServer } from 'http';
-// import { startupHealthChecks } from "./startup-health-checks"; // Module not needed for production
+import { startupHealthChecksService } from "./startup-health-checks";
 import { EnvironmentValidator, environmentValidator } from "./services/environment-validator";
 import { storage } from "./mem-storage";
 import { registerRoutes } from "./routes";
@@ -23,7 +23,7 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Use environment-based configuration
-// Set to development mode for cost optimization
+// Set to production mode for maximum security and performance
 const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0'; // Bind to all interfaces for Replit compatibility
 
@@ -44,8 +44,12 @@ process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'dev-session-secret-c
 productionConsole.logProductionStartup();
 // productionConsole.startSystemMonitoring(); // Method not available in current implementation
 
-// Set up environment fallbacks for testing deployment
-EnvironmentValidator.setupDevelopmentFallbacks();
+// Set up environment configuration based on deployment mode
+if (process.env.NODE_ENV === 'production') {
+  EnvironmentValidator.setupProductionDefaults();
+} else {
+  EnvironmentValidator.setupDevelopmentFallbacks();
+}
 
 // Create HTTP server
 const server = createServer(app);
@@ -210,10 +214,15 @@ const startServer = async () => {
     console.log('🇿🇦 Department of Home Affairs - Ra\'is al Khadir AI Ready');
     console.log('💾 MemStorage initialized, AI Assistant active');
 
-    // Run startup health checks (non-blocking for testing)
+    // Run comprehensive startup health checks for production readiness
     try {
-      await startupHealthChecks();
-      console.log('✅ Startup health checks completed successfully');
+      const healthResult = await startupHealthChecksService.performStartupValidation();
+      if (healthResult.success) {
+        console.log('✅ Startup health checks completed successfully');
+        console.log(`📊 Health Summary: ${healthResult.passedChecks}/${healthResult.totalChecks} checks passed`);
+      } else {
+        console.warn('⚠️ Some startup health checks failed, but system will continue:', healthResult.failedChecks);
+      }
     } catch (healthError) {
       console.warn('⚠️ Startup health checks failed (non-blocking):', healthError);
     }
