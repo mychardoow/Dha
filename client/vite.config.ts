@@ -1,37 +1,24 @@
-
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  root: path.resolve(__dirname),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  build: {
-    outDir: "dist",
-    sourcemap: false,
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, "index.html"),
-      },
-      output: {
-        manualChunks: {
-          vendor: ["react", "react-dom"],
-          ui: ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
-        },
-      },
+      '@': path.resolve(__dirname, './src'),
     },
   },
   server: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     port: 5173,
-    strictPort: true,
   },
-  preview: {
-    host: "0.0.0.0",
-    port: 4173,
+  build: {
+    outDir: '../dist/public',
+    emptyOutDir: true,
+    rollupOptions: {
+      input: path.resolve(__dirname, 'index.html')
+    }
   },
 });

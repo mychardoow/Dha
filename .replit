@@ -67,7 +67,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "Enhanced Force Deploy"
+runButton = "Deploy Build"
 
 [[workflows.workflow]]
 name = "Project"
@@ -217,6 +217,137 @@ args = "echo \"\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "# Start production"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Emergency Deploy"
+author = 47957021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🆘 EMERGENCY DEPLOYMENT\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "rm -rf node_modules dist"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mkdir -p dist/public"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cp -r client/index.html dist/public/"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "vite build --config vite.config.ts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "tsc -p tsconfig.server.json"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Deploy Build"
+author = 47957021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting DHA Platform Build...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"📦 Building client...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm run build:client"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔧 Building server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build:server"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Starting production server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Emergency Deploy"
+author = 47957021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🆘 EMERGENCY DEPLOYMENT\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "rm -rf node_modules dist"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mkdir -p dist/public"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cp -r client/index.html dist/public/"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "vite build --config vite.config.ts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "tsc -p tsconfig.server.json"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
