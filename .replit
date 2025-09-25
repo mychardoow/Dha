@@ -67,7 +67,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "DHA Production Deploy"
+runButton = "EMERGENCY DEPLOY NOW"
 
 [[workflows.workflow]]
 name = "Project"
@@ -434,3 +434,44 @@ args = "echo \"🚀 Starting with tsx (no compilation)...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=5000 npx tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "EMERGENCY DEPLOY NOW"
+author = 47957021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🆘 EMERGENCY DEPLOYMENT - NO BUILD REQUIRED\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"============================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔥 BYPASSING ALL BUILD ISSUES\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"👑 QUEEN RAEESA DHA SERVICES\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 STARTING EMERGENCY SERVER...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"

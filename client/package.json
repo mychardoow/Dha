@@ -3,9 +3,9 @@
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "build": "./node_modules/.bin/vite build",
-    "dev": "./node_modules/.bin/vite",
-    "preview": "./node_modules/.bin/vite preview"
+    "build": "vite build",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
