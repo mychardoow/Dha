@@ -5251,49 +5251,9 @@ export type InsertPermanentVisa = typeof permanentVisas.$inferInsert;
 export type IdCard = typeof idCards.$inferSelect;
 export type InsertIdCard = typeof idCards.$inferInsert;
 
-// Document Verification Types
-export type DocumentVerification = typeof documentVerifications.$inferSelect;
-export type InsertDocumentVerification = typeof documentVerifications.$inferInsert;
-export type DhaVerification = typeof dhaVerifications.$inferSelect;
-export type InsertDhaVerification = typeof dhaVerifications.$inferInsert;
-export type DhaAuditEvent = typeof dhaAuditEvents.$inferSelect;
-export type InsertDhaAuditEvent = typeof dhaAuditEvents.$inferInsert;
-export type DhaConsentRecord = typeof dhaConsentRecords.$inferSelect;
-export type InsertDhaConsentRecord = typeof dhaConsentRecords.$inferInsert;
-export type DhaBackgroundCheck = typeof dhaBackgroundChecks.$inferSelect;
-export type InsertDhaBackgroundCheck = typeof dhaBackgroundChecks.$inferInsert;
+// Document Verification Types (already exported above - removing duplicates)
 
-// Notification Types
-export type NotificationEvent = typeof notificationEvents.$inferSelect;
-export type InsertNotificationEvent = typeof notificationEvents.$inferInsert;
-export type UserNotificationPreferences = typeof userNotificationPreferences.$inferSelect;
-export type InsertUserNotificationPreferences = typeof userNotificationPreferences.$inferInsert;
-export type StatusUpdate = typeof statusUpdates.$inferSelect;
-export type InsertStatusUpdate = typeof statusUpdates.$inferInsert;
-export type WebSocketSession = typeof webSocketSessions.$inferSelect;
-export type InsertWebSocketSession = typeof webSocketSessions.$inferInsert;
-
-// Chat Types
-export type ChatSession = typeof chatSessions.$inferSelect;
-export type InsertChatSession = typeof chatSessions.$inferInsert;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = typeof chatMessages.$inferInsert;
-
-// Document Verification Record Types  
-export type DocumentVerificationRecord = typeof documentVerificationRecords.$inferSelect;
-export type InsertDocumentVerificationRecord = typeof documentVerificationRecords.$inferInsert;
-
-// Batch Verification Types
-export type BatchVerificationRequest = typeof batchVerificationRequests.$inferSelect;
-export type InsertBatchVerificationRequest = typeof batchVerificationRequests.$inferInsert;
-export type BatchVerificationItem = typeof batchVerificationItems.$inferSelect;
-export type InsertBatchVerificationItem = typeof batchVerificationItems.$inferInsert;
-export type ApiVerificationAccess = typeof apiVerificationAccess.$inferSelect;
-export type InsertApiVerificationAccess = typeof apiVerificationAccess.$inferInsert;
-export type RealtimeVerificationSession = typeof realtimeVerificationSessions.$inferSelect;
-export type InsertRealtimeVerificationSession = typeof realtimeVerificationSessions.$inferInsert;
-export type GovDatabaseValidation = typeof govDatabaseValidations.$inferSelect;
-export type InsertGovDatabaseValidation = typeof govDatabaseValidations.$inferInsert;
+// Additional verification types (removed undefined table references)
 
 // Audit and Monitoring Types
 export type AuditLog = typeof auditLogs.$inferSelect;
