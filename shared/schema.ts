@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { sqliteTable, text, integer, real, blob } from "drizzle-orm/sqlite-core";
+import { varchar, timestamp, boolean, jsonb, decimal, check } from "drizzle-orm/sqlite-core";
 // import { createInsertSchema } from "drizzle-zod"; // Temporarily disabled due to version conflict
 import { z } from "zod";
 
@@ -76,19 +77,19 @@ export type Country = 'ZA' | 'ZW' | 'MZ' | 'BW' | 'LS' | 'SZ' | 'NA' | 'MW' | 'Z
 export type Province = 'Eastern Cape' | 'Free State' | 'Gauteng' | 'KwaZulu-Natal' | 'Limpopo' | 'Mpumalanga' | 'Northern Cape' | 'North West' | 'Western Cape';
 
 export const users = sqliteTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: text("id").primaryKey().default(sql`hex(randomblob(16))`),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
-  role: userRoleEnum("role").notNull().default("user"),
-  isActive: boolean("is_active").notNull().default(true),
+  role: text("role").notNull().default("user"),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
 
   // Account lockout fields for brute force protection
   failedAttempts: integer("failed_attempts").notNull().default(0),
-  lockedUntil: timestamp("locked_until"),
-  lastFailedAttempt: timestamp("last_failed_attempt"),
+  lockedUntil: text("locked_until"),
+  lastFailedAttempt: text("last_failed_attempt"),
 
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  createdAt: text("created_at").notNull().default(sql`datetime('now')`),
 });
 
 export const conversations = pgTable("conversations", {

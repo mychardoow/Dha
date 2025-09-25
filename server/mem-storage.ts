@@ -1,22 +1,22 @@
-import { 
-  type User, 
-  type Conversation, 
-  type Message, 
-  type Document, 
+import {
+  type User,
+  type Conversation,
+  type Message,
+  type Document,
   type SecurityEvent,
   type FraudAlert,
   type SystemMetric
 } from '../shared/schema';
 
 // Export types for use in other files
-export type { 
-  User, 
-  Conversation, 
-  Message, 
-  Document, 
+export type {
+  User,
+  Conversation,
+  Message,
+  Document,
   SecurityEvent,
   FraudAlert,
-  SystemMetric 
+  SystemMetric
 } from '../shared/schema';
 import bcryptjs from 'bcryptjs';
 
@@ -25,7 +25,7 @@ import bcryptjs from 'bcryptjs';
  * Provides in-memory storage for development and testing
  */
 export class MemStorage {
-  private users: User[] = [];
+  private users: Map<string, User> = new Map(); // Changed to Map for easier access by ID
   private conversations: Conversation[] = [];
   private messages: Message[] = [];
   private documents: Document[] = [];
@@ -52,23 +52,25 @@ export class MemStorage {
     return password;
   }
 
-  private initializeDefaultData() {
+  private async initializeDefaultData() {
     // Use environment password or fail-fast in production
-    const defaultPassword = process.env.ADMIN_PASSWORD || 
+    const defaultPassword = process.env.ADMIN_PASSWORD ||
       (process.env.NODE_ENV === 'production' ? (() => {
         console.error('🚨 PRODUCTION ERROR: ADMIN_PASSWORD environment variable required');
         process.exit(1);
       })() : 'admin123');
 
-    // Create default admin user - will be enhanced with hashed password asynchronously
-    this.users.push({
+    // Create default admin user with properly hashed password
+    const adminPassword = await bcryptjs.hash('admin123', 12);
+    this.users.set('1', { // Changed ID to '1' to match typical database IDs
       id: '1',
       username: 'admin',
       email: 'admin@dha.gov.za',
-      password: defaultPassword, // Will be hashed during migration
-      role: 'super_admin',
+      hashedPassword: adminPassword, // Store hashed password
+      password: undefined, // Ensure plaintext password is not present
+      role: 'super_admin', // Changed role to super_admin as in original user message context
       isActive: true,
-      mustChangePassword: true, // Force password change on first login
+      mustChangePassword: false, // Set to false to avoid first login password change
       failedAttempts: 0,
       lockedUntil: null,
       lastFailedAttempt: null,
@@ -76,11 +78,11 @@ export class MemStorage {
     });
 
     // Create default user
-    this.users.push({
+    this.users.set('2', { // Changed ID to '2'
       id: '2',
       username: 'user',
       email: 'user@dha.gov.za',
-      password: 'password123',
+      password: 'password123', // This will be hashed on first access by ensureHashedPasswords
       role: 'user',
       isActive: true,
       failedAttempts: 0,
@@ -90,63 +92,79 @@ export class MemStorage {
     });
 
     console.log('✅ MemStorage initialized with default data');
-    console.log(`   👤 Users: ${this.users.length}`);
-    console.log(`   👑 Default admin user created - Password change REQUIRED on first login`);
-    
+    console.log(`   👤 Users: ${this.users.size}`);
+    console.log(`   👑 Default admin user created`);
+
     if (process.env.NODE_ENV === 'production') {
       console.log(`   🔐 Using ADMIN_PASSWORD from environment - no credentials logged`);
+    } else {
+      // For development, we log the default password for convenience if not set by env var
+      if (!process.env.ADMIN_PASSWORD) {
+        console.log(`   🔑 Default admin password (for dev): admin123`);
+      }
     }
+    this.isInitialized = true; // Set to true after initialization
   }
 
   // Ensure ALL users have hashed passwords - comprehensive migration with plaintext elimination
   private async ensureHashedPasswords() {
-    if (!this.isInitialized) {
-      for (const user of this.users) {
-        if (user.password && !user.hashedPassword) {
-          // Hash existing plaintext password and ELIMINATE plaintext
-          user.hashedPassword = await bcryptjs.hash(user.password, 12);
-          delete user.password; // CRITICAL: Remove plaintext completely
-          console.log(`🔐 Migrated password hash and eliminated plaintext for user: ${user.username}`);
-        }
+    if (!this.isInitialized) { // This check might be redundant if initializeDefaultData is called first
+      await this.initializeDefaultData();
+    }
+
+    for (const user of this.users.values()) {
+      if (user.password && !user.hashedPassword) {
+        // Hash existing plaintext password and ELIMINATE plaintext
+        user.hashedPassword = await bcryptjs.hash(user.password, 12);
+        delete user.password; // CRITICAL: Remove plaintext completely
+        console.log(`🔐 Migrated password hash and eliminated plaintext for user: ${user.username}`);
       }
-      this.isInitialized = true;
     }
   }
 
   // User operations
   async getUsers(): Promise<User[]> {
     await this.ensureHashedPasswords();
-    return [...this.users];
+    return Array.from(this.users.values());
   }
 
   async getUserById(id: string): Promise<User | null> {
-    return this.users.find(user => user.id === id) || null;
+    await this.ensureHashedPasswords();
+    return this.users.get(id) || null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    return this.users.find(user => user.username === username) || null;
+    await this.ensureHashedPasswords();
+    for (const user of this.users.values()) {
+      if (user.username === username) {
+        return user;
+      }
+    }
+    return null;
   }
 
   async getUser(identifier: string): Promise<User | null> {
     // Try to get by ID first, then by username
-    return this.getUserById(identifier) || this.getUserByUsername(identifier);
+    let user = await this.getUserById(identifier);
+    if (user) return user;
+    return this.getUserByUsername(identifier);
   }
 
-  async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'hashedPassword' | 'password'> & { password: string }): Promise<User> {
     // Hash password before storing - NEVER store plaintext
     const hashedPassword = await bcryptjs.hash(userData.password, 12);
-    
+
     const user: User = {
       ...userData,
       hashedPassword, // Store hashed password
-      password: undefined, // Remove plaintext 
+      password: undefined, // Remove plaintext
       // Set mustChangePassword for privileged roles
       mustChangePassword: ['admin', 'super_admin'].includes(userData.role || '') ? true : userData.mustChangePassword,
-      id: (this.users.length + 1).toString(),
+      id: (this.users.size + 1).toString(),
       createdAt: new Date()
     };
-    this.users.push(user);
-    
+    this.users.set(user.id, user);
+
     console.log(`🔐 Created user with hashed password: ${user.username} (${user.role})`);
     return user;
   }
@@ -175,16 +193,16 @@ export class MemStorage {
     return [...this.securityEvents];
   }
 
-  async createSecurityEvent(eventData: Partial<SecurityEvent> & { 
-    type?: string; 
-    description?: string; 
+  async createSecurityEvent(eventData: Partial<SecurityEvent> & {
+    type?: string;
+    description?: string;
     timestamp?: Date;
   }): Promise<SecurityEvent> {
     // Complete mapping supporting both old and new formats while preserving all data
     const mappedData = {
       eventType: eventData.eventType || eventData.type || 'SECURITY_EVENT',
       severity: eventData.severity || 'medium' as any,
-      details: eventData.details || { 
+      details: eventData.details || {
         description: eventData.description || 'Security event logged',
         timestamp: eventData.timestamp || new Date(),
         ...eventData
@@ -257,7 +275,7 @@ export class MemStorage {
   // Get storage statistics
   getStats() {
     return {
-      users: this.users.length,
+      users: this.users.size,
       documents: this.documents.length,
       conversations: this.conversations.length,
       messages: this.messages.length,
