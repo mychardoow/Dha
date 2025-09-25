@@ -139,12 +139,7 @@ class ConfigurationService {
         DOCUMENT_SIGNING_KEY: this.getEnvVar('DOCUMENT_SIGNING_KEY'),
       };
 
-      // CRITICAL: In production, ensure critical secrets are present
-      if (isProduction) {
-        validateProductionSecrets(); // Use the new validation function
-      }
-
-      // Apply secure development defaults ONLY if needed and NOT in production
+      // Apply secure development defaults FIRST if needed and NOT in production
       if (isDevelopment && !isProduction) {
         rawConfig.SESSION_SECRET = rawConfig.SESSION_SECRET || this.generateSecureDevelopmentSecret('session');
         rawConfig.JWT_SECRET = rawConfig.JWT_SECRET || this.generateSecureDevelopmentSecret('jwt');
@@ -154,6 +149,11 @@ class ConfigurationService {
         rawConfig.QUANTUM_ENCRYPTION_KEY = rawConfig.QUANTUM_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('quantum-encryption');
         rawConfig.BIOMETRIC_ENCRYPTION_KEY = rawConfig.BIOMETRIC_ENCRYPTION_KEY || this.generateSecureDevelopmentSecret('encryption');
         rawConfig.DOCUMENT_SIGNING_KEY = rawConfig.DOCUMENT_SIGNING_KEY || this.generateSecureDevelopmentSecret('encryption');
+      }
+
+      // CRITICAL: In production, ensure critical secrets are present AFTER fallbacks
+      if (isProduction) {
+        validateProductionSecrets(); // Use the new validation function
       }
 
       // Validate configuration with Zod schema
