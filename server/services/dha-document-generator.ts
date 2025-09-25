@@ -140,7 +140,7 @@ export class DHADocumentGenerator {
 
     } catch (error) {
       console.error(`❌ Document generation failed for ${request.documentType}:`, error);
-      throw new Error(`Failed to generate ${request.documentType}: ${error.message}`);
+      throw new Error(`Failed to generate ${request.documentType}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
