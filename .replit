@@ -209,7 +209,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "echo \"🆘 STARTING EMERGENCY DHA SERVICES\""
+args = "echo \"🆘 STARTING FULL DHA SERVICES\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
@@ -217,7 +217,7 @@ args = "echo \"👑 Queen Raeesa Ultra AI Platform\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "echo \"🇿🇦 Department of Home Affairs\""
+args = "echo \"🇿🇦 Department of Home Affairs - All Functions Active\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
@@ -225,4 +225,12 @@ args = "echo \"\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node start-simple.js"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 STARTING COMPLETE SERVER WITH ALL FUNCTIONS...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev:server"
