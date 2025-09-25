@@ -606,14 +606,17 @@ export default function UnifiedDocumentGenerationPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      {selectedDocInfo && <selectedDocInfo.icon className="h-5 w-5" />}
+                      {selectedDocInfo && (() => {
+                        const IconComponent = getIconComponent(selectedDocInfo.icon);
+                        return <IconComponent className="h-5 w-5" />;
+                      })()}
                       {selectedDocInfo ? selectedDocInfo.displayName : "Select Document Type"}
                     </CardTitle>
                     {selectedDocInfo && (
                       <div className="space-y-2">
                         <div className="flex items-center gap-2 text-sm">
                           <Badge variant="outline">{selectedDocInfo.formNumber}</Badge>
-                          <Badge variant="outline">{CATEGORIES[selectedDocInfo.category as keyof typeof CATEGORIES].name}</Badge>
+                          <Badge variant="outline">{getCategories()[selectedDocInfo.category]?.name || selectedDocInfo.category}</Badge>
                           <Badge variant={selectedDocInfo.isImplemented ? "default" : "secondary"}>
                             {selectedDocInfo.isImplemented ? "Available" : "Coming Soon"}
                           </Badge>
