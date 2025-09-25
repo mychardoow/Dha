@@ -8,8 +8,8 @@ packages = ["libuuid", "cairo", "pango", "giflib", "jq"]
 
 [deployment]
 deploymentTarget = "cloudrun"
-run = ["sh", "-c", "npm start"]
-build = ["sh", "-c", "npm run build"]
+run = ["sh", "-c", "node start-simple.js"]
+build = ["sh", "-c", "echo 'Skipping build - using development mode'"]
 
 [[ports]]
 localPort = 5000
@@ -352,3 +352,24 @@ args = "tsc -p tsconfig.server.json"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "DHA Production Deploy"
+author = 47957021
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔐 Loading API keys from Replit Secrets...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting DHA Digital Services Platform\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"

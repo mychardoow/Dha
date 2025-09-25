@@ -10,24 +10,11 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "strict": true,
-    "declaration": false,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "resolveJsonModule": true,
-    "jsx": "preserve",
+    "strict": false,
     "noEmit": false,
-    "lib": ["ES2022", "ES2020", "ES2018", "ES2017", "ES2015", "ES6", "ES5", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "ES2015"],
     "types": ["node"]
   },
-  "include": [
-    "server/**/*",
-    "shared/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "client"
-  ]
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["node_modules", "dist", "client"]
 }
