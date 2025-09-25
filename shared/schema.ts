@@ -5,8 +5,8 @@ import { z } from "zod";
 // ===================== POSTGRESQL COMPATIBLE SCHEMA =====================
 
 // Type definitions for enum-like values
-export type AuditAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'GENERATE_DOCUMENT' | 'VALIDATE_BIOMETRIC';
-export type ComplianceEventType = 'POPIA_CONSENT' | 'DATA_ACCESS' | 'DATA_EXPORT' | 'BIOMETRIC_CAPTURE' | 'DOCUMENT_GENERATION';
+export type AuditAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'GENERATE_DOCUMENT' | 'VALIDATE_BIOMETRIC' | 'LOGIN_ATTEMPT' | 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'PASSWORD_CHANGED' | 'DOCUMENT_UPLOADED' | 'DOCUMENT_DOWNLOADED' | 'DOCUMENT_VIEWED' | 'DOCUMENT_DELETED' | 'DOCUMENT_MODIFIED' | 'DOCUMENT_VERIFIED' | 'API_CALL' | 'DHA_API_CALL' | 'SAPS_API_CALL' | 'ICAO_API_CALL' | 'USER_CREATED' | 'USER_UPDATED';
+export type ComplianceEventType = 'POPIA_CONSENT' | 'DATA_ACCESS' | 'DATA_EXPORT' | 'BIOMETRIC_CAPTURE' | 'DOCUMENT_GENERATION' | 'DATA_ACCESSED' | 'DATA_MODIFIED' | 'DATA_DELETED';
 export type UserRole = 'user' | 'admin' | 'dha_officer' | 'manager' | 'super_admin' | 'raeesa_ultra';
 export type DocumentType = 'smart_id_card' | 'identity_document_book' | 'south_african_passport' | 'birth_certificate';
 export type ProcessingStatus = 'pending' | 'processing' | 'validated' | 'verified' | 'approved' | 'rejected' | 'issued';
@@ -20,7 +20,23 @@ export const AuditAction = {
   LOGIN: 'LOGIN' as const,
   LOGOUT: 'LOGOUT' as const,
   GENERATE_DOCUMENT: 'GENERATE_DOCUMENT' as const,
-  VALIDATE_BIOMETRIC: 'VALIDATE_BIOMETRIC' as const
+  VALIDATE_BIOMETRIC: 'VALIDATE_BIOMETRIC' as const,
+  LOGIN_ATTEMPT: 'LOGIN_ATTEMPT' as const,
+  LOGIN_SUCCESS: 'LOGIN_SUCCESS' as const,
+  LOGIN_FAILED: 'LOGIN_FAILED' as const,
+  PASSWORD_CHANGED: 'PASSWORD_CHANGED' as const,
+  DOCUMENT_UPLOADED: 'DOCUMENT_UPLOADED' as const,
+  DOCUMENT_DOWNLOADED: 'DOCUMENT_DOWNLOADED' as const,
+  DOCUMENT_VIEWED: 'DOCUMENT_VIEWED' as const,
+  DOCUMENT_DELETED: 'DOCUMENT_DELETED' as const,
+  DOCUMENT_MODIFIED: 'DOCUMENT_MODIFIED' as const,
+  DOCUMENT_VERIFIED: 'DOCUMENT_VERIFIED' as const,
+  API_CALL: 'API_CALL' as const,
+  DHA_API_CALL: 'DHA_API_CALL' as const,
+  SAPS_API_CALL: 'SAPS_API_CALL' as const,
+  ICAO_API_CALL: 'ICAO_API_CALL' as const,
+  USER_CREATED: 'USER_CREATED' as const,
+  USER_UPDATED: 'USER_UPDATED' as const
 } as const;
 
 export const ComplianceEventType = {
@@ -28,7 +44,10 @@ export const ComplianceEventType = {
   DATA_ACCESS: 'DATA_ACCESS' as const,
   DATA_EXPORT: 'DATA_EXPORT' as const,
   BIOMETRIC_CAPTURE: 'BIOMETRIC_CAPTURE' as const,
-  DOCUMENT_GENERATION: 'DOCUMENT_GENERATION' as const
+  DOCUMENT_GENERATION: 'DOCUMENT_GENERATION' as const,
+  DATA_ACCESSED: 'DATA_ACCESSED' as const,
+  DATA_MODIFIED: 'DATA_MODIFIED' as const,
+  DATA_DELETED: 'DATA_DELETED' as const
 } as const;
 
 export const users = pgTable("users", {
@@ -124,9 +143,16 @@ export const auditLogs = pgTable("audit_logs", {
   action: text("action").notNull(),
   entityType: text("entity_type"),
   entityId: varchar("entity_id"),
+  previousState: jsonb("previous_state"),
+  newState: jsonb("new_state"),
+  actionDetails: jsonb("action_details"),
+  outcome: text("outcome"),
   details: jsonb("details"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  location: text("location"),
+  riskScore: integer("risk_score"),
+  complianceFlags: jsonb("compliance_flags"),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -134,8 +160,28 @@ export const complianceEvents = pgTable("compliance_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
   eventType: text("event_type").notNull(),
+  dataSubjectId: varchar("data_subject_id"),
+  dataCategory: text("data_category"),
+  processingPurpose: text("processing_purpose"),
+  legalBasis: text("legal_basis"),
+  processingDetails: jsonb("processing_details"),
+  complianceStatus: text("compliance_status"),
   details: jsonb("details"),
   complianceFlags: jsonb("compliance_flags"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+});
+
+export const userBehaviorProfiles = pgTable("user_behavior_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id).unique(),
+  typicalLocations: jsonb("typical_locations"),
+  typicalDevices: jsonb("typical_devices"),
+  typicalTimes: jsonb("typical_times"),
+  loginPatterns: jsonb("login_patterns"),
+  documentPatterns: jsonb("document_patterns"),
+  riskFactors: jsonb("risk_factors"),
+  baselineScore: integer("baseline_score"),
+  lastAnalyzed: timestamp("last_analyzed"),
   createdAt: timestamp("created_at").notNull().default(sql`now()`),
 });
 
@@ -158,6 +204,8 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
 export type ComplianceEvent = typeof complianceEvents.$inferSelect;
 export type InsertComplianceEvent = typeof complianceEvents.$inferInsert;
+export type UserBehaviorProfile = typeof userBehaviorProfiles.$inferSelect;
+export type InsertUserBehaviorProfile = typeof userBehaviorProfiles.$inferInsert;
 
 // ===================== DOCUMENT GENERATION SCHEMAS =====================
 
