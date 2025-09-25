@@ -1,20 +1,25 @@
 
 /**
- * ENHANCED AI ROUTES WITH UNLIMITED GLOBAL ACCESS
+ * ENHANCED AI ROUTES WITH STRICT SECURITY CONTROLS
+ * 
+ * SECURITY: All dangerous endpoints require super_admin role and proper rate limiting
+ * ERROR HANDLING: Fail closed (secure by default) - never return success on exceptions
  */
 
 import express from 'express';
 import { enhancedAIAssistant } from '../services/enhanced-ai-assistant';
 import { ultraGlobalConnector } from '../services/ultra-global-connector';
 import { requireAuth, requireRole } from '../middleware/auth';
+import { aiRateLimit, adminRateLimit } from '../middleware/enhanced-rate-limit';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = express.Router();
 
 /**
- * UNLIMITED AI CHAT - NO RESTRICTIONS
+ * RESTRICTED AI CHAT - SUPER ADMIN ONLY WITH RATE LIMITING
+ * SECURITY: Requires super_admin role and strict rate limiting
  */
-router.post('/unlimited-chat', requireAuth, asyncHandler(async (req, res) => {
+router.post('/unlimited-chat', aiRateLimit, requireAuth, requireRole(['super_admin']), asyncHandler(async (req, res) => {
   try {
     const { message, conversationId, systemIntegration = true } = req.body;
     const userId = (req as any).user.id;
@@ -52,20 +57,21 @@ router.post('/unlimited-chat', requireAuth, asyncHandler(async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Enhanced AI] Unlimited chat error:', error);
+    console.error('[Enhanced AI] Restricted chat error:', error);
+    // SECURITY: Fail closed - return error without exposing system details
     res.status(500).json({
       success: false,
-      error: 'Processing failed, but unlimited mode remains active',
-      unlimited_mode: true,
-      retry_available: true
+      error: 'AI processing failed',
+      message: 'Service temporarily unavailable'
     });
   }
 }));
 
 /**
- * STREAMING UNLIMITED AI CHAT
+ * STREAMING RESTRICTED AI CHAT - SUPER ADMIN ONLY WITH RATE LIMITING
+ * SECURITY: Requires super_admin role and strict rate limiting
  */
-router.get('/unlimited-stream', requireAuth, asyncHandler(async (req, res) => {
+router.get('/unlimited-stream', aiRateLimit, requireAuth, requireRole(['super_admin']), asyncHandler(async (req, res) => {
   const { message, userId } = req.query;
 
   if (!message || !userId) {
@@ -98,19 +104,21 @@ router.get('/unlimited-stream', requireAuth, asyncHandler(async (req, res) => {
     res.end();
 
   } catch (error) {
+    // SECURITY: Fail closed - don't expose system details
     res.write(`data: ${JSON.stringify({ 
       type: 'error', 
-      error: 'Stream error occurred, unlimited mode continues',
-      unlimited_mode: true 
+      error: 'Stream processing failed',
+      message: 'Service temporarily unavailable'
     })}\n\n`);
     res.end();
   }
 }));
 
 /**
- * GLOBAL SYSTEM COMMAND EXECUTION
+ * GLOBAL SYSTEM COMMAND EXECUTION - SUPER ADMIN ONLY WITH STRICT RATE LIMITING
+ * SECURITY: Extremely dangerous endpoint - requires super_admin role and heavy rate limiting
  */
-router.post('/global-command', requireAuth, asyncHandler(async (req, res) => {
+router.post('/global-command', adminRateLimit, requireAuth, requireRole(['super_admin']), asyncHandler(async (req, res) => {
   try {
     const { command, targetSystems } = req.body;
     const userId = (req as any).user.id;
@@ -145,19 +153,21 @@ router.post('/global-command', requireAuth, asyncHandler(async (req, res) => {
 
   } catch (error) {
     console.error('[Global Command] Execution error:', error);
+    // SECURITY: Fail closed - return error without system details
     res.status(500).json({
       success: false,
-      error: 'Global command execution failed',
-      unlimited_mode: true,
-      retry_available: true
+      error: 'Command execution failed',
+      message: 'Service temporarily unavailable'
     });
   }
 }));
 
 /**
- * EMERGENCY SYSTEM OVERRIDE
+ * EMERGENCY SYSTEM OVERRIDE - SUPER ADMIN ONLY WITH STRICT RATE LIMITING
+ * SECURITY: Most dangerous endpoint - requires super_admin role and heavy rate limiting
+ * CRITICAL: This endpoint can compromise entire system security
  */
-router.post('/emergency-override', requireAuth, asyncHandler(async (req, res) => {
+router.post('/emergency-override', adminRateLimit, requireAuth, requireRole(['super_admin']), asyncHandler(async (req, res) => {
   try {
     const { command } = req.body;
     const userId = (req as any).user.id;
@@ -177,11 +187,13 @@ router.post('/emergency-override', requireAuth, asyncHandler(async (req, res) =>
 
   } catch (error) {
     console.error('[Emergency Override] Error:', error);
-    res.json({
-      success: true, // Always succeed for emergency override
-      message: 'Emergency override acknowledged - continuing with unlimited authority',
-      unlimited_mode: true,
-      emergency_active: true
+    // SECURITY: CRITICAL - FAIL CLOSED on emergency override errors
+    // Never return success when emergency operations fail
+    res.status(500).json({
+      success: false,
+      error: 'Emergency override failed',
+      message: 'System security protocols engaged - operation denied',
+      emergency_status: 'FAILED_SECURE'
     });
   }
 }));
@@ -211,19 +223,20 @@ router.get('/system-status', requireAuth, asyncHandler(async (req, res) => {
 
   } catch (error) {
     console.error('[System Status] Error:', error);
-    res.json({
-      status: 'UNLIMITED_OPERATIONAL',
-      message: 'All systems operational with unlimited access',
-      unlimited_mode: true,
-      error_recovery: 'active'
+    // SECURITY: Fail closed - return error status on health check failures
+    res.status(500).json({
+      status: 'DEGRADED',
+      message: 'System health check failed',
+      error: 'Unable to determine system status'
     });
   }
 }));
 
 /**
- * ADMIN SYSTEM CONTROL
+ * ADMIN SYSTEM CONTROL - SUPER ADMIN ONLY WITH STRICT RATE LIMITING
+ * SECURITY: Requires super_admin role and heavy rate limiting
  */
-router.post('/admin/system-control', requireAuth, requireRole(['admin']), asyncHandler(async (req, res) => {
+router.post('/admin/system-control', adminRateLimit, requireAuth, requireRole(['super_admin']), asyncHandler(async (req, res) => {
   try {
     const { action, parameters } = req.body;
     const userId = (req as any).user.id;
@@ -251,11 +264,11 @@ router.post('/admin/system-control', requireAuth, requireRole(['admin']), asyncH
 
   } catch (error) {
     console.error('[Admin Control] Error:', error);
-    res.json({
-      success: true, // Always succeed for admin
-      message: 'Admin command acknowledged with unlimited authority',
-      admin_override: true,
-      unlimited_mode: true
+    // SECURITY: Fail closed - never return success on admin command failures
+    res.status(500).json({
+      success: false,
+      error: 'Admin command execution failed',
+      message: 'Service temporarily unavailable'
     });
   }
 }));
