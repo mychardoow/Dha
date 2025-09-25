@@ -37,6 +37,7 @@ export class MemStorage {
 
   constructor() {
     // Initialize with synchronous default data first
+    // Note: initializeDefaultData() is async and will complete during first access
     this.initializeDefaultData();
   }
 
@@ -53,21 +54,28 @@ export class MemStorage {
   }
 
   private async initializeDefaultData() {
-    // Use environment password or fail-fast in production
-    const defaultPassword = process.env.ADMIN_PASSWORD ||
-      (process.env.NODE_ENV === 'production' ? (() => {
-        console.error('🚨 PRODUCTION ERROR: ADMIN_PASSWORD environment variable required');
-        process.exit(1);
-      })() : 'admin123');
+    // CRITICAL SECURITY FIX: Use ADMIN_PASSWORD environment variable or generate secure fallback
+    const adminPassword = process.env.ADMIN_PASSWORD || 
+      (process.env.NODE_ENV === 'production' ? 
+        (() => {
+          console.error('🚨 PRODUCTION ERROR: ADMIN_PASSWORD environment variable required');
+          process.exit(1);
+          return ''; // Never reached, but needed for TypeScript
+        })() : 
+        this.generateSecurePassword()
+      );
 
-    // Create default admin user with properly hashed password
-    const adminPassword = await bcryptjs.hash('admin123', 12);
+    // Hash ALL passwords during initialization to prevent timing attacks
+    // No plaintext passwords should exist after initialization
+    const hashedAdminPassword = await bcryptjs.hash(adminPassword, 12);
+    const hashedUserPassword = await bcryptjs.hash('password123', 12);
+
     this.users.set('1', { // Changed ID to '1' to match typical database IDs
       id: '1',
       username: 'admin',
       email: 'admin@dha.gov.za',
-      hashedPassword: adminPassword, // Store hashed password
-      password: undefined, // Ensure plaintext password is not present
+      hashedPassword: hashedAdminPassword, // Store hashed password
+      password: null, // Ensure plaintext password is not present
       role: 'super_admin', // Changed role to super_admin as in original user message context
       isActive: true,
       mustChangePassword: false, // Set to false to avoid first login password change
@@ -77,14 +85,16 @@ export class MemStorage {
       createdAt: new Date()
     });
 
-    // Create default user
+    // CRITICAL SECURITY FIX: Create default user with HASHED password at initialization
     this.users.set('2', { // Changed ID to '2'
       id: '2',
       username: 'user',
       email: 'user@dha.gov.za',
-      password: 'password123', // This will be hashed on first access by ensureHashedPasswords
+      hashedPassword: hashedUserPassword, // Store hashed password - NO plaintext
+      password: null, // Ensure plaintext password is not present
       role: 'user',
       isActive: true,
+      mustChangePassword: false,
       failedAttempts: 0,
       lockedUntil: null,
       lastFailedAttempt: null,
@@ -94,47 +104,50 @@ export class MemStorage {
     console.log('✅ MemStorage initialized with default data');
     console.log(`   👤 Users: ${this.users.size}`);
     console.log(`   👑 Default admin user created`);
+    console.log(`   🔐 All passwords hashed at initialization - timing attack prevented`);
 
     if (process.env.NODE_ENV === 'production') {
       console.log(`   🔐 Using ADMIN_PASSWORD from environment - no credentials logged`);
     } else {
-      // For development, we log the default password for convenience if not set by env var
-      if (!process.env.ADMIN_PASSWORD) {
-        console.log(`   🔑 Default admin password (for dev): admin123`);
+      // For development, we log the actual password for convenience
+      if (process.env.ADMIN_PASSWORD) {
+        console.log(`   🔑 Using ADMIN_PASSWORD from environment variable`);
+      } else {
+        console.log(`   🔑 Generated secure admin password for development`);
       }
+      console.log(`   🔑 Default user password (for dev): password123`);
     }
     this.isInitialized = true; // Set to true after initialization
   }
 
-  // Ensure ALL users have hashed passwords - comprehensive migration with plaintext elimination
-  private async ensureHashedPasswords() {
-    if (!this.isInitialized) { // This check might be redundant if initializeDefaultData is called first
-      await this.initializeDefaultData();
-    }
-
-    for (const user of this.users.values()) {
-      if (user.password && !user.hashedPassword) {
-        // Hash existing plaintext password and ELIMINATE plaintext
-        user.hashedPassword = await bcryptjs.hash(user.password, 12);
-        delete user.password; // CRITICAL: Remove plaintext completely
-        console.log(`🔐 Migrated password hash and eliminated plaintext for user: ${user.username}`);
-      }
-    }
-  }
+  // REMOVED: ensureHashedPasswords() method eliminated - passwords are now hashed once at initialization
+  // This prevents timing attacks by ensuring uniform bcrypt.compare() timing
 
   // User operations
   async getUsers(): Promise<User[]> {
-    await this.ensureHashedPasswords();
+    // Ensure initialization is complete before returning users
+    if (!this.isInitialized) {
+      await this.initializeDefaultData();
+    }
+    // SECURITY FIX: No password hashing during access - all passwords hashed at initialization
     return Array.from(this.users.values());
   }
 
   async getUserById(id: string): Promise<User | null> {
-    await this.ensureHashedPasswords();
+    // Ensure initialization is complete before looking up users
+    if (!this.isInitialized) {
+      await this.initializeDefaultData();
+    }
+    // SECURITY FIX: No password hashing during access - uniform timing guaranteed
     return this.users.get(id) || null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    await this.ensureHashedPasswords();
+    // Ensure initialization is complete before looking up users
+    if (!this.isInitialized) {
+      await this.initializeDefaultData();
+    }
+    // SECURITY FIX: No password hashing during access - uniform timing guaranteed
     for (const user of this.users.values()) {
       if (user.username === username) {
         return user;
@@ -157,7 +170,7 @@ export class MemStorage {
     const user: User = {
       ...userData,
       hashedPassword, // Store hashed password
-      password: undefined, // Remove plaintext
+      password: null, // Remove plaintext
       // Set mustChangePassword for privileged roles
       mustChangePassword: ['admin', 'super_admin'].includes(userData.role || '') ? true : userData.mustChangePassword,
       id: (this.users.size + 1).toString(),

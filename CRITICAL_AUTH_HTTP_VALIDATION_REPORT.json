@@ -1,0 +1,119 @@
+{
+  "timestamp": "2025-09-25T19:15:48.687Z",
+  "overallPassed": false,
+  "totalTests": 7,
+  "passedTests": 4,
+  "failedTests": 3,
+  "criticalIssues": 1,
+  "highIssues": 1,
+  "mediumIssues": 1,
+  "lowIssues": 0,
+  "tests": [
+    {
+      "testName": "HTTP Server Startup",
+      "passed": true,
+      "message": "Test server started successfully on port 9999",
+      "securityLevel": "LOW"
+    },
+    {
+      "testName": "HTTP Authentication Login",
+      "passed": true,
+      "message": "Login successful with JWT token returned",
+      "executionTime": 507,
+      "details": {
+        "user": "admin",
+        "role": "super_admin",
+        "tokenLength": 229
+      },
+      "securityLevel": "HIGH"
+    },
+    {
+      "testName": "JWT Token Validation",
+      "passed": false,
+      "message": "JWT validation request failed",
+      "details": {
+        "status": 401,
+        "data": {
+          "success": false,
+          "error": "Authentication required"
+        },
+        "message": "Request failed with status code 401"
+      },
+      "securityLevel": "CRITICAL"
+    },
+    {
+      "testName": "Protected Admin Route",
+      "passed": false,
+      "message": "Admin route request failed",
+      "details": {
+        "status": 401,
+        "data": {
+          "success": false,
+          "error": "Authentication required"
+        },
+        "message": "Request failed with status code 401"
+      },
+      "securityLevel": "HIGH"
+    },
+    {
+      "testName": "Invalid Token Rejection",
+      "passed": true,
+      "message": "Invalid token properly rejected with 401 status",
+      "executionTime": 0,
+      "details": {
+        "status": 401,
+        "data": {
+          "success": false,
+          "error": "Authentication required"
+        }
+      },
+      "securityLevel": "HIGH"
+    },
+    {
+      "testName": "Timing Attack Vulnerability Fix",
+      "passed": true,
+      "message": "Password verification timing consistent (60.2ms variance)",
+      "details": {
+        "averageTime": "373.8ms",
+        "minTime": "345.1ms",
+        "maxTime": "405.2ms",
+        "variance": "60.2ms",
+        "iterations": 5
+      },
+      "securityLevel": "CRITICAL"
+    },
+    {
+      "testName": "Document Generation Authorization",
+      "passed": false,
+      "message": "Document generation request failed",
+      "details": {
+        "status": 401,
+        "data": {
+          "success": false,
+          "error": "Authentication required"
+        },
+        "message": "Request failed with status code 401"
+      },
+      "securityLevel": "MEDIUM"
+    }
+  ],
+  "timingAnalysis": {
+    "hashedPasswordTimes": [
+      345.059297,
+      381.564007,
+      405.231237,
+      365.055117,
+      371.941967
+    ],
+    "plaintextPasswordTimes": [],
+    "timingVariance": 60.171940000000006,
+    "timingAttackFixed": true
+  },
+  "deploymentReady": false,
+  "railwayCompatible": false,
+  "summary": "❌ DEPLOYMENT BLOCKED: 1 critical and 1 high-priority issues must be resolved.",
+  "recommendations": [
+    "❌ CRITICAL: Fix all critical security issues before deployment",
+    "⚠️  HIGH: Address high-priority security concerns"
+  ]
+}
