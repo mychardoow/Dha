@@ -3,12 +3,18 @@ import postgres from "postgres";
 import * as schema from "@shared/schema";
 
 // Get DATABASE_URL from environment - critical for Railway deployment
-const databaseUrl = process.env.DATABASE_URL;
+let databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
   console.error('❌ CRITICAL ERROR: DATABASE_URL environment variable is not set');
   console.error('This is required for PostgreSQL connection and Railway deployment');
   process.exit(1);
+}
+
+// Fix malformed DATABASE_URL - ensure it has proper schema format
+if (databaseUrl.startsWith('postgresql:') && !databaseUrl.startsWith('postgresql://')) {
+  databaseUrl = databaseUrl.replace('postgresql:', 'postgresql://');
+  console.log('🔧 Fixed DATABASE_URL format (added missing //)');
 }
 
 console.log('🔗 Connecting to PostgreSQL database...');

@@ -873,3 +873,158 @@ export type SecurityMetric = typeof securityMetrics.$inferSelect;
 export type InsertSecurityMetric = typeof securityMetrics.$inferInsert;
 export type BiometricProfile = typeof biometricProfiles.$inferSelect;
 export type InsertBiometricProfile = typeof biometricProfiles.$inferInsert;
+
+// ===================== DHA DOCUMENT DATABASE SCHEMAS =====================
+
+// DHA Applicants table - for both SA citizens and foreign nationals
+export const dhaApplicants = pgTable("dha_applicants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fullName: text("full_name").notNull(),
+  idNumber: text("id_number"), // SA ID number (null for foreign nationals)
+  passportNumber: text("passport_number"), // Foreign passport number
+  dateOfBirth: text("date_of_birth").notNull(),
+  nationality: text("nationality").notNull(),
+  gender: text("gender").notNull(), // 'M' | 'F' | 'Other'
+  address: text("address"),
+  contactNumber: text("contact_number"),
+  email: text("email"),
+  isSouthAfricanCitizen: boolean("is_south_african_citizen").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// DHA Documents table - all document types
+export const dhaDocuments = pgTable("dha_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  documentType: text("document_type").notNull(), // See types below
+  documentNumber: text("document_number").notNull().unique(),
+  issueDate: text("issue_date").notNull(),
+  expiryDate: text("expiry_date"),
+  status: text("status").notNull(), // 'active' | 'expired' | 'cancelled' | 'pending' | 'suspended'
+  
+  // Additional fields for specific document types
+  referenceNumber: text("reference_number"), // For asylum seekers, applications
+  permitCategory: text("permit_category"), // For work visas, residence permits
+  visaType: text("visa_type"), // For specific visa types
+  relativeDetails: jsonb("relative_details"), // For relative visas
+  qualifications: jsonb("qualifications"), // For critical skills visas
+  employerDetails: jsonb("employer_details"), // For work permits
+  
+  issueLocation: text("issue_location").default("Department of Home Affairs"),
+  issuingOfficer: text("issuing_officer"),
+  notes: text("notes"),
+  metadata: jsonb("metadata"), // Additional document-specific data
+  
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
+});
+
+// Document Verifications table - for QR codes and verification
+export const dhaDocumentVerifications = pgTable("dha_document_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => dhaDocuments.id),
+  verificationCode: text("verification_code").notNull().unique(),
+  qrCodeData: text("qr_code_data").notNull(),
+  qrCodeUrl: text("qr_code_url"), // URL to QR code image if stored
+  verificationType: text("verification_type").notNull().default("QR"), // 'QR' | 'Barcode' | 'Manual'
+  isValid: boolean("is_valid").notNull().default(true),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  verificationCount: integer("verification_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at"), // Optional expiration for verification codes
+});
+
+// Insert schemas using plain Zod
+export const insertDhaApplicantSchema = z.object({
+  fullName: z.string(),
+  idNumber: z.string().optional(),
+  passportNumber: z.string().optional(),
+  dateOfBirth: z.string(),
+  nationality: z.string(),
+  gender: z.string(),
+  address: z.string().optional(),
+  contactNumber: z.string().optional(),
+  email: z.string().optional(),
+  isSouthAfricanCitizen: z.boolean().default(false),
+});
+
+export const insertDhaDocumentSchema = z.object({
+  applicantId: z.string(),
+  documentType: z.string(),
+  documentNumber: z.string(),
+  issueDate: z.string(),
+  expiryDate: z.string().optional(),
+  status: z.string(),
+  referenceNumber: z.string().optional(),
+  permitCategory: z.string().optional(),
+  visaType: z.string().optional(),
+  relativeDetails: z.any().optional(),
+  qualifications: z.any().optional(),
+  employerDetails: z.any().optional(),
+  issueLocation: z.string().optional(),
+  issuingOfficer: z.string().optional(),
+  notes: z.string().optional(),
+  metadata: z.any().optional(),
+});
+
+export const insertDhaDocumentVerificationSchema = z.object({
+  documentId: z.string(),
+  verificationCode: z.string(),
+  qrCodeData: z.string(),
+  qrCodeUrl: z.string().optional(),
+  verificationType: z.string().default("QR"),
+  isValid: z.boolean().default(true),
+  lastVerifiedAt: z.date().optional(),
+  verificationCount: z.number().default(0),
+  expiresAt: z.date().optional(),
+});
+
+// Type exports
+export type DhaApplicant = typeof dhaApplicants.$inferSelect;
+export type InsertDhaApplicant = z.infer<typeof insertDhaApplicantSchema>;
+export type DhaDocument = typeof dhaDocuments.$inferSelect;
+export type InsertDhaDocument = z.infer<typeof insertDhaDocumentSchema>;
+export type DhaDocumentVerification = typeof dhaDocumentVerifications.$inferSelect;
+export type InsertDhaDocumentVerification = z.infer<typeof insertDhaDocumentVerificationSchema>;
+
+// Document type constants for DHA documents
+export const DHA_DOCUMENT_TYPES = {
+  // Citizenship & Identity
+  BIRTH_CERTIFICATE: 'birth_certificate',
+  ABRIDGED_BIRTH_CERTIFICATE: 'abridged_birth_certificate',
+  UNABRIDGED_BIRTH_CERTIFICATE: 'unabridged_birth_certificate',
+  DEATH_CERTIFICATE: 'death_certificate',
+  NATURALISATION_CERTIFICATE: 'naturalisation_certificate',
+  
+  // Residence Permits
+  PERMANENT_RESIDENCE_PERMIT: 'permanent_residence_permit',
+  TEMPORARY_RESIDENCE_PERMIT: 'temporary_residence_permit',
+  
+  // Work Visas
+  GENERAL_WORK_VISA: 'general_work_visa',
+  CRITICAL_SKILLS_WORK_VISA: 'critical_skills_work_visa',
+  INTRA_COMPANY_TRANSFER_VISA: 'intra_company_transfer_visa',
+  CORPORATE_VISA: 'corporate_visa',
+  
+  // Other Visas
+  RELATIVES_VISA: 'relatives_visa',
+  SPOUSAL_VISA: 'spousal_visa',
+  LIFE_PARTNER_VISA: 'life_partner_visa',
+  RETIRED_PERSON_VISA: 'retired_person_visa',
+  STUDY_VISA: 'study_visa',
+  BUSINESS_VISA: 'business_visa',
+  VISITOR_VISA: 'visitor_visa',
+  MEDICAL_TREATMENT_VISA: 'medical_treatment_visa',
+  EXCHANGE_VISA: 'exchange_visa',
+  TREATY_VISA: 'treaty_visa',
+  
+  // Asylum & Refugee Documents
+  ASYLUM_SEEKER_PERMIT: 'asylum_seeker_permit',
+  REFUGEE_STATUS_PERMIT: 'refugee_status_permit',
+  
+  // Travel Documents
+  SOUTH_AFRICAN_PASSPORT: 'south_african_passport',
+  EMERGENCY_TRAVEL_CERTIFICATE: 'emergency_travel_certificate',
+  REFUGEE_TRAVEL_DOCUMENT: 'refugee_travel_document',
+} as const;

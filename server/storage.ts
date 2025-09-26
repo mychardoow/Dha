@@ -63,6 +63,26 @@ export interface IStorage {
   updateAiCommandInterface(id: string, updates: any): Promise<any>;
   getAiCommandsByStatus(status: string): Promise<any[]>;
 
+  // DHA Document Management methods
+  getDhaApplicant(id: string): Promise<any>;
+  getDhaApplicantByIdNumber(idNumber: string): Promise<any>;
+  getDhaApplicantByPassport(passportNumber: string): Promise<any>;
+  createDhaApplicant(applicant: any): Promise<any>;
+  updateDhaApplicant(id: string, updates: any): Promise<any>;
+  getDhaApplicants(): Promise<any[]>;
+
+  getDhaDocument(id: string): Promise<any>;
+  getDhaDocumentByNumber(documentNumber: string): Promise<any>;
+  getApplicantDhaDocuments(applicantId: string): Promise<any[]>;
+  createDhaDocument(document: any): Promise<any>;
+  updateDhaDocument(id: string, updates: any): Promise<any>;
+  getDhaDocuments(): Promise<any[]>;
+
+  getDhaDocumentVerification(id: string): Promise<any>;
+  getDhaDocumentVerificationByCode(verificationCode: string): Promise<any>;
+  createDhaDocumentVerification(verification: any): Promise<any>;
+  updateDhaDocumentVerification(id: string, updates: any): Promise<any>;
+
   // Statistics
   getStats(): Promise<any>;
 
@@ -138,14 +158,11 @@ export interface IStorage {
   updateSecurityRule(id: string, updates: any): Promise<any>;
 }
 
-// CRITICAL FIX: Force MemStorage for now to prevent crashes
-import { storage as memStorage } from "./mem-storage";
+// Create the storage instance using PostgreSQL
+export const storage = new PostgreSQLStorage();
 
-// TEMPORARY FIX: Using MemStorage directly until PostgreSQL connection is stable
-console.log('🔧 Using MemStorage due to PostgreSQL connection issues');
-console.log('⚠️ Database fallback mode active - this is safe for testing');
-
-export const storage = memStorage;
+console.log('✅ Using PostgreSQL storage for persistent data');
+console.log('🔧 DHA tables are now accessible through the database');
 
 // Re-export types for backward compatibility
 export type {

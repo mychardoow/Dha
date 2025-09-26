@@ -6,6 +6,8 @@ import {
   healthCheckResults, failoverEvents, performanceBaselines, alertRules,
   circuitBreakerStates, uptimeIncidents, autonomousOperations, maintenanceTasks,
   governmentComplianceAudits, securityMetrics, biometricProfiles,
+  dhaApplicants, dhaDocuments, dhaDocumentVerifications,
+  aiBotSessions, aiCommandInterfaces,
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
@@ -30,7 +32,12 @@ import {
   type MaintenanceTask, type InsertMaintenanceTask,
   type GovernmentComplianceAudit, type InsertGovernmentComplianceAudit,
   type SecurityMetric, type InsertSecurityMetric,
-  type BiometricProfile, type InsertBiometricProfile
+  type BiometricProfile, type InsertBiometricProfile,
+  type DhaApplicant, type InsertDhaApplicant,
+  type DhaDocument, type InsertDhaDocument,
+  type DhaDocumentVerification, type InsertDhaDocumentVerification,
+  type AiBotSession, type InsertAiBotSession,
+  type AiCommandInterface, type InsertAiCommandInterface
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 // Storage interface definition for PostgreSQL implementation
@@ -431,10 +438,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getSelfHealingActions(filters?: any): Promise<SelfHealingAction[]> {
     try {
-      let query = db.select().from(selfHealingActions).orderBy(desc(selfHealingActions.createdAt));
+      const query = db.select().from(selfHealingActions).orderBy(desc(selfHealingActions.createdAt));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -593,19 +600,8 @@ export class PostgreSQLStorage implements IStorage {
   }
 
   // ===================== STATISTICS =====================
-  async getStats(): Promise<{ 
-    users: number; 
-    conversations: number; 
-    messages: number; 
-    documents: number; 
-    securityEvents: number; 
-    systemMetrics: number; 
-    auditLogs: number; 
-    complianceEvents: number; 
-    userBehaviorProfiles: number; 
-  }> {
-    return await this.getStatsAsync();
-  }
+  // This is the main getStats implementation that is called later
+  // Removed duplicate implementation here to avoid conflict
 
   // ===================== SYSTEM HEALTH SNAPSHOTS =====================
   async createSystemHealthSnapshot(insertSnapshot: InsertSystemHealthSnapshot): Promise<SystemHealthSnapshot> {
@@ -662,10 +658,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getSecurityIncidents(filters?: any): Promise<SecurityIncident[]> {
     try {
-      let query = db.select().from(securityIncidents).orderBy(desc(securityIncidents.createdAt));
+      const query = db.select().from(securityIncidents).orderBy(desc(securityIncidents.createdAt));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -707,10 +703,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getErrorCorrections(filters?: any): Promise<ErrorCorrection[]> {
     try {
-      let query = db.select().from(errorCorrections).orderBy(desc(errorCorrections.createdAt));
+      const query = db.select().from(errorCorrections).orderBy(desc(errorCorrections.createdAt));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -751,10 +747,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getHealthCheckResults(checkId?: string): Promise<HealthCheckResult[]> {
     try {
-      let query = db.select().from(healthCheckResults).orderBy(desc(healthCheckResults.timestamp));
+      const query = db.select().from(healthCheckResults).orderBy(desc(healthCheckResults.timestamp));
       
       if (checkId) {
-        query = query.where(eq(healthCheckResults.checkId, checkId));
+        return await query.where(eq(healthCheckResults.checkId, checkId));
       }
       
       return await query;
@@ -782,10 +778,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getFailoverEvents(serviceId?: string): Promise<FailoverEvent[]> {
     try {
-      let query = db.select().from(failoverEvents).orderBy(desc(failoverEvents.createdAt));
+      const query = db.select().from(failoverEvents).orderBy(desc(failoverEvents.createdAt));
       
       if (serviceId) {
-        query = query.where(eq(failoverEvents.serviceId, serviceId));
+        return await query.where(eq(failoverEvents.serviceId, serviceId));
       }
       
       return await query;
@@ -827,10 +823,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getPerformanceBaselines(serviceName?: string): Promise<PerformanceBaseline[]> {
     try {
-      let query = db.select().from(performanceBaselines).orderBy(desc(performanceBaselines.createdAt));
+      const query = db.select().from(performanceBaselines).orderBy(desc(performanceBaselines.createdAt));
       
       if (serviceName) {
-        query = query.where(eq(performanceBaselines.serviceName, serviceName));
+        return await query.where(eq(performanceBaselines.serviceName, serviceName));
       }
       
       return await query;
@@ -952,10 +948,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getUptimeIncidents(serviceId?: string): Promise<UptimeIncident[]> {
     try {
-      let query = db.select().from(uptimeIncidents).orderBy(desc(uptimeIncidents.createdAt));
+      const query = db.select().from(uptimeIncidents).orderBy(desc(uptimeIncidents.createdAt));
       
       if (serviceId) {
-        query = query.where(eq(uptimeIncidents.serviceId, serviceId));
+        return await query.where(eq(uptimeIncidents.serviceId, serviceId));
       }
       
       return await query;
@@ -997,10 +993,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getAutonomousOperations(filters?: any): Promise<AutonomousOperation[]> {
     try {
-      let query = db.select().from(autonomousOperations).orderBy(desc(autonomousOperations.createdAt));
+      const query = db.select().from(autonomousOperations).orderBy(desc(autonomousOperations.createdAt));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -1041,10 +1037,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getMaintenanceTasks(filters?: any): Promise<MaintenanceTask[]> {
     try {
-      let query = db.select().from(maintenanceTasks).orderBy(desc(maintenanceTasks.createdAt));
+      const query = db.select().from(maintenanceTasks).orderBy(desc(maintenanceTasks.createdAt));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -1085,10 +1081,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getGovernmentComplianceAudits(auditType?: string): Promise<GovernmentComplianceAudit[]> {
     try {
-      let query = db.select().from(governmentComplianceAudits).orderBy(desc(governmentComplianceAudits.createdAt));
+      const query = db.select().from(governmentComplianceAudits).orderBy(desc(governmentComplianceAudits.createdAt));
       
       if (auditType) {
-        query = query.where(eq(governmentComplianceAudits.auditType, auditType));
+        return await query.where(eq(governmentComplianceAudits.auditType, auditType));
       }
       
       return await query;
@@ -1115,14 +1111,14 @@ export class PostgreSQLStorage implements IStorage {
   // ===================== FRAUD ALERTS =====================
   async getFraudAlerts(userId?: string, resolved?: boolean): Promise<FraudAlert[]> {
     try {
-      let query = db.select().from(fraudAlerts).orderBy(desc(fraudAlerts.createdAt));
+      const query = db.select().from(fraudAlerts).orderBy(desc(fraudAlerts.createdAt));
       
       const conditions = [];
       if (userId) conditions.push(eq(fraudAlerts.userId, userId));
       if (resolved !== undefined) conditions.push(eq(fraudAlerts.isResolved, resolved));
       
       if (conditions.length > 0) {
-        query = query.where(and(...conditions));
+        return await query.where(and(...conditions));
       }
       
       return await query;
@@ -1150,10 +1146,10 @@ export class PostgreSQLStorage implements IStorage {
 
   async getSecurityMetrics(filters?: any): Promise<SecurityMetric[]> {
     try {
-      let query = db.select().from(securityMetrics).orderBy(desc(securityMetrics.timestamp));
+      const query = db.select().from(securityMetrics).orderBy(desc(securityMetrics.timestamp));
       
       if (filters?.limit) {
-        query = query.limit(filters.limit);
+        return await query.limit(filters.limit);
       }
       
       return await query;
@@ -1203,6 +1199,361 @@ export class PostgreSQLStorage implements IStorage {
       console.error('Error updating biometric profile:', error);
       return undefined;
     }
+  }
+
+  // ===================== DHA DOCUMENT MANAGEMENT =====================
+  
+  async getDhaApplicant(id: string): Promise<DhaApplicant | undefined> {
+    try {
+      const result = await db.select().from(dhaApplicants).where(eq(dhaApplicants.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA applicant:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaApplicantByIdNumber(idNumber: string): Promise<DhaApplicant | undefined> {
+    try {
+      const result = await db.select().from(dhaApplicants)
+        .where(eq(dhaApplicants.idNumber, idNumber))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA applicant by ID number:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaApplicantByPassport(passportNumber: string): Promise<DhaApplicant | undefined> {
+    try {
+      const result = await db.select().from(dhaApplicants)
+        .where(eq(dhaApplicants.passportNumber, passportNumber))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA applicant by passport:', error);
+      return undefined;
+    }
+  }
+
+  async createDhaApplicant(applicant: InsertDhaApplicant): Promise<DhaApplicant> {
+    try {
+      const result = await db.insert(dhaApplicants).values(applicant).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating DHA applicant:', error);
+      throw new Error('Failed to create DHA applicant');
+    }
+  }
+
+  async updateDhaApplicant(id: string, updates: Partial<DhaApplicant>): Promise<DhaApplicant | undefined> {
+    try {
+      const result = await db.update(dhaApplicants)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(dhaApplicants.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error updating DHA applicant:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaApplicants(): Promise<DhaApplicant[]> {
+    try {
+      return await db.select().from(dhaApplicants);
+    } catch (error) {
+      console.error('Error getting DHA applicants:', error);
+      return [];
+    }
+  }
+
+  async getDhaDocument(id: string): Promise<DhaDocument | undefined> {
+    try {
+      const result = await db.select().from(dhaDocuments).where(eq(dhaDocuments.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA document:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaDocumentByNumber(documentNumber: string): Promise<DhaDocument | undefined> {
+    try {
+      const result = await db.select().from(dhaDocuments)
+        .where(eq(dhaDocuments.documentNumber, documentNumber))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA document by number:', error);
+      return undefined;
+    }
+  }
+
+  async getApplicantDhaDocuments(applicantId: string): Promise<DhaDocument[]> {
+    try {
+      return await db.select().from(dhaDocuments)
+        .where(eq(dhaDocuments.applicantId, applicantId));
+    } catch (error) {
+      console.error('Error getting applicant DHA documents:', error);
+      return [];
+    }
+  }
+
+  async createDhaDocument(document: InsertDhaDocument): Promise<DhaDocument> {
+    try {
+      const result = await db.insert(dhaDocuments).values(document).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating DHA document:', error);
+      throw new Error('Failed to create DHA document');
+    }
+  }
+
+  async updateDhaDocument(id: string, updates: Partial<DhaDocument>): Promise<DhaDocument | undefined> {
+    try {
+      const result = await db.update(dhaDocuments)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(dhaDocuments.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error updating DHA document:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaDocuments(): Promise<DhaDocument[]> {
+    try {
+      return await db.select().from(dhaDocuments);
+    } catch (error) {
+      console.error('Error getting DHA documents:', error);
+      return [];
+    }
+  }
+
+  async getDhaDocumentVerification(id: string): Promise<DhaDocumentVerification | undefined> {
+    try {
+      const result = await db.select().from(dhaDocumentVerifications)
+        .where(eq(dhaDocumentVerifications.id, id))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA document verification:', error);
+      return undefined;
+    }
+  }
+
+  async getDhaDocumentVerificationByCode(verificationCode: string): Promise<DhaDocumentVerification | undefined> {
+    try {
+      const result = await db.select().from(dhaDocumentVerifications)
+        .where(eq(dhaDocumentVerifications.verificationCode, verificationCode))
+        .limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting DHA document verification by code:', error);
+      return undefined;
+    }
+  }
+
+  async createDhaDocumentVerification(verification: InsertDhaDocumentVerification): Promise<DhaDocumentVerification> {
+    try {
+      const result = await db.insert(dhaDocumentVerifications).values(verification).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating DHA document verification:', error);
+      throw new Error('Failed to create DHA document verification');
+    }
+  }
+
+  async updateDhaDocumentVerification(id: string, updates: Partial<DhaDocumentVerification>): Promise<DhaDocumentVerification | undefined> {
+    try {
+      const result = await db.update(dhaDocumentVerifications)
+        .set(updates)
+        .where(eq(dhaDocumentVerifications.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error updating DHA document verification:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== AI BOT SESSIONS =====================
+  
+  async getAiBotSession(id: string): Promise<AiBotSession | undefined> {
+    try {
+      const result = await db.select().from(aiBotSessions).where(eq(aiBotSessions.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting AI bot session:', error);
+      return undefined;
+    }
+  }
+
+  async getUserAiBotSessions(userId: string): Promise<AiBotSession[]> {
+    try {
+      return await db.select().from(aiBotSessions)
+        .where(eq(aiBotSessions.userId, userId))
+        .orderBy(desc(aiBotSessions.createdAt));
+    } catch (error) {
+      console.error('Error getting user AI bot sessions:', error);
+      return [];
+    }
+  }
+
+  async createAiBotSession(session: InsertAiBotSession): Promise<AiBotSession> {
+    try {
+      const result = await db.insert(aiBotSessions).values({
+        ...session,
+        createdAt: new Date(),
+        lastActivity: new Date()
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating AI bot session:', error);
+      throw new Error('Failed to create AI bot session');
+    }
+  }
+
+  async updateAiBotSession(id: string, updates: Partial<AiBotSession>): Promise<AiBotSession | undefined> {
+    try {
+      const result = await db.update(aiBotSessions)
+        .set({ ...updates, lastActivity: new Date() })
+        .where(eq(aiBotSessions.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error updating AI bot session:', error);
+      return undefined;
+    }
+  }
+
+  async deactivateAiBotSession(id: string): Promise<AiBotSession | undefined> {
+    try {
+      const result = await db.update(aiBotSessions)
+        .set({ sessionActive: false, lastActivity: new Date() })
+        .where(eq(aiBotSessions.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error deactivating AI bot session:', error);
+      return undefined;
+    }
+  }
+
+  // ===================== AI COMMAND INTERFACES =====================
+  
+  async getAiCommandInterface(id: string): Promise<AiCommandInterface | undefined> {
+    try {
+      const result = await db.select().from(aiCommandInterfaces).where(eq(aiCommandInterfaces.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error('Error getting AI command interface:', error);
+      return undefined;
+    }
+  }
+
+  async getSessionAiCommands(sessionId: string): Promise<AiCommandInterface[]> {
+    try {
+      return await db.select().from(aiCommandInterfaces)
+        .where(eq(aiCommandInterfaces.sessionId, sessionId))
+        .orderBy(desc(aiCommandInterfaces.createdAt));
+    } catch (error) {
+      console.error('Error getting session AI commands:', error);
+      return [];
+    }
+  }
+
+  async createAiCommandInterface(command: InsertAiCommandInterface): Promise<AiCommandInterface> {
+    try {
+      const result = await db.insert(aiCommandInterfaces).values({
+        ...command,
+        createdAt: new Date()
+      }).returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error creating AI command interface:', error);
+      throw new Error('Failed to create AI command interface');
+    }
+  }
+
+  async updateAiCommandInterface(id: string, updates: Partial<AiCommandInterface>): Promise<AiCommandInterface | undefined> {
+    try {
+      const result = await db.update(aiCommandInterfaces)
+        .set(updates)
+        .where(eq(aiCommandInterfaces.id, id))
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Error updating AI command interface:', error);
+      return undefined;
+    }
+  }
+
+  async getAiCommandsByStatus(status: string): Promise<AiCommandInterface[]> {
+    try {
+      return await db.select().from(aiCommandInterfaces)
+        .where(eq(aiCommandInterfaces.executionStatus, status as any))
+        .orderBy(desc(aiCommandInterfaces.createdAt));
+    } catch (error) {
+      console.error('Error getting AI commands by status:', error);
+      return [];
+    }
+  }
+
+  // ===================== ADDITIONAL METHODS =====================
+  
+  async getAllCircuitBreakerStates(): Promise<CircuitBreakerState[]> {
+    try {
+      return await db.select().from(circuitBreakerStates).orderBy(desc(circuitBreakerStates.createdAt));
+    } catch (error) {
+      console.error('Error getting all circuit breaker states:', error);
+      return [];
+    }
+  }
+
+  // These methods don't have corresponding tables but are in the interface
+  // They return empty implementations for now
+  async createErrorLog(errorLog: any): Promise<any> {
+    console.warn('createErrorLog: No errorLogs table exists, returning stub');
+    return { id: Date.now().toString(), ...errorLog };
+  }
+
+  async getErrorLogs(filters?: any): Promise<any[]> {
+    console.warn('getErrorLogs: No errorLogs table exists, returning empty array');
+    return [];
+  }
+
+  async createSecurityRule(rule: any): Promise<any> {
+    console.warn('createSecurityRule: No securityRules table exists, returning stub');
+    return { id: Date.now().toString(), ...rule };
+  }
+
+  async getSecurityRules(): Promise<any[]> {
+    console.warn('getSecurityRules: No securityRules table exists, returning empty array');
+    return [];
+  }
+
+  async updateSecurityRule(id: string, updates: any): Promise<any> {
+    console.warn('updateSecurityRule: No securityRules table exists, returning stub');
+    return { id, ...updates };
+  }
+
+  // Main getStats implementation
+  async getStats(): Promise<{
+    users: number;
+    conversations: number;
+    messages: number;
+    documents: number;
+    securityEvents: number;
+    systemMetrics: number;
+    auditLogs: number;
+    complianceEvents: number;
+    userBehaviorProfiles: number;
+  }> {
+    return this.getStatsAsync();
   }
 
   // Async version for getting actual stats
