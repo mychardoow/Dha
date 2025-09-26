@@ -138,23 +138,14 @@ export interface IStorage {
   updateSecurityRule(id: string, updates: any): Promise<any>;
 }
 
-// FIXED: Smart storage fallback - PostgreSQL with MemStorage fallback
+// CRITICAL FIX: Force MemStorage for now to prevent crashes
 import { storage as memStorage } from "./mem-storage";
 
-let storageInstance: IStorage;
+// TEMPORARY FIX: Using MemStorage directly until PostgreSQL connection is stable
+console.log('🔧 Using MemStorage due to PostgreSQL connection issues');
+console.log('⚠️ Database fallback mode active - this is safe for testing');
 
-try {
-  // Try PostgreSQL first
-  const pgStorage = new PostgreSQLStorage();
-  // Test connection briefly
-  storageInstance = pgStorage;
-  console.log('✅ PostgreSQL storage initialized');
-} catch (error) {
-  console.log('⚠️ PostgreSQL not available, falling back to MemStorage');
-  storageInstance = memStorage;
-}
-
-export const storage = storageInstance;
+export const storage = memStorage;
 
 // Re-export types for backward compatibility
 export type {
