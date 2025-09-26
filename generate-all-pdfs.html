@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA PDF Document Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #005a3c, #ffd700);
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #005a3c;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            background: #f0f8f5;
+            border-left: 5px solid #4caf50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .document-list {
+            list-style: none;
+            padding: 0;
+        }
+        .document-list li {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .download-btn {
+            background: #005a3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .download-btn:hover {
+            background: #007850;
+        }
+        .generate-all-btn {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 18px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .generate-all-btn:hover {
+            background: linear-gradient(90deg, #45a049, #7cb342);
+        }
+        .flag {
+            font-size: 50px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="flag">🇿🇦</div>
+        <h1>DHA OFFICIAL DOCUMENT GENERATOR</h1>
+        <h2 style="text-align: center; color: #666;">Department of Home Affairs - South Africa</h2>
+        
+        <div class="status" id="status">
+            <strong>✅ System Ready</strong><br>
+            Click "Generate All Documents" to create official PDFs
+        </div>
+        
+        <div class="loading" id="loading">
+            <p>⏳ Generating documents...</p>
+        </div>
+        
+        <ul class="document-list" id="documentList">
+            <li>
+                <span>📄 Workers Permit #1 - TASLEEN MOHSIN</span>
+                <button class="download-btn" onclick="generateWorkersPermit1()" id="btn1" disabled>Download PDF</button>
+            </li>
+            <li>
+                <span>📄 Workers Permit #2 - MOHAMMAD JAMAL</span>
+                <button class="download-btn" onclick="generateWorkersPermit2()" id="btn2" disabled>Download PDF</button>
+            </li>
+            <li>
+                <span>📄 Birth Certificate - AISHA MOHSIN</span>
+                <button class="download-btn" onclick="generateBirthCertificate()" id="btn3" disabled>Download PDF</button>
+            </li>
+            <li>
+                <span>📄 Relative Visa - FATIMA BEGUM</span>
+                <button class="download-btn" onclick="generateRelativeVisa()" id="btn4" disabled>Download PDF</button>
+            </li>
+            <li>
+                <span>📄 Naturalisation Certificate - TASLEEN MOHSIN</span>
+                <button class="download-btn" onclick="generateNaturalisation()" id="btn5" disabled>Download PDF</button>
+            </li>
+        </ul>
+        
+        <button class="generate-all-btn" onclick="generateAllDocuments()">🚀 GENERATE ALL DOCUMENTS</button>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        
+        function addDHAHeader(doc, title) {
+            // Header
+            doc.setFontSize(10);
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 27, { align: 'center' });
+            
+            // Title
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text(title, 105, 40, { align: 'center' });
+            doc.setFont(undefined, 'normal');
+            
+            // Line
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(1);
+            doc.line(20, 45, 190, 45);
+        }
+        
+        function addDHAFooter(doc) {
+            doc.setFontSize(8);
+            doc.text('This is an official document issued by the Department of Home Affairs', 105, 280, { align: 'center' });
+            doc.text('Immigration Act, 2002 (Act No. 13 of 2002)', 105, 285, { align: 'center' });
+        }
+        
+        function addOfficialStamp(doc, y) {
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(2);
+            doc.circle(60, y, 15);
+            doc.setFontSize(10);
+            doc.text('DHA', 60, y - 3, { align: 'center' });
+            doc.text('OFFICIAL', 60, y + 2, { align: 'center' });
+            doc.text('SEAL', 60, y + 7, { align: 'center' });
+        }
+        
+        function generateWorkersPermit1() {
+            const doc = new jsPDF();
+            
+            addDHAHeader(doc, 'GENERAL WORK PERMIT');
+            
+            // Permit number
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('PERMIT NO: GWP/2025/09/ZA00001', 190, 55, { align: 'right' });
+            
+            // Personal details
+            doc.setFontSize(12);
+            doc.text('PERMIT HOLDER DETAILS:', 20, 65);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Full Name: TASLEEN MOHSIN', 20, 75);
+            doc.text('Date of Birth: 01/01/1987', 20, 83);
+            doc.text('Nationality: PAKISTANI', 20, 91);
+            doc.text('Passport Number: AUG162815', 20, 99);
+            doc.text('ID Number: 8701015280514', 20, 107);
+            
+            // Employment details
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('EMPLOYMENT DETAILS:', 20, 125);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Employer: TECH SOLUTIONS (PTY) LTD', 20, 135);
+            doc.text('Position: SENIOR SOFTWARE DEVELOPER', 20, 143);
+            doc.text('Sector: INFORMATION TECHNOLOGY', 20, 151);
+            doc.text('Work Location: GAUTENG PROVINCE', 20, 159);
+            doc.text('Monthly Salary: R45,000', 20, 167);
+            
+            // Validity
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('VALIDITY:', 20, 185);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Issue Date: 26 SEPTEMBER 2025', 20, 195);
+            doc.text('Valid From: 26 SEPTEMBER 2025', 20, 203);
+            doc.text('Valid Until: 26 SEPTEMBER 2028', 20, 211);
+            doc.text('Status: APPROVED - ACTIVE', 20, 219);
+            
+            // Conditions
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('CONDITIONS:', 20, 237);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('• May only work for specified employer', 25, 247);
+            doc.text('• Must maintain valid passport', 25, 254);
+            doc.text('• Must comply with labour laws', 25, 261);
+            doc.text('• Report change of address within 7 days', 25, 268);
+            
+            // Official stamp and signatures
+            addOfficialStamp(doc, 240);
+            
+            doc.text('_____________________', 120, 250);
+            doc.text('Director General', 130, 257);
+            doc.text('Date: 26/09/2025', 130, 264);
+            
+            addDHAFooter(doc);
+            
+            doc.save('Workers_Permit_1_Tasleen_Mohsin.pdf');
+        }
+        
+        function generateWorkersPermit2() {
+            const doc = new jsPDF();
+            
+            addDHAHeader(doc, 'GENERAL WORK PERMIT');
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('PERMIT NO: GWP/2025/09/ZA00002', 190, 55, { align: 'right' });
+            
+            doc.setFontSize(12);
+            doc.text('PERMIT HOLDER DETAILS:', 20, 65);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Full Name: MOHAMMAD JAMAL', 20, 75);
+            doc.text('Date of Birth: 15/03/1985', 20, 83);
+            doc.text('Nationality: PAKISTANI', 20, 91);
+            doc.text('Passport Number: AJ9024653', 20, 99);
+            doc.text('ID Number: 8503155280514', 20, 107);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('EMPLOYMENT DETAILS:', 20, 125);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Employer: CONSTRUCTION DYNAMICS SA', 20, 135);
+            doc.text('Position: CIVIL ENGINEER', 20, 143);
+            doc.text('Sector: CONSTRUCTION & ENGINEERING', 20, 151);
+            doc.text('Work Location: WESTERN CAPE', 20, 159);
+            doc.text('Monthly Salary: R52,000', 20, 167);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('VALIDITY:', 20, 185);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Issue Date: 26 SEPTEMBER 2025', 20, 195);
+            doc.text('Valid From: 26 SEPTEMBER 2025', 20, 203);
+            doc.text('Valid Until: 26 SEPTEMBER 2029', 20, 211);
+            doc.text('Status: APPROVED - ACTIVE', 20, 219);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('CONDITIONS:', 20, 237);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('• May only work for specified employer', 25, 247);
+            doc.text('• Must register with ECSA within 90 days', 25, 254);
+            doc.text('• Must maintain valid passport', 25, 261);
+            doc.text('• Subject to labour laws of South Africa', 25, 268);
+            
+            addOfficialStamp(doc, 240);
+            
+            doc.text('_____________________', 120, 250);
+            doc.text('Director General', 130, 257);
+            doc.text('Date: 26/09/2025', 130, 264);
+            
+            addDHAFooter(doc);
+            
+            doc.save('Workers_Permit_2_Mohammad_Jamal.pdf');
+        }
+        
+        function generateBirthCertificate() {
+            const doc = new jsPDF();
+            
+            addDHAHeader(doc, 'BIRTH CERTIFICATE');
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('CERTIFICATE NO: BC/2025/GP/000542', 190, 55, { align: 'right' });
+            
+            doc.setFontSize(12);
+            doc.text('CHILD DETAILS:', 20, 65);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Full Name: AISHA MOHSIN', 20, 75);
+            doc.text('Date of Birth: 15 MAY 2018', 20, 83);
+            doc.text('Time of Birth: 14:32', 20, 91);
+            doc.text('Place of Birth: JOHANNESBURG GENERAL HOSPITAL', 20, 99);
+            doc.text('Province: GAUTENG', 20, 107);
+            doc.text('Gender: FEMALE', 20, 115);
+            doc.text('ID Number: 1805155280082', 20, 123);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('PARENT DETAILS:', 20, 141);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Mother\'s Name: TASLEEN MOHSIN', 20, 151);
+            doc.text('Mother\'s ID: 8701015280514', 20, 159);
+            doc.text('Mother\'s Nationality: SOUTH AFRICAN (NATURALISED)', 20, 167);
+            doc.text('Father\'s Name: MOHAMMAD MOHSIN', 20, 175);
+            doc.text('Father\'s ID: 8601015280514', 20, 183);
+            doc.text('Father\'s Nationality: SOUTH AFRICAN', 20, 191);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('REGISTRATION DETAILS:', 20, 209);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Date of Registration: 20 MAY 2018', 20, 219);
+            doc.text('Registration Office: JOHANNESBURG HOME AFFAIRS', 20, 227);
+            doc.text('Registration Officer: M. NDLOVU', 20, 235);
+            
+            addOfficialStamp(doc, 250);
+            
+            doc.text('_____________________', 120, 260);
+            doc.text('Registrar of Births', 130, 267);
+            doc.text('Date: 26/09/2025', 130, 274);
+            
+            addDHAFooter(doc);
+            
+            doc.save('Birth_Certificate_Aisha_Mohsin.pdf');
+        }
+        
+        function generateRelativeVisa() {
+            const doc = new jsPDF();
+            
+            addDHAHeader(doc, 'RELATIVE\'S VISA');
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('VISA NO: RV/2025/09/ZA00156', 190, 55, { align: 'right' });
+            
+            doc.setFontSize(12);
+            doc.text('VISA HOLDER DETAILS:', 20, 65);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Full Name: FATIMA BEGUM', 20, 75);
+            doc.text('Date of Birth: 10/08/1960', 20, 83);
+            doc.text('Nationality: PAKISTANI', 20, 91);
+            doc.text('Passport Number: AP5678234', 20, 99);
+            doc.text('Relationship: MOTHER OF TASLEEN MOHSIN', 20, 107);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('SPONSOR DETAILS:', 20, 125);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Sponsor Name: TASLEEN MOHSIN', 20, 135);
+            doc.text('Sponsor ID: 8701015280514', 20, 143);
+            doc.text('Sponsor Status: SOUTH AFRICAN CITIZEN (NATURALISED)', 20, 151);
+            doc.text('Financial Undertaking: CONFIRMED', 20, 159);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('VISA DETAILS:', 20, 177);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Issue Date: 26 SEPTEMBER 2025', 20, 187);
+            doc.text('Valid From: 01 OCTOBER 2025', 20, 195);
+            doc.text('Valid Until: 01 OCTOBER 2027', 20, 203);
+            doc.text('Duration of Stay: 24 MONTHS', 20, 211);
+            doc.text('Multiple Entry: YES', 20, 219);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('CONDITIONS:', 20, 237);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('• May not work or conduct business', 25, 247);
+            doc.text('• May not study without separate study visa', 25, 254);
+            doc.text('• Must be financially supported by sponsor', 25, 261);
+            doc.text('• Must maintain valid passport and medical aid', 25, 268);
+            
+            addOfficialStamp(doc, 240);
+            
+            doc.text('_____________________', 120, 250);
+            doc.text('Chief Director: Visas', 130, 257);
+            doc.text('Date: 26/09/2025', 130, 264);
+            
+            addDHAFooter(doc);
+            
+            doc.save('Relative_Visa_Fatima_Begum.pdf');
+        }
+        
+        function generateNaturalisation() {
+            const doc = new jsPDF();
+            
+            addDHAHeader(doc, 'CERTIFICATE OF NATURALISATION');
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('CERTIFICATE NO: NAT/2025/09/000089', 190, 55, { align: 'right' });
+            
+            doc.setFontSize(12);
+            doc.text('THIS IS TO CERTIFY THAT:', 105, 70, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.text('TASLEEN MOHSIN', 105, 85, { align: 'center' });
+            
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('has been granted South African citizenship by naturalisation', 105, 95, { align: 'center' });
+            doc.text('in terms of Section 5 of the South African Citizenship Act, 1995', 105, 103, { align: 'center' });
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('PERSONAL DETAILS:', 20, 125);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Previous Name: TASLEEN MOHSIN', 20, 135);
+            doc.text('Date of Birth: 01 JANUARY 1987', 20, 143);
+            doc.text('Place of Birth: HYDERABAD, PAKISTAN', 20, 151);
+            doc.text('Previous Nationality: PAKISTANI', 20, 159);
+            doc.text('ID Number: 8701015280514', 20, 167);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('NATURALISATION DETAILS:', 20, 185);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Date of Application: 15 JANUARY 2025', 20, 195);
+            doc.text('Date of Approval: 20 SEPTEMBER 2025', 20, 203);
+            doc.text('Date of Oath: 26 SEPTEMBER 2025', 20, 211);
+            doc.text('Place of Oath: PRETORIA HOME AFFAIRS', 20, 219);
+            
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(12);
+            doc.text('CITIZENSHIP STATUS:', 20, 237);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('Status: SOUTH AFRICAN CITIZEN BY NATURALISATION', 20, 247);
+            doc.text('Rights: FULL CITIZENSHIP RIGHTS', 20, 255);
+            doc.text('Effective Date: 26 SEPTEMBER 2025', 20, 263);
+            
+            addOfficialStamp(doc, 240);
+            
+            doc.text('_____________________', 120, 250);
+            doc.text('Minister of Home Affairs', 130, 257);
+            doc.text('Date: 26/09/2025', 130, 264);
+            
+            addDHAFooter(doc);
+            
+            doc.save('Naturalisation_Certificate_Tasleen_Mohsin.pdf');
+        }
+        
+        function generateAllDocuments() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('status').innerHTML = '<strong>⏳ Generating documents...</strong>';
+            
+            setTimeout(() => {
+                generateWorkersPermit1();
+                generateWorkersPermit2();
+                generateBirthCertificate();
+                generateRelativeVisa();
+                generateNaturalisation();
+                
+                // Enable all download buttons
+                for(let i = 1; i <= 5; i++) {
+                    document.getElementById('btn' + i).disabled = false;
+                }
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('status').innerHTML = '<strong>✅ ALL DOCUMENTS GENERATED SUCCESSFULLY!</strong><br>Click individual download buttons to save PDFs';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
