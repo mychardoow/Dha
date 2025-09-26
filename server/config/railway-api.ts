@@ -354,7 +354,7 @@ export class RailwayAPIClient {
       throw new Error(`Railway API request failed: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data: any = await response.json();
     
     if (data.errors && data.errors.length > 0) {
       throw new Error(`Railway GraphQL error: ${data.errors[0].message}`);
