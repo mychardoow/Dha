@@ -101,7 +101,7 @@ async function seedDhaData() {
         isSouthAfricanCitizen: false
       },
       {
-        fullName: "Annisa Mansuri",
+        fullName: "Tasleen Mohsin",
         dateOfBirth: "1985-11-10",
         nationality: "Pakistani",
         gender: "F",
@@ -109,7 +109,7 @@ async function seedDhaData() {
         isSouthAfricanCitizen: false
       },
       {
-        fullName: "Ahmed Ali Khan",
+        fullName: "Mohammed Munaf",
         passportNumber: "PK9876543",
         dateOfBirth: "1975-05-20",
         nationality: "Pakistani",
@@ -198,7 +198,7 @@ async function seedDhaData() {
         status: "active",
         qualifications: { degree: "PhD Engineering", skills: "Aerospace Engineering" }
       },
-      // Annisa Mansuri - Relatives Visa
+      // Tasleen Mohsin - Relatives Visa
       {
         applicantId: insertedPakistaniApplicants[3].id,
         documentType: DHA_DOCUMENT_TYPES.RELATIVES_VISA,
@@ -208,7 +208,7 @@ async function seedDhaData() {
         status: "active",
         relativeDetails: { relativeName: "Ikram Ibrahim Yusuf Mansuri", relationship: "Wife" }
       },
-      // Ahmed Ali Khan - Permanent Residence
+      // Mohammed Munaf - Permanent Residence
       {
         applicantId: insertedPakistaniApplicants[4].id,
         documentType: DHA_DOCUMENT_TYPES.PERMANENT_RESIDENCE_PERMIT,

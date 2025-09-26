@@ -27,7 +27,7 @@ import { railwayHealthCheckSystem } from './services/railway-health-check-system
 import { circuitBreakerSystem } from './services/circuit-breaker-system';
 import { enhancedDatabasePooling } from './services/enhanced-database-pooling';
 import { zeroDowntimeDeployment } from './services/zero-downtime-deployment';
-import { storage } from './mem-storage';
+import { storage } from './storage';
 import { generateToken, authenticate, requireRole } from './middleware/auth';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';

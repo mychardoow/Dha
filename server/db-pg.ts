@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "@shared/schema";
 
 // Get DATABASE_URL from environment - critical for Railway deployment
@@ -20,22 +20,21 @@ if (databaseUrl.startsWith('postgresql:') && !databaseUrl.includes('://')) {
   console.log('🔧 Fixed DATABASE_URL format for proper connection');
 }
 
-console.log('🔗 Connecting to PostgreSQL database...');
+console.log('🔗 Connecting to PostgreSQL database using pg driver...');
 
-// Create PostgreSQL client with connection pooling
-// Enhanced for Railway/Replit PostgreSQL connection
-const client = postgres(databaseUrl, {
-  max: 10, // Maximum connection pool size
-  idle_timeout: 20,
-  connect_timeout: 10,
-  ssl: databaseUrl.includes('localhost') ? false : 'require', // Enable SSL for production
-  transform: {
-    undefined: null // Handle undefined values properly
-  }
+// Create PostgreSQL pool using pg
+const pool = new Pool({
+  connectionString: databaseUrl,
+  ssl: databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1') 
+    ? false 
+    : { rejectUnauthorized: false },
+  max: 10,
+  idleTimeoutMillis: 20000,
+  connectionTimeoutMillis: 10000
 });
 
 // Create Drizzle database instance with schema
-export const db = drizzle(client, { schema });
+export const db = drizzle(pool, { schema });
 
 // Connection health check function
 export async function checkDatabaseConnection(): Promise<{
@@ -45,7 +44,9 @@ export async function checkDatabaseConnection(): Promise<{
 }> {
   try {
     // Test connection with a simple query
-    await client`SELECT 1 as test`;
+    const client = await pool.connect();
+    await client.query('SELECT 1 as test');
+    client.release();
     return { connected: true, status: 'healthy' };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -66,7 +67,7 @@ async function initializeDatabase() {
   try {
     const connectionStatus = await checkDatabaseConnection();
     if (connectionStatus.connected) {
-      console.log('✅ PostgreSQL database connected successfully');
+      console.log('✅ PostgreSQL database connected successfully (using pg driver)');
       console.log('🔗 Database URL configured from environment variable');
     } else {
       console.error('❌ PostgreSQL database connection failed:', connectionStatus.error);
@@ -83,5 +84,8 @@ initializeDatabase().catch((error) => {
   console.warn('⚠️ Database connection not available at startup - services will run in fallback mode');
   console.warn('This is acceptable for self-healing architecture testing');
 });
+
+// Export the pool for direct access if needed
+export { pool };
 
 export default db;
