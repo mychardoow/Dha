@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 // Import route modules
 import { healthRouter as healthRoutes } from './routes/health';
 import monitoringRoutes from './routes/monitoring';
+import { enhancedMonitoringDashboardRouter } from './routes/enhanced-monitoring-dashboard';
 // import aiAssistantRoutes from './routes/ai-assistant'; // Temporarily disabled due to dependency conflict
 import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
@@ -54,6 +55,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ Health routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register health routes:', error);
+    }
+
+    // Register Enhanced Nanosecond Monitoring Dashboard routes
+    try {
+      app.use('/api/monitoring', enhancedMonitoringDashboardRouter);
+      console.log('[Routes] ✅ Enhanced Nanosecond Monitoring Dashboard routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Enhanced Monitoring Dashboard routes:', error);
     }
 
     // Register complete PDF generation routes
