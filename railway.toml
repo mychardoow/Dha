@@ -1,20 +1,169 @@
+# Railway Deployment Configuration for DHA Digital Services Platform
+# Department of Home Affairs - Government Digital Platform
+# Enhanced configuration for production-ready deployment
+
 [build]
 builder = "NIXPACKS"
 
 [build.buildCommand]
-command = "npm install && cd client && npm install && cd .. && npm run build"
+# Comprehensive build command with error handling and validation
+command = """
+echo "🚀 Building DHA Digital Services Platform on Railway..."
+echo "🇿🇦 Department of Home Affairs Digital Platform"
+echo "=============================================="
+
+# Install root dependencies with production optimizations
+echo "📦 Installing root dependencies..."
+npm ci --only=production --no-audit --prefer-offline
+
+# Install client dependencies
+echo "📦 Installing client dependencies..."
+cd client && npm ci --only=production --no-audit --prefer-offline && cd ..
+
+# Build the application
+echo "🏗️  Building application..."
+npm run build
+
+# Verify build artifacts
+echo "🔍 Verifying build artifacts..."
+if [ ! -f "dist/server/index.js" ]; then
+    echo "❌ Critical Error: Server build failed - dist/server/index.js not found"
+    echo "Available files in dist/:"
+    find dist/ -type f -name "*.js" | head -10 || echo "No dist directory found"
+    exit 1
+fi
+
+if [ ! -d "client/dist" ]; then
+    echo "❌ Critical Error: Client build failed - client/dist not found"
+    ls -la client/ || echo "No client directory found"
+    exit 1
+fi
+
+echo "✅ Server build verified: dist/server/index.js"
+echo "✅ Client build verified: client/dist/"
+echo "📊 Build size summary:"
+du -sh dist/ client/dist/
+echo "✅ Build completed successfully"
+"""
 
 [deploy]
+# Enhanced health check configuration
 healthcheckPath = "/api/health"
 healthcheckTimeout = 300
-startCommand = "./start.sh"
+healthcheckInterval = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
+# Enhanced start command with monitoring
+startCommand = "./start.sh"
+
+# Resource allocation for government platform
+[deploy.resources]
+memory = 1024  # 1GB memory for stable operation
+cpu = 1000     # 1 vCPU for adequate performance
+
+# Environment variables
 [env]
 PORT = "3000"
 HOST = "0.0.0.0"
+NODE_ENV = "production"
 
+# Logging configuration
+LOG_LEVEL = "info"
+ENABLE_REQUEST_LOGGING = "true"
+
+# Session configuration for security
+SESSION_MAX_AGE = "86400000"  # 24 hours
+
+# Rate limiting
+RATE_LIMIT_WINDOW_MS = "900000"  # 15 minutes
+RATE_LIMIT_MAX_REQUESTS = "1000"
+
+# Security headers
+ENABLE_SECURITY_HEADERS = "true"
+ENABLE_CORS = "true"
+
+# Performance monitoring
+ENABLE_PERFORMANCE_MONITORING = "true"
+MONITORING_SAMPLE_RATE = "0.1"
+
+# Production optimizations
+NODE_OPTIONS = "--max-old-space-size=1024"
+NPM_CONFIG_PRODUCTION = "true"
+NPM_CONFIG_AUDIT = "false"
+
+# Railway-specific optimizations
 [services.web]
 build.builder = "NIXPACKS"
-build.buildCommand = "npm install && cd client && npm install && cd .. && npm run build"
+build.buildCommand = "npm ci --only=production && cd client && npm ci --only=production && cd .. && npm run build"
+
+# Auto-scaling configuration
+autoscaling.enabled = true
+autoscaling.minReplicas = 1
+autoscaling.maxReplicas = 3
+autoscaling.targetCPUPercent = 70
+autoscaling.targetMemoryPercent = 80
+
+# Network configuration
+[services.web.networking]
+# Custom domain support (configure in Railway dashboard)
+allowedOrigins = ["https://*.railway.app", "https://dha-digital-services.railway.app"]
+
+# Database configuration
+[services.database]
+# PostgreSQL database configuration (Railway managed)
+image = "postgres:15"
+environment = "production"
+
+# Monitoring and observability
+[monitoring]
+enabled = true
+metrics.enabled = true
+logs.enabled = true
+traces.enabled = true
+
+# Health check endpoints
+healthCheck.path = "/api/health"
+healthCheck.port = 3000
+healthCheck.scheme = "HTTP"
+
+# Railway deployment hooks
+[hooks]
+# Pre-deployment validation
+preDeploy = "echo '🔍 Pre-deployment validation...'; npm run lint || echo 'Linting warnings detected'"
+
+# Post-deployment verification
+postDeploy = """
+echo "🩺 Post-deployment health check..."
+sleep 30
+curl -f $RAILWAY_PUBLIC_DOMAIN/api/health || {
+    echo "❌ Health check failed"
+    exit 1
+}
+echo "✅ Deployment verified successfully"
+"""
+
+# Backup and recovery
+[backup]
+enabled = true
+schedule = "0 2 * * *"  # Daily at 2 AM UTC
+retention = "7d"        # Keep backups for 7 days
+
+# Security configuration
+[security]
+# HTTPS enforcement
+enforceHTTPS = true
+
+# Security headers
+headers.xFrameOptions = "DENY"
+headers.xContentTypeOptions = "nosniff"
+headers.xXssProtection = "1; mode=block"
+headers.strictTransportSecurity = "max-age=31536000; includeSubDomains"
+
+# Rate limiting at infrastructure level
+rateLimit.enabled = true
+rateLimit.requests = 1000
+rateLimit.window = "15m"
+
+# DDoS protection
+ddosProtection.enabled = true
