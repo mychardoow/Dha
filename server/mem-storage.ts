@@ -361,6 +361,11 @@ export class MemStorage {
   async createAiCommandInterface(command: any) { return { id: Date.now().toString(), ...command }; }
   async updateAiCommandInterface(id: string, updates: any) { return { id, ...updates }; }
   async getAiCommandsByStatus(status: string) { return []; }
+  
+  // Error tracking methods - CRITICAL FIX
+  async createErrorLog(errorLog: any) { return { id: Date.now().toString(), ...errorLog }; }
+  async getErrorLogs(filters?: any) { return []; }
+  async updateErrorLog(id: string, updates: any) { return { id, ...updates }; }
 }
 
 // Export singleton instance

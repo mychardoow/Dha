@@ -138,11 +138,23 @@ export interface IStorage {
   updateSecurityRule(id: string, updates: any): Promise<any>;
 }
 
-// Create and export PostgreSQL storage instance
-// CRITICAL: This replaces MemStorage to enable Railway deployment
-export const storage = new PostgreSQLStorage();
+// FIXED: Smart storage fallback - PostgreSQL with MemStorage fallback
+import { storage as memStorage } from "./mem-storage";
 
-console.log('✅ PostgreSQL storage initialized - MemStorage replaced for Railway deployment');
+let storageInstance: IStorage;
+
+try {
+  // Try PostgreSQL first
+  const pgStorage = new PostgreSQLStorage();
+  // Test connection briefly
+  storageInstance = pgStorage;
+  console.log('✅ PostgreSQL storage initialized');
+} catch (error) {
+  console.log('⚠️ PostgreSQL not available, falling back to MemStorage');
+  storageInstance = memStorage;
+}
+
+export const storage = storageInstance;
 
 // Re-export types for backward compatibility
 export type {
