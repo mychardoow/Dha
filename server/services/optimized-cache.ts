@@ -62,20 +62,10 @@ export class OptimizedCacheService {
   }
 
   private initializeCaches(): void {
-    // Main memory cache with LRU eviction
-    this.memoryCache = new LRU<string, CachedItem>({
-      max: 10000, // Maximum number of items
-      maxSize: this.MAX_CACHE_SIZE, // Maximum size in bytes
-      sizeCalculation: (value: CachedItem) => JSON.stringify(value).length,
-      ttl: this.DEFAULT_TTL,
-      allowStale: true,
-      updateAgeOnGet: true,
-      updateAgeOnHas: false,
-      fetchMethod: async (key: string) => {
-        // Auto-fetch method for cache misses
-        return undefined;
-      }
-    });
+    // DISABLED: Complex LRU cache causing crashes - using simple Map for now
+    this.memoryCache = new Map() as any; // Temporary fix
+    this.queryCache = new Map() as any; // Temporary fix
+    this.sessionCache = new Map() as any; // Temporary fix
 
     // Query result cache for database queries
     this.queryCache = new LRU<string, any>({
