@@ -29,6 +29,119 @@ import { enhancedDatabasePooling } from './services/enhanced-database-pooling';
 import { zeroDowntimeDeployment } from './services/zero-downtime-deployment';
 import { storage } from './mem-storage';
 import { generateToken, authenticate, requireRole } from './middleware/auth';
+import { z } from 'zod';
+import { nanoid } from 'nanoid';
+import * as QRCode from 'qrcode';
+
+// DHA Document validation schemas
+const createApplicantSchema = z.object({
+  fullName: z.string().min(1, "Full name is required"),
+  idNumber: z.string().optional(),
+  passportNumber: z.string().optional(),
+  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  nationality: z.string().min(1, "Nationality is required"),
+  gender: z.enum(['M', 'F', 'X']),
+  address: z.string().optional(),
+  contactNumber: z.string().optional(),
+  email: z.string().email().optional(),
+  isSouthAfricanCitizen: z.boolean().default(false)
+});
+
+const generateDocumentSchema = z.object({
+  applicantId: z.string().min(1, "Applicant ID is required"),
+  documentType: z.string().min(1, "Document type is required"),
+  permitCategory: z.string().optional(),
+  visaType: z.string().optional(),
+  relativeDetails: z.object({
+    name: z.string().optional(),
+    relationship: z.string().optional(),
+    saIdNumber: z.string().optional()
+  }).optional(),
+  qualifications: z.array(z.string()).optional(),
+  employerDetails: z.object({
+    companyName: z.string().optional(),
+    registrationNumber: z.string().optional(),
+    address: z.string().optional()
+  }).optional(),
+  issueLocation: z.string().default('Department of Home Affairs'),
+  issuingOfficer: z.string().optional(),
+  notes: z.string().optional()
+});
+
+// Helper functions for DHA document generation
+function generateDocumentNumber(documentType: string): string {
+  const prefix = getDocumentPrefix(documentType);
+  const year = new Date().getFullYear();
+  const month = String(new Date().getMonth() + 1).padStart(2, '0');
+  const random = nanoid(6).toUpperCase();
+  return `${prefix}/${year}/${month}/${random}`;
+}
+
+function getDocumentPrefix(documentType: string): string {
+  const prefixes: Record<string, string> = {
+    'smart_id_card': 'ID',
+    'south_african_passport': 'ZAP',
+    'birth_certificate': 'BC',
+    'permanent_residence_permit': 'PRP',
+    'general_work_visa': 'GWV',
+    'critical_skills_work_visa': 'CSV',
+    'study_visa_permit': 'SVP',
+    'visitor_visa': 'VV',
+    'relatives_visa': 'RV',
+    'business_visa': 'BV',
+    'refugee_status_permit': 'RSP',
+    'asylum_seeker_permit': 'ASP'
+  };
+  return prefixes[documentType] || 'DOC';
+}
+
+function generateVerificationCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 12; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+async function generateQRCodeData(document: any): Promise<{ data: string; url: string }> {
+  const verificationUrl = `${process.env.BASE_URL || 'https://dha.gov.za'}/verify/${document.verificationCode}`;
+  const qrData = {
+    documentNumber: document.documentNumber,
+    documentType: document.documentType,
+    verificationCode: document.verificationCode,
+    issueDate: document.issueDate,
+    verificationUrl
+  };
+  
+  const qrString = JSON.stringify(qrData);
+  const qrCodeUrl = await QRCode.toDataURL(qrString);
+  
+  return {
+    data: qrString,
+    url: qrCodeUrl
+  };
+}
+
+function calculateExpiryDate(documentType: string): string | null {
+  const now = new Date();
+  switch (documentType) {
+    case 'smart_id_card':
+    case 'south_african_passport':
+      return new Date(now.getFullYear() + 10, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    case 'permanent_residence_permit':
+      return new Date(now.getFullYear() + 5, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    case 'general_work_visa':
+    case 'critical_skills_work_visa':
+      return new Date(now.getFullYear() + 3, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    case 'study_visa_permit':
+      return new Date(now.getFullYear() + 2, now.getMonth(), now.getDate()).toISOString().split('T')[0];
+    case 'visitor_visa':
+      return new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).toISOString().split('T')[0];
+    default:
+      return null;
+  }
+}
 
 // Authentication rate limiter - Enhanced security
 const authLimiter = rateLimit({
@@ -154,6 +267,535 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
     } catch (error) {
       console.error('[Routes] Failed to register biometric ultra admin routes:', error);
     }
+
+    // ==================== DHA DOCUMENT GENERATION ROUTES ====================
+    
+    // 1. GET /api/dha/applicants - List all applicants
+    app.get('/api/dha/applicants', async (req: Request, res: Response) => {
+      try {
+        const applicants = await storage.getDhaApplicants();
+        res.json({
+          success: true,
+          data: applicants,
+          count: applicants.length
+        });
+      } catch (error) {
+        console.error('[DHA] Error fetching applicants:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch applicants'
+        });
+      }
+    });
+
+    // 2. GET /api/dha/applicants/:id - Get specific applicant details
+    app.get('/api/dha/applicants/:id', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const applicant = await storage.getDhaApplicant(id);
+        
+        if (!applicant) {
+          return res.status(404).json({
+            success: false,
+            error: 'Applicant not found'
+          });
+        }
+        
+        res.json({
+          success: true,
+          data: applicant
+        });
+      } catch (error) {
+        console.error('[DHA] Error fetching applicant:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch applicant details'
+        });
+      }
+    });
+
+    // 3. POST /api/dha/applicants - Create new applicant
+    app.post('/api/dha/applicants', async (req: Request, res: Response) => {
+      try {
+        const validatedData = createApplicantSchema.parse(req.body);
+        
+        // Check for duplicate ID number or passport
+        if (validatedData.idNumber) {
+          const existing = await storage.getDhaApplicantByIdNumber(validatedData.idNumber);
+          if (existing) {
+            return res.status(400).json({
+              success: false,
+              error: 'Applicant with this ID number already exists'
+            });
+          }
+        }
+        
+        if (validatedData.passportNumber) {
+          const existing = await storage.getDhaApplicantByPassport(validatedData.passportNumber);
+          if (existing) {
+            return res.status(400).json({
+              success: false,
+              error: 'Applicant with this passport number already exists'
+            });
+          }
+        }
+        
+        const applicant = await storage.createDhaApplicant({
+          ...validatedData,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        res.status(201).json({
+          success: true,
+          data: applicant,
+          message: 'Applicant created successfully'
+        });
+      } catch (error) {
+        console.error('[DHA] Error creating applicant:', error);
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({
+            success: false,
+            error: 'Validation error',
+            details: error.errors
+          });
+        }
+        res.status(500).json({
+          success: false,
+          error: 'Failed to create applicant'
+        });
+      }
+    });
+
+    // 4. POST /api/dha/documents/generate - Generate a new document
+    app.post('/api/dha/documents/generate', async (req: Request, res: Response) => {
+      try {
+        const validatedData = generateDocumentSchema.parse(req.body);
+        
+        // Verify applicant exists
+        const applicant = await storage.getDhaApplicant(validatedData.applicantId);
+        if (!applicant) {
+          return res.status(404).json({
+            success: false,
+            error: 'Applicant not found'
+          });
+        }
+        
+        // Generate unique document number and verification code
+        const documentNumber = generateDocumentNumber(validatedData.documentType);
+        const verificationCode = generateVerificationCode();
+        const issueDate = new Date().toISOString().split('T')[0];
+        const expiryDate = calculateExpiryDate(validatedData.documentType);
+        
+        // Create document record
+        const document = await storage.createDhaDocument({
+          applicantId: validatedData.applicantId,
+          documentType: validatedData.documentType,
+          documentNumber,
+          issueDate,
+          expiryDate,
+          status: 'issued',
+          referenceNumber: `REF-${nanoid(8).toUpperCase()}`,
+          permitCategory: validatedData.permitCategory,
+          visaType: validatedData.visaType,
+          relativeDetails: validatedData.relativeDetails,
+          qualifications: validatedData.qualifications,
+          employerDetails: validatedData.employerDetails,
+          issueLocation: validatedData.issueLocation,
+          issuingOfficer: validatedData.issuingOfficer || 'System Generated',
+          notes: validatedData.notes,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            applicantName: applicant.fullName,
+            applicantNationality: applicant.nationality
+          },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        // Generate QR code data
+        const qrCodeData = await generateQRCodeData({
+          documentNumber,
+          documentType: validatedData.documentType,
+          verificationCode,
+          issueDate
+        });
+        
+        // Create verification record
+        const verification = await storage.createDhaDocumentVerification({
+          documentId: document.id,
+          verificationCode,
+          qrCodeData: qrCodeData.data,
+          qrCodeUrl: qrCodeData.url,
+          verificationType: 'QR',
+          isValid: true,
+          verificationCount: 0,
+          createdAt: new Date(),
+          expiresAt: expiryDate ? new Date(expiryDate) : null
+        });
+        
+        res.status(201).json({
+          success: true,
+          data: {
+            document,
+            verification: {
+              verificationCode,
+              qrCodeUrl: qrCodeData.url,
+              verificationUrl: `${process.env.BASE_URL || 'https://dha.gov.za'}/verify/${verificationCode}`
+            },
+            applicant: {
+              id: applicant.id,
+              fullName: applicant.fullName,
+              nationality: applicant.nationality
+            }
+          },
+          message: 'Document generated successfully'
+        });
+        
+      } catch (error) {
+        console.error('[DHA] Error generating document:', error);
+        if (error instanceof z.ZodError) {
+          return res.status(400).json({
+            success: false,
+            error: 'Validation error',
+            details: error.errors
+          });
+        }
+        res.status(500).json({
+          success: false,
+          error: 'Failed to generate document'
+        });
+      }
+    });
+
+    // 5. GET /api/dha/documents/:id - Get document details
+    app.get('/api/dha/documents/:id', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        const document = await storage.getDhaDocument(id);
+        
+        if (!document) {
+          return res.status(404).json({
+            success: false,
+            error: 'Document not found'
+          });
+        }
+        
+        // Get verification info
+        const verification = await storage.getDhaDocumentVerificationByCode(document.id);
+        
+        res.json({
+          success: true,
+          data: {
+            document,
+            verification: verification || null
+          }
+        });
+      } catch (error) {
+        console.error('[DHA] Error fetching document:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch document details'
+        });
+      }
+    });
+
+    // 6. GET /api/dha/documents/verify/:code - Verify document by verification code
+    app.get('/api/dha/documents/verify/:code', async (req: Request, res: Response) => {
+      try {
+        const { code } = req.params;
+        const verification = await storage.getDhaDocumentVerificationByCode(code);
+        
+        if (!verification) {
+          return res.status(404).json({
+            success: false,
+            error: 'Invalid verification code',
+            valid: false
+          });
+        }
+        
+        // Get document details
+        const document = await storage.getDhaDocument(verification.documentId);
+        if (!document) {
+          return res.status(404).json({
+            success: false,
+            error: 'Document not found',
+            valid: false
+          });
+        }
+        
+        // Get applicant details
+        const applicant = await storage.getDhaApplicant(document.applicantId);
+        
+        // Update verification count
+        await storage.updateDhaDocumentVerification(verification.id, {
+          verificationCount: (verification.verificationCount || 0) + 1,
+          lastVerifiedAt: new Date()
+        });
+        
+        res.json({
+          success: true,
+          valid: verification.isValid,
+          data: {
+            document: {
+              documentNumber: document.documentNumber,
+              documentType: document.documentType,
+              issueDate: document.issueDate,
+              expiryDate: document.expiryDate,
+              status: document.status
+            },
+            applicant: applicant ? {
+              fullName: applicant.fullName,
+              nationality: applicant.nationality
+            } : null,
+            verification: {
+              verificationType: verification.verificationType,
+              verificationCount: verification.verificationCount + 1,
+              isValid: verification.isValid
+            }
+          },
+          message: 'Document verified successfully'
+        });
+      } catch (error) {
+        console.error('[DHA] Error verifying document:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to verify document'
+        });
+      }
+    });
+
+    // 7. GET /api/dha/applicants/:id/documents - Get all documents for an applicant
+    app.get('/api/dha/applicants/:id/documents', async (req: Request, res: Response) => {
+      try {
+        const { id } = req.params;
+        
+        // Verify applicant exists
+        const applicant = await storage.getDhaApplicant(id);
+        if (!applicant) {
+          return res.status(404).json({
+            success: false,
+            error: 'Applicant not found'
+          });
+        }
+        
+        const documents = await storage.getApplicantDhaDocuments(id);
+        
+        res.json({
+          success: true,
+          data: {
+            applicant: {
+              id: applicant.id,
+              fullName: applicant.fullName,
+              nationality: applicant.nationality
+            },
+            documents,
+            count: documents.length
+          }
+        });
+      } catch (error) {
+        console.error('[DHA] Error fetching applicant documents:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to fetch applicant documents'
+        });
+      }
+    });
+
+    // 8. POST /api/dha/seed - Load initial data
+    app.post('/api/dha/seed', async (req: Request, res: Response) => {
+      try {
+        console.log('[DHA] Starting seed data import...');
+        
+        // Pakistani applicants
+        const pakistaniApplicants = [
+          {
+            fullName: "Muhammad Hasnain Younis",
+            idNumber: "37405-6961586-3",
+            dateOfBirth: "1986-07-22",
+            nationality: "Pakistani",
+            gender: "M" as const,
+            address: "123 Main Street, Johannesburg",
+            contactNumber: "+27123456789",
+            email: "hasnain@example.com",
+            isSouthAfricanCitizen: false
+          },
+          {
+            fullName: "Tasleen Osman",
+            passportNumber: "PK9876543",
+            dateOfBirth: "1990-03-15",
+            nationality: "Pakistani",
+            gender: "F" as const,
+            address: "456 Oak Avenue, Cape Town",
+            contactNumber: "+27987654321",
+            email: "tasleen@example.com",
+            isSouthAfricanCitizen: false
+          },
+          {
+            fullName: "Ali Hassan",
+            passportNumber: "PK1234567",
+            dateOfBirth: "1988-11-20",
+            nationality: "Pakistani",
+            gender: "M" as const,
+            address: "789 Pine Road, Durban",
+            contactNumber: "+27456789123",
+            email: "ali.hassan@example.com",
+            isSouthAfricanCitizen: false
+          }
+        ];
+        
+        // South African citizens
+        const southAfricanCitizens = [
+          {
+            fullName: "John Smith",
+            idNumber: "8501015800084",
+            dateOfBirth: "1985-01-01",
+            nationality: "South African",
+            gender: "M" as const,
+            address: "10 Long Street, Cape Town",
+            contactNumber: "+27821234567",
+            email: "john.smith@example.com",
+            isSouthAfricanCitizen: true
+          },
+          {
+            fullName: "Sarah Johnson",
+            idNumber: "9203035800082",
+            dateOfBirth: "1992-03-03",
+            nationality: "South African",
+            gender: "F" as const,
+            address: "25 Church Street, Pretoria",
+            contactNumber: "+27834567890",
+            email: "sarah.j@example.com",
+            isSouthAfricanCitizen: true
+          },
+          {
+            fullName: "Thabo Mbeki",
+            idNumber: "8806065800083",
+            dateOfBirth: "1988-06-06",
+            nationality: "South African",
+            gender: "M" as const,
+            address: "45 Nelson Mandela Drive, Johannesburg",
+            contactNumber: "+27729876543",
+            email: "thabo.m@example.com",
+            isSouthAfricanCitizen: true
+          }
+        ];
+        
+        const createdApplicants = [];
+        const errors = [];
+        
+        // Process Pakistani applicants
+        for (const applicantData of pakistaniApplicants) {
+          try {
+            // Check if already exists
+            const existing = applicantData.idNumber 
+              ? await storage.getDhaApplicantByIdNumber(applicantData.idNumber)
+              : await storage.getDhaApplicantByPassport(applicantData.passportNumber!);
+            
+            if (!existing) {
+              const applicant = await storage.createDhaApplicant({
+                ...applicantData,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              createdApplicants.push(applicant);
+              console.log(`✅ Created Pakistani applicant: ${applicantData.fullName}`);
+              
+              // Generate a permanent residence permit for Pakistani applicants
+              const documentNumber = generateDocumentNumber('permanent_residence_permit');
+              const verificationCode = generateVerificationCode();
+              const issueDate = new Date().toISOString().split('T')[0];
+              const expiryDate = calculateExpiryDate('permanent_residence_permit');
+              
+              const document = await storage.createDhaDocument({
+                applicantId: applicant.id,
+                documentType: 'permanent_residence_permit',
+                documentNumber,
+                issueDate,
+                expiryDate,
+                status: 'issued',
+                referenceNumber: `REF-${nanoid(8).toUpperCase()}`,
+                permitCategory: 'Permanent Residence',
+                issueLocation: 'Department of Home Affairs - Pretoria',
+                issuingOfficer: 'System Seed',
+                notes: 'Seeded document for testing',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              
+              console.log(`✅ Generated permanent residence permit: ${documentNumber}`);
+            } else {
+              console.log(`⚠️ Skipped existing Pakistani applicant: ${applicantData.fullName}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error creating Pakistani applicant ${applicantData.fullName}:`, error);
+            errors.push(`Failed to create ${applicantData.fullName}: ${error}`);
+          }
+        }
+        
+        // Process South African citizens
+        for (const citizenData of southAfricanCitizens) {
+          try {
+            const existing = await storage.getDhaApplicantByIdNumber(citizenData.idNumber!);
+            
+            if (!existing) {
+              const citizen = await storage.createDhaApplicant({
+                ...citizenData,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              createdApplicants.push(citizen);
+              console.log(`✅ Created SA citizen: ${citizenData.fullName}`);
+              
+              // Generate a smart ID card for SA citizens
+              const documentNumber = generateDocumentNumber('smart_id_card');
+              const verificationCode = generateVerificationCode();
+              const issueDate = new Date().toISOString().split('T')[0];
+              const expiryDate = calculateExpiryDate('smart_id_card');
+              
+              const document = await storage.createDhaDocument({
+                applicantId: citizen.id,
+                documentType: 'smart_id_card',
+                documentNumber,
+                issueDate,
+                expiryDate,
+                status: 'issued',
+                referenceNumber: `REF-${nanoid(8).toUpperCase()}`,
+                issueLocation: 'Department of Home Affairs - Cape Town',
+                issuingOfficer: 'System Seed',
+                notes: 'Seeded document for testing',
+                createdAt: new Date(),
+                updatedAt: new Date()
+              });
+              
+              console.log(`✅ Generated smart ID card: ${documentNumber}`);
+            } else {
+              console.log(`⚠️ Skipped existing SA citizen: ${citizenData.fullName}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error creating SA citizen ${citizenData.fullName}:`, error);
+            errors.push(`Failed to create ${citizenData.fullName}: ${error}`);
+          }
+        }
+        
+        res.json({
+          success: true,
+          data: {
+            created: createdApplicants.length,
+            applicants: createdApplicants,
+            errors: errors.length > 0 ? errors : undefined
+          },
+          message: `Seed data loaded: ${createdApplicants.length} applicants created`
+        });
+        
+      } catch (error) {
+        console.error('[DHA] Error seeding data:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Failed to seed DHA data'
+        });
+      }
+    });
 
     // Authentication routes with enhanced security
     app.post('/api/auth/login', authLimiter, async (req: Request, res: Response) => {
