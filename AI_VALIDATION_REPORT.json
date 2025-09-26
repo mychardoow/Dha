@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-09-25T19:38:33.961Z",
+  "timestamp": "2025-09-26T02:11:15.581Z",
   "overallScore": 100,
   "summary": {
     "pass": 10,
@@ -119,7 +119,7 @@
               "postEndpoints": 4,
               "getEndpoints": 2,
               "hasAuthentication": true,
-              "hasRateLimiting": false,
+              "hasRateLimiting": true,
               "hasAsyncHandling": true
             }
           ]
