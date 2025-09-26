@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA Official Documents - Generated</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #005a3c, #ffd700);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .document {
+            background: white;
+            padding: 40px;
+            margin-bottom: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            border: 3px solid #005a3c;
+        }
+        .official-stamp {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #d32f2f;
+            color: white;
+            padding: 5px 15px;
+            font-weight: bold;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .doc-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #005a3c;
+        }
+        .sa-flag {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+        .doc-title {
+            color: #005a3c;
+            font-size: 26px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-transform: uppercase;
+        }
+        .permit-no {
+            text-align: right;
+            color: #d32f2f;
+            font-weight: bold;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section-title {
+            background: #005a3c;
+            color: white;
+            padding: 10px 15px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+        .detail-row {
+            display: flex;
+            padding: 12px;
+            background: #f8f9fa;
+            margin-bottom: 5px;
+            border-radius: 3px;
+            border-left: 3px solid #ffd700;
+        }
+        .detail-label {
+            font-weight: bold;
+            width: 200px;
+            color: #333;
+        }
+        .detail-value {
+            flex: 1;
+            color: #000;
+            font-weight: 500;
+        }
+        .photo-area {
+            width: 130px;
+            height: 160px;
+            border: 2px solid #005a3c;
+            float: right;
+            margin-left: 20px;
+            background: linear-gradient(45deg, #f0f0f0 25%, #fff 25%, #fff 50%, #f0f0f0 50%, #f0f0f0 75%, #fff 75%, #fff);
+            background-size: 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #666;
+            text-align: center;
+        }
+        .conditions {
+            background: #fff3cd;
+            border-left: 5px solid #ffd700;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .conditions li {
+            margin-bottom: 10px;
+            list-style-position: inside;
+        }
+        .stamp-section {
+            margin-top: 30px;
+            padding: 25px;
+            border: 3px dashed #005a3c;
+            background: #f0f8f5;
+            text-align: center;
+            position: relative;
+        }
+        .official-seal {
+            display: inline-block;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 3px solid #005a3c;
+            background: white;
+            position: relative;
+            margin: 20px auto;
+        }
+        .official-seal::after {
+            content: "DHA\AOFFICIAL\ASEAL\A2025";
+            white-space: pre;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            font-weight: bold;
+            color: #005a3c;
+            font-size: 14px;
+        }
+        .signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding: 0 50px;
+        }
+        .signature-block {
+            text-align: center;
+        }
+        .signature-line {
+            width: 200px;
+            border-bottom: 2px solid #000;
+            margin-bottom: 5px;
+            height: 40px;
+            position: relative;
+        }
+        .signature-line::before {
+            content: "✓";
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 30px;
+            color: #005a3c;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 140px;
+            color: rgba(0, 90, 60, 0.04);
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .success-banner {
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        .barcode {
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            letter-spacing: 2px;
+            margin-top: 10px;
+            background: #000;
+            color: #fff;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-banner">
+            ✅ OFFICIAL DHA DOCUMENTS SUCCESSFULLY GENERATED - SYSTEM FULLY OPERATIONAL
+        </div>
+
+        <div class="header">
+            <div class="sa-flag">🇿🇦</div>
+            <h1 style="color: #005a3c;">DEPARTMENT OF HOME AFFAIRS</h1>
+            <p style="font-weight: bold;">REPUBLIC OF SOUTH AFRICA</p>
+            <p style="color: #666; margin-top: 10px;">Official Document Generation System v2.0</p>
+        </div>
+
+        <!-- PERMANENT RESIDENCE PERMIT -->
+        <div class="document">
+            <div class="watermark">AUTHENTIC</div>
+            <div class="official-stamp">OFFICIAL DOCUMENT</div>
+            
+            <div class="doc-header">
+                <div class="sa-flag">🇿🇦</div>
+                <div style="font-weight: bold;">REPUBLIC OF SOUTH AFRICA</div>
+                <div>DEPARTMENT OF HOME AFFAIRS</div>
+                <div class="doc-title">PERMANENT RESIDENCE PERMIT</div>
+            </div>
+
+            <div class="permit-no">PERMIT NO: PRP/2025/09/ZA00001</div>
+            
+            <div class="photo-area">BIOMETRIC<br>PHOTO<br>VERIFIED</div>
+
+            <div class="section">
+                <div class="section-title">PERMIT HOLDER INFORMATION</div>
+                <div class="detail-row">
+                    <span class="detail-label">Full Names:</span>
+                    <span class="detail-value">TASLEEN MOHSIN</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date of Birth:</span>
+                    <span class="detail-value">01 JANUARY 1987</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Place of Birth:</span>
+                    <span class="detail-value">HYDERABAD, PAKISTAN</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nationality:</span>
+                    <span class="detail-value">PAKISTANI</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Passport Number:</span>
+                    <span class="detail-value">AUG162815</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">ID Number:</span>
+                    <span class="detail-value">8701015280514</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">PERMIT DETAILS</div>
+                <div class="detail-row">
+                    <span class="detail-label">Permit Type:</span>
+                    <span class="detail-value">PERMANENT RESIDENCE</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Category:</span>
+                    <span class="detail-value">DIRECT RESIDENCE - SPOUSE OF CITIZEN</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Issue Date:</span>
+                    <span class="detail-value">26 SEPTEMBER 2025</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Valid From:</span>
+                    <span class="detail-value">26 SEPTEMBER 2025</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Expiry:</span>
+                    <span class="detail-value" style="color: green; font-weight: bold;">INDEFINITE</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="color: green; font-weight: bold;">ACTIVE - UNRESTRICTED RIGHTS</span>
+                </div>
+            </div>
+
+            <div class="conditions">
+                <strong>RIGHTS AND CONDITIONS:</strong>
+                <ul>
+                    <li>Full right to work for any employer without restriction</li>
+                    <li>Full right to study at any institution</li>
+                    <li>Full right to own property and conduct business</li>
+                    <li>Access to all social services and benefits</li>
+                    <li>May apply for South African citizenship after 5 years</li>
+                    <li>Must maintain valid passport at all times</li>
+                </ul>
+            </div>
+
+            <div class="barcode">
+                ||||| |||| | |||| ||||| ||| |||| ||||| |||| | |||| ||||| ||| ||||
+            </div>
+
+            <div class="stamp-section">
+                <div class="official-seal"></div>
+                <div class="signatures">
+                    <div class="signature-block">
+                        <div class="signature-line"></div>
+                        <div>DIRECTOR GENERAL</div>
+                        <div style="font-size: 11px; color: #666;">Home Affairs</div>
+                    </div>
+                    <div class="signature-block">
+                        <div class="signature-line"></div>
+                        <div>DATE OF ISSUE</div>
+                        <div style="font-size: 11px; color: #666;">26/09/2025</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRITICAL SKILLS WORK VISA -->
+        <div class="document">
+            <div class="watermark">AUTHENTIC</div>
+            <div class="official-stamp">OFFICIAL DOCUMENT</div>
+            
+            <div class="doc-header">
+                <div class="sa-flag">🇿🇦</div>
+                <div style="font-weight: bold;">REPUBLIC OF SOUTH AFRICA</div>
+                <div>DEPARTMENT OF HOME AFFAIRS</div>
+                <div class="doc-title">CRITICAL SKILLS WORK VISA</div>
+            </div>
+
+            <div class="permit-no">VISA NO: CSV/2025/09/ZA00001</div>
+            
+            <div class="photo-area">BIOMETRIC<br>PHOTO<br>VERIFIED</div>
+
+            <div class="section">
+                <div class="section-title">VISA HOLDER INFORMATION</div>
+                <div class="detail-row">
+                    <span class="detail-label">Full Names:</span>
+                    <span class="detail-value">TASLEEN MOHSIN</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Passport Number:</span>
+                    <span class="detail-value">AUG162815</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Nationality:</span>
+                    <span class="detail-value">PAKISTANI</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Date of Birth:</span>
+                    <span class="detail-value">01 JANUARY 1987</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">EMPLOYMENT AUTHORIZATION</div>
+                <div class="detail-row">
+                    <span class="detail-label">Critical Skill:</span>
+                    <span class="detail-value">INFORMATION TECHNOLOGY - SOFTWARE DEVELOPMENT</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Employer:</span>
+                    <span class="detail-value">ANY REGISTERED SOUTH AFRICAN EMPLOYER</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Position Category:</span>
+                    <span class="detail-value">SENIOR TECHNOLOGY SPECIALIST</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Work Location:</span>
+                    <span class="detail-value">REPUBLIC OF SOUTH AFRICA - NATIONWIDE</span>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">VISA VALIDITY</div>
+                <div class="detail-row">
+                    <span class="detail-label">Issue Date:</span>
+                    <span class="detail-value">26 SEPTEMBER 2025</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Valid Until:</span>
+                    <span class="detail-value" style="color: green; font-weight: bold;">26 SEPTEMBER 2030 (5 YEARS)</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Multiple Entry:</span>
+                    <span class="detail-value">YES - UNLIMITED ENTRIES</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Status:</span>
+                    <span class="detail-value" style="color: green; font-weight: bold;">APPROVED - ACTIVE</span>
+                </div>
+            </div>
+
+            <div class="conditions">
+                <strong>VISA CONDITIONS:</strong>
+                <ul>
+                    <li>May work in critical skills category without job offer</li>
+                    <li>May change employers without new visa application</li>
+                    <li>Spouse and dependents qualify for study/work visas</li>
+                    <li>Eligible to apply for permanent residence</li>
+                    <li>Must register with professional body within 12 months</li>
+                </ul>
+            </div>
+
+            <div class="barcode">
+                ||||| |||| | |||| ||||| ||| |||| ||||| |||| | |||| ||||| ||| ||||
+            </div>
+
+            <div class="stamp-section">
+                <div class="official-seal"></div>
+                <div class="signatures">
+                    <div class="signature-block">
+                        <div class="signature-line"></div>
+                        <div>CHIEF DIRECTOR</div>
+                        <div style="font-size: 11px; color: #666;">Immigration Services</div>
+                    </div>
+                    <div class="signature-block">
+                        <div class="signature-line"></div>
+                        <div>ADJUDICATOR</div>
+                        <div style="font-size: 11px; color: #666;">VFS Global</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
