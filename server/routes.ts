@@ -16,11 +16,17 @@ import ultraAIRoutes from "./routes/ultra-ai";
 import queenAccessRoutes from "./routes/queen-access";
 import dhaPublicRoutes from "./routes/dha-public";
 import { completePDFRoutes } from './routes/complete-pdf-routes';
+import { railwayHealthRoutes } from './routes/railway-health-routes';
 import { queenUltraAI } from "./services/queen-ultra-ai";
 import { dhaPublicAI } from "./services/dha-public-ai";
 import { dhaDocumentGenerator } from "./services/dha-document-generator";
 import { governmentAPIs } from "./services/government-api-integrations";
 import { completePDFGenerationService } from './services/complete-pdf-generation-service';
+import { railwayAutoScalingService } from './services/railway-auto-scaling-service';
+import { railwayHealthCheckSystem } from './services/railway-health-check-system';
+import { circuitBreakerSystem } from './services/circuit-breaker-system';
+import { enhancedDatabasePooling } from './services/enhanced-database-pooling';
+import { zeroDowntimeDeployment } from './services/zero-downtime-deployment';
 import { storage } from './mem-storage';
 import { generateToken, authenticate, requireRole } from './middleware/auth';
 
@@ -46,6 +52,34 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
     // Use provided HTTP server or create one
     const server = httpServer || createServer(app);
 
+    // Initialize Railway deployment systems
+    console.log('[Routes] 🚂 Initializing Railway deployment systems...');
+    try {
+      // Start Railway auto-scaling service
+      await railwayAutoScalingService.start();
+      console.log('[Routes] ✅ Railway auto-scaling service started');
+
+      // Start Railway health check system
+      await railwayHealthCheckSystem.start();
+      console.log('[Routes] ✅ Railway health check system started');
+
+      // Start circuit breaker system
+      await circuitBreakerSystem.start();
+      console.log('[Routes] ✅ Circuit breaker system started');
+
+      // Start enhanced database pooling
+      await enhancedDatabasePooling.start();
+      console.log('[Routes] ✅ Enhanced database pooling started');
+
+      // Start zero-downtime deployment system
+      await zeroDowntimeDeployment.start();
+      console.log('[Routes] ✅ Zero-downtime deployment system started');
+
+      console.log('[Routes] 🎯 All Railway deployment systems initialized successfully');
+    } catch (error) {
+      console.error('[Routes] ❌ Failed to initialize Railway deployment systems:', error);
+    }
+
     // WebSocket initialization disabled for deployment stability
     console.log('[Routes] ✅ WebSocket initialization skipped for deployment');
 
@@ -55,6 +89,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ Health routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register health routes:', error);
+    }
+
+    // Register Railway deployment and health monitoring routes
+    try {
+      app.use('/api/railway', railwayHealthRoutes);
+      console.log('[Routes] ✅ Railway deployment and health monitoring routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Railway health routes:', error);
     }
 
     // Register Enhanced Nanosecond Monitoring Dashboard routes
