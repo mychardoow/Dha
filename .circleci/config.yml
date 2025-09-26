@@ -1,0 +1,389 @@
+version: 2.1
+
+# CircleCI Configuration for DHA Digital Services Platform
+# Department of Home Affairs - Government Digital Platform
+
+# Orbs - Reusable packages of configuration
+orbs:
+  node: circleci/node@5.1.0
+  postgres: circleci/postgres@1.0.0
+  docker: circleci/docker@2.2.0
+
+# Job definitions
+jobs:
+  # Test job - Run tests and validation
+  test:
+    docker:
+      - image: cimg/node:20.9
+      - image: cimg/postgres:15.0
+        environment:
+          POSTGRES_USER: dha_user
+          POSTGRES_PASSWORD: dha_password
+          POSTGRES_DB: dha_test
+    
+    resource_class: medium
+    
+    steps:
+      - checkout
+      
+      # Restore dependencies cache
+      - node/install-packages:
+          pkg-manager: npm
+          cache-path: ~/.npm
+          override-ci-command: npm ci
+      
+      # Install client dependencies
+      - run:
+          name: Install client dependencies
+          command: cd client && npm ci
+      
+      # Wait for database
+      - run:
+          name: Wait for database
+          command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      
+      # Run TypeScript type checking
+      - run:
+          name: TypeScript type checking
+          command: |
+            echo "🔍 Running TypeScript type checking..."
+            npx tsc --noEmit
+            cd client && npx tsc --noEmit
+            echo "✅ TypeScript validation passed"
+      
+      # Run linting
+      - run:
+          name: Run ESLint
+          command: |
+            echo "🧹 Running ESLint..."
+            npm run lint
+            echo "✅ Linting passed"
+      
+      # Run tests
+      - run:
+          name: Run tests
+          command: |
+            echo "🧪 Running test suite..."
+            npm test
+            echo "✅ Tests passed"
+          environment:
+            DATABASE_URL: postgresql://dha_user:dha_password@localhost:5432/dha_test
+            NODE_ENV: test
+      
+      # Store test results
+      - store_test_results:
+          path: test-results
+      
+      # Store test coverage
+      - store_artifacts:
+          path: coverage
+
+  # Build job - Build the application
+  build:
+    docker:
+      - image: cimg/node:20.9
+    
+    resource_class: large
+    
+    steps:
+      - checkout
+      
+      # Restore dependencies cache
+      - node/install-packages:
+          pkg-manager: npm
+          cache-path: ~/.npm
+          override-ci-command: npm ci
+      
+      # Install client dependencies
+      - run:
+          name: Install client dependencies
+          command: cd client && npm ci
+      
+      # Build application
+      - run:
+          name: Build application
+          command: |
+            echo "🏗️  Building DHA Digital Services Platform..."
+            echo "🇿🇦 Department of Home Affairs Digital Platform"
+            npm run build
+            echo "✅ Build completed successfully"
+      
+      # Verify build artifacts
+      - run:
+          name: Verify build artifacts
+          command: |
+            echo "🔍 Verifying build artifacts..."
+            
+            # Check server build
+            if [ ! -f "dist/server/index.js" ]; then
+              echo "❌ Server build failed - dist/server/index.js not found"
+              exit 1
+            fi
+            echo "✅ Server build verified: dist/server/index.js"
+            
+            # Check client build
+            if [ ! -d "client/dist" ]; then
+              echo "❌ Client build failed - client/dist not found"
+              exit 1
+            fi
+            echo "✅ Client build verified: client/dist/"
+            
+            # Check critical files
+            ls -la dist/server/
+            ls -la client/dist/
+            
+            echo "✅ All build artifacts verified successfully"
+      
+      # Store build artifacts
+      - store_artifacts:
+          path: dist
+          destination: server-build
+      
+      - store_artifacts:
+          path: client/dist
+          destination: client-build
+      
+      # Persist build for deployment jobs
+      - persist_to_workspace:
+          root: .
+          paths:
+            - dist
+            - client/dist
+            - package.json
+            - package-lock.json
+            - start.sh
+            - railway.toml
+
+  # Security scan job
+  security-scan:
+    docker:
+      - image: cimg/node:20.9
+    
+    steps:
+      - checkout
+      
+      - node/install-packages:
+          pkg-manager: npm
+          cache-path: ~/.npm
+          override-ci-command: npm ci
+      
+      # Run npm audit
+      - run:
+          name: Security audit
+          command: |
+            echo "🔒 Running security audit..."
+            npm audit --audit-level=high
+            cd client && npm audit --audit-level=high
+            echo "✅ Security audit passed"
+      
+      # Store security report
+      - store_artifacts:
+          path: npm-audit.json
+
+  # Deploy to Railway
+  deploy-railway:
+    docker:
+      - image: cimg/node:20.9
+    
+    steps:
+      - checkout
+      
+      - attach_workspace:
+          at: .
+      
+      # Install Railway CLI
+      - run:
+          name: Install Railway CLI
+          command: |
+            echo "🚂 Installing Railway CLI..."
+            curl -fsSL https://railway.app/install.sh | sh
+            echo 'export PATH="$HOME/.railway/bin:$PATH"' >> $BASH_ENV
+      
+      # Deploy to Railway
+      - run:
+          name: Deploy to Railway
+          command: |
+            echo "🚀 Deploying to Railway..."
+            echo "🇿🇦 DHA Digital Services Platform"
+            
+            # Link to Railway project
+            railway link --service $RAILWAY_SERVICE_ID
+            
+            # Deploy
+            railway up --detach
+            
+            echo "✅ Railway deployment initiated"
+          environment:
+            RAILWAY_TOKEN: $RAILWAY_TOKEN
+      
+      # Wait for deployment and verify
+      - run:
+          name: Verify Railway deployment
+          command: |
+            echo "⏳ Waiting for Railway deployment to complete..."
+            sleep 90
+            
+            # Get Railway URL and test health endpoint
+            RAILWAY_URL=$(railway vars --json | jq -r '.RAILWAY_PUBLIC_DOMAIN // "unknown"')
+            
+            if [ "$RAILWAY_URL" != "unknown" ]; then
+              HEALTH_URL="https://$RAILWAY_URL/api/health"
+              echo "🩺 Testing health endpoint: $HEALTH_URL"
+              
+              # Retry health check
+              for i in {1..10}; do
+                if curl -f "$HEALTH_URL"; then
+                  echo "✅ Railway deployment verified successfully"
+                  exit 0
+                fi
+                echo "Attempt $i failed, retrying in 30s..."
+                sleep 30
+              done
+              
+              echo "❌ Railway deployment verification failed"
+              exit 1
+            else
+              echo "⚠️ Could not determine Railway URL - manual verification required"
+            fi
+
+  # Deploy to Render
+  deploy-render:
+    docker:
+      - image: cimg/base:stable
+    
+    steps:
+      - checkout
+      
+      - attach_workspace:
+          at: .
+      
+      # Deploy to Render via API
+      - run:
+          name: Deploy to Render
+          command: |
+            echo "🚀 Deploying to Render..."
+            echo "🇿🇦 DHA Digital Services Platform"
+            
+            curl -X POST \
+              -H "Authorization: Bearer $RENDER_API_KEY" \
+              -H "Content-Type: application/json" \
+              "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+            
+            echo "✅ Render deployment initiated"
+
+  # Performance testing
+  performance-test:
+    docker:
+      - image: cimg/node:20.9
+    
+    steps:
+      - checkout
+      
+      - attach_workspace:
+          at: .
+      
+      - node/install-packages:
+          pkg-manager: npm
+          cache-path: ~/.npm
+          override-ci-command: npm ci
+      
+      # Start application for testing
+      - run:
+          name: Start application
+          command: |
+            echo "🚀 Starting application for performance testing..."
+            npm start &
+            sleep 30
+            
+            # Verify application is running
+            curl -f http://localhost:3000/api/health || {
+              echo "❌ Application failed to start"
+              exit 1
+            }
+            echo "✅ Application started successfully"
+          background: true
+          environment:
+            PORT: 3000
+            NODE_ENV: production
+      
+      # Run performance tests
+      - run:
+          name: Performance tests
+          command: |
+            echo "⚡ Running performance tests..."
+            
+            # Basic response time test
+            RESPONSE_TIME=$(curl -o /dev/null -s -w '%{time_total}' http://localhost:3000/api/health)
+            echo "📊 Health endpoint response time: ${RESPONSE_TIME}s"
+            
+            # Concurrent request test
+            echo "🔄 Testing concurrent requests..."
+            for i in {1..20}; do
+              curl -s http://localhost:3000/api/health &
+            done
+            wait
+            
+            echo "✅ Performance tests completed"
+
+# Workflow definitions
+workflows:
+  version: 2
+  
+  # Main workflow for all pushes and PRs
+  test-build-deploy:
+    jobs:
+      # Always run tests and security scan
+      - test
+      - security-scan
+      
+      # Build after tests pass
+      - build:
+          requires:
+            - test
+      
+      # Performance test on build artifacts
+      - performance-test:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: main
+      
+      # Deploy to Railway on main branch
+      - deploy-railway:
+          requires:
+            - build
+            - security-scan
+          filters:
+            branches:
+              only: main
+          context: 
+            - railway-production
+      
+      # Deploy to Render on main branch (alternative)
+      - deploy-render:
+          requires:
+            - build
+            - security-scan
+          filters:
+            branches:
+              only: main
+          context:
+            - render-production
+
+  # Nightly security and performance checks
+  nightly-checks:
+    triggers:
+      - schedule:
+          cron: "0 2 * * *"  # 2 AM UTC daily
+          filters:
+            branches:
+              only: main
+    jobs:
+      - security-scan
+      - test
+
+# Contexts define environment variable groups
+# Set these up in CircleCI dashboard:
+# - railway-production: RAILWAY_TOKEN, RAILWAY_SERVICE_ID
+# - render-production: RENDER_API_KEY, RENDER_SERVICE_ID

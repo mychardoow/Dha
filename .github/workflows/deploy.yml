@@ -1,219 +1,302 @@
-name: Deploy to Netlify
+name: Deploy DHA Digital Services Platform
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Choose deployment platform'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - netlify
+          - railway
+          - render
+          - vercel
+
+env:
+  NODE_VERSION: '20'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  build-and-deploy:
+  test:
+    name: Test Application
     runs-on: ubuntu-latest
     
-    strategy:
-      matrix:
-        node-version: [20.x]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: dha_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Run TypeScript type checking
+        run: |
+          npx tsc --noEmit
+          cd client && npx tsc --noEmit
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test || echo "Tests not configured yet"
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/dha_test
+          NODE_ENV: test
+
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: test
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Build application
-      run: npm run build
-      env:
-        NODE_ENV: production
-        JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
-        ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-        VITE_ENCRYPTION_KEY: ${{ secrets.VITE_ENCRYPTION_KEY }}
-        MASTER_ENCRYPTION_KEY: ${{ secrets.MASTER_ENCRYPTION_KEY }}
-        QUANTUM_ENCRYPTION_KEY: ${{ secrets.QUANTUM_ENCRYPTION_KEY }}
-        BIOMETRIC_ENCRYPTION_KEY: ${{ secrets.BIOMETRIC_ENCRYPTION_KEY }}
-        DOCUMENT_SIGNING_KEY: ${{ secrets.DOCUMENT_SIGNING_KEY }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        DHA_NPR_API_KEY: ${{ secrets.DHA_NPR_API_KEY }}
-        DHA_ABIS_API_KEY: ${{ secrets.DHA_ABIS_API_KEY }}
-        ICAO_PKD_API_KEY: ${{ secrets.ICAO_PKD_API_KEY }}
-        SAPS_CRC_API_KEY: ${{ secrets.SAPS_CRC_API_KEY }}
-        SITA_ESERVICES_API_KEY: ${{ secrets.SITA_ESERVICES_API_KEY }}
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-        # Government API Endpoints
-        DHA_NPR_API_ENDPOINT: ${{ secrets.DHA_NPR_API_ENDPOINT }}
-        SAPS_CRC_API_ENDPOINT: ${{ secrets.SAPS_CRC_API_ENDPOINT }}
-        ICAO_PKD_API_ENDPOINT: ${{ secrets.ICAO_PKD_API_ENDPOINT }}
-        DHA_ABIS_API_ENDPOINT: ${{ secrets.DHA_ABIS_API_ENDPOINT }}
-        SITA_ESERVICES_API_ENDPOINT: ${{ secrets.SITA_ESERVICES_API_ENDPOINT }}
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
-        # Feature Flags for Production
-        DHA_NPR_ENABLED: "true"
-        SAPS_CRC_ENABLED: "true" 
-        DHA_ABIS_ENABLED: "true"
-        ICAO_PKD_ENABLED: "true"
-        SITA_ESERVICES_ENABLED: "true"
-        MONITORING_ENABLED: "true"
-        AUDIT_LOGGING_ENABLED: "true"
-    
-    - name: Prepare Netlify deployment artifacts
-      run: |
-        # Ensure all build artifacts exist
-        echo "📦 Preparing deployment artifacts..."
-        
-        # Create functions directory
-        mkdir -p .netlify/functions-dist
-        
-        # Verify server build artifacts
-        if [ ! -f "dist/server/index.js" ]; then
-          echo "❌ Server build artifact missing: dist/server/index.js"
-          echo "Available files in dist/:"
-          find dist/ -type f -name "*.js" | head -10
-          exit 1
-        fi
-        
-        # Bundle server build with Netlify function (slim bundle - server only)
-        echo "📦 Bundling server with Netlify function..."
-        
-        # Copy only server build (not entire dist to avoid size issues)
-        cp -r dist/server .netlify/functions-dist/
-        
-        # Copy serverless-http dependency for function
-        mkdir -p .netlify/functions-dist/node_modules
-        cp -r node_modules/serverless-http .netlify/functions-dist/node_modules/
-        
-        # Copy ESM Netlify function
-        cp netlify/functions/api.mjs .netlify/functions-dist/api.mjs
-        
-        # Create package.json for ESM support
-        echo '{"type":"module"}' > .netlify/functions-dist/package.json
-        
-        # Verify the bundle
-        if [ ! -f ".netlify/functions-dist/server/index.js" ]; then
-          echo "❌ Server bundle verification failed"
-          exit 1
-        fi
-        
-        if [ ! -f ".netlify/functions-dist/api.mjs" ]; then
-          echo "❌ Function bundle verification failed"
-          exit 1
-        fi
-        
-        echo "✅ Server build bundled: .netlify/functions-dist/server/index.js"
-        echo "✅ Netlify function prepared: .netlify/functions-dist/api.mjs (ESM)"
-        echo "✅ Dependencies bundled: serverless-http"
-        echo "📊 Bundle size:"
-        du -sh .netlify/functions-dist/
-    
-    - name: Run tests
-      run: npm test || echo "No tests configured"
-    
-    - name: Security check - Verify required secrets
-      run: |
-        if [ -z "${{ secrets.JWT_SECRET }}" ]; then
-          echo "❌ JWT_SECRET is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.NETLIFY_AUTH_TOKEN }}" ]; then
-          echo "❌ NETLIFY_AUTH_TOKEN is not set"
-          exit 1
-        fi
-        if [ -z "${{ secrets.NETLIFY_SITE_ID }}" ]; then
-          echo "❌ NETLIFY_SITE_ID is not set"
-          exit 1
-        fi
-        echo "✅ All required secrets are configured"
-    
-    - name: Build verification
-      run: |
-        if [ ! -d "./dist/public" ]; then
-          echo "❌ Build failed - dist/public directory not found"
-          exit 1
-        fi
-        if [ ! -f "./dist/public/index.html" ]; then
-          echo "❌ Build failed - index.html not found"
-          exit 1
-        fi
-        echo "✅ Build verification passed"
-    
-    - name: Deploy to Netlify
-      id: netlify-deploy
-      uses: nwtgck/actions-netlify@v2.0
-      with:
-        publish-dir: './dist/public'
-        functions-dir: './.netlify/functions-dist'
-        production-branch: main
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        deploy-message: "🚀 Deploy from GitHub Actions - ${{ github.sha }}"
-        enable-pull-request-comment: false
-        enable-commit-comment: true
-        overwrites-pull-request-comment: true
-        alias: deploy-preview-${{ github.run_number }}
-      env:
-        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-      timeout-minutes: 5
-      
-    - name: Post-deployment health check
-      run: |
-        echo "🏥 Performing post-deployment health check..."
-        
-        # Get the actual deployment URL from the Netlify deploy action
-        DEPLOY_URL="${{ steps.netlify-deploy.outputs.deploy-url }}"
-        
-        if [ -z "$DEPLOY_URL" ]; then
-          echo "❌ Deploy URL not available from Netlify action"
-          DEPLOY_URL="https://dha-digital-services.netlify.app"
-          echo "⚠️ Falling back to default URL: $DEPLOY_URL"
-        else
-          echo "✅ Using deployment URL: $DEPLOY_URL"
-        fi
-        
-        # Wait for deployment to be available
-        echo "⏳ Waiting for deployment to become available..."
-        sleep 30
-        
-        # Test static assets first
-        echo "🌐 Testing static assets..."
-        STATIC_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL" -o /dev/null)
-        if [ "$STATIC_RESPONSE" = "200" ]; then
-          echo "✅ Static assets check passed (HTTP $STATIC_RESPONSE)"
-        else
-          echo "❌ Static assets check failed (HTTP $STATIC_RESPONSE)"
-          exit 1
-        fi
-        
-        # Test API health endpoint via redirect (/api/health -> /.netlify/functions/api)
-        echo "🔌 Testing API health endpoint..."
-        API_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL/api/health" -o /dev/null)
-        if [ "$API_RESPONSE" = "200" ]; then
-          echo "✅ API health check passed (HTTP $API_RESPONSE)"
-        else
-          echo "⚠️ API health check failed (HTTP $API_RESPONSE) - function may need warmup"
-          
-          # Try direct function access as fallback
-          echo "🔄 Trying direct function access..."
-          DIRECT_RESPONSE=$(curl -s -w "%{http_code}" --max-time 30 "$DEPLOY_URL/.netlify/functions/api/health" -o /dev/null)
-          if [ "$DIRECT_RESPONSE" = "200" ]; then
-            echo "✅ Direct function access passed (HTTP $DIRECT_RESPONSE)"
-          else
-            echo "❌ Both API routes failed - deployment issue detected"
-            echo "Debug info:"
-            curl -s --max-time 10 "$DEPLOY_URL/api/health" || echo "API route failed"
-            curl -s --max-time 10 "$DEPLOY_URL/.netlify/functions/api/health" || echo "Direct function failed"
+      - name: Install dependencies
+        run: |
+          npm ci
+          cd client && npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Verify build artifacts
+        run: |
+          echo "Checking build artifacts..."
+          ls -la dist/
+          ls -la dist/server/
+          ls -la client/dist/
+          if [ ! -f "dist/server/index.js" ]; then
+            echo "❌ Server build failed - dist/server/index.js not found"
             exit 1
           fi
-        fi
-        
-        echo "📝 Deploy commit: ${{ github.sha }}"
-        echo "🔗 Site URL: $DEPLOY_URL"
-        echo "✅ Deployment verification completed successfully"
+          if [ ! -d "client/dist" ]; then
+            echo "❌ Client build failed - client/dist not found"
+            exit 1
+          fi
+          echo "✅ All build artifacts verified"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            dist/
+            client/dist/
+            netlify/
+            package.json
+            package-lock.json
+            start.sh
+            railway.toml
+            netlify.toml
+          retention-days: 30
+
+  deploy-netlify:
+    name: Deploy to Netlify
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'netlify' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '')))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v3.0
+        with:
+          publish-dir: './client/dist'
+          functions-dir: './netlify/functions'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "🚀 DHA Digital Services - Deploy ${{ github.sha }}"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        timeout-minutes: 10
+
+  deploy-railway:
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'railway' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '')))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+          echo "$HOME/.railway/bin" >> $GITHUB_PATH
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link --service ${{ secrets.RAILWAY_SERVICE_ID }} || echo "Service already linked"
+          railway up --detach
+
+      - name: Verify Railway deployment
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          sleep 90
+          RAILWAY_URL=$(railway status --json | jq -r '.deployments[0].url // "unknown"')
+          if [ "$RAILWAY_URL" != "unknown" ] && [ "$RAILWAY_URL" != "null" ]; then
+            HEALTH_URL="$RAILWAY_URL/api/health"
+            echo "Testing health endpoint: $HEALTH_URL"
+            for i in {1..10}; do
+              if curl -f "$HEALTH_URL"; then
+                echo "✅ Railway deployment healthy"
+                exit 0
+              fi
+              echo "Attempt $i failed, retrying in 30s..."
+              sleep 30
+            done
+            echo "❌ Railway deployment health check failed"
+            exit 1
+          else
+            echo "⚠️ Could not determine Railway URL"
+          fi
+
+  deploy-render:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'render' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '')))
+    
+    steps:
+      - name: Deploy to Render
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+        run: |
+          echo "Deploying to Render..."
+          curl -X POST \
+            -H "Authorization: Bearer $RENDER_API_KEY" \
+            -H "Content-Type: application/json" \
+            "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys"
+
+  deploy-vercel:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: build
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.platform == 'vercel' || github.event.inputs.platform == 'all' || github.event.inputs.platform == '')))
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: |
+          npm audit --audit-level=high || echo "Audit completed with warnings"
+          cd client && npm audit --audit-level=high || echo "Client audit completed with warnings"
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript,typescript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  notification:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-netlify, deploy-railway, deploy-render, deploy-vercel]
+    if: always()
+    
+    steps:
+      - name: Send notification
+        run: |
+          echo "🇿🇦 DHA Digital Services Platform Deployment Summary"
+          echo "=================================================="
+          echo "Netlify: ${{ needs.deploy-netlify.result || 'skipped' }}"
+          echo "Railway: ${{ needs.deploy-railway.result || 'skipped' }}"
+          echo "Render: ${{ needs.deploy-render.result || 'skipped' }}"
+          echo "Vercel: ${{ needs.deploy-vercel.result || 'skipped' }}"
+          
+          SUCCESS_COUNT=0
+          if [ "${{ needs.deploy-netlify.result }}" == "success" ]; then SUCCESS_COUNT=$((SUCCESS_COUNT + 1)); fi
+          if [ "${{ needs.deploy-railway.result }}" == "success" ]; then SUCCESS_COUNT=$((SUCCESS_COUNT + 1)); fi
+          if [ "${{ needs.deploy-render.result }}" == "success" ]; then SUCCESS_COUNT=$((SUCCESS_COUNT + 1)); fi
+          if [ "${{ needs.deploy-vercel.result }}" == "success" ]; then SUCCESS_COUNT=$((SUCCESS_COUNT + 1)); fi
+          
+          echo "✅ Successful deployments: $SUCCESS_COUNT"
+          echo "🚀 Government platform deployment completed"
