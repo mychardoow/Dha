@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA Official Document Generator - Secure Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #005a3c 0%, #ffd700 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .security-badge {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #4caf50;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 1000;
+        }
+        .security-badge::before {
+            content: "🔒";
+            font-size: 16px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        .container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #005a3c, #ffd700, #005a3c);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .flag {
+            font-size: 60px;
+            margin-bottom: 10px;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        h1 {
+            color: #005a3c;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #005a3c;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #005a3c;
+            box-shadow: 0 0 0 3px rgba(0, 90, 60, 0.1);
+        }
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .doc-option {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .doc-option:hover {
+            border-color: #005a3c;
+            background: #f0f8f5;
+        }
+        .doc-option.selected {
+            background: #005a3c;
+            color: white;
+            border-color: #005a3c;
+        }
+        .doc-option input {
+            position: absolute;
+            opacity: 0;
+        }
+        .generate-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #005a3c, #007850);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s;
+            margin-top: 20px;
+        }
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+        .generate-btn:active {
+            transform: translateY(0);
+        }
+        .quick-fill {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .quick-btn {
+            flex: 1;
+            padding: 8px;
+            background: #f0f8f5;
+            border: 2px solid #005a3c;
+            border-radius: 8px;
+            color: #005a3c;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .quick-btn:hover {
+            background: #005a3c;
+            color: white;
+        }
+        .watermark {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #005a3c;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="security-badge">
+        SECURE ENCRYPTED SESSION
+    </div>
+    
+    <div class="watermark">
+        DHA OFFICIAL v3.0
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="flag">🇿🇦</div>
+            <h1>DEPARTMENT OF HOME AFFAIRS</h1>
+            <div class="subtitle">Official Document Generation Portal</div>
+        </div>
+        
+        <div class="quick-fill">
+            <button class="quick-btn" onclick="fillTasleen()">Fill Tasleen</button>
+            <button class="quick-btn" onclick="fillJamal()">Fill Jamal</button>
+            <button class="quick-btn" onclick="fillFatima()">Fill Fatima</button>
+        </div>
+        
+        <div class="form-group">
+            <label for="fullName">Full Name</label>
+            <input type="text" id="fullName" placeholder="Enter full name">
+        </div>
+        
+        <div class="form-group">
+            <label for="passportNumber">Passport Number</label>
+            <input type="text" id="passportNumber" placeholder="Enter passport number">
+        </div>
+        
+        <div class="form-group">
+            <label for="nationality">Nationality</label>
+            <input type="text" id="nationality" placeholder="Enter nationality">
+        </div>
+        
+        <div class="form-group">
+            <label for="dateOfBirth">Date of Birth</label>
+            <input type="text" id="dateOfBirth" placeholder="DD/MM/YYYY">
+        </div>
+        
+        <div class="form-group">
+            <label>Select Documents to Generate</label>
+            <div class="document-grid">
+                <div class="doc-option selected" onclick="toggleDoc(this)">
+                    <input type="checkbox" checked>
+                    <span>Work Permit</span>
+                </div>
+                <div class="doc-option selected" onclick="toggleDoc(this)">
+                    <input type="checkbox" checked>
+                    <span>Birth Certificate</span>
+                </div>
+                <div class="doc-option selected" onclick="toggleDoc(this)">
+                    <input type="checkbox" checked>
+                    <span>Relative Visa</span>
+                </div>
+                <div class="doc-option selected" onclick="toggleDoc(this)">
+                    <input type="checkbox" checked>
+                    <span>Naturalisation</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Generating secure documents...</p>
+        </div>
+        
+        <button class="generate-btn" onclick="generateDocuments()">
+            🔐 GENERATE SECURE DOCUMENTS
+        </button>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+        
+        function fillTasleen() {
+            document.getElementById('fullName').value = 'TASLEEN MOHSIN';
+            document.getElementById('passportNumber').value = 'AUG162815';
+            document.getElementById('nationality').value = 'PAKISTANI';
+            document.getElementById('dateOfBirth').value = '01/01/1987';
+        }
+        
+        function fillJamal() {
+            document.getElementById('fullName').value = 'MOHAMMAD JAMAL';
+            document.getElementById('passportNumber').value = 'AJ9024653';
+            document.getElementById('nationality').value = 'PAKISTANI';
+            document.getElementById('dateOfBirth').value = '15/03/1985';
+        }
+        
+        function fillFatima() {
+            document.getElementById('fullName').value = 'FATIMA BEGUM';
+            document.getElementById('passportNumber').value = 'AP5678234';
+            document.getElementById('nationality').value = 'PAKISTANI';
+            document.getElementById('dateOfBirth').value = '10/08/1960';
+        }
+        
+        function toggleDoc(element) {
+            element.classList.toggle('selected');
+            const checkbox = element.querySelector('input');
+            checkbox.checked = !checkbox.checked;
+        }
+        
+        function generateSecurityNumber() {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const random = Math.random().toString(36).substr(2, 9).toUpperCase();
+            return `SEC${year}${month}${day}${random}`;
+        }
+        
+        function generateDocNumber(prefix) {
+            const date = new Date();
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+            return `${prefix}/${year}/${month}/ZA${random}`;
+        }
+        
+        function addSecurityFeatures(doc, docNumber) {
+            // Security watermark
+            doc.setFontSize(60);
+            doc.setTextColor(240, 240, 240);
+            doc.text('AUTHENTIC', 105, 150, { align: 'center', angle: 45 });
+            doc.setTextColor(0, 0, 0);
+            
+            // Security code
+            doc.setFontSize(8);
+            doc.text(`Security Code: ${generateSecurityNumber()}`, 20, 290);
+            doc.text(`Verification: https://dha.gov.za/verify/${docNumber}`, 20, 295);
+            
+            // QR Code placeholder
+            doc.rect(170, 260, 25, 25);
+            doc.setFontSize(6);
+            doc.text('SCAN TO', 182.5, 270, { align: 'center' });
+            doc.text('VERIFY', 182.5, 275, { align: 'center' });
+        }
+        
+        function generateWorkPermit(data) {
+            const doc = new jsPDF();
+            const docNum = generateDocNumber('WP');
+            
+            // Header
+            doc.setFontSize(10);
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('GENERAL WORK PERMIT', 105, 40, { align: 'center' });
+            
+            // Red stamp effect
+            doc.setDrawColor(255, 0, 0);
+            doc.setLineWidth(2);
+            doc.rect(150, 10, 45, 15);
+            doc.setFontSize(10);
+            doc.setTextColor(255, 0, 0);
+            doc.text('OFFICIAL', 172.5, 18, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            // Document details
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text(`Document No: ${docNum}`, 20, 60);
+            doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 20, 68);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('PERMIT HOLDER:', 20, 85);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Name: ${data.fullName}`, 20, 95);
+            doc.text(`Passport: ${data.passportNumber}`, 20, 103);
+            doc.text(`Nationality: ${data.nationality}`, 20, 111);
+            doc.text(`Date of Birth: ${data.dateOfBirth}`, 20, 119);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('EMPLOYMENT AUTHORIZATION:', 20, 136);
+            doc.setFont(undefined, 'normal');
+            doc.text('Employer: ANY REGISTERED EMPLOYER', 20, 146);
+            doc.text('Sector: GENERAL EMPLOYMENT', 20, 154);
+            doc.text('Valid Until: ' + new Date(Date.now() + 365*3*24*60*60*1000).toLocaleDateString(), 20, 162);
+            
+            // Official seal
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(3);
+            doc.circle(60, 220, 20);
+            doc.setFontSize(12);
+            doc.text('DHA', 60, 215, { align: 'center' });
+            doc.text('OFFICIAL', 60, 223, { align: 'center' });
+            doc.text('SEAL', 60, 231, { align: 'center' });
+            
+            // Signature
+            doc.text('_____________________', 120, 240);
+            doc.setFontSize(10);
+            doc.text('Director General', 130, 248);
+            
+            addSecurityFeatures(doc, docNum);
+            
+            doc.save(`WorkPermit_${data.fullName.replace(/ /g, '_')}.pdf`);
+        }
+        
+        function generateBirthCertificate(data) {
+            const doc = new jsPDF();
+            const docNum = generateDocNumber('BC');
+            
+            doc.setFontSize(10);
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('BIRTH CERTIFICATE', 105, 40, { align: 'center' });
+            
+            doc.setDrawColor(255, 0, 0);
+            doc.setLineWidth(2);
+            doc.rect(150, 10, 45, 15);
+            doc.setFontSize(10);
+            doc.setTextColor(255, 0, 0);
+            doc.text('OFFICIAL', 172.5, 18, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text(`Certificate No: ${docNum}`, 20, 60);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('CHILD DETAILS:', 20, 80);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Full Name: ${data.fullName}`, 20, 90);
+            doc.text(`Date of Birth: ${data.dateOfBirth}`, 20, 98);
+            doc.text(`Place of Birth: JOHANNESBURG`, 20, 106);
+            doc.text(`Gender: UNSPECIFIED`, 20, 114);
+            doc.text(`ID Number: ${generateDocNumber('ID').replace(/\//g, '')}`, 20, 122);
+            
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(3);
+            doc.circle(60, 200, 20);
+            doc.setFontSize(12);
+            doc.text('DHA', 60, 195, { align: 'center' });
+            doc.text('OFFICIAL', 60, 203, { align: 'center' });
+            doc.text('SEAL', 60, 211, { align: 'center' });
+            
+            doc.text('_____________________', 120, 220);
+            doc.setFontSize(10);
+            doc.text('Registrar of Births', 130, 228);
+            
+            addSecurityFeatures(doc, docNum);
+            
+            doc.save(`BirthCertificate_${data.fullName.replace(/ /g, '_')}.pdf`);
+        }
+        
+        function generateRelativeVisa(data) {
+            const doc = new jsPDF();
+            const docNum = generateDocNumber('RV');
+            
+            doc.setFontSize(10);
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('RELATIVE\'S VISA', 105, 40, { align: 'center' });
+            
+            doc.setDrawColor(255, 0, 0);
+            doc.setLineWidth(2);
+            doc.rect(150, 10, 45, 15);
+            doc.setFontSize(10);
+            doc.setTextColor(255, 0, 0);
+            doc.text('OFFICIAL', 172.5, 18, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text(`Visa No: ${docNum}`, 20, 60);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('VISA HOLDER:', 20, 80);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Name: ${data.fullName}`, 20, 90);
+            doc.text(`Passport: ${data.passportNumber}`, 20, 98);
+            doc.text(`Nationality: ${data.nationality}`, 20, 106);
+            doc.text(`Relationship: FAMILY MEMBER`, 20, 114);
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('VISA CONDITIONS:', 20, 132);
+            doc.setFont(undefined, 'normal');
+            doc.text('Duration: 24 MONTHS', 20, 142);
+            doc.text('Multiple Entry: YES', 20, 150);
+            doc.text('Work Rights: NOT PERMITTED', 20, 158);
+            
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(3);
+            doc.circle(60, 200, 20);
+            doc.setFontSize(12);
+            doc.text('DHA', 60, 195, { align: 'center' });
+            doc.text('OFFICIAL', 60, 203, { align: 'center' });
+            doc.text('SEAL', 60, 211, { align: 'center' });
+            
+            doc.text('_____________________', 120, 220);
+            doc.setFontSize(10);
+            doc.text('Chief Director: Visas', 130, 228);
+            
+            addSecurityFeatures(doc, docNum);
+            
+            doc.save(`RelativeVisa_${data.fullName.replace(/ /g, '_')}.pdf`);
+        }
+        
+        function generateNaturalisation(data) {
+            const doc = new jsPDF();
+            const docNum = generateDocNumber('NAT');
+            
+            doc.setFontSize(10);
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 20, { align: 'center' });
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 28, { align: 'center' });
+            doc.setFontSize(18);
+            doc.text('CERTIFICATE OF NATURALISATION', 105, 40, { align: 'center' });
+            
+            doc.setDrawColor(255, 0, 0);
+            doc.setLineWidth(2);
+            doc.rect(150, 10, 45, 15);
+            doc.setFontSize(10);
+            doc.setTextColor(255, 0, 0);
+            doc.text('OFFICIAL', 172.5, 18, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text(`Certificate No: ${docNum}`, 20, 60);
+            
+            doc.setFontSize(12);
+            doc.text('THIS IS TO CERTIFY THAT', 105, 80, { align: 'center' });
+            
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text(data.fullName, 105, 95, { align: 'center' });
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            doc.text('has been granted South African citizenship', 105, 110, { align: 'center' });
+            doc.text('by naturalisation in terms of Section 5', 105, 118, { align: 'center' });
+            doc.text('of the South African Citizenship Act, 1995', 105, 126, { align: 'center' });
+            
+            doc.text(`Previous Nationality: ${data.nationality}`, 20, 150);
+            doc.text(`Date of Birth: ${data.dateOfBirth}`, 20, 158);
+            doc.text(`Date of Naturalisation: ${new Date().toLocaleDateString()}`, 20, 166);
+            
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(3);
+            doc.circle(60, 210, 20);
+            doc.setFontSize(12);
+            doc.text('DHA', 60, 205, { align: 'center' });
+            doc.text('OFFICIAL', 60, 213, { align: 'center' });
+            doc.text('SEAL', 60, 221, { align: 'center' });
+            
+            doc.text('_____________________', 120, 230);
+            doc.setFontSize(10);
+            doc.text('Minister of Home Affairs', 130, 238);
+            
+            addSecurityFeatures(doc, docNum);
+            
+            doc.save(`Naturalisation_${data.fullName.replace(/ /g, '_')}.pdf`);
+        }
+        
+        function generateDocuments() {
+            const data = {
+                fullName: document.getElementById('fullName').value || 'APPLICANT NAME',
+                passportNumber: document.getElementById('passportNumber').value || 'PASSPORT123',
+                nationality: document.getElementById('nationality').value || 'NATIONALITY',
+                dateOfBirth: document.getElementById('dateOfBirth').value || '01/01/1990'
+            };
+            
+            const loading = document.getElementById('loading');
+            loading.classList.add('show');
+            
+            setTimeout(() => {
+                const docs = document.querySelectorAll('.doc-option.selected');
+                docs.forEach(doc => {
+                    const type = doc.querySelector('span').textContent;
+                    switch(type) {
+                        case 'Work Permit':
+                            generateWorkPermit(data);
+                            break;
+                        case 'Birth Certificate':
+                            generateBirthCertificate(data);
+                            break;
+                        case 'Relative Visa':
+                            generateRelativeVisa(data);
+                            break;
+                        case 'Naturalisation':
+                            generateNaturalisation(data);
+                            break;
+                    }
+                });
+                
+                loading.classList.remove('show');
+                alert('✅ Documents generated successfully!\n\nSecurity features included:\n• Official watermarks\n• Verification codes\n• QR placeholders\n• Security stamps');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
