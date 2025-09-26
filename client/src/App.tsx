@@ -12,6 +12,7 @@ import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
 import DocumentServices from "./pages/DocumentServices";
 import DocumentUploadPage from "./pages/DocumentUploadPage";
+import DhaDocuments from "./pages/DhaDocuments";
 import PDFTestPage from "./pages/pdf-test";
 import DocumentVerificationPage from "./pages/verify";
 import NotFoundPage from "./pages/not-found";
@@ -115,6 +116,11 @@ function App() {
             <Route path="/document-generation">
               <AuthGuard>
                 <DocumentGenerationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/dha-documents">
+              <AuthGuard>
+                <DhaDocuments />
               </AuthGuard>
             </Route>
             <Route path="/pdf-test">
