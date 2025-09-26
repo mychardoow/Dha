@@ -285,7 +285,7 @@ export function enhancedRateLimit(customConfig?: Partial<RateLimitConfig>) {
       try {
         await securityResponseService.handleSecurityThreat({
           type: isHighVolumeAttack ? 'ddos_attack' : 'rate_limit_violation',
-          sourceIp: req.ip,
+          sourceIp: req.ip || 'unknown',
           severity: isRepeatedOffender ? 'high' : isHighVolumeAttack ? 'critical' : 'medium',
           description: `Rate limit exceeded: ${rateLimiterRes.points || 0} requests in ${limiterType} endpoint`,
           confidence: isRepeatedOffender ? 85 : isHighVolumeAttack ? 95 : 70,
@@ -313,10 +313,9 @@ export function enhancedRateLimit(customConfig?: Partial<RateLimitConfig>) {
         console.error('❌ Failed to trigger Enhanced Security Response:', securityError);
       }
       
-      // Calculate retry after based on backoff
-      const behaviorScore = userBehaviorScores.get(userId)!;
+      // Calculate retry after based on backoff  
       const retryAfter = Math.ceil(
-        (rateLimiterRes.msBeforeNext || 60000) * behaviorScore.backoffMultiplier / 1000
+        (rateLimiterRes.msBeforeNext || 60000) * (behaviorScore?.backoffMultiplier || 1) / 1000
       );
       
       res.setHeader('Retry-After', retryAfter.toString());
@@ -328,7 +327,7 @@ export function enhancedRateLimit(customConfig?: Partial<RateLimitConfig>) {
         error: 'Too many requests',
         message: 'You have exceeded the rate limit. Please slow down your requests.',
         retryAfter,
-        violations: behaviorScore.violations
+        violations: behaviorScore?.violations || 0
       });
     }
   };

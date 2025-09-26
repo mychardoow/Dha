@@ -11,7 +11,7 @@
 import crypto from 'crypto';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
-import { Canvas, createCanvas } from 'canvas';
+// import { Canvas, createCanvas } from 'canvas'; // Temporarily disabled due to compilation issues
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

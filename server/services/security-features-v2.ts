@@ -11,7 +11,7 @@ import PDFDocument from "pdfkit";
 import * as crypto from "crypto";
 import * as QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
-import { Canvas } from "canvas";
+// import { Canvas } from "canvas"; // Temporarily disabled due to compilation issues
 import { PDFDocument as PDFLib, rgb, StandardFonts } from "pdf-lib";
 
 type PDFKit = InstanceType<typeof PDFDocument>;

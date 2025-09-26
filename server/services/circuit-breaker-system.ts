@@ -15,7 +15,7 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import { storage } from '../storage';
-import { queenUltraAISystem } from './queen-ultra-ai';
+import { queenUltraAI } from './queen-ultra-ai';
 import { type InsertSystemMetric, type InsertSecurityEvent, type InsertSelfHealingAction } from '@shared/schema';
 
 interface CircuitBreakerConfig {
@@ -793,7 +793,7 @@ export class CircuitBreakerSystem extends EventEmitter {
     
     // Notify Queen Ultra AI for intelligent response
     try {
-      await queenUltraAISystem.handleServiceFailure({
+      await queenUltraAI.handleServiceFailure({
         service: data.serviceName,
         priority: serviceConfig?.priority || 'medium',
         failureType: 'circuit_breaker_open',
