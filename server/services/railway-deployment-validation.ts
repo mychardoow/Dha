@@ -18,7 +18,7 @@ import { circuitBreakerSystem } from './circuit-breaker-system';
 import { enhancedDatabasePooling } from './enhanced-database-pooling';
 import { zeroDowntimeDeployment } from './zero-downtime-deployment';
 import { railwayMonitoringIntegration } from './railway-monitoring-integration';
-import { queenUltraAISystem } from './queen-ultra-ai';
+import { queenUltraAI } from './queen-ultra-ai';
 import { type InsertSystemMetric, type InsertSelfHealingAction } from '@shared/schema';
 
 interface ValidationResult {
@@ -803,7 +803,7 @@ export class RailwayDeploymentValidation extends EventEmitter {
   private async validateQueenUltraAIIntegration(): Promise<ValidationResult> {
     const startTime = performance.now();
     try {
-      const aiHealthCheck = await queenUltraAISystem.performHealthCheck();
+      const aiHealthCheck = await queenUltraAI.performHealthCheck();
       
       const checks = {
         ai_system_available: aiHealthCheck.healthy,

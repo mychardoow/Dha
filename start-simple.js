@@ -56,9 +56,9 @@ if (builtExists) {
 function startDevelopment() {
   console.log('🛠️  Starting development server...');
   
-  const child = spawn('npm', ['run', 'dev:server'], {
+  const child = spawn('npx', ['tsx', 'server/index.ts'], {
     stdio: 'inherit',
-    shell: true,
+    shell: false,
     env: { ...process.env, NODE_ENV: 'development' }
   });
 

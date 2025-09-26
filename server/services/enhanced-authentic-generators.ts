@@ -8,7 +8,7 @@ import PDFDocument from "pdfkit";
 import * as crypto from "crypto";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
-import { createCanvas } from "canvas";
+// import { createCanvas } from "canvas"; // Temporarily disabled due to compilation issues
 import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template";
 import { SecurityFeaturesV2, MRZData } from "./security-features-v2";
 

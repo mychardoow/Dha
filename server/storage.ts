@@ -125,6 +125,16 @@ export interface IStorage {
   createBiometricProfile(profile: any): Promise<any>;
   getBiometricProfile(userId: string): Promise<any>;
   updateBiometricProfile(userId: string, updates: any): Promise<any>;
+  
+  // Error logging
+  createErrorLog(errorLog: any): Promise<any>;
+  getErrorLogs(filters?: any): Promise<any[]>;
+  
+  // Additional methods that might be called by services
+  getAllCircuitBreakerStates(): Promise<any[]>;
+  createSecurityRule(rule: any): Promise<any>;
+  getSecurityRules(): Promise<any[]>;
+  updateSecurityRule(id: string, updates: any): Promise<any>;
 }
 
 // Create and export PostgreSQL storage instance

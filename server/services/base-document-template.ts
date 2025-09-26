@@ -7,7 +7,7 @@ import PDFDocument from "pdfkit";
 import * as crypto from "crypto";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
-import { Canvas } from "canvas";
+// import { Canvas } from "canvas"; // Temporarily disabled due to compilation issues
 import { 
   SecurityFeaturesV2, 
   UVFeature, 

@@ -17,7 +17,7 @@ import { railwayAutoScalingService } from './railway-auto-scaling-service';
 import { circuitBreakerSystem } from './circuit-breaker-system';
 import { enhancedDatabasePooling } from './enhanced-database-pooling';
 import { zeroDowntimeDeployment } from './zero-downtime-deployment';
-import { queenUltraAISystem } from './queen-ultra-ai';
+import { queenUltraAI } from './queen-ultra-ai';
 import { selfHealingService } from './self-healing-service';
 import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service';
 import { type InsertSystemMetric, type InsertSecurityEvent, type InsertSelfHealingAction } from '@shared/schema';
@@ -623,7 +623,7 @@ export class RailwayMonitoringIntegration extends EventEmitter {
       if (!this.dashboardData) return;
       
       // Analyze system patterns and trends
-      const analysis = await queenUltraAISystem.analyzeSystemMetrics({
+      const analysis = await queenUltraAI.analyzeSystemMetrics({
         dashboard_data: this.dashboardData,
         recent_alerts: this.alerts.slice(-10),
         system_trends: {
@@ -787,7 +787,7 @@ export class RailwayMonitoringIntegration extends EventEmitter {
     
     // Notify Queen Ultra AI for intelligent response
     try {
-      await queenUltraAISystem.handleCriticalIncident({
+      await queenUltraAI.handleCriticalIncident({
         alert: data.alert,
         incident,
         system_state: this.dashboardData
@@ -879,7 +879,7 @@ export class RailwayMonitoringIntegration extends EventEmitter {
     recommendations: string[];
   }> {
     try {
-      const analysis = await queenUltraAISystem.analyzeAlert({
+      const analysis = await queenUltraAI.analyzeAlert({
         alert,
         system_context: this.dashboardData,
         historical_patterns: this.alerts.slice(-20)
@@ -902,7 +902,7 @@ export class RailwayMonitoringIntegration extends EventEmitter {
    */
   private async generateAIInsights(systemData: any): Promise<string[]> {
     try {
-      const insights = await queenUltraAISystem.generateSystemInsights(systemData);
+      const insights = await queenUltraAI.generateSystemInsights(systemData);
       return insights || [];
     } catch (error) {
       return ['AI insights unavailable'];

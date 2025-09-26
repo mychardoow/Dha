@@ -14,7 +14,7 @@ import { performance } from 'perf_hooks';
 import { storage } from '../storage';
 import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service';
 import { selfHealingService } from './self-healing-service';
-import { queenUltraAISystem } from './queen-ultra-ai';
+import { queenUltraAI } from './queen-ultra-ai';
 import { productionHealthCheck } from './production-health-check';
 import { railwayAutoScalingService } from './railway-auto-scaling-service';
 import { type InsertSystemMetric, type InsertSecurityEvent, type InsertSelfHealingAction } from '@shared/schema';
@@ -600,7 +600,7 @@ export class RailwayHealthCheckSystem extends EventEmitter {
     const startTime = performance.now();
     try {
       // Test AI services connectivity
-      const aiServiceStatus = await queenUltraAISystem.performHealthCheck();
+      const aiServiceStatus = await queenUltraAI.performHealthCheck();
       const responseTime = performance.now() - startTime;
       
       return {
@@ -763,7 +763,7 @@ export class RailwayHealthCheckSystem extends EventEmitter {
     const startTime = performance.now();
     try {
       // Comprehensive AI services analysis
-      const aiAnalysis = await queenUltraAISystem.performDeepHealthAnalysis();
+      const aiAnalysis = await queenUltraAI.performDeepHealthAnalysis();
       const responseTime = performance.now() - startTime;
       
       return {
