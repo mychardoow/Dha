@@ -100,6 +100,7 @@ export interface IStorage {
   
   createCircuitBreakerState(state: any): Promise<any>;
   getCircuitBreakerState(serviceName: string): Promise<any>;
+  getAllCircuitBreakerStates(): Promise<any[]>;
   updateCircuitBreakerState(serviceName: string, updates: any): Promise<any>;
   
   createUptimeIncident(incident: any): Promise<any>;
