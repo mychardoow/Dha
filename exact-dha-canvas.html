@@ -134,7 +134,7 @@
             // PERMIT NUMBER at y=920mm (92mm * 10)
             ctx.font = 'bold 70px Arial';
             ctx.fillText('PERMIT NUMBER', 250, 920);
-            drawUnderline(650, 930, 500);
+            drawUnderline(650, 930, 650);
             ctx.font = '60px Arial';
             ctx.fillText(permitNumber, 700, 920);
             
@@ -151,7 +151,7 @@
             // Surname at y=1050mm (105mm * 10)
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Surname', 250, 1150);
-            drawUnderline(450, 1160, 1260);
+            drawUnderline(450, 1160, 1400);
             const [firstName, ...lastNames] = name.split(' ');
             ctx.font = '60px Arial';
             ctx.fillText(lastNames.join(' ').toUpperCase(), 500, 1145);
@@ -159,28 +159,28 @@
             // Maiden Surname at y=1130mm
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Maiden Surname', 250, 1250);
-            drawUnderline(600, 1260, 1260);
+            drawUnderline(600, 1260, 1250);
             
             // First Name(s) at y=1210mm
             ctx.fillText('First Name (s)', 250, 1350);
-            drawUnderline(550, 1360, 1260);
+            drawUnderline(550, 1360, 1300);
             ctx.font = '60px Arial';
             ctx.fillText(firstName.toUpperCase(), 600, 1345);
             
             // Nationality
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Nationality', 250, 1450);
-            drawUnderline(450, 1460, 650);
+            drawUnderline(450, 1460, 750);
             ctx.font = '60px Arial';
             ctx.fillText('PAKISTANI', 500, 1445);
             
             // Date of birth & Gender
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Date of birth', 250, 1550);
-            drawUnderline(500, 1560, 400);
+            drawUnderline(500, 1560, 500);
             
             ctx.fillText('Gender', 1200, 1550);
-            drawUnderline(1350, 1560, 350);
+            drawUnderline(1350, 1560, 400);
             ctx.font = '60px Arial';
             ctx.fillText('MALE', 1400, 1545);
             
@@ -219,21 +219,16 @@
             ctx.font = '50px Arial';
             ctx.fillText('Surname and initials', 1200, 2350);
             
-            // Red stamp box on the right side
-            ctx.strokeStyle = '#FF0000';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(1400, 2100, 500, 350);
-            ctx.strokeRect(1410, 2110, 480, 330); // Double border
+            // Clean black border stamp box on the right side
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1450, 2000, 400, 400);
             
-            // Text inside stamp
-            ctx.fillStyle = '#FF0000';
-            ctx.font = 'bold 45px Arial';
+            // Text inside stamp (optional - leave mostly empty for clean look)
+            ctx.fillStyle = '#000';
+            ctx.font = '35px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 1650, 2180);
-            ctx.font = '40px Arial';
-            ctx.fillText('PRIVATE BAG X114', 1650, 2250);
-            ctx.fillText('PRETORIA 0001', 1650, 2320);
-            ctx.fillText('07', 1650, 2390);
+            // Keep minimal text or leave empty for clean look
             ctx.textAlign = 'left';
             ctx.fillStyle = '#000';
             
@@ -260,21 +255,21 @@
             ctx.fillText('    the Republic. A period of absence may only be interrupted by an admission and sojourn in the Republic.', 250, 2850);
             
             // BOTTOM ELEMENTS
-            // Small barcode at bottom left corner
-            drawSmallBarcode(140, 2900);
+            // Small barcode at bottom left corner - positioned properly
+            drawSmallBarcode(100, 2920);
             
             // Control Number at bottom right side
             ctx.font = '55px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText('Control Number', 1900, 2900);
+            ctx.fillText('Control Number', 1950, 2920);
             ctx.font = '65px Arial';
-            ctx.fillText('No. A', 1900, 2950);
+            ctx.fillText('No. A 297966', 1950, 2960);
             
-            // VERY SMALL Government Printing Works text - barely visible in middle bottom
-            ctx.font = '18px Arial';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; // Very faint, barely visible
+            // VERY SMALL Government Printing Works text - much smaller and fainter
+            ctx.font = '12px Arial';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Even more faint
             ctx.textAlign = 'center';
-            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2960);
+            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2965);
             
             // Reset text alignment and color
             ctx.textAlign = 'left';
