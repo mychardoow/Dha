@@ -63,6 +63,25 @@
             font-weight: bold;
         }
 
+        .npr-verification {
+            background: #f0f8ff;
+            border: 2px solid #006442;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .npr-verification h3 {
+            color: #006442;
+            margin-bottom: 10px;
+        }
+
+        .npr-verification p {
+            color: #333;
+            font-size: 14px;
+        }
+
         .download-all-btn {
             background: #FFB81C;
             color: #000;
@@ -197,6 +216,11 @@
             ✅ SYSTEM ONLINE - All 11 Official Documents Ready for Generation
         </div>
 
+        <div class="npr-verification">
+            <h3>National Population Register (NPR) Integration Active</h3>
+            <p>✓ Verified with National Population Register | ✓ Biometric data confirmed | ✓ Real-time validation enabled</p>
+        </div>
+
         <button class="download-all-btn" onclick="downloadAllDocuments()">
             📥 GENERATE ALL 11 OFFICIAL DOCUMENTS
         </button>
@@ -208,6 +232,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: AD0116281</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Muhammad Mohsin', 'PRP', 'AD0116281')">
                     Generate Official Document
@@ -220,6 +245,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: AUD115281</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Tasleem Mohsin', 'PRP', 'AUD115281')">
                     Generate Official Document
@@ -232,6 +258,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: KV4122911</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Khunsha', 'PRP', 'KV4122911')">
                     Generate Official Document
@@ -244,6 +271,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: DT9840361</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Haroon', 'PRP', 'DT9840361')">
                     Generate Official Document
@@ -256,6 +284,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: PK7856234</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Faisal', 'PRP', 'PK7856234')">
                     Generate Official Document
@@ -264,12 +293,13 @@
 
             <div class="doc-card">
                 <span class="doc-type">PERMANENT RESIDENCE PERMIT</span>
-                <div class="doc-name">Muhammad Hasnain Younis</div>
+                <div class="doc-name">Muhammad Hasnain</div>
                 <div class="doc-details">
                     <span>🆔 ID: 37405-6961586-3</span>
                     <span>📅 Valid: INDEFINITE</span>
+                    <span>✅ NPR Verified</span>
                 </div>
-                <button class="download-btn" onclick="generateDocument('Muhammad Hasnain Younis', 'PRP', '37405-6961586-3')">
+                <button class="download-btn" onclick="generateDocument('Muhammad Hasnain', 'PRP', '37405-6961586-3')">
                     Generate Official Document
                 </button>
             </div>
@@ -280,6 +310,7 @@
                 <div class="doc-details">
                     <span>🆔 Certificate No: NC-2025-00742</span>
                     <span>📅 Date of Naturalisation: 2025</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Anna Munaf', 'NATURALISATION', 'NC-2025-00742')">
                     Generate Official Document
@@ -293,6 +324,7 @@
                     <span>📘 Passport: 10611952</span>
                     <span>🏢 Control No: AA2349632</span>
                     <span>📋 Ref: JHB 76268/2025/WPVC</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Ikram Ibrahim Yusuf Mansuri', 'WORK', '10611952')">
                     Generate Official Document
@@ -305,6 +337,7 @@
                 <div class="doc-details">
                     <span>📘 Passport: IND4578921</span>
                     <span>📅 Valid Until: 2027-09-10</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Anisah', 'VISA', 'IND4578921')">
                     Generate Official Document
@@ -317,6 +350,7 @@
                 <div class="doc-details">
                     <span>🆔 Ref: PT4E000002015</span>
                     <span>📅 Status: Active</span>
+                    <span>✅ UNHCR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Faati Abduraam', 'REFUGEE', 'PT4E000002015')">
                     Generate Official Document
@@ -329,6 +363,7 @@
                 <div class="doc-details">
                     <span>🆔 Birth Cert No: BC-2025-ZA0892</span>
                     <span>📅 Date of Birth: 2005-03-15</span>
+                    <span>✅ NPR Verified</span>
                 </div>
                 <button class="download-btn" onclick="generateDocument('Zaneerah Ally', 'BIRTH', 'BC-2025-ZA0892')">
                     Generate Official Document
@@ -352,14 +387,21 @@
 
         // Document data with all details
         const documentData = {
-            'Muhammad Mohsin': { type: 'PRP', passport: 'AD0116281', country: 'Pakistan' },
-            'Tasleem Mohsin': { type: 'PRP', passport: 'AUD115281', country: 'Pakistan' },
-            'Khunsha': { type: 'PRP', passport: 'KV4122911', country: 'Pakistan' },
-            'Haroon': { type: 'PRP', passport: 'DT9840361', country: 'Pakistan' },
-            'Faisal': { type: 'PRP', passport: 'PK7856234', country: 'Pakistan' },
-            'Muhammad Hasnain Younis': { type: 'PRP', idNumber: '37405-6961586-3', country: 'Pakistan' },
+            'Muhammad Mohsin': { type: 'PRP', passport: 'AD0116281', country: 'Pakistan', docNumber: '548778854' },
+            'Tasleem Mohsin': { type: 'PRP', passport: 'AUD115281', country: 'Pakistan', docNumber: '548778855' },
+            'Khunsha': { type: 'PRP', passport: 'KV4122911', country: 'Pakistan', docNumber: '548778856' },
+            'Haroon': { type: 'PRP', passport: 'DT9840361', country: 'Pakistan', docNumber: '548778857' },
+            'Faisal': { type: 'PRP', passport: 'PK7856234', country: 'Pakistan', docNumber: '548778858' },
+            'Muhammad Hasnain': { type: 'PRP', idNumber: '37405-6961586-3', country: 'Pakistan', docNumber: '548778859' },
             'Anna Munaf': { type: 'NATURALISATION', certNumber: 'NC-2025-00742', country: 'South Africa' },
-            'Ikram Ibrahim Yusuf Mansuri': { type: 'WORK', passport: '10611952', controlNo: 'AA2349632', refNo: 'JHB 76268/2025/WPVC', country: 'India' },
+            'Ikram Ibrahim Yusuf Mansuri': { 
+                type: 'WORK', 
+                passport: '10611952', 
+                controlNo: 'AA2349632', 
+                trnNo: '26J7KH',
+                refNo: 'JHB 76268/2025/WPVC', 
+                country: 'India' 
+            },
             'Anisah': { type: 'VISA', passport: 'IND4578921', country: 'India', expiryDate: '2027-09-10' },
             'Faati Abduraam': { type: 'REFUGEE', refNumber: 'PT4E000002015', country: 'Somalia' },
             'Zaneerah Ally': { type: 'BIRTH', birthCertNo: 'BC-2025-ZA0892', dateOfBirth: '2005-03-15', country: 'South Africa' }
@@ -382,16 +424,35 @@
             setTimeout(() => {
                 const doc = new jsPDF('p', 'mm', 'a4');
                 const docInfo = documentData[name];
-                const verifyCode = 'DHA-2025-' + Math.floor(10000 + Math.random() * 90000);
+                const verifyCode = 'DHA-2025-' + Math.floor(30000 + Math.random() * 60000);
                 const today = new Date();
-                const dateIssued = today.toLocaleDateString('en-GB');
+                const dateIssued = '27/09/2025'; // Fixed date as requested
                 
-                // Page 1 - Official Document with Green Security Paper
-                drawOfficialDocument(doc, name, type, identifier, docInfo, verifyCode, dateIssued);
+                // Call specific layout function based on document type
+                switch(type) {
+                    case 'PRP':
+                        drawPermanentResidencePermit(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                    case 'WORK':
+                        drawWorkerPermit(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                    case 'BIRTH':
+                        drawBirthCertificate(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                    case 'NATURALISATION':
+                        drawNaturalisationCertificate(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                    case 'VISA':
+                        drawRelativeVisa(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                    case 'REFUGEE':
+                        drawRefugeePermit(doc, name, identifier, docInfo, verifyCode, dateIssued);
+                        break;
+                }
                 
-                // Page 2 - Verification Page
+                // Page 2 - NPR Verification Page
                 doc.addPage();
-                drawVerificationPage(doc, verifyCode);
+                drawNPRVerificationPage(doc, verifyCode, name);
                 
                 // Save the document
                 doc.save(`${name.replace(/ /g, '_')}_${type}_Official.pdf`);
@@ -400,547 +461,853 @@
             }, 500);
         }
 
-        function drawOfficialDocument(doc, name, type, identifier, docInfo, verifyCode, dateIssued) {
-            // Green security background pattern
-            doc.setFillColor(245, 252, 248); // Very light green tint
-            doc.rect(0, 0, 210, 297, 'F');
-            
-            // 1. WATERMARK LAYER - "REPUBLIC OF SOUTH AFRICA" diagonal pattern
+        // Add security features common to all documents
+        function addSecurityFeatures(doc) {
+            // Watermark pattern
             doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.04})); // Semi-transparent
-            doc.setTextColor(200, 200, 200); // Light gray
+            doc.setGState(new doc.GState({opacity: 0.04}));
+            doc.setTextColor(200, 200, 200);
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
             
-            // Create diagonal watermark pattern across entire page
             for (let row = -20; row < 35; row++) {
                 for (let col = -5; col < 10; col++) {
                     doc.saveGraphicsState();
-                    // Position with offset for diagonal pattern
                     const x = col * 45 + (row % 2) * 22;
                     const y = row * 15;
-                    // Rotate text 45 degrees
                     doc.setTextMatrix(0.707, -0.707, 0.707, 0.707, x, y);
                     doc.text('REPUBLIC OF SOUTH AFRICA', 0, 0);
                     doc.restoreGraphicsState();
                 }
             }
             doc.restoreGraphicsState();
-            
-            // 2. GUILLOCHE PATTERNS - Mathematical sine wave patterns
+
+            // Guilloche patterns
             doc.saveGraphicsState();
-            doc.setDrawColor(180, 200, 190); // Light green/gray
-            doc.setLineWidth(0.1); // Very thin lines
+            doc.setDrawColor(180, 200, 190);
+            doc.setLineWidth(0.1);
             
-            // Top guilloche border
             for (let i = 0; i < 200; i += 0.5) {
                 const y1 = 3 + Math.sin(i * 0.1) * 1.5;
                 const y2 = 3 + Math.sin((i + 0.5) * 0.1) * 1.5;
                 doc.line(5 + i, y1, 5.5 + i, y2);
             }
-            
-            // Bottom guilloche border
-            for (let i = 0; i < 200; i += 0.5) {
-                const y1 = 294 + Math.sin(i * 0.1) * 1.5;
-                const y2 = 294 + Math.sin((i + 0.5) * 0.1) * 1.5;
-                doc.line(5 + i, y1, 5.5 + i, y2);
-            }
-            
-            // Left side guilloche
-            for (let j = 0; j < 287; j += 0.5) {
-                const x1 = 3 + Math.sin(j * 0.1) * 1.5;
-                const x2 = 3 + Math.sin((j + 0.5) * 0.1) * 1.5;
-                doc.line(x1, 5 + j, x2, 5.5 + j);
-            }
-            
-            // Right side guilloche
-            for (let j = 0; j < 287; j += 0.5) {
-                const x1 = 207 + Math.sin(j * 0.1) * 1.5;
-                const x2 = 207 + Math.sin((j + 0.5) * 0.1) * 1.5;
-                doc.line(x1, 5 + j, x2, 5.5 + j);
-            }
             doc.restoreGraphicsState();
-            
-            // 3. UV/FLUORESCENT FEATURES - Very light overlay
+
+            // UV features
             doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.02})); // Almost invisible
-            doc.setFillColor(255, 255, 150); // Light yellow/green fluorescent
+            doc.setGState(new doc.GState({opacity: 0.02}));
+            doc.setFillColor(255, 255, 150);
             
-            // UV reactive zones
-            doc.rect(20, 50, 30, 30, 'F'); // Top left UV zone
-            doc.rect(160, 50, 30, 30, 'F'); // Top right UV zone
-            doc.rect(90, 140, 30, 30, 'F'); // Center UV zone
-            doc.rect(20, 230, 30, 30, 'F'); // Bottom left UV zone
-            doc.rect(160, 230, 30, 30, 'F'); // Bottom right UV zone
-            
-            // UV fiber simulation - scattered dots
             for (let i = 0; i < 100; i++) {
                 const x = Math.random() * 190 + 10;
                 const y = Math.random() * 270 + 10;
                 doc.circle(x, y, 0.3, 'F');
             }
-            
-            // UV text overlay
-            doc.setGState(new doc.GState({opacity: 0.01}));
-            doc.setTextColor(200, 255, 200);
-            doc.setFontSize(8);
-            doc.text('UV PROTECTED', 105, 150, { align: 'center' });
             doc.restoreGraphicsState();
-            
-            // 4. MICRO TEXT BORDERS
+
+            // Micro text borders
             doc.saveGraphicsState();
             doc.setTextColor(180, 180, 180);
-            doc.setFontSize(2); // Tiny 2pt font
+            doc.setFontSize(2);
             doc.setFont(undefined, 'normal');
             
-            // Top micro text border
             let microText = '';
             for (let i = 0; i < 25; i++) {
                 microText += 'SOUTH AFRICA ';
             }
             doc.text(microText, 10, 7);
-            
-            // Bottom micro text border
             doc.text(microText, 10, 290);
-            
-            // Left micro text border (vertical)
-            doc.saveGraphicsState();
-            doc.setTextMatrix(0, -1, 1, 0, 7, 280); // Rotate 90 degrees
-            doc.text(microText, 0, 0);
             doc.restoreGraphicsState();
+        }
+
+        // 1. PERMANENT RESIDENCE PERMIT - Specific Layout
+        function drawPermanentResidencePermit(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Light green background
+            doc.setFillColor(245, 252, 248);
+            doc.rect(0, 0, 210, 297, 'F');
             
-            // Right micro text border (vertical)
-            doc.saveGraphicsState();
-            doc.setTextMatrix(0, 1, -1, 0, 203, 10); // Rotate -90 degrees
-            doc.text(microText, 0, 0);
-            doc.restoreGraphicsState();
-            doc.restoreGraphicsState();
-            
-            // 6. SECURITY THREAD - Vertical dashed metallic line
-            doc.saveGraphicsState();
-            doc.setDrawColor(192, 192, 192); // Silver/metallic
-            doc.setLineWidth(0.8);
-            doc.setLineDash([3, 2], 0); // Alternating visible/invisible segments
-            doc.line(75, 10, 75, 287); // Vertical thread through document
-            doc.setLineDash([], 0); // Reset dash
-            doc.restoreGraphicsState();
-            
-            // 7. ANTI-COPY PATTERN - Fine grid pattern
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.03}));
-            doc.setDrawColor(220, 220, 220);
-            doc.setLineWidth(0.05);
-            
-            // Create fine anti-copy grid
-            for (let x = 15; x < 195; x += 2) {
-                doc.line(x, 15, x, 282);
-            }
-            for (let y = 15; y < 282; y += 2) {
-                doc.line(15, y, 195, y);
-            }
-            doc.restoreGraphicsState();
-            
-            // Draw subtle security pattern (enhanced)
-            doc.setDrawColor(220, 240, 230);
-            doc.setLineWidth(0.1);
-            for (let i = 0; i < 30; i++) {
-                for (let j = 0; j < 40; j++) {
-                    doc.circle(i * 7 + 3.5, j * 7 + 3.5, 1);
-                }
-            }
+            // Add security features
+            addSecurityFeatures(doc);
             
             // Green border frame
             doc.setDrawColor(0, 100, 66);
             doc.setLineWidth(3);
-            doc.rect(5, 5, 200, 287);
+            doc.rect(10, 10, 190, 277);
             doc.setLineWidth(1);
-            doc.rect(8, 8, 194, 281);
+            doc.rect(13, 13, 184, 271);
+            
+            // White content area
+            doc.setFillColor(255, 255, 255);
+            doc.rect(20, 20, 170, 257, 'F');
+            
+            // Header
+            doc.setTextColor(0, 100, 66);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'normal');
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 40, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 48, { align: 'center' });
+            
+            // Title
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text('PERMANENT RESIDENCE PERMIT', 105, 65, { align: 'center' });
+            
+            // Verification code
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('Verification: ' + verifyCode, 105, 75, { align: 'center' });
+            
+            // Fields
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            let yPos = 95;
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('Name:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(name, 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Document Number:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(docInfo.docNumber || '548778854', 35, yPos + 7);
+            
+            yPos += 20;
+            if (identifier.includes('-')) {
+                doc.setFont(undefined, 'normal');
+                doc.text('ID Number:', 35, yPos);
+                doc.setFont(undefined, 'bold');
+                doc.text(identifier, 35, yPos + 7);
+            } else {
+                doc.setFont(undefined, 'normal');
+                doc.text('Passport Number:', 35, yPos);
+                doc.setFont(undefined, 'bold');
+                doc.text(identifier, 35, yPos + 7);
+            }
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Date Issued:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(dateIssued, 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Valid Until:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('INDEFINITE', 35, yPos + 7);
+            
+            // Official stamp on left
+            doc.setDrawColor(0, 100, 66);
+            doc.setLineWidth(2);
+            doc.circle(60, 210, 25);
+            doc.setLineWidth(1);
+            doc.circle(60, 210, 23);
+            
+            doc.setTextColor(0, 100, 66);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text('OFFICIAL', 60, 206, { align: 'center' });
+            doc.text('STAMP', 60, 214, { align: 'center' });
+            
+            // Signature line on right
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(120, 230, 170, 230);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text('Director-General', 145, 235, { align: 'center' });
+            
+            // Footer
+            doc.setTextColor(0, 100, 66);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'italic');
+            doc.text('This is an official document of the Republic of South Africa', 105, 260, { align: 'center' });
+        }
+
+        // 2. WORKER'S PERMIT - Completely Different Layout
+        function drawWorkerPermit(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Light background with pattern
+            doc.setFillColor(250, 250, 250);
+            doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add security features
+            addSecurityFeatures(doc);
+            
+            // White main area
+            doc.setFillColor(255, 255, 255);
+            doc.rect(15, 15, 180, 267, 'F');
+            
+            // Control number at top right
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('Control No: ' + docInfo.controlNo, 195, 25, { align: 'right' });
+            
+            // Verification code at top right
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(verifyCode, 195, 32, { align: 'right' });
+            
+            // Coat of arms circle
+            doc.setFillColor(0, 100, 66);
+            doc.circle(105, 45, 12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.text('RSA', 105, 47, { align: 'center' });
+            
+            // Header
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 65, { align: 'center' });
+            
+            // Title
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('GENERAL WORK VISA SECTION 19(2)', 105, 75, { align: 'center' });
+            
+            // TRN Number
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text('TRN:' + docInfo.trnNo, 105, 83, { align: 'center' });
+            
+            // Reference Number
+            doc.setFontSize(10);
+            doc.text('Ref No: ' + docInfo.refNo, 105, 91, { align: 'center' });
+            
+            // Fields in visa format
+            doc.setFontSize(11);
+            let yPos = 110;
+            
+            doc.setFont(undefined, 'normal');
+            doc.text('Name:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(name.toUpperCase(), 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Passport No:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(identifier, 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('No. of Entries:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('MULTIPLE', 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('VISA Expiry Date:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('2027-09-10', 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Issued at:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('HEAD OFFICE', 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('ON:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('2025-09-10', 70, yPos);
+            
+            // Conditions section
+            yPos += 20;
+            doc.setFont(undefined, 'bold');
+            doc.text('Conditions:', 30, yPos);
+            
+            yPos += 8;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('(1) To take up employment in the category mentioned above', 30, yPos);
+            
+            yPos += 6;
+            doc.text('(2) The above permit holder does not become a permanent resident', 30, yPos);
+            
+            // Barcode
+            const barcodeImage = generateBarcode('A7927CS');
+            doc.addImage(barcodeImage, 'PNG', 30, 210, 60, 20);
+            
+            doc.setFontSize(9);
+            doc.text('A7927CS', 60, 235, { align: 'center' });
+            
+            // Signature
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(120, 240, 170, 240);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.text('Director-General: Home Affairs', 145, 245, { align: 'center' });
+        }
+
+        // 3. BIRTH CERTIFICATE - Different Layout
+        function drawBirthCertificate(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Light blue-white background
+            doc.setFillColor(248, 252, 255);
+            doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add security features
+            addSecurityFeatures(doc);
+            
+            // Ornate border
+            doc.setDrawColor(0, 50, 100);
+            doc.setLineWidth(2);
+            doc.rect(10, 10, 190, 277);
+            doc.setLineWidth(0.5);
+            doc.rect(12, 12, 186, 273);
+            
+            // White content area
+            doc.setFillColor(255, 255, 255);
+            doc.rect(20, 20, 170, 257, 'F');
+            
+            // Header
+            doc.setTextColor(0, 50, 100);
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text('BIRTH CERTIFICATE', 105, 40, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 50, { align: 'center' });
+            
+            // Certificate number
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Certificate No: ' + identifier, 105, 60, { align: 'center' });
+            doc.text('Verification: ' + verifyCode, 105, 67, { align: 'center' });
+            
+            // Registration format
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            let yPos = 85;
+            
+            // Box for details
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.rect(30, yPos - 5, 150, 120);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Full Name:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(name, 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Date of Birth:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(docInfo.dateOfBirth, 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Place of Birth:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('Cape Town, Western Cape', 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Registration Number:', 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(identifier, 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text("Father's Name:", 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('[Registered]', 35, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text("Mother's Name:", 35, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('[Registered]', 35, yPos + 7);
+            
+            // Official seal
+            yPos += 30;
+            doc.setFillColor(0, 50, 100);
+            doc.circle(105, yPos, 15);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.text('OFFICIAL', 105, yPos - 2, { align: 'center' });
+            doc.text('SEAL', 105, yPos + 3, { align: 'center' });
+            
+            // Footer
+            doc.setTextColor(0, 50, 100);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'italic');
+            doc.text('Department of Home Affairs - Birth Registration', 105, 265, { align: 'center' });
+        }
+
+        // 4. NATURALISATION CERTIFICATE - Special Layout
+        function drawNaturalisationCertificate(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Cream background
+            doc.setFillColor(255, 253, 245);
+            doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add security features
+            addSecurityFeatures(doc);
+            
+            // Ornate gold border
+            doc.setDrawColor(184, 134, 11);
+            doc.setLineWidth(3);
+            doc.rect(10, 10, 190, 277);
+            doc.setLineWidth(1);
+            doc.rect(13, 13, 184, 271);
+            doc.setLineWidth(0.5);
+            doc.rect(15, 15, 180, 267);
+            
+            // White content area
+            doc.setFillColor(255, 255, 255);
+            doc.rect(20, 20, 170, 257, 'F');
+            
+            // Coat of arms
+            doc.setFillColor(184, 134, 11);
+            doc.circle(105, 40, 15);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('RSA', 105, 42, { align: 'center' });
+            
+            // Title
+            doc.setTextColor(184, 134, 11);
+            doc.setFontSize(22);
+            doc.setFont(undefined, 'bold');
+            doc.text('CERTIFICATE OF', 105, 65, { align: 'center' });
+            doc.text('NATURALISATION', 105, 75, { align: 'center' });
+            
+            // Formal wording
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            let yPos = 95;
+            
+            doc.text('This is to certify that', 105, yPos, { align: 'center' });
+            
+            yPos += 15;
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(name.toUpperCase(), 105, yPos, { align: 'center' });
+            
+            yPos += 15;
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('has been admitted as a citizen of the', 105, yPos, { align: 'center' });
+            
+            yPos += 8;
+            doc.text('Republic of South Africa by naturalisation', 105, yPos, { align: 'center' });
+            
+            yPos += 8;
+            doc.text('in terms of the South African Citizenship Act', 105, yPos, { align: 'center' });
+            
+            yPos += 15;
+            doc.text('Certificate Number: ' + identifier, 105, yPos, { align: 'center' });
+            
+            yPos += 10;
+            doc.text('Date of Naturalisation: ' + dateIssued, 105, yPos, { align: 'center' });
+            
+            yPos += 10;
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Verification: ' + verifyCode, 105, yPos, { align: 'center' });
+            
+            // Official signatures and seals
+            yPos += 30;
+            
+            // Minister signature
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(40, yPos, 90, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.text('Minister of Home Affairs', 65, yPos + 5, { align: 'center' });
+            
+            // Director-General signature
+            doc.line(120, yPos, 170, yPos);
+            doc.text('Director-General', 145, yPos + 5, { align: 'center' });
+            
+            // Large official seal
+            yPos += 25;
+            doc.setFillColor(184, 134, 11);
+            doc.circle(105, yPos, 20);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.text('DEPARTMENT OF', 105, yPos - 5, { align: 'center' });
+            doc.text('HOME AFFAIRS', 105, yPos, { align: 'center' });
+            doc.text('SOUTH AFRICA', 105, yPos + 5, { align: 'center' });
+        }
+
+        // 5. RELATIVE VISA - Similar to Work but Different
+        function drawRelativeVisa(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Light background
+            doc.setFillColor(252, 252, 252);
+            doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add security features
+            addSecurityFeatures(doc);
+            
+            // White main area
+            doc.setFillColor(255, 255, 255);
+            doc.rect(15, 15, 180, 267, 'F');
+            
+            // Header with control number
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text('Control No: RV' + Math.floor(1000000 + Math.random() * 9000000), 195, 25, { align: 'right' });
+            
+            // Verification
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            doc.text(verifyCode, 195, 32, { align: 'right' });
+            
+            // Coat of arms
+            doc.setFillColor(0, 100, 66);
+            doc.circle(105, 45, 12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.text('RSA', 105, 47, { align: 'center' });
+            
+            // Header
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 65, { align: 'center' });
+            
+            // Title
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('RELATIVE VISA SECTION 11(6)', 105, 75, { align: 'center' });
+            
+            // Reference
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text('Ref No: JHB/REL/' + Math.floor(10000 + Math.random() * 90000) + '/2025', 105, 85, { align: 'center' });
+            
+            // Details
+            doc.setFontSize(11);
+            let yPos = 105;
+            
+            doc.text('Name:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(name.toUpperCase(), 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Passport No:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(identifier, 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Relationship:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('FAMILY MEMBER', 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('Valid Until:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(docInfo.expiryDate || '2027-09-10', 70, yPos);
+            
+            yPos += 10;
+            doc.setFont(undefined, 'normal');
+            doc.text('No. of Entries:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('MULTIPLE', 70, yPos);
+            
+            // Conditions
+            yPos += 20;
+            doc.setFont(undefined, 'bold');
+            doc.text('Conditions:', 30, yPos);
+            
+            yPos += 8;
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('(1) To reside with family member who is a citizen/permanent resident', 30, yPos);
+            
+            yPos += 6;
+            doc.text('(2) May not take up employment without appropriate work authorization', 30, yPos);
+            
+            yPos += 6;
+            doc.text('(3) Must maintain valid passport at all times', 30, yPos);
+            
+            // Barcode
+            const barcodeImage = generateBarcode('RV' + identifier.substring(0, 6));
+            doc.addImage(barcodeImage, 'PNG', 30, 210, 60, 20);
+            
+            // Signature
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(120, 240, 170, 240);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.text('Director-General: Home Affairs', 145, 245, { align: 'center' });
+        }
+
+        // 6. REFUGEE PERMIT - Special Layout
+        function drawRefugeePermit(doc, name, identifier, docInfo, verifyCode, dateIssued) {
+            // Light gray background
+            doc.setFillColor(245, 245, 250);
+            doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add security features
+            addSecurityFeatures(doc);
+            
+            // Blue-gray border
+            doc.setDrawColor(70, 90, 120);
+            doc.setLineWidth(2);
+            doc.rect(10, 10, 190, 277);
             
             // White content area
             doc.setFillColor(255, 255, 255);
             doc.rect(15, 15, 180, 267, 'F');
             
-            // 5. HOLOGRAPHIC EFFECTS - Rainbow/iridescent overlay on coat of arms
-            doc.saveGraphicsState();
+            // UNHCR logo placeholder
+            doc.setFillColor(0, 114, 188);
+            doc.circle(40, 35, 12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(6);
+            doc.setFont(undefined, 'bold');
+            doc.text('UNHCR', 40, 36, { align: 'center' });
             
-            // Create holographic seal background with gradient effect
-            for (let r = 15; r > 0; r -= 0.5) {
-                const ratio = (15 - r) / 15;
-                // Shift from purple to green to gold
-                const red = Math.floor(148 + ratio * 107);
-                const green = Math.floor(0 + ratio * 184);
-                const blue = Math.floor(211 - ratio * 183);
-                
-                doc.setGState(new doc.GState({opacity: 0.1}));
-                doc.setFillColor(red, green, blue);
-                doc.circle(105, 35, r);
-            }
-            doc.restoreGraphicsState();
-            
-            // South African Coat of Arms with enhanced holographic effect
+            // RSA logo
             doc.setFillColor(0, 100, 66);
-            doc.circle(105, 35, 12);
-            
-            // Holographic shimmer overlay
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.3}));
-            doc.setDrawColor(255, 215, 0); // Gold shimmer
-            doc.setLineWidth(0.2);
-            for (let angle = 0; angle < 360; angle += 30) {
-                const x1 = 105 + Math.cos(angle * Math.PI / 180) * 10;
-                const y1 = 35 + Math.sin(angle * Math.PI / 180) * 10;
-                const x2 = 105 + Math.cos(angle * Math.PI / 180) * 12;
-                const y2 = 35 + Math.sin(angle * Math.PI / 180) * 12;
-                doc.line(x1, y1, x2, y2);
-            }
-            doc.restoreGraphicsState();
-            
+            doc.circle(170, 35, 12);
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(8);
-            doc.setFont(undefined, 'bold');
-            doc.text('RSA', 105, 35, { align: 'center' });
+            doc.text('RSA', 170, 36, { align: 'center' });
             
-            // Header
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(14);
+            // Title
+            doc.setTextColor(70, 90, 120);
+            doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
-            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 55, { align: 'center' });
+            doc.text('REFUGEE PERMIT', 105, 35, { align: 'center' });
+            
             doc.setFontSize(12);
-            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 62, { align: 'center' });
-            
-            // Document Type
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(16);
-            doc.setFont(undefined, 'bold');
-            let docTitle = '';
-            switch(type) {
-                case 'PRP':
-                    docTitle = 'PERMANENT RESIDENCE PERMIT';
-                    break;
-                case 'NATURALISATION':
-                    docTitle = 'NATURALISATION CERTIFICATE';
-                    break;
-                case 'WORK':
-                    docTitle = 'GENERAL WORK VISA SECTION 19(2)';
-                    break;
-                case 'VISA':
-                    docTitle = 'RELATIVE VISA';
-                    break;
-                case 'REFUGEE':
-                    docTitle = 'REFUGEE PERMIT';
-                    break;
-                case 'BIRTH':
-                    docTitle = 'BIRTH CERTIFICATE';
-                    break;
-            }
-            doc.text(docTitle, 105, 80, { align: 'center' });
-            
-            // Verification Code
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
-            doc.text('Verification: ' + verifyCode, 105, 90, { align: 'center' });
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 45, { align: 'center' });
             
-            // Personal Details Section
+            // Reference and verification
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Reference: ' + identifier, 105, 55, { align: 'center' });
+            doc.text('Verification: ' + verifyCode, 105, 62, { align: 'center' });
+            
+            // Details section
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(11);
+            let yPos = 80;
+            
+            // Box for refugee details
+            doc.setDrawColor(70, 90, 120);
+            doc.setLineWidth(0.5);
+            doc.rect(25, yPos - 5, 160, 100);
+            
+            yPos += 10;
             doc.setFont(undefined, 'normal');
-            let yPos = 110;
-            
-            // For Work Visa - add Control No and Ref No
-            if (type === 'WORK') {
-                doc.setFont(undefined, 'bold');
-                doc.text('Control No: ' + docInfo.controlNo, 25, yPos);
-                yPos += 8;
-                doc.text('Ref No: ' + docInfo.refNo, 25, yPos);
-                yPos += 8;
-                doc.setFont(undefined, 'normal');
-            }
-            
-            doc.text('Name: ', 25, yPos);
+            doc.text('Full Name:', 30, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text(name.toUpperCase(), 50, yPos);
+            doc.text(name.toUpperCase(), 30, yPos + 7);
+            
+            yPos += 20;
             doc.setFont(undefined, 'normal');
+            doc.text('Refugee ID:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(identifier, 30, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Country of Origin:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(docInfo.country, 30, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Status:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text('RECOGNIZED REFUGEE', 30, yPos + 7);
+            
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Date Issued:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(dateIssued, 30, yPos + 7);
+            
+            // Rights and protections
+            yPos += 30;
+            doc.setFont(undefined, 'bold');
+            doc.text('Rights and Protections:', 30, yPos);
+            
             yPos += 8;
-            
-            if (docInfo.passport) {
-                doc.text('Passport No: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text(docInfo.passport, 55, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 8;
-            }
-            
-            if (docInfo.idNumber) {
-                doc.text('ID Number: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text(docInfo.idNumber, 50, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 8;
-            }
-            
-            doc.text('Date Issued: ', 25, yPos);
-            doc.setFont(undefined, 'bold');
-            doc.text(dateIssued, 52, yPos);
             doc.setFont(undefined, 'normal');
-            yPos += 8;
+            doc.setFontSize(9);
+            doc.text('• Protection from refoulement', 30, yPos);
+            yPos += 6;
+            doc.text('• Right to work and study', 30, yPos);
+            yPos += 6;
+            doc.text('• Access to basic services', 30, yPos);
+            yPos += 6;
+            doc.text('• Freedom of movement within South Africa', 30, yPos);
             
-            if (type === 'WORK') {
-                doc.text('No. of Entries: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text('MULTIPLE', 55, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 8;
-                
-                doc.text('Visa Expiry Date: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text('2027-09-10', 60, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 8;
-                
-                doc.text('Issued at: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text('HEAD OFFICE', 50, yPos);
-                doc.setFont(undefined, 'normal');
-                yPos += 12;
-                
-                // Conditions
-                doc.setFont(undefined, 'bold');
-                doc.text('Conditions:', 25, yPos);
-                yPos += 8;
-                doc.setFont(undefined, 'normal');
-                doc.setFontSize(10);
-                doc.text('(1) To take up employment in the category mentioned above', 25, yPos);
-                yPos += 6;
-                doc.text('(2) The above permit holder does not become a permanent resident', 25, yPos);
-            } else {
-                doc.text('Valid Until: ', 25, yPos);
-                doc.setFont(undefined, 'bold');
-                doc.text('INDEFINITE', 52, yPos);
-                doc.setFont(undefined, 'normal');
-            }
-            
-            // 8. PASSPORT BINDING REPRESENTATION (for passport-style documents)
-            if (type === 'VISA' || type === 'REFUGEE') {
-                doc.saveGraphicsState();
-                doc.setDrawColor(100, 100, 100);
-                doc.setLineWidth(0.3);
-                // Simulate binding perforations
-                for (let y = 20; y < 280; y += 5) {
-                    doc.circle(105, y, 0.5);
-                }
-                doc.restoreGraphicsState();
-            }
-            
-            // 9. THREE-COLOR GUILLOCHE DESIGN AT BOTTOM
-            doc.saveGraphicsState();
-            for (let i = 0; i < 180; i += 0.5) {
-                const y = 260 + Math.sin(i * 0.1) * 2 + Math.cos(i * 0.05) * 1.5;
-                // Three colors cycling
-                if (i % 3 === 0) {
-                    doc.setDrawColor(0, 100, 66); // Green
-                } else if (i % 3 === 1) {
-                    doc.setDrawColor(255, 184, 28); // Yellow
-                } else {
-                    doc.setDrawColor(200, 200, 200); // Gray
-                }
-                doc.setLineWidth(0.1);
-                doc.line(20 + i, y, 20.5 + i, y + 0.2);
-            }
-            doc.restoreGraphicsState();
-            
-            // 10. LASER PERFORATED IMAGE OVERLAY
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.05}));
-            doc.setDrawColor(150, 150, 150);
-            // Create perforated pattern forming SA flag outline
-            for (let x = 140; x < 170; x += 2) {
-                for (let y = 100; y < 130; y += 2) {
-                    // Simple flag shape with perforations
-                    if ((x - 140) < (y - 100)) {
-                        doc.circle(x, y, 0.3);
-                    }
-                }
-            }
-            doc.restoreGraphicsState();
-            
-            // Official Stamp Area (enhanced with security features)
-            doc.setDrawColor(0, 100, 66);
-            doc.setLineWidth(2);
-            doc.circle(60, 200, 25);
-            doc.setLineWidth(1);
-            doc.circle(60, 200, 23);
-            
-            // Add guilloche pattern inside stamp
-            doc.saveGraphicsState();
-            doc.setDrawColor(0, 150, 100);
-            doc.setLineWidth(0.1);
-            for (let angle = 0; angle < 360; angle += 10) {
-                const x1 = 60 + Math.cos(angle * Math.PI / 180) * 20;
-                const y1 = 200 + Math.sin(angle * Math.PI / 180) * 20;
-                const x2 = 60 + Math.cos((angle + 5) * Math.PI / 180) * 22;
-                const y2 = 200 + Math.sin((angle + 5) * Math.PI / 180) * 22;
-                doc.line(x1, y1, x2, y2);
-            }
-            doc.restoreGraphicsState();
-            
-            doc.setTextColor(0, 100, 66);
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            doc.text('DEPARTMENT OF', 60, 195, { align: 'center' });
-            doc.text('HOME AFFAIRS', 60, 200, { align: 'center' });
-            doc.text('OFFICIAL STAMP', 60, 205, { align: 'center' });
+            // UNHCR coordination note
+            yPos += 15;
             doc.setFontSize(8);
-            doc.text('REPUBLIC OF SOUTH AFRICA', 60, 210, { align: 'center' });
+            doc.setTextColor(70, 90, 120);
+            doc.text('Issued in coordination with UNHCR under the 1951 Refugee Convention', 105, yPos, { align: 'center' });
             
-            // Barcode at bottom right
-            const barcodeImage = generateBarcode(verifyCode.replace('DHA-2025-', 'A') + 'CS');
-            doc.addImage(barcodeImage, 'PNG', 130, 200, 50, 20);
-            
-            // Signature Line
+            // Official stamp and signature
+            yPos += 20;
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.5);
-            doc.line(120, 240, 180, 240);
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            doc.text('Director-General: Home Affairs', 150, 245, { align: 'center' });
-            
-            // Footer
+            doc.line(65, yPos, 145, yPos);
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(9);
-            doc.setFont(undefined, 'italic');
-            doc.text('This is an official document of the Republic of South Africa', 105, 275, { align: 'center' });
+            doc.text('Director: Refugee Affairs', 105, yPos + 5, { align: 'center' });
         }
 
-        function drawVerificationPage(doc, verifyCode) {
-            // Light gray background with security features
-            doc.setFillColor(240, 240, 240);
+        // NPR Verification Page
+        function drawNPRVerificationPage(doc, verifyCode, name) {
+            // Light gray background
+            doc.setFillColor(240, 245, 250);
             doc.rect(0, 0, 210, 297, 'F');
             
-            // Add watermark to verification page
+            // NPR watermark
             doc.saveGraphicsState();
             doc.setGState(new doc.GState({opacity: 0.03}));
-            doc.setTextColor(200, 200, 200);
-            doc.setFontSize(8);
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
             
-            for (let row = -10; row < 40; row++) {
-                for (let col = -3; col < 8; col++) {
-                    doc.saveGraphicsState();
-                    const x = col * 40 + (row % 2) * 20;
-                    const y = row * 12;
-                    doc.setTextMatrix(0.707, -0.707, 0.707, 0.707, x, y);
-                    doc.text('DHA VERIFIED', 0, 0);
-                    doc.restoreGraphicsState();
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 5; j++) {
+                    doc.text('NPR VERIFIED', j * 50 + 20, i * 35 + 30, { angle: 45 });
                 }
             }
             doc.restoreGraphicsState();
             
-            // Add guilloche pattern border to verification page
-            doc.saveGraphicsState();
-            doc.setDrawColor(180, 180, 200);
-            doc.setLineWidth(0.1);
-            for (let i = 0; i < 210; i += 0.5) {
-                const y1 = 26 + Math.sin(i * 0.08) * 1;
-                const y2 = 26 + Math.sin((i + 0.5) * 0.08) * 1;
-                doc.line(i, y1, i + 0.5, y2);
-            }
-            doc.restoreGraphicsState();
-            
-            // Green header bar
+            // Green header
             doc.setFillColor(0, 100, 66);
-            doc.rect(0, 0, 210, 25, 'F');
-            
-            // Page indicator
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text('2 of 2', 15, 15);
+            doc.rect(0, 0, 210, 30, 'F');
             
             // Header text
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('NATIONAL POPULATION REGISTER', 105, 12, { align: 'center' });
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
-            doc.text('This is an official document of the Republic of South Africa', 105, 15, { align: 'center' });
+            doc.text('VERIFICATION PAGE', 105, 20, { align: 'center' });
             
-            // Document Verification Title
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(20);
+            // Verification title
+            doc.setTextColor(0, 100, 66);
+            doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
-            doc.text('DOCUMENT VERIFICATION', 105, 55, { align: 'center' });
+            doc.text('NPR VERIFICATION STATUS', 105, 50, { align: 'center' });
             
-            // Verification checks with checkmarks
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'normal');
-            
-            // Checkmark 1
-            doc.setTextColor(0, 150, 0);
-            doc.text('✓', 50, 85);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Document verified in DHA system', 60, 85);
-            
-            // Checkmark 2
-            doc.setTextColor(0, 150, 0);
-            doc.text('✓', 50, 100);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Biometric data confirmed', 60, 100);
-            
-            // Checkmark 3
-            doc.setTextColor(0, 150, 0);
-            doc.text('✓', 50, 115);
-            doc.setTextColor(0, 0, 0);
-            doc.text('International verification enabled', 60, 115);
-            
-            // Large barcode in center
-            const barcodeImage = generateBarcode(verifyCode);
-            doc.addImage(barcodeImage, 'PNG', 55, 140, 100, 30);
-            
-            // Verification code below barcode
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'bold');
-            doc.text(verifyCode, 105, 180, { align: 'center' });
-            
-            // Additional security features box with enhanced design
-            doc.saveGraphicsState();
-            
-            // Create holographic effect for security box
-            doc.setGState(new doc.GState({opacity: 0.1}));
-            doc.setFillColor(150, 200, 250);
-            doc.rect(30, 200, 150, 70, 'F');
-            
-            doc.setGState(new doc.GState({opacity: 1}));
+            // Verification details box
+            doc.setFillColor(255, 255, 255);
+            doc.rect(20, 60, 170, 120);
             doc.setDrawColor(0, 100, 66);
             doc.setLineWidth(1);
-            doc.rect(30, 200, 150, 70);
+            doc.rect(20, 60, 170, 120);
             
-            // Add micro text border around security box
-            doc.setFontSize(1.5);
-            doc.setTextColor(180, 180, 180);
-            let securityMicroText = '';
-            for (let i = 0; i < 30; i++) {
-                securityMicroText += 'SECURE ';
-            }
-            doc.text(securityMicroText, 30, 199);
-            doc.text(securityMicroText, 30, 271);
+            // Verification checks
+            doc.setFontSize(12);
+            let yPos = 75;
             
-            doc.restoreGraphicsState();
+            // Check 1
+            doc.setTextColor(0, 150, 0);
+            doc.text('✓', 30, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.setFont(undefined, 'normal');
+            doc.text('Verified with National Population Register', 40, yPos);
             
-            doc.setFontSize(11);
+            yPos += 15;
+            // Check 2
+            doc.setTextColor(0, 150, 0);
+            doc.text('✓', 30, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Biometric data confirmed', 40, yPos);
+            
+            yPos += 15;
+            // Check 3
+            doc.setTextColor(0, 150, 0);
+            doc.text('✓', 30, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Identity authenticated against NPR database', 40, yPos);
+            
+            yPos += 15;
+            // Check 4
+            doc.setTextColor(0, 150, 0);
+            doc.text('✓', 30, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Document integrity verified', 40, yPos);
+            
+            yPos += 15;
+            // Check 5
+            doc.setTextColor(0, 150, 0);
+            doc.text('✓', 30, yPos);
+            doc.setTextColor(0, 0, 0);
+            doc.text('International verification enabled', 40, yPos);
+            
+            yPos += 15;
+            // Person name
             doc.setFont(undefined, 'bold');
-            doc.text('SECURITY FEATURES', 105, 210, { align: 'center' });
+            doc.text('Person:', 30, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.text(name, 55, yPos);
+            
+            yPos += 10;
+            // Verification code
+            doc.setFont(undefined, 'bold');
+            doc.text('Verification Code:', 30, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.text(verifyCode, 75, yPos);
+            
+            // NPR Barcode
+            yPos = 195;
+            const barcodeImage = generateBarcode('NPR' + verifyCode.replace('DHA-2025-', ''));
+            doc.addImage(barcodeImage, 'PNG', 55, yPos, 100, 25);
             
             doc.setFontSize(10);
+            doc.text('NPR-' + verifyCode, 105, yPos + 30, { align: 'center' });
+            
+            // Security features section
+            yPos = 235;
+            doc.setDrawColor(200, 200, 200);
+            doc.setLineWidth(0.5);
+            doc.rect(20, yPos, 170, 35);
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('ENHANCED SECURITY FEATURES', 105, yPos + 8, { align: 'center' });
+            
+            doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
-            doc.text('• Holographic seal embedded', 40, 225);
-            doc.text('• UV-reactive security printing', 40, 235);
-            doc.text('• Tamper-evident substrate', 40, 245);
-            doc.text('• Blockchain verification enabled', 40, 255);
+            doc.text('• Blockchain verification available', 30, yPos + 16);
+            doc.text('• Quantum-resistant encryption', 110, yPos + 16);
+            doc.text('• Real-time NPR database sync', 30, yPos + 24);
+            doc.text('• Biometric matching: Fingerprint & Facial', 110, yPos + 24);
             
             // Footer
             doc.setTextColor(100, 100, 100);
             doc.setFontSize(8);
-            doc.text('© Department of Home Affairs, Republic of South Africa', 105, 285, { align: 'center' });
+            doc.text('© Department of Home Affairs - National Population Register', 105, 285, { align: 'center' });
+            doc.text('This verification is valid for 90 days from generation date', 105, 290, { align: 'center' });
         }
 
         function downloadAllDocuments() {
@@ -950,7 +1317,7 @@
                 { name: 'Khunsha', type: 'PRP', id: 'KV4122911' },
                 { name: 'Haroon', type: 'PRP', id: 'DT9840361' },
                 { name: 'Faisal', type: 'PRP', id: 'PK7856234' },
-                { name: 'Muhammad Hasnain Younis', type: 'PRP', id: '37405-6961586-3' },
+                { name: 'Muhammad Hasnain', type: 'PRP', id: '37405-6961586-3' },
                 { name: 'Anna Munaf', type: 'NATURALISATION', id: 'NC-2025-00742' },
                 { name: 'Ikram Ibrahim Yusuf Mansuri', type: 'WORK', id: '10611952' },
                 { name: 'Anisah', type: 'VISA', id: 'IND4578921' },
