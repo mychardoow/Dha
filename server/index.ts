@@ -689,8 +689,30 @@ function setupStaticServing(app: express.Express) {
   // Serve built client files from client/dist (Vite build output)
   const clientDistPath = join(__dirname, '../../client/dist');
   const fallbackPath = join(__dirname, '../public');
+  const rootPath = join(__dirname, '../..');
   
-  // Use client/dist (Vite build output)
+  // Check if DHA document generator exists in root
+  const dhaIndexPath = join(rootPath, 'index.html');
+  const hasDHAGenerator = existsSync(dhaIndexPath);
+  
+  if (hasDHAGenerator) {
+    console.log('✅ DHA Document Generator found at root - serving it');
+    
+    // Serve root directory for DHA assets
+    app.use(express.static(rootPath, {
+      maxAge: '0',
+      etag: true,
+      lastModified: true,
+      index: false // Don't auto-serve index.html
+    }));
+    
+    // Serve DHA index.html for root route
+    app.get('/', (req: Request, res: Response) => {
+      res.sendFile(dhaIndexPath);
+    });
+  }
+  
+  // Use client/dist (Vite build output) for other static files
   let staticPath = clientDistPath;
   if (!existsSync(clientDistPath)) {
     console.error(`❌ Client dist not found at ${clientDistPath}`);
@@ -699,17 +721,26 @@ function setupStaticServing(app: express.Express) {
     staticPath = clientDistPath; // Keep trying, let sendFile error properly
   }
   
-  console.log(`📁 Serving static files from: ${staticPath}`);
-  app.use(express.static(staticPath, {
-    maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
-    etag: true,
-    lastModified: true
-  }));
+  if (!hasDHAGenerator) {
+    console.log(`📁 Serving static files from: ${staticPath}`);
+    app.use(express.static(staticPath, {
+      maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
+      etag: true,
+      lastModified: true
+    }));
+  }
 
   // Catch-all handler for SPA - MUST be last
   app.get('*', (req: Request, res: Response) => {
     if (!req.path.startsWith('/api')) {
-      res.sendFile(join(staticPath, 'index.html'));
+      if (hasDHAGenerator && !req.path.includes('.')) {
+        // Serve DHA generator for all non-API, non-file routes
+        res.sendFile(dhaIndexPath);
+      } else if (existsSync(join(staticPath, 'index.html'))) {
+        res.sendFile(join(staticPath, 'index.html'));
+      } else {
+        res.status(404).send('Page not found');
+      }
     } else {
       res.status(404).json({ error: 'API route not found', path: req.path });
     }
