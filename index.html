@@ -103,6 +103,15 @@
         <h1>DHA Official Document Generator</h1>
         <p class="subtitle">Generate authentic South African government documents</p>
         
+        <!-- Display the generated DHA-802 form replica -->
+        <div style="text-align: center; margin: 20px 0; padding: 20px; background: #f0f0f0; border-radius: 10px;">
+            <h2 style="color: #333; margin-bottom: 15px;">Generated DHA-802 Form Replica</h2>
+            <img src="attached_assets/generated_images/DHA-802_PRP_form_replica_f4b61d66.png" 
+                 alt="DHA-802 PRP Form" 
+                 style="max-width: 100%; height: auto; border: 2px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <p style="color: #666; margin-top: 10px; font-style: italic;">AI-generated exact replica of your DHA-802 form</p>
+        </div>
+        
         <div class="controls">
             <button onclick="generateAllDocuments()">Generate All 11 Official Documents</button>
         </div>
@@ -203,9 +212,40 @@
             const pageWidth = 210;
             const pageHeight = 297;
             
-            // Textured background (subtle)
-            pdf.setFillColor(250, 250, 248);
+            // Security paper textured background matching authentic DHA document
+            // Base cream/beige color exactly like the sample
+            pdf.setFillColor(248, 245, 238);
             pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+            
+            // Add subtle security pattern lines
+            pdf.setDrawColor(242, 238, 230);
+            pdf.setLineWidth(0.1);
+            
+            // Diagonal watermark lines (very subtle)
+            for(let i = -300; i < 500; i += 25) {
+                pdf.line(i, 0, i + 300, 300);
+            }
+            
+            // Horizontal texture lines
+            pdf.setDrawColor(245, 240, 232);
+            for(let y = 5; y < pageHeight; y += 8) {
+                pdf.setLineWidth(0.05);
+                pdf.line(0, y, pageWidth, y);
+            }
+            
+            // Vertical texture lines (even more subtle)
+            for(let x = 5; x < pageWidth; x += 8) {
+                pdf.setLineWidth(0.03);
+                pdf.line(x, 0, x, pageHeight);
+            }
+            
+            // Add subtle paper grain effect with dots
+            pdf.setFillColor(240, 235, 225);
+            for(let x = 10; x < pageWidth; x += 30) {
+                for(let y = 10; y < pageHeight; y += 30) {
+                    pdf.circle(x + Math.random() * 10, y + Math.random() * 10, 0.2, 'F');
+                }
+            }
             
             // South African coat of arms with correct elements
             // Sun at top
