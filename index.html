@@ -405,7 +405,142 @@
             doc.setFillColor(245, 252, 248); // Very light green tint
             doc.rect(0, 0, 210, 297, 'F');
             
-            // Draw subtle security pattern
+            // 1. WATERMARK LAYER - "REPUBLIC OF SOUTH AFRICA" diagonal pattern
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.04})); // Semi-transparent
+            doc.setTextColor(200, 200, 200); // Light gray
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            
+            // Create diagonal watermark pattern across entire page
+            for (let row = -20; row < 35; row++) {
+                for (let col = -5; col < 10; col++) {
+                    doc.saveGraphicsState();
+                    // Position with offset for diagonal pattern
+                    const x = col * 45 + (row % 2) * 22;
+                    const y = row * 15;
+                    // Rotate text 45 degrees
+                    doc.setTextMatrix(0.707, -0.707, 0.707, 0.707, x, y);
+                    doc.text('REPUBLIC OF SOUTH AFRICA', 0, 0);
+                    doc.restoreGraphicsState();
+                }
+            }
+            doc.restoreGraphicsState();
+            
+            // 2. GUILLOCHE PATTERNS - Mathematical sine wave patterns
+            doc.saveGraphicsState();
+            doc.setDrawColor(180, 200, 190); // Light green/gray
+            doc.setLineWidth(0.1); // Very thin lines
+            
+            // Top guilloche border
+            for (let i = 0; i < 200; i += 0.5) {
+                const y1 = 3 + Math.sin(i * 0.1) * 1.5;
+                const y2 = 3 + Math.sin((i + 0.5) * 0.1) * 1.5;
+                doc.line(5 + i, y1, 5.5 + i, y2);
+            }
+            
+            // Bottom guilloche border
+            for (let i = 0; i < 200; i += 0.5) {
+                const y1 = 294 + Math.sin(i * 0.1) * 1.5;
+                const y2 = 294 + Math.sin((i + 0.5) * 0.1) * 1.5;
+                doc.line(5 + i, y1, 5.5 + i, y2);
+            }
+            
+            // Left side guilloche
+            for (let j = 0; j < 287; j += 0.5) {
+                const x1 = 3 + Math.sin(j * 0.1) * 1.5;
+                const x2 = 3 + Math.sin((j + 0.5) * 0.1) * 1.5;
+                doc.line(x1, 5 + j, x2, 5.5 + j);
+            }
+            
+            // Right side guilloche
+            for (let j = 0; j < 287; j += 0.5) {
+                const x1 = 207 + Math.sin(j * 0.1) * 1.5;
+                const x2 = 207 + Math.sin((j + 0.5) * 0.1) * 1.5;
+                doc.line(x1, 5 + j, x2, 5.5 + j);
+            }
+            doc.restoreGraphicsState();
+            
+            // 3. UV/FLUORESCENT FEATURES - Very light overlay
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.02})); // Almost invisible
+            doc.setFillColor(255, 255, 150); // Light yellow/green fluorescent
+            
+            // UV reactive zones
+            doc.rect(20, 50, 30, 30, 'F'); // Top left UV zone
+            doc.rect(160, 50, 30, 30, 'F'); // Top right UV zone
+            doc.rect(90, 140, 30, 30, 'F'); // Center UV zone
+            doc.rect(20, 230, 30, 30, 'F'); // Bottom left UV zone
+            doc.rect(160, 230, 30, 30, 'F'); // Bottom right UV zone
+            
+            // UV fiber simulation - scattered dots
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * 190 + 10;
+                const y = Math.random() * 270 + 10;
+                doc.circle(x, y, 0.3, 'F');
+            }
+            
+            // UV text overlay
+            doc.setGState(new doc.GState({opacity: 0.01}));
+            doc.setTextColor(200, 255, 200);
+            doc.setFontSize(8);
+            doc.text('UV PROTECTED', 105, 150, { align: 'center' });
+            doc.restoreGraphicsState();
+            
+            // 4. MICRO TEXT BORDERS
+            doc.saveGraphicsState();
+            doc.setTextColor(180, 180, 180);
+            doc.setFontSize(2); // Tiny 2pt font
+            doc.setFont(undefined, 'normal');
+            
+            // Top micro text border
+            let microText = '';
+            for (let i = 0; i < 25; i++) {
+                microText += 'SOUTH AFRICA ';
+            }
+            doc.text(microText, 10, 7);
+            
+            // Bottom micro text border
+            doc.text(microText, 10, 290);
+            
+            // Left micro text border (vertical)
+            doc.saveGraphicsState();
+            doc.setTextMatrix(0, -1, 1, 0, 7, 280); // Rotate 90 degrees
+            doc.text(microText, 0, 0);
+            doc.restoreGraphicsState();
+            
+            // Right micro text border (vertical)
+            doc.saveGraphicsState();
+            doc.setTextMatrix(0, 1, -1, 0, 203, 10); // Rotate -90 degrees
+            doc.text(microText, 0, 0);
+            doc.restoreGraphicsState();
+            doc.restoreGraphicsState();
+            
+            // 6. SECURITY THREAD - Vertical dashed metallic line
+            doc.saveGraphicsState();
+            doc.setDrawColor(192, 192, 192); // Silver/metallic
+            doc.setLineWidth(0.8);
+            doc.setLineDash([3, 2], 0); // Alternating visible/invisible segments
+            doc.line(75, 10, 75, 287); // Vertical thread through document
+            doc.setLineDash([], 0); // Reset dash
+            doc.restoreGraphicsState();
+            
+            // 7. ANTI-COPY PATTERN - Fine grid pattern
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.03}));
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.05);
+            
+            // Create fine anti-copy grid
+            for (let x = 15; x < 195; x += 2) {
+                doc.line(x, 15, x, 282);
+            }
+            for (let y = 15; y < 282; y += 2) {
+                doc.line(15, y, 195, y);
+            }
+            doc.restoreGraphicsState();
+            
+            // Draw subtle security pattern (enhanced)
             doc.setDrawColor(220, 240, 230);
             doc.setLineWidth(0.1);
             for (let i = 0; i < 30; i++) {
@@ -425,9 +560,41 @@
             doc.setFillColor(255, 255, 255);
             doc.rect(15, 15, 180, 267, 'F');
             
-            // South African Coat of Arms placeholder
+            // 5. HOLOGRAPHIC EFFECTS - Rainbow/iridescent overlay on coat of arms
+            doc.saveGraphicsState();
+            
+            // Create holographic seal background with gradient effect
+            for (let r = 15; r > 0; r -= 0.5) {
+                const ratio = (15 - r) / 15;
+                // Shift from purple to green to gold
+                const red = Math.floor(148 + ratio * 107);
+                const green = Math.floor(0 + ratio * 184);
+                const blue = Math.floor(211 - ratio * 183);
+                
+                doc.setGState(new doc.GState({opacity: 0.1}));
+                doc.setFillColor(red, green, blue);
+                doc.circle(105, 35, r);
+            }
+            doc.restoreGraphicsState();
+            
+            // South African Coat of Arms with enhanced holographic effect
             doc.setFillColor(0, 100, 66);
             doc.circle(105, 35, 12);
+            
+            // Holographic shimmer overlay
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.3}));
+            doc.setDrawColor(255, 215, 0); // Gold shimmer
+            doc.setLineWidth(0.2);
+            for (let angle = 0; angle < 360; angle += 30) {
+                const x1 = 105 + Math.cos(angle * Math.PI / 180) * 10;
+                const y1 = 35 + Math.sin(angle * Math.PI / 180) * 10;
+                const x2 = 105 + Math.cos(angle * Math.PI / 180) * 12;
+                const y2 = 35 + Math.sin(angle * Math.PI / 180) * 12;
+                doc.line(x1, y1, x2, y2);
+            }
+            doc.restoreGraphicsState();
+            
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(8);
             doc.setFont(undefined, 'bold');
@@ -553,12 +720,69 @@
                 doc.setFont(undefined, 'normal');
             }
             
-            // Official Stamp Area
+            // 8. PASSPORT BINDING REPRESENTATION (for passport-style documents)
+            if (type === 'VISA' || type === 'REFUGEE') {
+                doc.saveGraphicsState();
+                doc.setDrawColor(100, 100, 100);
+                doc.setLineWidth(0.3);
+                // Simulate binding perforations
+                for (let y = 20; y < 280; y += 5) {
+                    doc.circle(105, y, 0.5);
+                }
+                doc.restoreGraphicsState();
+            }
+            
+            // 9. THREE-COLOR GUILLOCHE DESIGN AT BOTTOM
+            doc.saveGraphicsState();
+            for (let i = 0; i < 180; i += 0.5) {
+                const y = 260 + Math.sin(i * 0.1) * 2 + Math.cos(i * 0.05) * 1.5;
+                // Three colors cycling
+                if (i % 3 === 0) {
+                    doc.setDrawColor(0, 100, 66); // Green
+                } else if (i % 3 === 1) {
+                    doc.setDrawColor(255, 184, 28); // Yellow
+                } else {
+                    doc.setDrawColor(200, 200, 200); // Gray
+                }
+                doc.setLineWidth(0.1);
+                doc.line(20 + i, y, 20.5 + i, y + 0.2);
+            }
+            doc.restoreGraphicsState();
+            
+            // 10. LASER PERFORATED IMAGE OVERLAY
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.05}));
+            doc.setDrawColor(150, 150, 150);
+            // Create perforated pattern forming SA flag outline
+            for (let x = 140; x < 170; x += 2) {
+                for (let y = 100; y < 130; y += 2) {
+                    // Simple flag shape with perforations
+                    if ((x - 140) < (y - 100)) {
+                        doc.circle(x, y, 0.3);
+                    }
+                }
+            }
+            doc.restoreGraphicsState();
+            
+            // Official Stamp Area (enhanced with security features)
             doc.setDrawColor(0, 100, 66);
             doc.setLineWidth(2);
             doc.circle(60, 200, 25);
             doc.setLineWidth(1);
             doc.circle(60, 200, 23);
+            
+            // Add guilloche pattern inside stamp
+            doc.saveGraphicsState();
+            doc.setDrawColor(0, 150, 100);
+            doc.setLineWidth(0.1);
+            for (let angle = 0; angle < 360; angle += 10) {
+                const x1 = 60 + Math.cos(angle * Math.PI / 180) * 20;
+                const y1 = 200 + Math.sin(angle * Math.PI / 180) * 20;
+                const x2 = 60 + Math.cos((angle + 5) * Math.PI / 180) * 22;
+                const y2 = 200 + Math.sin((angle + 5) * Math.PI / 180) * 22;
+                doc.line(x1, y1, x2, y2);
+            }
+            doc.restoreGraphicsState();
             
             doc.setTextColor(0, 100, 66);
             doc.setFontSize(10);
@@ -590,9 +814,39 @@
         }
 
         function drawVerificationPage(doc, verifyCode) {
-            // Light gray background
+            // Light gray background with security features
             doc.setFillColor(240, 240, 240);
             doc.rect(0, 0, 210, 297, 'F');
+            
+            // Add watermark to verification page
+            doc.saveGraphicsState();
+            doc.setGState(new doc.GState({opacity: 0.03}));
+            doc.setTextColor(200, 200, 200);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            
+            for (let row = -10; row < 40; row++) {
+                for (let col = -3; col < 8; col++) {
+                    doc.saveGraphicsState();
+                    const x = col * 40 + (row % 2) * 20;
+                    const y = row * 12;
+                    doc.setTextMatrix(0.707, -0.707, 0.707, 0.707, x, y);
+                    doc.text('DHA VERIFIED', 0, 0);
+                    doc.restoreGraphicsState();
+                }
+            }
+            doc.restoreGraphicsState();
+            
+            // Add guilloche pattern border to verification page
+            doc.saveGraphicsState();
+            doc.setDrawColor(180, 180, 200);
+            doc.setLineWidth(0.1);
+            for (let i = 0; i < 210; i += 0.5) {
+                const y1 = 26 + Math.sin(i * 0.08) * 1;
+                const y2 = 26 + Math.sin((i + 0.5) * 0.08) * 1;
+                doc.line(i, y1, i + 0.5, y2);
+            }
+            doc.restoreGraphicsState();
             
             // Green header bar
             doc.setFillColor(0, 100, 66);
@@ -647,10 +901,30 @@
             doc.setFont(undefined, 'bold');
             doc.text(verifyCode, 105, 180, { align: 'center' });
             
-            // Additional security features box
+            // Additional security features box with enhanced design
+            doc.saveGraphicsState();
+            
+            // Create holographic effect for security box
+            doc.setGState(new doc.GState({opacity: 0.1}));
+            doc.setFillColor(150, 200, 250);
+            doc.rect(30, 200, 150, 70, 'F');
+            
+            doc.setGState(new doc.GState({opacity: 1}));
             doc.setDrawColor(0, 100, 66);
             doc.setLineWidth(1);
             doc.rect(30, 200, 150, 70);
+            
+            // Add micro text border around security box
+            doc.setFontSize(1.5);
+            doc.setTextColor(180, 180, 180);
+            let securityMicroText = '';
+            for (let i = 0; i < 30; i++) {
+                securityMicroText += 'SECURE ';
+            }
+            doc.text(securityMicroText, 30, 199);
+            doc.text(securityMicroText, 30, 271);
+            
+            doc.restoreGraphicsState();
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
