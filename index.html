@@ -421,8 +421,8 @@
             doc.setLineWidth(1);
             doc.rect(8, 8, 194, 281);
             
-            // White content area with slight transparency
-            doc.setFillColor(255, 255, 255, 240);
+            // White content area
+            doc.setFillColor(255, 255, 255);
             doc.rect(15, 15, 180, 267, 'F');
             
             // South African Coat of Arms placeholder
@@ -434,7 +434,7 @@
             doc.text('RSA', 105, 35, { align: 'center' });
             
             // Header
-            doc.setTextColor(0, 100, 66);
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(14);
             doc.setFont(undefined, 'bold');
             doc.text('REPUBLIC OF SOUTH AFRICA', 105, 55, { align: 'center' });
@@ -442,6 +442,7 @@
             doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 62, { align: 'center' });
             
             // Document Type
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(16);
             doc.setFont(undefined, 'bold');
             let docTitle = '';
@@ -468,11 +469,13 @@
             doc.text(docTitle, 105, 80, { align: 'center' });
             
             // Verification Code
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(10);
             doc.setFont(undefined, 'normal');
             doc.text('Verification: ' + verifyCode, 105, 90, { align: 'center' });
             
             // Personal Details Section
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(11);
             doc.setFont(undefined, 'normal');
             let yPos = 110;
@@ -580,7 +583,7 @@
             doc.text('Director-General: Home Affairs', 150, 245, { align: 'center' });
             
             // Footer
-            doc.setTextColor(0, 100, 66);
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(9);
             doc.setFont(undefined, 'italic');
             doc.text('This is an official document of the Republic of South Africa', 105, 275, { align: 'center' });
@@ -607,7 +610,7 @@
             doc.text('This is an official document of the Republic of South Africa', 105, 15, { align: 'center' });
             
             // Document Verification Title
-            doc.setTextColor(0, 100, 66);
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
             doc.text('DOCUMENT VERIFICATION', 105, 55, { align: 'center' });
