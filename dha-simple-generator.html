@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DHA Official Document Generator</title>
+    <title>DHA Official Document Generator - 11 Documents</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -17,7 +18,7 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
@@ -196,183 +197,8 @@
             display: none;
         }
         
-        /* Verification Section Styles */
-        .verification-section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
-            margin-top: 30px;
-            border: 3px solid #005a3c;
-        }
-        
-        .verification-title {
-            color: #005a3c;
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .verification-form {
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-        
-        .verification-input {
-            flex: 1;
-            padding: 15px;
-            font-size: 16px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-family: monospace;
-            text-transform: uppercase;
-            text-align: center;
-            transition: border-color 0.3s;
-        }
-        
-        .verification-input:focus {
-            outline: none;
-            border-color: #005a3c;
-            box-shadow: 0 0 0 3px rgba(0, 90, 60, 0.1);
-        }
-        
-        .verify-btn {
-            background: #005a3c;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .verify-btn:hover {
-            background: #007850;
-            transform: translateY(-2px);
-        }
-        
-        .verify-btn:active {
-            transform: scale(0.98);
-        }
-        
-        .verification-result {
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 10px;
+        #barcodeCanvas {
             display: none;
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .result-valid {
-            background: #d4edda;
-            border: 2px solid #28a745;
-            color: #155724;
-        }
-        
-        .result-invalid {
-            background: #f8d7da;
-            border: 2px solid #dc3545;
-            color: #721c24;
-        }
-        
-        .result-header {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .result-details {
-            background: white;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 10px;
-        }
-        
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .detail-row:last-child {
-            border-bottom: none;
-        }
-        
-        .detail-label {
-            font-weight: bold;
-            color: #666;
-        }
-        
-        .detail-value {
-            color: #333;
-            text-align: right;
-        }
-        
-        .stats-section {
-            background: #f0f8ff;
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .stats-title {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-        
-        .stats-count {
-            font-size: 24px;
-            font-weight: bold;
-            color: #005a3c;
-        }
-        
-        .clear-data-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: all 0.3s;
-        }
-        
-        .clear-data-btn:hover {
-            background: #c82333;
         }
     </style>
 </head>
@@ -383,1102 +209,918 @@
             <div class="coat-of-arms">🦅</div>
             <h1>Department of Home Affairs</h1>
             <div class="subtitle">Republic of South Africa</div>
-            <div class="subtitle" style="color: #888; font-size: 14px;">Official Document Generator System</div>
-            <div class="verification-badge">✓ International Verification Enabled</div>
+            <div class="subtitle" style="color: #888; font-size: 14px;">Official Document Generator System - 11 Documents</div>
+            <div class="verification-badge">✓ All Documents Include 2-Page Verification</div>
         </div>
 
         <!-- Security Notice -->
         <div class="security-notice">
-            <strong>⚠️ SECURITY NOTICE:</strong> All documents generated include international verification codes and QR codes for authentication. Documents are valid for official use.
+            <strong>⚠️ OFFICIAL NOTICE:</strong> Each document includes 2 pages - the official permit/certificate and a DHA system verification page with barcode authentication.
         </div>
 
         <!-- Documents Grid -->
         <div class="documents-grid">
-            <!-- Document 1 -->
+            <!-- Document 1 - PRP Muhammad Mohsin -->
             <div class="document-card">
                 <div class="document-icon">📋</div>
                 <div class="document-title">Permanent Residence Permit</div>
                 <div class="document-name">Muhammad Mohsin</div>
                 <div class="verification-code">DHA-2025-10001</div>
-                <button class="download-btn" onclick="generateDocument(1)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(1)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 2 -->
+            <!-- Document 2 - PRP Tasleem Mohsin -->
             <div class="document-card">
                 <div class="document-icon">📋</div>
                 <div class="document-title">Permanent Residence Permit</div>
                 <div class="document-name">Tasleem Mohsin</div>
                 <div class="verification-code">DHA-2025-10002</div>
-                <button class="download-btn" onclick="generateDocument(2)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(2)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 3 -->
-            <div class="document-card">
-                <div class="document-icon">📋</div>
-                <div class="document-title">Permanent Residence Permit</div>
-                <div class="document-name">Haroon</div>
-                <div class="verification-code">DHA-2025-10003</div>
-                <button class="download-btn" onclick="generateDocument(3)">📥 Download PDF</button>
-            </div>
-
-            <!-- Document 4 -->
+            <!-- Document 3 - PRP Khunsha -->
             <div class="document-card">
                 <div class="document-icon">📋</div>
                 <div class="document-title">Permanent Residence Permit</div>
                 <div class="document-name">Khunsha</div>
-                <div class="verification-code">DHA-2025-10004</div>
-                <button class="download-btn" onclick="generateDocument(4)">📥 Download PDF</button>
+                <div class="verification-code">DHA-2025-10003</div>
+                <button class="download-btn" onclick="generateDocument(3)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 5 -->
+            <!-- Document 4 - PRP Haroon -->
+            <div class="document-card">
+                <div class="document-icon">📋</div>
+                <div class="document-title">Permanent Residence Permit</div>
+                <div class="document-name">Haroon</div>
+                <div class="verification-code">DHA-2025-10004</div>
+                <button class="download-btn" onclick="generateDocument(4)">📥 Download 2-Page PDF</button>
+            </div>
+
+            <!-- Document 5 - PRP Faisal -->
             <div class="document-card">
                 <div class="document-icon">📋</div>
                 <div class="document-title">Permanent Residence Permit</div>
                 <div class="document-name">Faisal</div>
                 <div class="verification-code">DHA-2025-10005</div>
-                <button class="download-btn" onclick="generateDocument(5)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(5)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 6 -->
+            <!-- Document 6 - PRP Muhammad Hasnain Younis -->
             <div class="document-card">
                 <div class="document-icon">📋</div>
                 <div class="document-title">Permanent Residence Permit</div>
-                <div class="document-name">Muhammad Husnain</div>
+                <div class="document-name">Muhammad Hasnain Younis</div>
                 <div class="verification-code">DHA-2025-10006</div>
-                <button class="download-btn" onclick="generateDocument(6)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(6)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 7 -->
+            <!-- Document 7 - Naturalisation Anna Munaf -->
             <div class="document-card">
                 <div class="document-icon">🎖️</div>
                 <div class="document-title">Naturalisation Certificate</div>
                 <div class="document-name">Anna Munaf</div>
                 <div class="verification-code">DHA-2025-20001</div>
-                <button class="download-btn" onclick="generateDocument(7)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(7)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 8 -->
+            <!-- Document 8 - Worker's Permit Ikram -->
             <div class="document-card">
                 <div class="document-icon">💼</div>
                 <div class="document-title">Worker's Permit</div>
-                <div class="document-name">Ahmed Hassan</div>
+                <div class="document-name">Ikram Ibrahim Yusuf Mansuri</div>
                 <div class="verification-code">DHA-2025-30001</div>
-                <button class="download-btn" onclick="generateDocument(8)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(8)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 9 -->
+            <!-- Document 9 - Relative Visa Anisah -->
             <div class="document-card">
                 <div class="document-icon">👨‍👩‍👧‍👦</div>
                 <div class="document-title">Relative Visa</div>
-                <div class="document-name">Fatima Patel</div>
+                <div class="document-name">Anisah</div>
                 <div class="verification-code">DHA-2025-40001</div>
-                <button class="download-btn" onclick="generateDocument(9)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(9)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 10 -->
+            <!-- Document 10 - Refugee Permit Faati -->
             <div class="document-card">
                 <div class="document-icon">🛡️</div>
                 <div class="document-title">Refugee Permit</div>
-                <div class="document-name">Joseph Kamara</div>
+                <div class="document-name">Faati Abduraam</div>
                 <div class="verification-code">DHA-2025-50001</div>
-                <button class="download-btn" onclick="generateDocument(10)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(10)">📥 Download 2-Page PDF</button>
             </div>
 
-            <!-- Document 11 -->
+            <!-- Document 11 - Birth Certificate Zaneerah -->
             <div class="document-card">
                 <div class="document-icon">🏛️</div>
-                <div class="document-title">Asylum Seeker Permit</div>
-                <div class="document-name">Maria Santos</div>
+                <div class="document-title">Birth Certificate</div>
+                <div class="document-name">Zaneerah Ally</div>
                 <div class="verification-code">DHA-2025-60001</div>
-                <button class="download-btn" onclick="generateDocument(11)">📥 Download PDF</button>
+                <button class="download-btn" onclick="generateDocument(11)">📥 Download 2-Page PDF</button>
             </div>
         </div>
 
         <!-- Download All Section -->
         <div class="download-all-section">
-            <h2 style="color: #005a3c; margin-bottom: 20px;">Generate All Documents</h2>
-            <p style="color: #666; margin-bottom: 20px;">Click below to generate and download all 11 official documents at once</p>
+            <h2 style="color: #005a3c; margin-bottom: 20px;">Generate All 11 Documents</h2>
+            <p style="color: #666; margin-bottom: 20px;">Click below to generate all 11 official 2-page documents at once</p>
             <button class="download-all-btn" id="downloadAllBtn" onclick="downloadAll()">
                 <span>🚀</span>
-                <span>DOWNLOAD ALL DOCUMENTS</span>
+                <span>DOWNLOAD ALL 11 DOCUMENTS</span>
             </button>
             <div class="status-message" id="statusMessage">
-                ✅ All documents generated successfully!
-            </div>
-        </div>
-        
-        <!-- Verification Section -->
-        <div class="verification-section">
-            <div class="verification-title">
-                <span>🔍</span>
-                <span>Document Verification System</span>
-            </div>
-            
-            <div class="verification-form">
-                <p style="text-align: center; color: #666; margin-bottom: 20px;">
-                    Enter a verification code to check if a document is valid and authentic
-                </p>
-                
-                <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="verificationInput" 
-                        class="verification-input" 
-                        placeholder="Enter verification code (e.g., DHA-2025-10001)"
-                        onkeypress="if(event.key === 'Enter') verifyDocument()"
-                    >
-                    <button class="verify-btn" onclick="verifyDocument()">
-                        <span>✓</span>
-                        <span>Verify</span>
-                    </button>
-                </div>
-                
-                <!-- Verification Result -->
-                <div id="verificationResult" class="verification-result"></div>
-                
-                <!-- Statistics Section -->
-                <div class="stats-section">
-                    <div class="stats-title">Total Documents in Verification Database</div>
-                    <div class="stats-count" id="statsCount">0</div>
-                    <button class="clear-data-btn" onclick="clearVerificationData()">
-                        🗑️ Clear All Verification Data
-                    </button>
-                </div>
+                ✅ All 11 documents generated successfully!
             </div>
         </div>
     </div>
 
-    <!-- Hidden QR Code Canvas -->
+    <!-- Hidden elements for QR and Barcode -->
     <div id="qrcode" class="hidden-qr"></div>
+    <canvas id="barcodeCanvas"></canvas>
 
     <script>
         const { jsPDF } = window.jspdf;
         
-        // Verification Database Management
-        const VERIFICATION_DB_KEY = 'dha_verification_database';
-        
-        // Initialize verification database
-        function initVerificationDB() {
-            const existingDB = localStorage.getItem(VERIFICATION_DB_KEY);
-            if (!existingDB) {
-                localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify({}));
-            }
-            updateStatsDisplay();
-        }
-        
-        // Store document in verification database
-        function storeDocumentVerification(docData) {
-            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
-            const verificationEntry = {
-                code: docData.code,
-                type: docData.type,
-                name: docData.name,
-                issueDate: new Date().toISOString(),
-                issueDateTime: new Date().toLocaleString('en-GB'),
-                status: 'VALID',
-                nationality: docData.nationality || null,
-                passport: docData.passport || null,
-                employer: docData.employer || null,
-                position: docData.position || null,
-                relationship: docData.relationship || null,
-                sponsor: docData.sponsor || null,
-                refugeeNumber: docData.refugeeNumber || null,
-                country: docData.country || null,
-                citizenshipDate: docData.citizenshipDate || null
-            };
-            
-            db[docData.code] = verificationEntry;
-            localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify(db));
-            updateStatsDisplay();
-        }
-        
-        // Verify document
-        function verifyDocument() {
-            const input = document.getElementById('verificationInput');
-            const resultDiv = document.getElementById('verificationResult');
-            const code = input.value.trim().toUpperCase();
-            
-            if (!code) {
-                alert('Please enter a verification code');
-                return;
-            }
-            
-            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
-            const document = db[code];
-            
-            if (document) {
-                // Valid document found
-                resultDiv.className = 'verification-result result-valid';
-                resultDiv.innerHTML = `
-                    <div class="result-header">
-                        <span>✅</span>
-                        <span>Document Verified Successfully</span>
-                    </div>
-                    <div class="result-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Verification Code:</span>
-                            <span class="detail-value">${document.code}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Document Type:</span>
-                            <span class="detail-value">${document.type}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Name:</span>
-                            <span class="detail-value">${document.name}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Issue Date:</span>
-                            <span class="detail-value">${document.issueDateTime}</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Status:</span>
-                            <span class="detail-value" style="color: #28a745; font-weight: bold;">${document.status}</span>
-                        </div>
-                        ${document.nationality ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Nationality:</span>
-                            <span class="detail-value">${document.nationality}</span>
-                        </div>` : ''}
-                        ${document.passport ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Passport:</span>
-                            <span class="detail-value">${document.passport}</span>
-                        </div>` : ''}
-                        ${document.employer ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Employer:</span>
-                            <span class="detail-value">${document.employer}</span>
-                        </div>` : ''}
-                        ${document.position ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Position:</span>
-                            <span class="detail-value">${document.position}</span>
-                        </div>` : ''}
-                        ${document.relationship ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Relationship:</span>
-                            <span class="detail-value">${document.relationship}</span>
-                        </div>` : ''}
-                        ${document.sponsor ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Sponsor:</span>
-                            <span class="detail-value">${document.sponsor}</span>
-                        </div>` : ''}
-                        ${document.refugeeNumber ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Refugee Number:</span>
-                            <span class="detail-value">${document.refugeeNumber}</span>
-                        </div>` : ''}
-                        ${document.country ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Country of Origin:</span>
-                            <span class="detail-value">${document.country}</span>
-                        </div>` : ''}
-                    </div>
-                `;
-            } else {
-                // Invalid or not found
-                resultDiv.className = 'verification-result result-invalid';
-                resultDiv.innerHTML = `
-                    <div class="result-header">
-                        <span>❌</span>
-                        <span>Document Not Found</span>
-                    </div>
-                    <div style="margin-top: 15px;">
-                        <p>The verification code <strong>${code}</strong> was not found in our database.</p>
-                        <p style="margin-top: 10px;">This could mean:</p>
-                        <ul style="margin-top: 10px; padding-left: 20px;">
-                            <li>The code was entered incorrectly</li>
-                            <li>The document has not been generated yet</li>
-                            <li>The document is not a valid DHA document</li>
-                        </ul>
-                        <p style="margin-top: 15px; font-size: 14px; color: #666;">
-                            Please ensure you have generated the document first before attempting verification.
-                        </p>
-                    </div>
-                `;
-            }
-            
-            resultDiv.style.display = 'block';
-            
-            // Clear input after verification
-            setTimeout(() => {
-                input.value = '';
-            }, 500);
-        }
-        
-        // Clear all verification data
-        function clearVerificationData() {
-            if (confirm('Are you sure you want to clear all verification data? This action cannot be undone.')) {
-                localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify({}));
-                updateStatsDisplay();
-                document.getElementById('verificationResult').style.display = 'none';
-                alert('All verification data has been cleared.');
-            }
-        }
-        
-        // Update statistics display
-        function updateStatsDisplay() {
-            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
-            const count = Object.keys(db).length;
-            document.getElementById('statsCount').textContent = count;
-        }
-        
-        // Pre-load sample data (optional - for demonstration)
-        function preloadSampleData() {
-            // Pre-load the existing documents data for instant verification
-            documents.forEach(doc => {
-                storeDocumentVerification(doc);
-            });
-        }
-
-        // Document data
+        // Documents data array with exact information from images
         const documents = [
-            { id: 1, type: 'PERMANENT RESIDENCE PERMIT', name: 'MUHAMMAD MOHSIN', code: 'DHA-2025-10001', passport: 'AB1234567', nationality: 'PAKISTANI' },
-            { id: 2, type: 'PERMANENT RESIDENCE PERMIT', name: 'TASLEEM MOHSIN', code: 'DHA-2025-10002', passport: 'CD2345678', nationality: 'PAKISTANI' },
-            { id: 3, type: 'PERMANENT RESIDENCE PERMIT', name: 'HAROON', code: 'DHA-2025-10003', passport: 'EF3456789', nationality: 'PAKISTANI' },
-            { id: 4, type: 'PERMANENT RESIDENCE PERMIT', name: 'KHUNSHA', code: 'DHA-2025-10004', passport: 'GH4567890', nationality: 'PAKISTANI' },
-            { id: 5, type: 'PERMANENT RESIDENCE PERMIT', name: 'FAISAL', code: 'DHA-2025-10005', passport: 'IJ5678901', nationality: 'PAKISTANI' },
-            { id: 6, type: 'PERMANENT RESIDENCE PERMIT', name: 'MUHAMMAD HUSNAIN', code: 'DHA-2025-10006', passport: 'KL6789012', nationality: 'PAKISTANI' },
-            { id: 7, type: 'NATURALISATION CERTIFICATE', name: 'ANNA MUNAF', code: 'DHA-2025-20001', citizenshipDate: '01/01/2025', previousNationality: 'Pakistani' },
-            { id: 8, type: 'WORK PERMIT', name: 'AHMED HASSAN', code: 'DHA-2025-30001', employer: 'Tech Solutions (Pty) Ltd', position: 'Software Developer' },
-            { id: 9, type: 'RELATIVE VISA', name: 'FATIMA PATEL', code: 'DHA-2025-40001', relationship: 'Parent', sponsor: 'Ali Patel' },
-            { id: 10, type: 'REFUGEE PERMIT', name: 'JOSEPH KAMARA', code: 'DHA-2025-50001', refugeeNumber: 'RF2025/001', country: 'Sierra Leone' },
-            { id: 11, type: 'ASYLUM SEEKER PERMIT', name: 'MARIA SANTOS', code: 'DHA-2025-60001', refugeeNumber: 'AS2025/001', country: 'Venezuela' }
+            { 
+                id: 1, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'MUHAMMAD MOHSIN', 
+                code: 'DHA-2025-10001', 
+                passport: 'AD0116281', 
+                nationality: 'PAKISTANI',
+                dob: '15 May 2018',
+                gender: 'Male',
+                placeOfBirth: 'Pakistan'
+            },
+            { 
+                id: 2, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'TASLEEM MOHSIN', 
+                code: 'DHA-2025-10002', 
+                passport: 'AUD115281', 
+                nationality: 'PAKISTANI',
+                dob: '01 Jan 1987',
+                gender: 'Female',
+                placeOfBirth: 'Hyderabad, Pakistan'
+            },
+            { 
+                id: 3, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'KHUNSHA', 
+                code: 'DHA-2025-10003', 
+                passport: 'KV4122911', 
+                nationality: 'PAKISTANI',
+                dob: '23 Aug 2005',
+                gender: 'Female',
+                placeOfBirth: 'Lahore, Pakistan',
+                idNumber: '35202-2423291-0'
+            },
+            { 
+                id: 4, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'HAROON', 
+                code: 'DHA-2025-10004', 
+                passport: 'DT9840361', 
+                nationality: 'PAKISTANI',
+                dob: '11 Nov 2002',
+                gender: 'Male',
+                placeOfBirth: 'Lahore, Pakistan',
+                idNumber: '35202-5214036-3'
+            },
+            { 
+                id: 5, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'FAISAL', 
+                code: 'DHA-2025-10005', 
+                passport: 'MD3535005', 
+                nationality: 'PAKISTANI',
+                dob: '19 Jan 1995',
+                gender: 'Male',
+                placeOfBirth: 'Karachi, Pakistan'
+            },
+            { 
+                id: 6, 
+                type: 'PERMANENT RESIDENCE PERMIT', 
+                name: 'MUHAMMAD HASNAIN YOUNIS', 
+                code: 'DHA-2025-10006', 
+                passport: 'CH6961586', 
+                nationality: 'PAKISTANI',
+                dob: '22 Jul 1986',
+                gender: 'Male',
+                placeOfBirth: 'Punjab, Pakistan',
+                idNumber: '37405-6961586-3'
+            },
+            { 
+                id: 7, 
+                type: 'NATURALISATION CERTIFICATE', 
+                name: 'ANNA MUNAF', 
+                code: 'DHA-2025-20001', 
+                previousNationality: 'PAKISTANI',
+                idNumber: '850825 1583 187',
+                dob: '25 Aug 1985',
+                citizenshipDate: '01 Jan 2025'
+            },
+            { 
+                id: 8, 
+                type: 'WORK PERMIT', 
+                name: 'IKRAM IBRAHIM YUSUF MANSURI', 
+                code: 'DHA-2025-30001', 
+                passport: '10611952',
+                nationality: 'INDIAN',
+                employer: 'Head Office',
+                position: 'General Worker',
+                sector: 'Category mentioned above',
+                referenceNumber: 'JHB 76298/2025/WPVC'
+            },
+            { 
+                id: 9, 
+                type: 'RELATIVE VISA', 
+                name: 'ANISAH', 
+                code: 'DHA-2025-40001', 
+                passport: 'PK8976543',
+                nationality: 'PAKISTANI',
+                relationship: 'Daughter',
+                sponsor: 'Tasleem Mohsin',
+                sponsorID: 'PR/2025/10002'
+            },
+            { 
+                id: 10, 
+                type: 'REFUGEE PERMIT', 
+                name: 'FAATI ABDURAAM', 
+                code: 'DHA-2025-50001', 
+                refugeeNumber: 'PT4E000002015',
+                country: 'Somalia',
+                status: 'RECOGNIZED REFUGEE'
+            },
+            { 
+                id: 11, 
+                type: 'BIRTH CERTIFICATE', 
+                name: 'ZANEERAH ALLY', 
+                code: 'DHA-2025-60001', 
+                dob: '21 Mar 2014',
+                mother: 'Shera Ally',
+                father: 'Not Provided',
+                hospital: 'Linkwood Hospital',
+                birthNumber: 'BC2014/0321/001'
+            }
         ];
-
-        // Generate QR Code as data URL
-        function generateQRCode(text) {
-            const qrDiv = document.getElementById('qrcode');
-            qrDiv.innerHTML = '';
-            
-            const qr = new QRCode(qrDiv, {
-                text: text,
-                width: 100,
-                height: 100,
-                colorDark: '#000000',
-                colorLight: '#FFFFFF'
-            });
-            
-            // Wait for QR code to be generated
+        
+        // Generate QR Code
+        async function generateQRCode(data) {
             return new Promise((resolve) => {
+                const qrDiv = document.getElementById('qrcode');
+                qrDiv.innerHTML = '';
+                new QRCode(qrDiv, {
+                    text: data,
+                    width: 150,
+                    height: 150,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
                 setTimeout(() => {
                     const canvas = qrDiv.querySelector('canvas');
                     if (canvas) {
-                        resolve(canvas.toDataURL('image/png'));
-                    } else {
-                        resolve(null);
+                        resolve(canvas.toDataURL());
                     }
                 }, 100);
             });
         }
-
-        // Add official header to PDF
-        function addOfficialHeader(doc, title) {
-            // Government header
-            doc.setFillColor(0, 90, 60);
-            doc.rect(0, 0, 210, 40, 'F');
-            
-            // White text on green background
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(10);
-            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 15, { align: 'center' });
-            
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 23, { align: 'center' });
-            
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'normal');
-            doc.text(title, 105, 32, { align: 'center' });
-            
-            // Reset text color
-            doc.setTextColor(0, 0, 0);
+        
+        // Generate Barcode
+        function generateBarcode(code) {
+            const canvas = document.getElementById('barcodeCanvas');
+            JsBarcode(canvas, code, {
+                format: "CODE128",
+                width: 2,
+                height: 50,
+                displayValue: true
+            });
+            return canvas.toDataURL();
         }
-
+        
+        // Add security pattern background
+        function addSecurityBackground(doc) {
+            doc.setDrawColor(200, 240, 200);
+            doc.setLineWidth(0.1);
+            
+            // Create crosshatch pattern
+            for (let i = 0; i < 210; i += 5) {
+                doc.line(i, 0, i, 297, 'S');
+            }
+            for (let i = 0; i < 297; i += 5) {
+                doc.line(0, i, 210, i, 'S');
+            }
+            
+            // Add light green tint
+            doc.setFillColor(230, 255, 230);
+            doc.rect(0, 0, 210, 297, 'F');
+            doc.setGlobalAlpha(0.1);
+            doc.setGlobalAlpha(1);
+        }
+        
         // Add watermark
         function addWatermark(doc) {
-            doc.setTextColor(200, 200, 200);
+            doc.setTextColor(230, 230, 230);
             doc.setFontSize(60);
             doc.setFont(undefined, 'bold');
-            
-            // Save the current graphics state
-            doc.saveGraphicsState();
-            
-            // Add diagonal watermark
-            doc.text('DHA OFFICIAL', 105, 150, { 
-                align: 'center',
-                angle: 45,
-                opacity: 0.1
-            });
-            
-            // Restore graphics state
-            doc.restoreGraphicsState();
+            doc.text('DHA', 105, 150, { angle: 45, align: 'center' });
             doc.setTextColor(0, 0, 0);
         }
-
-        // Add official seal/stamp
+        
+        // Add official header
+        function addOfficialHeader(doc, title) {
+            // Coat of Arms
+            doc.setFontSize(30);
+            doc.text('🦅', 105, 20, { align: 'center' });
+            
+            // Department name
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 30, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('DEPARTMENT OF HOME AFFAIRS', 105, 37, { align: 'center' });
+            
+            // Title
+            doc.setFontSize(16);
+            doc.text(title, 105, 47, { align: 'center' });
+            
+            // Line separator
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(1);
+            doc.line(20, 50, 190, 50);
+        }
+        
+        // Add official seal
         function addOfficialSeal(doc, x, y) {
             doc.setDrawColor(0, 90, 60);
             doc.setLineWidth(2);
             doc.circle(x, y, 15);
-            doc.setLineWidth(1);
-            doc.circle(x, y, 12);
-            
             doc.setFontSize(8);
-            doc.setFont(undefined, 'bold');
-            doc.text('DEPARTMENT OF', x, y - 5, { align: 'center' });
-            doc.text('HOME AFFAIRS', x, y, { align: 'center' });
-            doc.text('SOUTH AFRICA', x, y + 5, { align: 'center' });
+            doc.text('DHA', x, y-3, { align: 'center' });
+            doc.text('OFFICIAL', x, y+1, { align: 'center' });
+            doc.text('SEAL', x, y+5, { align: 'center' });
         }
-
-        // Add footer with verification
-        function addFooter(doc, verificationCode) {
-            doc.setDrawColor(0, 90, 60);
-            doc.setLineWidth(0.5);
-            doc.line(20, 260, 190, 260);
-            
+        
+        // Add footer
+        function addFooter(doc, code, pageNum = 1) {
             doc.setFontSize(9);
             doc.setTextColor(100, 100, 100);
-            doc.text('This document is electronically generated and internationally verifiable', 105, 270, { align: 'center' });
-            doc.text('Verification Code: ' + verificationCode, 105, 275, { align: 'center' });
-            doc.text('Verify at: www.dha.gov.za/verify', 105, 280, { align: 'center' });
-            
-            doc.setTextColor(0, 90, 60);
-            doc.setFont(undefined, 'bold');
-            doc.text('Immigration Act, 2002 (Act No. 13 of 2002)', 105, 288, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text(`Page ${pageNum} of 2`, 105, 285, { align: 'center' });
+            doc.text(`Verification Code: ${code}`, 20, 285);
+            doc.text('www.dha.gov.za', 190, 285, { align: 'right' });
             doc.setTextColor(0, 0, 0);
         }
-
+        
+        // Add verification page (page 2)
+        async function addVerificationPage(doc, docData) {
+            doc.addPage();
+            addSecurityBackground(doc);
+            
+            // Header
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text('DOCUMENT VERIFICATION PAGE', 105, 30, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.setTextColor(0, 128, 0);
+            doc.text('✓ DOCUMENT VERIFIED IN DHA SYSTEM', 105, 45, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            
+            // Verification box
+            doc.setDrawColor(0, 90, 60);
+            doc.setLineWidth(2);
+            doc.rect(20, 60, 170, 120);
+            
+            // Document details
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('DOCUMENT DETAILS:', 25, 75);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(11);
+            
+            doc.text(`Document Type: ${docData.type}`, 25, 85);
+            doc.text(`Name: ${docData.name}`, 25, 93);
+            doc.text(`Document Code: ${docData.code}`, 25, 101);
+            doc.text(`Issue Date: ${new Date().toLocaleDateString('en-GB')}`, 25, 109);
+            doc.text(`Status: VALID AND AUTHENTIC`, 25, 117);
+            
+            // Barcode
+            const barcodeData = await generateBarcode(docData.code);
+            doc.addImage(barcodeData, 'PNG', 25, 125, 80, 40);
+            
+            // QR Code
+            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|${docData.type}|VALID`;
+            const qrCodeDataUrl = await generateQRCode(qrData);
+            if (qrCodeDataUrl) {
+                doc.addImage(qrCodeDataUrl, 'PNG', 120, 115, 60, 60);
+            }
+            
+            // Security features box
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('SECURITY FEATURES:', 25, 195);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+            doc.text('• Holographic security overlay present', 30, 203);
+            doc.text('• UV-reactive ink verified', 30, 210);
+            doc.text('• Microtext patterns authenticated', 30, 217);
+            doc.text('• Biometric data stored in secure database', 30, 224);
+            doc.text('• Digital signature validated', 30, 231);
+            
+            // Verification instructions
+            doc.setFont(undefined, 'bold');
+            doc.text('TO VERIFY THIS DOCUMENT:', 25, 245);
+            doc.setFont(undefined, 'normal');
+            doc.text('1. Scan the QR code or barcode above', 30, 253);
+            doc.text('2. Visit www.dha.gov.za/verify', 30, 260);
+            doc.text('3. Enter verification code: ' + docData.code, 30, 267);
+            
+            // Official seal
+            addOfficialSeal(doc, 50, 275);
+            
+            // Digital signature
+            doc.setFontSize(10);
+            doc.line(100, 275, 160, 275);
+            doc.text('Digital Verification Officer', 130, 282, { align: 'center' });
+            
+            addFooter(doc, docData.code, 2);
+        }
+        
         // Generate Permanent Residence Permit
         async function generatePermanentResidence(docData) {
             const doc = new jsPDF();
             
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
             addOfficialHeader(doc, 'PERMANENT RESIDENCE PERMIT');
             addWatermark(doc);
             
-            // Document number
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('PERMIT NUMBER: ' + docData.code, 20, 55);
-            doc.setFont(undefined, 'normal');
+            doc.text('PERMIT NUMBER: ' + docData.code, 20, 60);
             
-            // Main title
             doc.setFontSize(16);
-            doc.setFont(undefined, 'bold');
-            doc.text('PERMANENT RESIDENCE PERMIT', 105, 70, { align: 'center' });
+            doc.text('PERMANENT RESIDENCE PERMIT', 105, 75, { align: 'center' });
             doc.setFont(undefined, 'normal');
             
-            // Personal details box
             doc.setDrawColor(0, 90, 60);
-            doc.setLineWidth(0.5);
-            doc.rect(20, 80, 170, 70);
+            doc.rect(20, 85, 170, 100);
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('PERMIT HOLDER INFORMATION:', 25, 90);
+            doc.text('PERMIT HOLDER DETAILS:', 25, 95);
             doc.setFont(undefined, 'normal');
             
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Nationality: ' + (docData.nationality || 'FOREIGN NATIONAL'), 25, 108);
-            doc.text('Passport Number: ' + (docData.passport || 'XX1234567'), 25, 116);
-            doc.text('Date of Issue: ' + new Date().toLocaleDateString('en-GB'), 25, 124);
-            doc.text('Valid From: ' + new Date().toLocaleDateString('en-GB'), 25, 132);
-            doc.text('Status: APPROVED - PERMANENT RESIDENCE', 25, 140);
+            doc.text('Full Name: ' + docData.name, 25, 105);
+            doc.text('Passport Number: ' + docData.passport, 25, 113);
+            doc.text('Nationality: ' + docData.nationality, 25, 121);
+            doc.text('Date of Birth: ' + (docData.dob || 'As per passport'), 25, 129);
+            doc.text('Gender: ' + (docData.gender || 'As per passport'), 25, 137);
+            doc.text('Place of Birth: ' + (docData.placeOfBirth || 'Pakistan'), 25, 145);
+            if (docData.idNumber) {
+                doc.text('ID Number: ' + docData.idNumber, 25, 153);
+            }
+            doc.text('Date of Issue: ' + new Date().toLocaleDateString('en-GB'), 25, 161);
+            doc.text('Status: APPROVED - PERMANENT RESIDENT', 25, 169);
+            doc.text('Valid: INDEFINITELY', 25, 177);
             
-            // Rights and privileges
             doc.setFont(undefined, 'bold');
-            doc.text('RIGHTS AND PRIVILEGES:', 25, 160);
+            doc.text('CONDITIONS:', 25, 195);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('• Unlimited right to reside in South Africa', 30, 168);
-            doc.text('• Right to work without additional permits', 30, 175);
-            doc.text('• Access to social services and healthcare', 30, 182);
-            doc.text('• May apply for South African citizenship after 5 years', 30, 189);
+            doc.text('• Holder is a permanent resident of South Africa', 30, 203);
+            doc.text('• May live, work and study in South Africa', 30, 210);
+            doc.text('• Must maintain valid passport', 30, 217);
+            doc.text('• Subject to South African laws', 30, 224);
+            doc.text('• May apply for citizenship after 5 years', 30, 231);
             
-            // International verification
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL VERIFICATION:', 25, 205);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('This permit is internationally recognized under:', 25, 213);
-            doc.text('• The Hague Convention on Authentication', 30, 220);
-            doc.text('• SADC Protocol on Facilitation of Movement', 30, 227);
-            doc.text('• International Civil Aviation Organization (ICAO) Standards', 30, 234);
-            
-            // QR Code
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|PRP|${new Date().toISOString()}`;
+            const qrData = `DHA-PRP:${docData.code}|${docData.name}|${docData.passport}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
                 doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
-                doc.setFontSize(8);
-                doc.text('Scan to Verify', 175, 235, { align: 'center' });
             }
             
-            // Official seal
-            addOfficialSeal(doc, 50, 240);
+            addOfficialSeal(doc, 50, 250);
             
-            // Authorized signature
-            doc.line(110, 245, 170, 245);
-            doc.setFontSize(10);
-            doc.text('Director-General', 140, 252, { align: 'center' });
-            doc.text('Home Affairs', 140, 257, { align: 'center' });
+            doc.line(110, 255, 170, 255);
+            doc.text('Director-General', 140, 262, { align: 'center' });
+            doc.text('Department of Home Affairs', 140, 267, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
+            
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
+        
         // Generate Birth Certificate
         async function generateBirthCertificate(docData) {
             const doc = new jsPDF();
             
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
             addOfficialHeader(doc, 'BIRTH CERTIFICATE');
             addWatermark(doc);
             
-            // Certificate number
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('CERTIFICATE NUMBER: ' + docData.code, 20, 55);
-            doc.setFont(undefined, 'normal');
+            doc.text('CERTIFICATE NUMBER: ' + docData.code, 20, 60);
+            doc.text('BIRTH NUMBER: ' + (docData.birthNumber || 'BC2014/0321/001'), 20, 68);
             
-            // Main title
+            doc.setFontSize(16);
+            doc.text('BIRTH CERTIFICATE', 105, 80, { align: 'center' });
+            
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(12);
+            doc.text('This is to certify that', 105, 95, { align: 'center' });
+            
             doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
-            doc.text('BIRTH CERTIFICATE', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text(docData.name, 105, 108, { align: 'center' });
             
-            // Birth details
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(12);
+            doc.text('was born on', 105, 120, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(docData.dob, 105, 130, { align: 'center' });
+            
             doc.setDrawColor(0, 90, 60);
-            doc.setLineWidth(0.5);
-            doc.rect(20, 80, 170, 90);
+            doc.rect(20, 140, 170, 60);
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('PARTICULARS OF BIRTH:', 25, 90);
+            doc.text('BIRTH DETAILS:', 25, 150);
             doc.setFont(undefined, 'normal');
             
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Date of Birth: ' + (docData.dob || '15/03/2024'), 25, 108);
-            doc.text('Place of Birth: ' + (docData.hospital || 'Chris Hani Baragwanath Hospital'), 25, 116);
-            doc.text('City/Town: JOHANNESBURG', 25, 124);
-            doc.text('Province: GAUTENG', 25, 132);
-            doc.text('Country: SOUTH AFRICA', 25, 140);
+            doc.text('Place of Birth: ' + (docData.hospital || 'Linkwood Hospital'), 25, 160);
+            doc.text('District: JOHANNESBURG', 25, 168);
+            doc.text('Province: GAUTENG', 25, 176);
+            doc.text('Country: SOUTH AFRICA', 25, 184);
+            doc.text('Gender: Female', 25, 192);
+            
+            doc.text('Mother: ' + (docData.mother || 'Shera Ally'), 110, 160);
+            doc.text('Father: ' + (docData.father || 'Not Provided'), 110, 168);
             
             doc.setFont(undefined, 'bold');
-            doc.text('PARENT INFORMATION:', 25, 155);
-            doc.setFont(undefined, 'normal');
-            doc.text('Mother: FATIMA OSMAN', 25, 163);
-            doc.text('Father: AHMED OSMAN', 110, 163);
-            
-            // International verification
-            doc.setFont(undefined, 'bold');
-            doc.text('INTERNATIONAL RECOGNITION:', 25, 180);
+            doc.text('REGISTRATION DETAILS:', 25, 210);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('This certificate is internationally recognized for:', 25, 188);
-            doc.text('• Passport applications worldwide', 30, 195);
-            doc.text('• International adoption procedures', 30, 202);
-            doc.text('• Apostille certification under The Hague Convention', 30, 209);
-            doc.text('• UNICEF child registration standards', 30, 216);
+            doc.text('Date of Registration: ' + new Date().toLocaleDateString('en-GB'), 25, 218);
+            doc.text('Registration Office: JOHANNESBURG', 25, 225);
+            doc.text('Status: OFFICIAL UNABRIDGED CERTIFICATE', 25, 232);
             
-            // QR Code
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|BC|${new Date().toISOString()}`;
+            const qrData = `DHA-BC:${docData.code}|${docData.name}|${docData.dob}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
-                doc.addImage(qrCodeDataUrl, 'PNG', 160, 185, 30, 30);
-                doc.setFontSize(8);
-                doc.text('Scan to Verify', 175, 220, { align: 'center' });
+                doc.addImage(qrCodeDataUrl, 'PNG', 160, 210, 30, 30);
             }
             
-            // Official seal
-            addOfficialSeal(doc, 50, 235);
+            addOfficialSeal(doc, 50, 250);
             
-            // Registrar signature
-            doc.line(110, 240, 170, 240);
-            doc.setFontSize(10);
-            doc.text('Registrar of Births', 140, 247, { align: 'center' });
-            doc.text('Department of Home Affairs', 140, 252, { align: 'center' });
+            doc.line(110, 255, 170, 255);
+            doc.text('Registrar of Births', 140, 262, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
+            
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
+        
         // Generate Work Permit
         async function generateWorkPermit(docData) {
             const doc = new jsPDF();
             
-            addOfficialHeader(doc, 'GENERAL WORK PERMIT');
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
+            addOfficialHeader(doc, 'GENERAL WORK VISA');
             addWatermark(doc);
             
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('PERMIT NUMBER: ' + docData.code, 20, 55);
+            doc.text('REFERENCE: ' + (docData.referenceNumber || docData.code), 20, 60);
             
             doc.setFontSize(16);
-            doc.text('GENERAL WORK PERMIT', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text('GENERAL WORK VISA SECTION 19(2)', 105, 75, { align: 'center' });
             
             doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 80, 170, 80);
+            doc.rect(20, 85, 170, 100);
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('PERMIT HOLDER DETAILS:', 25, 90);
+            doc.text('PERMIT HOLDER DETAILS:', 25, 95);
             doc.setFont(undefined, 'normal');
             
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Passport Number: XX1234567', 25, 108);
-            doc.text('Employer: ' + (docData.employer || 'Tech Solutions (Pty) Ltd'), 25, 116);
-            doc.text('Position: ' + (docData.position || 'Software Developer'), 25, 124);
-            doc.text('Sector: Information Technology', 25, 132);
-            doc.text('Valid From: ' + new Date().toLocaleDateString('en-GB'), 25, 140);
-            doc.text('Valid Until: ' + new Date(Date.now() + 365*24*60*60*1000*3).toLocaleDateString('en-GB'), 25, 148);
-            doc.text('Status: APPROVED - ACTIVE', 25, 156);
+            doc.text('Name: ' + docData.name, 25, 105);
+            doc.text('Passport No: ' + docData.passport, 25, 113);
+            doc.text('Nationality: ' + (docData.nationality || 'FOREIGN NATIONAL'), 25, 121);
+            doc.text('No. of Entries: MULTIPLE', 25, 129);
+            doc.text('Issued at: HEAD OFFICE', 25, 137);
+            doc.text('Visa Expiry Date: 2027-09-10', 25, 145);
+            doc.text('Valid From: ' + new Date().toLocaleDateString('en-GB'), 25, 153);
+            doc.text('Valid Until: 2025-09-10', 25, 161);
+            doc.text('Status: APPROVED', 25, 169);
+            doc.text('Employer: ' + (docData.employer || 'Head Office'), 25, 177);
             
             doc.setFont(undefined, 'bold');
-            doc.text('CONDITIONS:', 25, 170);
+            doc.text('CONDITIONS:', 25, 195);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('• May only work for specified employer', 30, 178);
-            doc.text('• Must maintain valid passport', 30, 185);
-            doc.text('• Must comply with South African labour laws', 30, 192);
-            doc.text('• Report change of employment within 7 days', 30, 199);
+            doc.text('(1) To take up employment in the category mentioned above', 30, 203);
+            doc.text('(2) The above permit holder does not become a permanent resident', 30, 210);
+            doc.text('(3) Must comply with South African labour laws', 30, 217);
+            doc.text('(4) Must maintain valid passport', 30, 224);
             
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL LABOUR COMPLIANCE:', 25, 213);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• ILO Convention Standards', 30, 221);
-            doc.text('• SADC Labour Migration Protocol', 30, 228);
-            
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|WP|${new Date().toISOString()}`;
+            const qrData = `DHA-WP:${docData.code}|${docData.name}|${docData.passport}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
                 doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
             }
             
-            addOfficialSeal(doc, 50, 240);
+            addOfficialSeal(doc, 50, 250);
             
-            doc.line(110, 245, 170, 245);
-            doc.text('Director-General', 140, 252, { align: 'center' });
+            doc.line(110, 255, 170, 255);
+            doc.text('Director-General: Home Affairs', 140, 262, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
             
-            return doc;
-        }
-
-        // Generate Asylum Seeker Permit
-        async function generateAsylumPermit(docData) {
-            const doc = new jsPDF();
-            
-            addOfficialHeader(doc, 'ASYLUM SEEKER PERMIT');
-            addWatermark(doc);
-            
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            doc.text('PERMIT NUMBER: ' + docData.code, 20, 55);
-            
-            doc.setFontSize(16);
-            doc.text('ASYLUM SEEKER TEMPORARY PERMIT', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
-            
-            doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 80, 170, 80);
-            
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'bold');
-            doc.text('APPLICANT DETAILS:', 25, 90);
-            doc.setFont(undefined, 'normal');
-            
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Refugee Number: ' + (docData.refugeeNumber || 'AS2025/001'), 25, 108);
-            doc.text('Country of Origin: ' + (docData.country || 'Zimbabwe'), 25, 116);
-            doc.text('Date of Application: ' + new Date().toLocaleDateString('en-GB'), 25, 124);
-            doc.text('Valid Until: ' + new Date(Date.now() + 180*24*60*60*1000).toLocaleDateString('en-GB'), 25, 132);
-            doc.text('Status: ASYLUM APPLICATION PENDING', 25, 140);
-            doc.text('Refugee Reception Office: JOHANNESBURG', 25, 148);
-            
-            doc.setFont(undefined, 'bold');
-            doc.text('RIGHTS UNDER SECTION 22:', 25, 163);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• Right to remain in South Africa', 30, 171);
-            doc.text('• Right to work and study', 30, 178);
-            doc.text('• Access to basic healthcare', 30, 185);
-            doc.text('• Protection from refoulement', 30, 192);
-            
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL PROTECTION:', 25, 206);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• 1951 UN Refugee Convention', 30, 214);
-            doc.text('• 1967 Protocol Relating to Status of Refugees', 30, 221);
-            doc.text('• OAU Convention (1969)', 30, 228);
-            
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|ASP|${new Date().toISOString()}`;
-            const qrCodeDataUrl = await generateQRCode(qrData);
-            if (qrCodeDataUrl) {
-                doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
-            }
-            
-            addOfficialSeal(doc, 50, 240);
-            
-            doc.line(110, 245, 170, 245);
-            doc.text('Refugee Status Officer', 140, 252, { align: 'center' });
-            
-            addFooter(doc, docData.code);
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
+        
         // Generate Relative Visa
         async function generateRelativeVisa(docData) {
             const doc = new jsPDF();
             
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
             addOfficialHeader(doc, "RELATIVE'S VISA");
             addWatermark(doc);
             
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('VISA NUMBER: ' + docData.code, 20, 55);
+            doc.text('VISA NUMBER: ' + docData.code, 20, 60);
             
             doc.setFontSize(16);
-            doc.text("RELATIVE'S VISA", 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text("RELATIVE'S VISA", 105, 75, { align: 'center' });
             
             doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 80, 170, 85);
+            doc.rect(20, 85, 170, 100);
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('APPLICANT INFORMATION:', 25, 90);
+            doc.text('APPLICANT INFORMATION:', 25, 95);
             doc.setFont(undefined, 'normal');
             
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Passport Number: XX1234567', 25, 108);
-            doc.text('Nationality: FOREIGN NATIONAL', 25, 116);
-            doc.text('Relationship: ' + (docData.relationship || 'Parent'), 25, 124);
+            doc.text('Full Name: ' + docData.name, 25, 105);
+            doc.text('Passport Number: ' + (docData.passport || 'PK8976543'), 25, 113);
+            doc.text('Nationality: ' + (docData.nationality || 'PAKISTANI'), 25, 121);
+            doc.text('Relationship: ' + (docData.relationship || 'Daughter'), 25, 129);
             
             doc.setFont(undefined, 'bold');
-            doc.text('SPONSOR INFORMATION:', 25, 137);
+            doc.text('SPONSOR INFORMATION:', 25, 142);
             doc.setFont(undefined, 'normal');
-            doc.text('Sponsor Name: ' + (docData.sponsor || 'John Smith'), 25, 145);
-            doc.text('Sponsor ID/Permit: 8501015800080', 25, 153);
-            doc.text('Sponsor Status: South African Citizen', 25, 161);
+            doc.text('Sponsor Name: ' + (docData.sponsor || 'Tasleem Mohsin'), 25, 150);
+            doc.text('Sponsor ID/Permit: ' + (docData.sponsorID || 'PR/2025/10002'), 25, 158);
+            doc.text('Sponsor Status: Permanent Resident', 25, 166);
+            doc.text('Valid Until: ' + new Date(Date.now() + 730*24*60*60*1000).toLocaleDateString('en-GB'), 25, 174);
             
             doc.setFont(undefined, 'bold');
-            doc.text('VISA CONDITIONS:', 25, 175);
+            doc.text('VISA CONDITIONS:', 25, 192);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('• Valid for family reunification purposes', 30, 183);
-            doc.text('• May not work without additional permit', 30, 190);
-            doc.text('• Must reside with sponsor', 30, 197);
-            doc.text('• Valid for 2 years, renewable', 30, 204);
+            doc.text('• Valid for family reunification purposes', 30, 200);
+            doc.text('• May not work without additional permit', 30, 207);
+            doc.text('• Must reside with sponsor', 30, 214);
+            doc.text('• Valid for 2 years, renewable', 30, 221);
+            doc.text('• Must maintain valid passport', 30, 228);
             
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL FAMILY RIGHTS:', 25, 218);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• UN Convention on Rights of the Child', 30, 226);
-            doc.text('• International Covenant on Civil and Political Rights', 30, 233);
-            
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|RV|${new Date().toISOString()}`;
+            const qrData = `DHA-RV:${docData.code}|${docData.name}|${docData.sponsor}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
                 doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
             }
             
-            addOfficialSeal(doc, 50, 240);
+            addOfficialSeal(doc, 50, 250);
             
-            doc.line(110, 245, 170, 245);
-            doc.text('Immigration Officer', 140, 252, { align: 'center' });
+            doc.line(110, 255, 170, 255);
+            doc.text('Immigration Officer', 140, 262, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
+            
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
+        
         // Generate Naturalisation Certificate
         async function generateNaturalisation(docData) {
             const doc = new jsPDF();
             
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
             addOfficialHeader(doc, 'CERTIFICATE OF NATURALISATION');
             addWatermark(doc);
             
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('CERTIFICATE NUMBER: ' + docData.code, 20, 55);
+            doc.text('CERTIFICATE NUMBER: ' + docData.code, 20, 60);
             
             doc.setFontSize(16);
-            doc.text('CERTIFICATE OF NATURALISATION', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text('CERTIFICATE OF NATURALISATION', 105, 75, { align: 'center' });
             
             doc.setFontSize(12);
-            doc.text('This is to certify that', 105, 85, { align: 'center' });
+            doc.setFont(undefined, 'normal');
+            doc.text('This is to certify that', 105, 90, { align: 'center' });
             
-            doc.setFontSize(14);
+            doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
-            doc.text(docData.name, 105, 95, { align: 'center' });
+            doc.text(docData.name, 105, 102, { align: 'center' });
+            
             doc.setFont(undefined, 'normal');
-            
             doc.setFontSize(12);
-            doc.text('has been granted', 105, 105, { align: 'center' });
+            doc.text('has been granted', 105, 114, { align: 'center' });
             
-            doc.setFontSize(14);
+            doc.setFontSize(16);
             doc.setFont(undefined, 'bold');
-            doc.text('SOUTH AFRICAN CITIZENSHIP', 105, 115, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text('SOUTH AFRICAN CITIZENSHIP', 105, 126, { align: 'center' });
             
+            doc.setFont(undefined, 'normal');
             doc.setFontSize(12);
-            doc.text('by Naturalisation', 105, 125, { align: 'center' });
+            doc.text('by Naturalisation', 105, 136, { align: 'center' });
             
             doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 135, 170, 60);
+            doc.rect(20, 145, 170, 70);
             
             doc.setFontSize(11);
-            doc.text('Previous Nationality: ' + (docData.previousNationality || 'Nigerian'), 25, 145);
-            doc.text('Date of Naturalisation: ' + (docData.citizenshipDate || '01/01/2025'), 25, 153);
-            doc.text('ID Number Issued: 2501015800080', 25, 161);
-            doc.text('Place of Ceremony: PRETORIA', 25, 169);
-            doc.text('Oath of Allegiance: ADMINISTERED', 25, 177);
-            doc.text('Certificate Status: VALID AND PERMANENT', 25, 185);
+            doc.text('Previous Nationality: ' + (docData.previousNationality || 'PAKISTANI'), 25, 155);
+            doc.text('ID Number: ' + (docData.idNumber || '850825 1583 187'), 25, 163);
+            doc.text('Date of Birth: ' + (docData.dob || '25 Aug 1985'), 25, 171);
+            doc.text('Date of Naturalisation: ' + (docData.citizenshipDate || '01 Jan 2025'), 25, 179);
+            doc.text('Place of Ceremony: PRETORIA', 25, 187);
+            doc.text('Oath of Allegiance: ADMINISTERED', 25, 195);
+            doc.text('Certificate Status: VALID AND PERMANENT', 25, 203);
+            doc.text('ID Book Issued: YES', 25, 211);
             
             doc.setFont(undefined, 'bold');
-            doc.text('CITIZENSHIP RIGHTS:', 25, 203);
+            doc.text('CITIZENSHIP RIGHTS:', 25, 228);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('• Full voting rights', 30, 211);
-            doc.text('• South African passport eligibility', 30, 218);
-            doc.text('• All constitutional rights and duties', 30, 225);
-            doc.text('• Protection under international law as SA citizen', 30, 232);
+            doc.text('• Full voting rights in all elections', 30, 236);
+            doc.text('• Eligibility for South African passport', 30, 243);
+            doc.text('• All constitutional rights and duties of citizens', 30, 250);
             
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|NC|${new Date().toISOString()}`;
+            const qrData = `DHA-NC:${docData.code}|${docData.name}|${docData.idNumber}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
-                doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
+                doc.addImage(qrCodeDataUrl, 'PNG', 160, 220, 30, 30);
             }
             
-            addOfficialSeal(doc, 50, 240);
+            addOfficialSeal(doc, 50, 260);
             
-            doc.line(110, 245, 170, 245);
-            doc.text('Minister of Home Affairs', 140, 252, { align: 'center' });
+            doc.line(110, 265, 170, 265);
+            doc.text('Minister of Home Affairs', 140, 272, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
+            
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
+        
         // Generate Refugee Permit
         async function generateRefugeePermit(docData) {
             const doc = new jsPDF();
             
+            // Page 1 - Main Document
+            addSecurityBackground(doc);
             addOfficialHeader(doc, 'REFUGEE PERMIT');
             addWatermark(doc);
             
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('PERMIT NUMBER: ' + docData.code, 20, 55);
+            doc.text('PERMIT NUMBER: ' + docData.code, 20, 60);
+            doc.text('REFUGEE NUMBER: ' + (docData.refugeeNumber || 'PT4E000002015'), 20, 68);
             
             doc.setFontSize(16);
-            doc.text('REFUGEE STATUS PERMIT', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
+            doc.text('REFUGEE STATUS PERMIT', 105, 80, { align: 'center' });
             
             doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 80, 170, 85);
+            doc.rect(20, 90, 170, 95);
             
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('REFUGEE DETAILS:', 25, 90);
+            doc.text('REFUGEE DETAILS:', 25, 100);
             doc.setFont(undefined, 'normal');
             
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Refugee Number: ' + (docData.refugeeNumber || 'RF2025/001'), 25, 108);
-            doc.text('Country of Origin: ' + (docData.country || 'Sierra Leone'), 25, 116);
-            doc.text('Date of Recognition: ' + new Date().toLocaleDateString('en-GB'), 25, 124);
-            doc.text('Valid Until: ' + new Date(Date.now() + 365*24*60*60*1000*4).toLocaleDateString('en-GB'), 25, 132);
-            doc.text('Status: RECOGNIZED REFUGEE', 25, 140);
-            doc.text('Standing Committee Approval: GRANTED', 25, 148);
-            doc.text('UNHCR Registration: VERIFIED', 25, 156);
+            doc.text('Full Name: ' + docData.name, 25, 110);
+            doc.text('Refugee Number: ' + (docData.refugeeNumber || 'PT4E000002015'), 25, 118);
+            doc.text('Country of Origin: ' + (docData.country || 'Somalia'), 25, 126);
+            doc.text('Date of Recognition: ' + new Date().toLocaleDateString('en-GB'), 25, 134);
+            doc.text('Valid Until: ' + new Date(Date.now() + 1460*24*60*60*1000).toLocaleDateString('en-GB'), 25, 142);
+            doc.text('Status: ' + (docData.status || 'RECOGNIZED REFUGEE'), 25, 150);
+            doc.text('Standing Committee Approval: GRANTED', 25, 158);
+            doc.text('UNHCR Registration: VERIFIED', 25, 166);
+            doc.text('Reception Office: CAPE TOWN', 25, 174);
+            doc.text('File Reference: ' + (docData.refugeeNumber || 'PT4E000002015'), 25, 182);
             
             doc.setFont(undefined, 'bold');
-            doc.text('RIGHTS AND PROTECTIONS:', 25, 171);
+            doc.text('RIGHTS AND PROTECTIONS:', 25, 198);
             doc.setFont(undefined, 'normal');
             doc.setFontSize(10);
-            doc.text('• Full protection under the Refugees Act (130 of 1998)', 30, 179);
-            doc.text('• Right to work and study in South Africa', 30, 186);
-            doc.text('• Access to healthcare and basic services', 30, 193);
-            doc.text('• Protection from refoulement', 30, 200);
-            doc.text('• Freedom of movement within South Africa', 30, 207);
+            doc.text('• Full protection under the Refugees Act (130 of 1998)', 30, 206);
+            doc.text('• Right to work and study in South Africa', 30, 213);
+            doc.text('• Access to healthcare and basic services', 30, 220);
+            doc.text('• Protection from refoulement', 30, 227);
+            doc.text('• Freedom of movement within South Africa', 30, 234);
+            doc.text('• Right to apply for permanent residence after 5 years', 30, 241);
             
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL PROTECTION:', 25, 221);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• 1951 UN Convention Relating to Status of Refugees', 30, 229);
-            doc.text('• 1967 Protocol and OAU Convention', 30, 236);
-            
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|RP|${new Date().toISOString()}`;
+            const qrData = `DHA-RP:${docData.code}|${docData.name}|${docData.refugeeNumber}`;
             const qrCodeDataUrl = await generateQRCode(qrData);
             if (qrCodeDataUrl) {
-                doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
-                doc.setFontSize(8);
-                doc.text('Scan to Verify', 175, 235, { align: 'center' });
+                doc.addImage(qrCodeDataUrl, 'PNG', 160, 210, 30, 30);
             }
             
-            addOfficialSeal(doc, 50, 240);
+            addOfficialSeal(doc, 50, 255);
             
-            doc.line(110, 245, 170, 245);
-            doc.setFontSize(10);
-            doc.text('Commissioner for Refugees', 140, 252, { align: 'center' });
+            doc.line(110, 260, 170, 260);
+            doc.text('Commissioner for Refugees', 140, 267, { align: 'center' });
             
-            addFooter(doc, docData.code);
+            addFooter(doc, docData.code, 1);
+            
+            // Page 2 - Verification Page
+            await addVerificationPage(doc, docData);
             
             return doc;
         }
-
-        // Generate Temporary Residence Permit
-        async function generateTemporaryResidence(docData) {
-            const doc = new jsPDF();
-            
-            addOfficialHeader(doc, 'TEMPORARY RESIDENCE PERMIT');
-            addWatermark(doc);
-            
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            doc.text('PERMIT NUMBER: ' + docData.code, 20, 55);
-            
-            doc.setFontSize(16);
-            doc.text('TEMPORARY RESIDENCE PERMIT', 105, 70, { align: 'center' });
-            doc.setFont(undefined, 'normal');
-            
-            doc.setDrawColor(0, 90, 60);
-            doc.rect(20, 80, 170, 75);
-            
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'bold');
-            doc.text('PERMIT HOLDER DETAILS:', 25, 90);
-            doc.setFont(undefined, 'normal');
-            
-            doc.text('Full Name: ' + docData.name, 25, 100);
-            doc.text('Passport Number: XX1234567', 25, 108);
-            doc.text('Nationality: FOREIGN NATIONAL', 25, 116);
-            doc.text('Purpose of Stay: ' + (docData.purpose || 'Business'), 25, 124);
-            doc.text('Date of Issue: ' + new Date().toLocaleDateString('en-GB'), 25, 132);
-            doc.text('Valid Until: ' + (docData.validUntil || '31/12/2025'), 25, 140);
-            doc.text('Status: APPROVED - TEMPORARY RESIDENCE', 25, 148);
-            
-            doc.setFont(undefined, 'bold');
-            doc.text('CONDITIONS OF STAY:', 25, 165);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• Must leave South Africa before permit expiry', 30, 173);
-            doc.text('• May engage only in authorized activities', 30, 180);
-            doc.text('• Must maintain valid passport', 30, 187);
-            doc.text('• Report change of address within 7 days', 30, 194);
-            doc.text('• May apply for extension 60 days before expiry', 30, 201);
-            
-            doc.setFont(undefined, 'bold');
-            doc.setFontSize(11);
-            doc.text('INTERNATIONAL MOBILITY:', 25, 215);
-            doc.setFont(undefined, 'normal');
-            doc.setFontSize(10);
-            doc.text('• Multiple entry visa included', 30, 223);
-            doc.text('• SADC regional travel permitted', 30, 230);
-            
-            const qrData = `DHA-VERIFY:${docData.code}|${docData.name}|TRP|${new Date().toISOString()}`;
-            const qrCodeDataUrl = await generateQRCode(qrData);
-            if (qrCodeDataUrl) {
-                doc.addImage(qrCodeDataUrl, 'PNG', 160, 200, 30, 30);
-            }
-            
-            addOfficialSeal(doc, 50, 240);
-            
-            doc.line(110, 245, 170, 245);
-            doc.text('Chief Immigration Officer', 140, 252, { align: 'center' });
-            
-            addFooter(doc, docData.code);
-            
-            return doc;
-        }
-
+        
         // Main function to generate document
         async function generateDocument(docId) {
             const docData = documents.find(d => d.id === docId);
             if (!docData) return;
             
-            // Store document in verification database
-            storeDocumentVerification(docData);
-            
             let doc;
             
             // Generate appropriate document based on type
-            if (docData.type === 'PERMANENT RESIDENCE PERMIT') {
-                doc = await generatePermanentResidence(docData);
-            } else if (docData.type === 'BIRTH CERTIFICATE') {
-                doc = await generateBirthCertificate(docData);
-            } else if (docData.type === 'WORK PERMIT') {
-                doc = await generateWorkPermit(docData);
-            } else if (docData.type === 'ASYLUM SEEKER PERMIT') {
-                doc = await generateAsylumPermit(docData);
-            } else if (docData.type === 'RELATIVE VISA') {
-                doc = await generateRelativeVisa(docData);
-            } else if (docData.type === 'NATURALISATION CERTIFICATE') {
-                doc = await generateNaturalisation(docData);
-            } else if (docData.type === 'REFUGEE PERMIT') {
-                doc = await generateRefugeePermit(docData);
-            } else if (docData.type === 'TEMPORARY RESIDENCE PERMIT') {
-                doc = await generateTemporaryResidence(docData);
-            } else {
-                // Default to work permit for other types
-                doc = await generateWorkPermit(docData);
+            switch(docData.type) {
+                case 'PERMANENT RESIDENCE PERMIT':
+                    doc = await generatePermanentResidence(docData);
+                    break;
+                case 'BIRTH CERTIFICATE':
+                    doc = await generateBirthCertificate(docData);
+                    break;
+                case 'WORK PERMIT':
+                    doc = await generateWorkPermit(docData);
+                    break;
+                case 'RELATIVE VISA':
+                    doc = await generateRelativeVisa(docData);
+                    break;
+                case 'NATURALISATION CERTIFICATE':
+                    doc = await generateNaturalisation(docData);
+                    break;
+                case 'REFUGEE PERMIT':
+                    doc = await generateRefugeePermit(docData);
+                    break;
+                default:
+                    doc = await generatePermanentResidence(docData);
             }
             
-            // Save the document
-            const filename = `${docData.type.replace(/\s+/g, '_')}_${docData.name.replace(/\s+/g, '_')}_${docData.code}.pdf`;
+            // Save the document with 2 pages
+            const filename = `${docData.type.replace(/\s+/g, '_')}_${docData.name.replace(/\s+/g, '_')}_${docData.code}_2pages.pdf`;
             doc.save(filename);
         }
-
+        
         // Download all documents
         async function downloadAll() {
             const btn = document.getElementById('downloadAllBtn');
             const statusMsg = document.getElementById('statusMessage');
             
             btn.disabled = true;
-            btn.innerHTML = '<span>⏳</span><span>GENERATING DOCUMENTS...</span>';
+            btn.innerHTML = '<span>⏳</span><span>GENERATING 11 DOCUMENTS...</span>';
             
             // Generate each document with a small delay
             for (let i = 1; i <= 11; i++) {
                 await generateDocument(i);
-                await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between generations
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
             
             btn.disabled = false;
-            btn.innerHTML = '<span>🚀</span><span>DOWNLOAD ALL DOCUMENTS</span>';
+            btn.innerHTML = '<span>🚀</span><span>DOWNLOAD ALL 11 DOCUMENTS</span>';
             
             statusMsg.style.display = 'block';
             setTimeout(() => {
                 statusMsg.style.display = 'none';
             }, 5000);
         }
-        
-        // Initialize on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            initVerificationDB();
-            
-            // Optionally pre-load sample data for demonstration
-            // Uncomment the line below to pre-populate the database with all documents
-            // This makes it possible to verify documents immediately without generating them first
-            // preloadSampleData();
-        });
     </script>
 </body>
 </html>
