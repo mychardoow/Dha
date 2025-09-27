@@ -184,18 +184,18 @@
             ctx.font = '60px Arial';
             ctx.fillText('MALE', 1400, 1545);
             
-            // Authorization paragraph
-            ctx.font = '45px Arial';
+            // Authorization paragraph text
+            ctx.font = '48px Arial';
             const authText = [
                 'has been authorised to enter the Republic of South Africa for the purpose of taking up permanent residence,',
                 'or if he/she on the date of approval of application, already sojourns therein legally, to reside permanently.',
-                'Unless the holder of this permit orders the Republic of South Africa for the purpose of permanent residence',
-                'before or on _____________ the permanent residence permit shall lapse.'
+                'Unless the holder of this permit enters the Republic of South Africa for the purpose of permanent residence',
+                'before or on ______________________ the permanent residence permit shall lapse.'
             ];
-            let y = 1700;
+            let y = 1600;
             authText.forEach(line => {
-                ctx.fillText(line, 250, y);
-                y += 60;
+                ctx.fillText(line, 140, y);
+                y += 70;
             });
             
             // Date of issue
