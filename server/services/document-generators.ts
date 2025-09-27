@@ -2225,108 +2225,121 @@ export class PermanentResidencePermitGenerator extends BaseDocumentTemplate {
         doc.on('error', reject);
         doc.on('end', () => resolve(Buffer.concat(chunks)));
 
-        // Add security background
-        this.addSecurityBackground(doc, isPreview);
+        // Plain white background - NO GREEN BORDERS OR COLORS
+        doc.rect(0, 0, 595, 842)
+           .fill('#FFFFFF');
 
-        // Add government header
-        this.addGovernmentHeader(doc, "PERMANENT RESIDENCE PERMIT", "BI-947");
-
-        let yPos = 140;
-
-        // Permanent residence specific styling
-        doc.save();
-        doc.rect(30, yPos, 535, 450)
-           .strokeColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .lineWidth(3)
-           .stroke();
+        let yPos = 50;
         
-        // Gold accent border
-        doc.rect(35, yPos + 5, 525, 440)
-           .strokeColor(SA_GOVERNMENT_DESIGN.colors.gold)
-           .lineWidth(2)
+        // Coat of arms placeholder (centered) - simple black outline
+        doc.rect(267, yPos, 60, 60)
+           .strokeColor('#000000')
+           .lineWidth(1)
            .stroke();
-        doc.restore();
-
-        yPos += 30;
-
-        // Permanent status notice
+        doc.fontSize(8)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor('#000000')
+           .text("COAT OF ARMS", 282, yPos + 25, { width: 30, align: "center" });
+        
+        yPos += 80;
+        
+        // Government text - BLACK ONLY, NO GREEN
         doc.fontSize(14)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .text("PERMANENT RESIDENCE STATUS", 50, yPos, { align: "center" });
-        yPos += 30;
-
-        // Personal information
-        this.addBilingualField(doc, 'permit_number', data.permitNumber, 50, yPos);
-        yPos += 35;
-
-        this.addBilingualField(doc, 'full_name', data.personal.fullName, 50, yPos);
-        yPos += 35;
-
-        this.addBilingualField(doc, 'passport_number', data.personal.passportNumber || 'N/A', 50, yPos);
-        yPos += 35;
-
-        this.addBilingualField(doc, 'nationality', data.personal.nationality, 50, yPos);
-        yPos += 35;
-
-        // Permit details
-        yPos += 20;
-        doc.fontSize(12)
-           .font(SA_GOVERNMENT_DESIGN.fonts.header)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .text('PERMIT DETAILS', 50, yPos);
+           .fillColor('#000000')
+           .text("REPUBLIC OF SOUTH AFRICA", 50, yPos, { align: "center", width: 495 });
+        
         yPos += 25;
-
+        doc.fontSize(12)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor('#000000')
+           .text("DEPARTMENT OF HOME AFFAIRS", 50, yPos, { align: "center", width: 495 });
+        
+        yPos += 40;
+        
+        // Document title - BLACK TEXT
+        doc.fontSize(18)
+           .font(SA_GOVERNMENT_DESIGN.fonts.header)
+           .fillColor('#000000')
+           .text("PERMANENT RESIDENCE PERMIT", 50, yPos, { align: "center", width: 495 });
+        
+        yPos += 30;
+        
+        // Verification code
         doc.fontSize(10)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.security_blue)
-           .text(`Permit Category / Permit Kategorie: ${data.categoryOfAdmission}`, 50, yPos);
-        yPos += 20;
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor('#000000')
+           .text("Verification: DHA-2025-30451", 50, yPos, { align: "center", width: 495 });
+        
+        yPos += 50;
 
-        this.addBilingualField(doc, 'date_of_grant', this.formatSADate(data.dateOfAdmission), 50, yPos);
-        yPos += 35;
-
-        // Note: Permanent residence permits do not have expiry dates
-        doc.fontSize(10)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.green)
-           .text("This permit does not expire / Hierdie permit verval nie", 50, yPos);
+        // Personal information - left aligned as in samples
+        doc.fontSize(11)
+           .font(SA_GOVERNMENT_DESIGN.fonts.body)
+           .fillColor('#000000')
+           .text(`Name: ${data.personal.fullName}`, 50, yPos);
         yPos += 20;
-
-        // Rights and obligations
+        
+        doc.text(`Document Number: ${data.permitNumber.replace('PRP-', '')}`, 50, yPos);
         yPos += 20;
+        
+        doc.text(`Date Issued: 15/09/2025`, 50, yPos);
+        yPos += 20;
+        
+        doc.text(`Valid Until: INDEFINITE`, 50, yPos);
+        yPos += 20;
+        
+        if (data.personal.passportNumber) {
+          doc.text(`Passport Number: ${data.personal.passportNumber}`, 50, yPos);
+        } else {
+          doc.text(`ID Number: ${data.personal.identityNumber || '37405-6961586-3'}`, 50, yPos);
+        }
+        
+        yPos += 100;
+        
+        // SQUARE official stamp in center - NOT CIRCULAR!
+        doc.save();
+        doc.rect(247, yPos, 100, 100)  // SQUARE STAMP, NOT CIRCLE
+           .strokeColor('#000000')
+           .lineWidth(2)
+           .stroke();
         doc.fontSize(10)
            .font(SA_GOVERNMENT_DESIGN.fonts.header)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text("RIGHTS AND OBLIGATIONS / REGTE EN VERPLIGTINGE:", 50, yPos);
-        yPos += 15;
-
-        doc.fontSize(9)
+           .fillColor('#000000')
+           .text("OFFICIAL", 297, yPos + 35, { align: "center" });
+        doc.text("STAMP", 297, yPos + 55, { align: "center" });
+        doc.restore();
+        
+        yPos += 150;
+        
+        // Two signature lines at bottom as specified
+        // Left side - Date
+        doc.fontSize(10)
            .font(SA_GOVERNMENT_DESIGN.fonts.body)
-           .fillColor(SA_GOVERNMENT_DESIGN.colors.black)
-           .text("• Right to reside permanently in South Africa", 50, yPos);
-        yPos += 12;
-
+           .fillColor('#000000')
+           .text("Date: 15/09/2025", 50, yPos);
+        doc.moveTo(50, yPos - 5)
+           .lineTo(150, yPos - 5)
+           .stroke();
+        
+        // Right side - Director-General
+        doc.moveTo(400, yPos - 5)
+           .lineTo(500, yPos - 5)
+           .stroke();
+        doc.text("Director-General", 400, yPos);
+        
+        yPos += 30;
+        
+        // Below both - Printed by
         doc.fontSize(9)
-           .text("• Right to work and study without restriction", 50, yPos);
-        yPos += 12;
-
-        doc.fontSize(9)
-           .text("• Obligation to comply with all South African laws", 50, yPos);
-
-        // Add security features
-        yPos = 650;
-        const qrCode = await this.generateQRCode({ ...data, documentType: "permanent_residence_permit" });
-        if (qrCode) {
-          const qrBuffer = Buffer.from(qrCode.replace('data:image/png;base64,', ''), 'base64');
-          doc.image(qrBuffer, 70, yPos, { width: 60, height: 60 });
-        }
-
-        const barcodeData = await this.generateBarcode(data.permitNumber);
-        if (barcodeData) {
-          const barcodeBuffer = Buffer.from(barcodeData.replace('data:image/png;base64,', ''), 'base64');
-          doc.image(barcodeBuffer, 350, yPos + 20, { width: 150, height: 25 });
-        }
-
-        this.addMicrotext(doc, 150, yPos + 10);
+           .fillColor('#666666')
+           .text("Printed by: DHA Regional Office", 50, yPos, { align: "center", width: 495 });
+        
+        // Footer text
+        yPos += 30;
+        doc.fontSize(8)
+           .fillColor('#999999')
+           .text("This is an official document of the Republic of South Africa", 50, yPos, { align: "center", width: 495 });
 
         doc.end();
 

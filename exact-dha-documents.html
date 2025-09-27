@@ -167,77 +167,81 @@
             const pageWidth = 210;
             const pageHeight = 297;
             
-            // White background
+            // Plain white background - NO BORDERS OR COLORS
             pdf.setFillColor(255, 255, 255);
             pdf.rect(0, 0, pageWidth, pageHeight, 'F');
             
-            // Green border - exactly 5mm thick
-            pdf.setDrawColor(0, 100, 66);
-            pdf.setLineWidth(5);
-            pdf.rect(2.5, 2.5, pageWidth - 5, pageHeight - 5, 'S');
-            
-            // Coat of arms placeholder (since image couldn't be loaded)
-            pdf.setFillColor(0, 100, 66);
-            pdf.circle(pageWidth / 2, 25, 10, 'S');
+            // Coat of arms placeholder - simple black outline
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(1);
+            pdf.rect(pageWidth / 2 - 15, 20, 30, 30, 'S');
             pdf.setFontSize(8);
-            pdf.setTextColor(0, 100, 66);
-            pdf.text('COAT OF ARMS', pageWidth / 2, 25, { align: 'center' });
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('COAT OF ARMS', pageWidth / 2, 35, { align: 'center' });
             
-            // Header text - EXACTLY as in sample
-            pdf.setTextColor(0, 100, 66);
+            // Header text - BLACK ONLY, NO GREEN
+            pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(14);
             pdf.setFont('helvetica', 'bold');
-            pdf.text('REPUBLIC OF SOUTH AFRICA', pageWidth / 2, 45, { align: 'center' });
+            pdf.text('REPUBLIC OF SOUTH AFRICA', pageWidth / 2, 65, { align: 'center' });
             
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'normal');
-            pdf.text('DEPARTMENT OF HOME AFFAIRS', pageWidth / 2, 53, { align: 'center' });
+            pdf.text('DEPARTMENT OF HOME AFFAIRS', pageWidth / 2, 73, { align: 'center' });
             
             // Title
             pdf.setFontSize(18);
             pdf.setFont('helvetica', 'bold');
-            pdf.text('PERMANENT RESIDENCE PERMIT', pageWidth / 2, 70, { align: 'center' });
+            pdf.text('PERMANENT RESIDENCE PERMIT', pageWidth / 2, 90, { align: 'center' });
             
             // Verification code
             pdf.setFontSize(10);
             pdf.setFont('helvetica', 'normal');
-            pdf.text('Verification: DHA-2025-30451', pageWidth / 2, 78, { align: 'center' });
+            pdf.text('Verification: DHA-2025-30451', pageWidth / 2, 98, { align: 'center' });
             
             // Personal details - left aligned as in sample
             pdf.setFontSize(11);
             pdf.setTextColor(0, 0, 0);
-            pdf.text('Name: ' + name, 30, 100);
-            pdf.text('Document Number: ' + docNumber.replace('PRP-2025-', '54877885'), 30, 110);
-            pdf.text('Date Issued: 15/09/2025', 30, 120);
-            pdf.text('Valid Until: INDEFINITE', 30, 130);
+            pdf.text('Name: ' + name, 30, 120);
+            pdf.text('Document Number: ' + docNumber.replace('PRP-2025-', '54877885'), 30, 130);
+            pdf.text('Date Issued: 15/09/2025', 30, 140);
+            pdf.text('Valid Until: INDEFINITE', 30, 150);
             
             if (isID) {
-                pdf.text('ID Number: ' + passport, 30, 140);
+                pdf.text('ID Number: ' + passport, 30, 160);
             } else {
-                pdf.text('Passport Number: ' + passport, 30, 140);
+                pdf.text('Passport Number: ' + passport, 30, 160);
             }
             
-            // Official stamp - CENTERED as in sample (not square, circular!)
-            pdf.setDrawColor(0, 100, 66);
-            pdf.setLineWidth(2);
-            pdf.circle(pageWidth / 2, 180, 25, 'S');
-            pdf.setFontSize(10);
-            pdf.setTextColor(0, 100, 66);
-            pdf.text('OFFICIAL', pageWidth / 2, 175, { align: 'center' });
-            pdf.text('STAMP', pageWidth / 2, 185, { align: 'center' });
-            
-            // Director-General signature line
+            // SQUARE official stamp in center - NOT CIRCULAR!
             pdf.setDrawColor(0, 0, 0);
-            pdf.setLineWidth(0.5);
-            pdf.line(pageWidth - 80, 230, pageWidth - 30, 230);
+            pdf.setLineWidth(2);
+            pdf.rect(pageWidth / 2 - 25, 180, 50, 50, 'S');  // SQUARE STAMP
             pdf.setFontSize(10);
             pdf.setTextColor(0, 0, 0);
-            pdf.text('Director-General', pageWidth - 55, 238, { align: 'center' });
+            pdf.text('OFFICIAL', pageWidth / 2, 200, { align: 'center' });
+            pdf.text('STAMP', pageWidth / 2, 210, { align: 'center' });
+            
+            // Two signature lines at bottom
+            // Left side - Date
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.5);
+            pdf.line(30, 250, 80, 250);
+            pdf.setFontSize(10);
+            pdf.text('Date: 15/09/2025', 30, 255);
+            
+            // Right side - Director-General
+            pdf.line(130, 250, 180, 250);
+            pdf.text('Director-General', 130, 255);
+            
+            // Below both - Printed by
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 100, 100);
+            pdf.text('Printed by: DHA Regional Office', pageWidth / 2, 265, { align: 'center' });
             
             // Footer text
             pdf.setFontSize(8);
-            pdf.setTextColor(100, 100, 100);
-            pdf.text('This is an official document of the Republic of South Africa', pageWidth / 2, 270, { align: 'center' });
+            pdf.text('This is an official document of the Republic of South Africa', pageWidth / 2, 280, { align: 'center' });
             
             // Save the PDF
             pdf.save(name.replace(/ /g, '_') + '_PRP.pdf');
