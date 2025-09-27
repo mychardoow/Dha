@@ -207,13 +207,18 @@
             pdf.setFillColor(250, 250, 248);
             pdf.rect(0, 0, pageWidth, pageHeight, 'F');
             
-            // Coat of arms placeholder (top left)
-            pdf.setDrawColor(0, 0, 0);
-            pdf.setLineWidth(0.5);
-            pdf.rect(20, 15, 25, 30, 'S');
-            pdf.setFontSize(6);
+            // Add actual South African coat of arms
+            // Since we can't directly load external images in jsPDF in browser, we'll create a better placeholder
+            // Draw coat of arms shape
+            pdf.setFillColor(255, 215, 0); // Gold
+            pdf.circle(32.5, 25, 12, 'F');
+            pdf.setFillColor(0, 100, 66); // Green
+            pdf.circle(32.5, 25, 10, 'F');
+            pdf.setFillColor(255, 255, 255); // White center
+            pdf.circle(32.5, 25, 8, 'F');
             pdf.setTextColor(0, 0, 0);
-            pdf.text('COAT OF ARMS', 32.5, 30, { align: 'center' });
+            pdf.setFontSize(5);
+            pdf.text('RSA', 32.5, 25, { align: 'center' });
             
             // Header text next to coat of arms
             pdf.setFontSize(10);
@@ -240,48 +245,66 @@
             
             // Form fields with underlines
             pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'bold');
             
             // PERMIT NUMBER field
             pdf.text('PERMIT NUMBER', 25, 85);
-            pdf.line(65, 86, 105, 86);
-            pdf.text(docNumber.replace('PRP-2025-', ''), 70, 85);
+            pdf.setLineWidth(0.5);
+            pdf.line(60, 86, 100, 86);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(docNumber.replace('PRP-2025-', ''), 65, 84);
             
-            // REFERENCE NO field
-            pdf.text('REFERENCE NO', 120, 85);
-            pdf.line(155, 86, 195, 86);
+            // REFERENCE NO field  
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('REFERENCE NO', 115, 85);
+            pdf.line(150, 86, 190, 86);
             
             // Legal text
             pdf.setFontSize(9);
             pdf.text('In terms of the provisions of section 27(b) of the Immigration Act, 2002 (Act No. 13 of 2002),', 25, 100);
             
             // Surname field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('Surname', 25, 115);
-            pdf.line(45, 116, 195, 116);
+            pdf.setLineWidth(0.5);
+            pdf.line(50, 116, 190, 116);
             const [firstName, ...lastNames] = name.split(' ');
-            pdf.text(lastNames.join(' '), 50, 115);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(lastNames.join(' ').toUpperCase(), 55, 114);
             
             // Maiden Surname field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('Maiden Surname', 25, 125);
-            pdf.line(60, 126, 195, 126);
+            pdf.setLineWidth(0.5);
+            pdf.line(65, 126, 190, 126);
             
             // First Name(s) field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('First Name (s)', 25, 135);
-            pdf.line(55, 136, 195, 136);
-            pdf.text(firstName, 60, 135);
+            pdf.setLineWidth(0.5);
+            pdf.line(55, 136, 190, 136);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(firstName.toUpperCase(), 60, 134);
             
             // Nationality field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('Nationality', 25, 145);
-            pdf.line(45, 146, 110, 146);
-            pdf.text('Pakistani', 50, 145);
+            pdf.setLineWidth(0.5);
+            pdf.line(50, 146, 110, 146);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('PAKISTANI', 55, 144);
             
             // Date of birth field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('Date of birth', 25, 155);
-            pdf.line(50, 156, 90, 156);
+            pdf.setLineWidth(0.5);
+            pdf.line(52, 156, 95, 156);
             
             // Gender field
-            pdf.text('Gender', 120, 155);
-            pdf.line(135, 156, 160, 156);
-            pdf.text('Male', 140, 155);
+            pdf.text('Gender', 115, 155);
+            pdf.line(135, 156, 170, 156);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('MALE', 145, 154);
             
             // Legal text continued
             pdf.setFontSize(9);
@@ -294,14 +317,19 @@
             });
             
             // Date of issue field
+            pdf.setFont('helvetica', 'bold');
             pdf.text('Date of issue', 25, 210);
-            pdf.line(50, 211, 90, 211);
-            pdf.text('15/09/2025', 55, 210);
+            pdf.setLineWidth(0.5);
+            pdf.line(52, 211, 92, 211);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('15/09/2025', 57, 209);
             
             // Signature
             pdf.setFont('helvetica', 'italic');
+            pdf.setFontSize(11);
             pdf.text('Makholde', 25, 230);
-            pdf.setFont('helvetica', 'normal');
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9);
             
             // Director-General section
             pdf.text('DIRECTOR-GENERAL', 25, 240);
@@ -311,11 +339,11 @@
             pdf.text('Makholde LT', 120, 230);
             pdf.text('Surname and initials', 120, 235);
             
-            // Red office stamp box
-            pdf.setDrawColor(200, 0, 0);
-            pdf.setLineWidth(2);
+            // Office stamp box (black, not red)
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(1.5);
             pdf.rect(140, 200, 55, 55, 'S');
-            pdf.setTextColor(200, 0, 0);
+            pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(8);
             pdf.text('DEPARTMENT OF HOME AFFAIRS', 167.5, 210, { align: 'center' });
             pdf.text('PRIVATE BAG X114', 167.5, 220, { align: 'center' });
