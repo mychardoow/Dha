@@ -523,6 +523,68 @@ export const documentTypeSchemas = {
   certificate_of_south_african_citizenship: certificateOfSouthAfricanCitizenshipSchema,
 } as const;
 
+// ===================== DHA DOCUMENT TABLES =====================
+
+export const dhaApplicants = pgTable("dha_applicants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  fullName: text("full_name").notNull(),
+  idNumber: text("id_number"),
+  passportNumber: text("passport_number"),
+  dateOfBirth: text("date_of_birth").notNull(),
+  nationality: text("nationality").notNull(),
+  gender: text("gender").notNull(),
+  address: text("address"),
+  contactNumber: text("contact_number"),
+  email: text("email"),
+  isSouthAfricanCitizen: boolean("is_south_african_citizen").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+export const dhaDocuments = pgTable("dha_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
+  documentType: text("document_type").notNull(),
+  documentNumber: text("document_number").notNull().unique(),
+  issueDate: text("issue_date").notNull(),
+  expiryDate: text("expiry_date"),
+  status: text("status").notNull().default("issued"),
+  referenceNumber: text("reference_number"),
+  permitCategory: text("permit_category"),
+  visaType: text("visa_type"),
+  relativeDetails: jsonb("relative_details"),
+  qualifications: jsonb("qualifications"),
+  employerDetails: jsonb("employer_details"),
+  issueLocation: text("issue_location").notNull().default("Department of Home Affairs"),
+  issuingOfficer: text("issuing_officer"),
+  notes: text("notes"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+export const dhaDocumentVerifications = pgTable("dha_document_verifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  documentId: varchar("document_id").notNull().references(() => dhaDocuments.id),
+  verificationCode: text("verification_code").notNull().unique(),
+  qrCodeData: text("qr_code_data"),
+  qrCodeUrl: text("qr_code_url"),
+  verificationType: text("verification_type").notNull().default("QR"),
+  isValid: boolean("is_valid").notNull().default(true),
+  verificationCount: integer("verification_count").notNull().default(0),
+  lastVerifiedAt: timestamp("last_verified_at"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at")
+});
+
+// Type exports for DHA tables
+export type DhaApplicant = typeof dhaApplicants.$inferSelect;
+export type InsertDhaApplicant = typeof dhaApplicants.$inferInsert;
+export type DhaDocument = typeof dhaDocuments.$inferSelect;
+export type InsertDhaDocument = typeof dhaDocuments.$inferInsert;
+export type DhaDocumentVerification = typeof dhaDocumentVerifications.$inferSelect;
+export type InsertDhaDocumentVerification = typeof dhaDocumentVerifications.$inferInsert;
+
 // Type exports for all document types
 export type DocumentGenerationRequest = z.infer<typeof documentGenerationRequestSchema>;
 export type SmartIdCardData = z.infer<typeof smartIdCardSchema>;
@@ -875,65 +937,6 @@ export type BiometricProfile = typeof biometricProfiles.$inferSelect;
 export type InsertBiometricProfile = typeof biometricProfiles.$inferInsert;
 
 // ===================== DHA DOCUMENT DATABASE SCHEMAS =====================
-
-// DHA Applicants table - for both SA citizens and foreign nationals
-export const dhaApplicants = pgTable("dha_applicants", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fullName: text("full_name").notNull(),
-  idNumber: text("id_number"), // SA ID number (null for foreign nationals)
-  passportNumber: text("passport_number"), // Foreign passport number
-  dateOfBirth: text("date_of_birth").notNull(),
-  nationality: text("nationality").notNull(),
-  gender: text("gender").notNull(), // 'M' | 'F' | 'Other'
-  address: text("address"),
-  contactNumber: text("contact_number"),
-  email: text("email"),
-  isSouthAfricanCitizen: boolean("is_south_african_citizen").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
-});
-
-// DHA Documents table - all document types
-export const dhaDocuments = pgTable("dha_documents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  applicantId: varchar("applicant_id").notNull().references(() => dhaApplicants.id),
-  documentType: text("document_type").notNull(), // See types below
-  documentNumber: text("document_number").notNull().unique(),
-  issueDate: text("issue_date").notNull(),
-  expiryDate: text("expiry_date"),
-  status: text("status").notNull(), // 'active' | 'expired' | 'cancelled' | 'pending' | 'suspended'
-  
-  // Additional fields for specific document types
-  referenceNumber: text("reference_number"), // For asylum seekers, applications
-  permitCategory: text("permit_category"), // For work visas, residence permits
-  visaType: text("visa_type"), // For specific visa types
-  relativeDetails: jsonb("relative_details"), // For relative visas
-  qualifications: jsonb("qualifications"), // For critical skills visas
-  employerDetails: jsonb("employer_details"), // For work permits
-  
-  issueLocation: text("issue_location").default("Department of Home Affairs"),
-  issuingOfficer: text("issuing_officer"),
-  notes: text("notes"),
-  metadata: jsonb("metadata"), // Additional document-specific data
-  
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at").notNull().default(sql`now()`),
-});
-
-// Document Verifications table - for QR codes and verification
-export const dhaDocumentVerifications = pgTable("dha_document_verifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  documentId: varchar("document_id").notNull().references(() => dhaDocuments.id),
-  verificationCode: text("verification_code").notNull().unique(),
-  qrCodeData: text("qr_code_data").notNull(),
-  qrCodeUrl: text("qr_code_url"), // URL to QR code image if stored
-  verificationType: text("verification_type").notNull().default("QR"), // 'QR' | 'Barcode' | 'Manual'
-  isValid: boolean("is_valid").notNull().default(true),
-  lastVerifiedAt: timestamp("last_verified_at"),
-  verificationCount: integer("verification_count").notNull().default(0),
-  createdAt: timestamp("created_at").notNull().default(sql`now()`),
-  expiresAt: timestamp("expires_at"), // Optional expiration for verification codes
-});
 
 // Insert schemas using plain Zod
 export const insertDhaApplicantSchema = z.object({

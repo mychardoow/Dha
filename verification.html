@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA Document Verification Portal - Official Government System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #005a3c, #007850);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .verification-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #005a3c, #007850);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .coat-of-arms {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .verification-body {
+            padding: 40px 30px;
+        }
+        
+        .security-badge {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .security-badge .icon {
+            font-size: 24px;
+        }
+        
+        .security-badge .text {
+            flex: 1;
+        }
+        
+        .security-badge .title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .security-badge .description {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .input-group {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #005a3c;
+            box-shadow: 0 0 0 3px rgba(0,90,60,0.1);
+        }
+        
+        .input-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .verify-btn {
+            width: 100%;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #005a3c, #007850);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .verify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,90,60,0.3);
+        }
+        
+        .verify-btn:active {
+            transform: translateY(0);
+        }
+        
+        .verify-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .result-container {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-valid {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+        
+        .result-invalid {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .result-icon {
+            font-size: 48px;
+        }
+        
+        .result-valid .result-icon {
+            color: #28a745;
+        }
+        
+        .result-invalid .result-icon {
+            color: #dc3545;
+        }
+        
+        .result-title {
+            flex: 1;
+        }
+        
+        .result-title h2 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .result-valid .result-title h2 {
+            color: #155724;
+        }
+        
+        .result-invalid .result-title h2 {
+            color: #721c24;
+        }
+        
+        .result-subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .document-details {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .detail-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            width: 140px;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #333;
+        }
+        
+        .verification-stamp {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #ddd;
+        }
+        
+        .stamp {
+            display: inline-block;
+            padding: 10px 20px;
+            border: 3px solid #005a3c;
+            border-radius: 50px;
+            color: #005a3c;
+            font-weight: bold;
+            font-size: 14px;
+            text-transform: uppercase;
+            transform: rotate(-5deg);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .footer a {
+            color: #005a3c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .spinner {
+            display: none;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #005a3c;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .verify-btn.loading .spinner {
+            display: inline-block;
+        }
+        
+        .verify-btn.loading .btn-text {
+            display: none;
+        }
+        
+        .example-codes {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .example-codes strong {
+            color: #005a3c;
+        }
+        
+        .code-list {
+            margin-top: 10px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 5px;
+        }
+        
+        .code-item {
+            padding: 5px 10px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .code-item:hover {
+            background: #005a3c;
+            color: white;
+            border-color: #005a3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="verification-card">
+            <div class="header">
+                <div class="coat-of-arms">🦅</div>
+                <h1>Document Verification Portal</h1>
+                <div class="subtitle">Department of Home Affairs - Republic of South Africa</div>
+            </div>
+            
+            <div class="verification-body">
+                <div class="security-badge">
+                    <div class="icon">🔒</div>
+                    <div class="text">
+                        <div class="title">Secure Government System</div>
+                        <div class="description">This is the official DHA document verification portal</div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="verificationCode">Enter Verification Code</label>
+                    <input 
+                        type="text" 
+                        id="verificationCode" 
+                        placeholder="e.g. DHA-2025-10001"
+                        maxlength="20"
+                        onkeypress="if(event.key === 'Enter') verifyDocument()"
+                    />
+                    <div class="input-hint">Enter the verification code found on your document</div>
+                </div>
+                
+                <button class="verify-btn" id="verifyBtn" onclick="verifyDocument()">
+                    <span class="btn-text">🔍 VERIFY DOCUMENT</span>
+                    <div class="spinner"></div>
+                </button>
+                
+                <div class="example-codes">
+                    <strong>Test with these valid codes:</strong>
+                    <div class="code-list">
+                        <div class="code-item" onclick="setCode('DHA-2025-10001')">DHA-2025-10001</div>
+                        <div class="code-item" onclick="setCode('DHA-2025-10002')">DHA-2025-10002</div>
+                        <div class="code-item" onclick="setCode('DHA-2025-10003')">DHA-2025-10003</div>
+                        <div class="code-item" onclick="setCode('DHA-2025-20001')">DHA-2025-20001</div>
+                        <div class="code-item" onclick="setCode('DHA-2025-30001')">DHA-2025-30001</div>
+                        <div class="code-item" onclick="setCode('DHA-2025-50001')">DHA-2025-50001</div>
+                    </div>
+                </div>
+                
+                <div id="resultContainer" class="result-container">
+                    <!-- Results will be displayed here -->
+                </div>
+            </div>
+            
+            <div class="footer">
+                <p>© 2025 Department of Home Affairs</p>
+                <p><a href="https://www.dha.gov.za">www.dha.gov.za</a> | Hotline: 0800 60 11 90</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Pre-populated database of verified documents
+        const documentDatabase = {
+            'DHA-2025-10001': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/ABC123',
+                fullName: 'Muhammad Mohsin',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'AD0116281'
+            },
+            'DHA-2025-10002': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/DEF456',
+                fullName: 'Tasleem Mohsin',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'AUD115281'
+            },
+            'DHA-2025-10003': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/GHI789',
+                fullName: 'Khunsha',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'KV4122911'
+            },
+            'DHA-2025-10004': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/JKL012',
+                fullName: 'Haroon',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'DT9840361'
+            },
+            'DHA-2025-10005': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/MNO345',
+                fullName: 'Faisal',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'MD3535005'
+            },
+            'DHA-2025-10006': {
+                valid: true,
+                documentType: 'Permanent Residence Permit',
+                documentNumber: 'PRP/2025/01/PQR678',
+                fullName: 'Muhammad Hasnain Younis',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2030-01-27',
+                status: 'Active',
+                passportNumber: 'CH6961586'
+            },
+            'DHA-2025-20001': {
+                valid: true,
+                documentType: 'Naturalisation Certificate',
+                documentNumber: 'NAT/2025/01/STU901',
+                fullName: 'Anna Munaf',
+                nationality: 'South African (Naturalised)',
+                issueDate: '2025-01-01',
+                expiryDate: 'Does not expire',
+                status: 'Active',
+                idNumber: '850825 1583 187'
+            },
+            'DHA-2025-30001': {
+                valid: true,
+                documentType: 'Work Permit',
+                documentNumber: 'WP/2025/01/VWX234',
+                fullName: 'Ikram Ibrahim Yusuf Mansuri',
+                nationality: 'Indian',
+                issueDate: '2025-01-27',
+                expiryDate: '2028-01-27',
+                status: 'Active',
+                passportNumber: '10611952',
+                employer: 'Head Office'
+            },
+            'DHA-2025-40001': {
+                valid: true,
+                documentType: 'Relative Visa',
+                documentNumber: 'RV/2025/01/YZA567',
+                fullName: 'Anisah',
+                nationality: 'Pakistani',
+                issueDate: '2025-01-27',
+                expiryDate: '2026-01-27',
+                status: 'Active',
+                passportNumber: 'PK8976543',
+                sponsor: 'Tasleem Mohsin'
+            },
+            'DHA-2025-50001': {
+                valid: true,
+                documentType: 'Refugee Permit',
+                documentNumber: 'REF/2025/01/BCD890',
+                fullName: 'Faati Abduraam',
+                nationality: 'Somali',
+                issueDate: '2025-01-27',
+                expiryDate: '2026-01-27',
+                status: 'Active',
+                refugeeNumber: 'PT4E000002015'
+            },
+            'DHA-2025-60001': {
+                valid: true,
+                documentType: 'Birth Certificate',
+                documentNumber: 'BC/2014/03/EFG123',
+                fullName: 'Zaneerah Ally',
+                nationality: 'South African',
+                issueDate: '2014-03-21',
+                expiryDate: 'Does not expire',
+                status: 'Active',
+                birthNumber: 'BC2014/0321/001'
+            }
+        };
+        
+        function setCode(code) {
+            document.getElementById('verificationCode').value = code;
+            verifyDocument();
+        }
+        
+        async function verifyDocument() {
+            const code = document.getElementById('verificationCode').value.trim().toUpperCase();
+            const resultContainer = document.getElementById('resultContainer');
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            if (!code) {
+                alert('Please enter a verification code');
+                return;
+            }
+            
+            // Show loading state
+            verifyBtn.classList.add('loading');
+            verifyBtn.disabled = true;
+            resultContainer.style.display = 'none';
+            
+            // Simulate API call delay
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Check database for document
+            const document = documentDatabase[code];
+            
+            if (document && document.valid) {
+                // Document found and valid
+                resultContainer.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-icon">✅</div>
+                        <div class="result-title">
+                            <h2>DOCUMENT VERIFIED</h2>
+                            <div class="result-subtitle">This document is valid and registered in the DHA system</div>
+                        </div>
+                    </div>
+                    <div class="document-details">
+                        <div class="detail-row">
+                            <div class="detail-label">Document Type:</div>
+                            <div class="detail-value">${document.documentType}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Document Number:</div>
+                            <div class="detail-value">${document.documentNumber}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Full Name:</div>
+                            <div class="detail-value">${document.fullName}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Nationality:</div>
+                            <div class="detail-value">${document.nationality}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Issue Date:</div>
+                            <div class="detail-value">${formatDate(document.issueDate)}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Expiry Date:</div>
+                            <div class="detail-value">${document.expiryDate === 'Does not expire' ? document.expiryDate : formatDate(document.expiryDate)}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">Status:</div>
+                            <div class="detail-value"><strong style="color: #28a745;">${document.status}</strong></div>
+                        </div>
+                        ${document.passportNumber ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Passport Number:</div>
+                            <div class="detail-value">${document.passportNumber}</div>
+                        </div>
+                        ` : ''}
+                        ${document.idNumber ? `
+                        <div class="detail-row">
+                            <div class="detail-label">ID Number:</div>
+                            <div class="detail-value">${document.idNumber}</div>
+                        </div>
+                        ` : ''}
+                        ${document.employer ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Employer:</div>
+                            <div class="detail-value">${document.employer}</div>
+                        </div>
+                        ` : ''}
+                        ${document.sponsor ? `
+                        <div class="detail-row">
+                            <div class="detail-label">Sponsor:</div>
+                            <div class="detail-value">${document.sponsor}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="verification-stamp">
+                        <div class="stamp">VERIFIED IN DHA SYSTEM</div>
+                    </div>
+                `;
+                resultContainer.className = 'result-container result-valid';
+            } else {
+                // Document not found or invalid
+                resultContainer.innerHTML = `
+                    <div class="result-header">
+                        <div class="result-icon">❌</div>
+                        <div class="result-title">
+                            <h2>DOCUMENT NOT FOUND</h2>
+                            <div class="result-subtitle">This verification code is not valid or does not exist in our system</div>
+                        </div>
+                    </div>
+                    <div class="document-details">
+                        <p style="color: #721c24; text-align: center; padding: 20px;">
+                            The verification code "${code}" could not be found in the DHA database.
+                            Please check the code and try again.
+                        </p>
+                        <p style="color: #666; text-align: center; padding: 10px;">
+                            If you believe this is an error, please contact the Department of Home Affairs.
+                        </p>
+                    </div>
+                `;
+                resultContainer.className = 'result-container result-invalid';
+            }
+            
+            resultContainer.style.display = 'block';
+            
+            // Reset button state
+            verifyBtn.classList.remove('loading');
+            verifyBtn.disabled = false;
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return date.toLocaleDateString('en-ZA', options);
+        }
+        
+        // Allow Enter key to trigger verification
+        document.getElementById('verificationCode').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                verifyDocument();
+            }
+        });
+    </script>
+</body>
+</html>
