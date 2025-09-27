@@ -259,14 +259,26 @@
             ctx.fillText('(ii) Permanent residents who are absent from the Republic for three years or longer may lose their right to permanent residence in', 250, 2800);
             ctx.fillText('    the Republic. A period of absence may only be interrupted by an admission and sojourn in the Republic.', 250, 2850);
             
-            // Barcode at bottom left and Control Number at bottom right
-            drawBarcode(250, 2900);
-            ctx.font = 'bold 60px Arial';
+            // BOTTOM ELEMENTS
+            // Small barcode at bottom left corner
+            drawSmallBarcode(140, 2900);
+            
+            // Control Number at bottom right side
+            ctx.font = '55px Arial';
             ctx.textAlign = 'right';
-            ctx.fillText('Control Number', 1650, 2930);
-            ctx.font = '80px Arial';
-            ctx.fillText('No. A', 1850, 2930);
+            ctx.fillText('Control Number', 1900, 2900);
+            ctx.font = '65px Arial';
+            ctx.fillText('No. A', 1900, 2950);
+            
+            // VERY SMALL Government Printing Works text - barely visible in middle bottom
+            ctx.font = '18px Arial';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.25)'; // Very faint, barely visible
+            ctx.textAlign = 'center';
+            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2960);
+            
+            // Reset text alignment and color
             ctx.textAlign = 'left';
+            ctx.fillStyle = '#000';
         }
         
         // THREE GUILLOCHE LAYERS as per user specification
@@ -450,6 +462,17 @@
             for(let i = 0; i < barcodePattern.length; i++) {
                 if(barcodePattern[i] === 1) {
                     ctx.fillRect(x + i * 8, y, 6, 50);
+                }
+            }
+        }
+        
+        function drawSmallBarcode(x, y) {
+            // Small barcode for bottom left corner
+            ctx.fillStyle = '#000';
+            const barcodePattern = [1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,0,0,1,1,0];
+            for(let i = 0; i < barcodePattern.length; i++) {
+                if(barcodePattern[i] === 1) {
+                    ctx.fillRect(x + i * 4, y, 3, 30); // Smaller dimensions
                 }
             }
         }
