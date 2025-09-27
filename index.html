@@ -84,19 +84,9 @@
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Security paper background - perfect cream/beige match
+            // Security paper background - seamless cream/beige
             ctx.fillStyle = '#FAF7F0';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Add subtle texture overlay
-            ctx.fillStyle = 'rgba(245, 240, 230, 0.3)';
-            for(let x = 0; x < canvas.width; x += 50) {
-                for(let y = 0; y < canvas.height; y += 50) {
-                    if((x + y) % 100 === 0) {
-                        ctx.fillRect(x, y, 25, 25);
-                    }
-                }
-            }
             
             // Guilloche sunburst pattern (centered around signature area)
             drawGuillochePattern();
@@ -269,36 +259,68 @@
         }
         
         function drawGuillochePattern() {
-            // Guilloche sunburst pattern centered around signature area - more accurate colors
+            // Guilloche sunburst pattern EXACTLY like the sample - curved radiating lines
             const centerX = 1650;
-            const centerY = 2200;
+            const centerY = 2100;
             
-            // Multiple layers for authentic look
-            // First layer - very subtle
-            ctx.strokeStyle = 'rgba(235, 230, 215, 0.25)';
-            ctx.lineWidth = 0.3;
+            // FIRST LAYER - Outer sunburst with curved lines
+            ctx.strokeStyle = 'rgba(210, 200, 170, 0.3)';
+            ctx.lineWidth = 0.5;
             
-            for(let angle = 0; angle < 360; angle += 2) {
+            // Create curved radiating lines like sun rays
+            for(let angle = 0; angle < 360; angle += 1.5) {
                 const radians = angle * Math.PI / 180;
                 ctx.beginPath();
+                
+                // Start from center
                 ctx.moveTo(centerX, centerY);
-                const endX = centerX + Math.cos(radians) * 1800;
-                const endY = centerY + Math.sin(radians) * 1800;
-                ctx.lineTo(endX, endY);
+                
+                // Create curved path using quadratic curves
+                const controlRadius = 800;
+                const endRadius = 1800;
+                
+                // Control point for curve
+                const controlX = centerX + Math.cos(radians + 0.1) * controlRadius;
+                const controlY = centerY + Math.sin(radians + 0.1) * controlRadius;
+                
+                // End point
+                const endX = centerX + Math.cos(radians) * endRadius;
+                const endY = centerY + Math.sin(radians) * endRadius;
+                
+                ctx.quadraticCurveTo(controlX, controlY, endX, endY);
                 ctx.stroke();
             }
             
-            // Second layer - slightly darker
-            ctx.strokeStyle = 'rgba(225, 220, 200, 0.18)';
-            ctx.lineWidth = 0.4;
+            // SECOND LAYER - Inner denser pattern
+            ctx.strokeStyle = 'rgba(200, 190, 160, 0.25)';
+            ctx.lineWidth = 0.3;
             
-            for(let angle = 0; angle < 360; angle += 4) {
+            for(let angle = 0; angle < 360; angle += 3) {
                 const radians = angle * Math.PI / 180;
                 ctx.beginPath();
                 ctx.moveTo(centerX, centerY);
-                const endX = centerX + Math.cos(radians) * 1400;
-                const endY = centerY + Math.sin(radians) * 1400;
-                ctx.lineTo(endX, endY);
+                
+                // Inner curved rays
+                const controlRadius = 500;
+                const endRadius = 1200;
+                
+                const controlX = centerX + Math.cos(radians - 0.05) * controlRadius;
+                const controlY = centerY + Math.sin(radians - 0.05) * controlRadius;
+                const endX = centerX + Math.cos(radians) * endRadius;
+                const endY = centerY + Math.sin(radians) * endRadius;
+                
+                ctx.quadraticCurveTo(controlX, controlY, endX, endY);
+                ctx.stroke();
+            }
+            
+            // THIRD LAYER - Circular rings around the sunburst
+            ctx.strokeStyle = 'rgba(215, 205, 175, 0.2)';
+            ctx.lineWidth = 0.4;
+            
+            // Draw concentric circles
+            for(let radius = 200; radius < 1500; radius += 100) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
                 ctx.stroke();
             }
         }
