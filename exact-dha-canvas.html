@@ -88,7 +88,7 @@
             ctx.fillStyle = '#F8F5F0';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // THREE DISTINCT GUILLOCHE LAYERS
+            // THREE DISTINCT GUILLOCHE LAYERS - MUCH MORE SUBTLE
             drawFirstGuillocheLayer();   // Lightest background covering entire document
             drawSecondGuillocheLayer();   // Border pattern around edges
             drawThirdGuillocheLayer();    // Round/oval pattern in signature area
@@ -132,57 +132,57 @@
             // Form fields with exact underline positions
             ctx.textAlign = 'left';
             
-            // PERMIT NUMBER field
+            // PERMIT NUMBER field with longer underline
             ctx.font = 'bold 65px Arial';
             ctx.fillText('PERMIT NUMBER', 250, 920);
-            drawUnderline(650, 930, 700);
+            drawUnderline(650, 930, 900); // Increased from 700
             ctx.font = '60px Arial';
             ctx.fillText(permitNumber, 700, 915);
             
-            // REFERENCE NO on same line
+            // REFERENCE NO on same line with longer underline
             ctx.font = 'bold 65px Arial';
             ctx.fillText('REFERENCE NO', 1200, 920);
-            drawUnderline(1550, 930, 500);
+            drawUnderline(1550, 930, 550); // Increased from 500
             
             // Legal text
             ctx.font = '48px Arial';
             const legalText = 'In terms of the provisions of section 27(b) of the Immigration Act, 2002 (Act No. 13 of 2002),';
             ctx.fillText(legalText, 250, 1050);
             
-            // Surname field
+            // Surname field with longer underline
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Surname', 250, 1150);
-            drawUnderline(450, 1160, 1400);
+            drawUnderline(450, 1160, 1600); // Increased from 1400
             const [firstName, ...lastNames] = name.split(' ');
             ctx.font = '60px Arial';
             ctx.fillText(lastNames.join(' ').toUpperCase(), 500, 1145);
             
-            // Maiden Surname field
+            // Maiden Surname field with longer underline
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Maiden Surname', 250, 1250);
-            drawUnderline(600, 1260, 1250);
+            drawUnderline(600, 1260, 1450); // Increased from 1250
             
-            // First Name(s) field
+            // First Name(s) field with longer underline
             ctx.font = 'bold 60px Arial';
             ctx.fillText('First Name (s)', 250, 1350);
-            drawUnderline(550, 1360, 1300);
+            drawUnderline(550, 1360, 1500); // Increased from 1300
             ctx.font = '60px Arial';
             ctx.fillText(firstName.toUpperCase(), 600, 1345);
             
-            // Nationality field
+            // Nationality field with longer underline
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Nationality', 250, 1450);
-            drawUnderline(450, 1460, 750);
+            drawUnderline(450, 1460, 900); // Increased from 750
             ctx.font = '60px Arial';
             ctx.fillText('PAKISTANI', 500, 1445);
             
-            // Date of birth & Gender
+            // Date of birth & Gender with longer underlines
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Date of birth', 250, 1550);
-            drawUnderline(500, 1560, 500);
+            drawUnderline(500, 1560, 600); // Increased from 500
             
             ctx.fillText('Gender', 1200, 1550);
-            drawUnderline(1350, 1560, 400);
+            drawUnderline(1350, 1560, 500); // Increased from 400
             ctx.font = '60px Arial';
             ctx.fillText('MALE', 1400, 1545);
             
@@ -200,10 +200,10 @@
                 y += 70;
             });
             
-            // Date of issue
+            // Date of issue with longer underline
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Date of issue', 250, 2100);
-            drawUnderline(500, 2110, 400);
+            drawUnderline(500, 2110, 500); // Increased from 400
             ctx.font = '60px Arial';
             ctx.fillText('15/09/2025', 520, 2095);
             
@@ -221,25 +221,46 @@
             ctx.font = '50px Arial';
             ctx.fillText('Surname and initials', 1200, 2350);
             
-            // Clean black border stamp box on the right side
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
+            // RED STAMP BOX WITH RED TEXT - CRITICAL FIX
+            ctx.strokeStyle = '#FF0000'; // RED border
+            ctx.lineWidth = 3;
             ctx.strokeRect(1450, 2000, 400, 400);
             
-            // Keep stamp area mostly clean
+            // Add RED text inside stamp box
+            ctx.fillStyle = '#FF0000'; // RED text
+            ctx.font = 'bold 35px Arial';
+            ctx.textAlign = 'center';
+            
+            // "Office stamp" header
+            ctx.font = '30px Arial';
+            ctx.fillText('Office stamp', 1650, 2030);
+            
+            // Main stamp text
+            ctx.font = 'bold 40px Arial';
+            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 1650, 2120);
+            
+            ctx.font = '35px Arial';
+            ctx.fillText('PRIVATE BAG X114', 1650, 2200);
+            ctx.fillText('PRETORIA  0001', 1650, 2250);
+            
+            // Large "07" at bottom of stamp
+            ctx.font = 'bold 80px Arial';
+            ctx.fillText('07', 1650, 2360);
+            
+            // Reset text alignment and color
             ctx.textAlign = 'left';
             ctx.fillStyle = '#000';
             
-            // Date printed and Printed by - BELOW signature area
+            // Date printed and Printed by - BELOW signature area with longer underlines
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Date printed', 250, 2600);
-            drawUnderline(450, 2610, 400);
+            drawUnderline(450, 2610, 500); // Increased from 400
             ctx.font = '60px Arial';
             ctx.fillText('15/09/2025', 470, 2595);
             
             ctx.font = 'bold 60px Arial';
             ctx.fillText('Printed by: (system code)', 900, 2600);
-            drawUnderline(1250, 2610, 400);
+            drawUnderline(1250, 2610, 500); // Increased from 400
             ctx.font = '60px Arial';
             ctx.fillText('CPT-RO-001', 1270, 2595);
             
@@ -264,38 +285,38 @@
             ctx.fillText('No. A', 1950, 2960);
             
             // VERY SMALL Government Printing Works text - much smaller and fainter
-            ctx.font = '12px Arial';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)'; // Even more faint
+            ctx.font = '10px Arial'; // Even smaller
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Extremely faint
             ctx.textAlign = 'center';
-            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2965);
+            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2968);
             
             // Reset text alignment and color
             ctx.textAlign = 'left';
             ctx.fillStyle = '#000';
         }
         
-        // THREE GUILLOCHE LAYERS as per user specification
+        // THREE GUILLOCHE LAYERS - MUCH MORE SUBTLE
         function drawFirstGuillocheLayer() {
-            // FIRST LAYER - Lightest background guilloche covering entire document
+            // FIRST LAYER - Extremely subtle background guilloche
             ctx.save();
-            ctx.globalAlpha = 0.08; // Very faint
-            ctx.strokeStyle = '#D4C4A0';
-            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.02; // VERY SUBTLE - reduced from 0.08
+            ctx.strokeStyle = '#F0E8D8'; // Very light cream
+            ctx.lineWidth = 0.3;
             
             // Create a mesh pattern across entire page
-            for(let x = 0; x < canvas.width; x += 30) {
-                for(let y = 0; y < canvas.height; y += 30) {
+            for(let x = 0; x < canvas.width; x += 40) {
+                for(let y = 0; y < canvas.height; y += 40) {
                     ctx.beginPath();
-                    ctx.arc(x, y, 15, 0, Math.PI * 2);
+                    ctx.arc(x, y, 20, 0, Math.PI * 2);
                     ctx.stroke();
                 }
             }
             
             // Wavy lines across page
-            for(let y = 0; y < canvas.height; y += 40) {
+            for(let y = 0; y < canvas.height; y += 60) {
                 ctx.beginPath();
-                for(let x = 0; x < canvas.width; x += 5) {
-                    const waveY = y + Math.sin(x * 0.02) * 10;
+                for(let x = 0; x < canvas.width; x += 10) {
+                    const waveY = y + Math.sin(x * 0.01) * 15;
                     if(x === 0) ctx.moveTo(x, waveY);
                     else ctx.lineTo(x, waveY);
                 }
@@ -305,53 +326,52 @@
         }
         
         function drawSecondGuillocheLayer() {
-            // SECOND LAYER - Border guilloche pattern around edges
+            // SECOND LAYER - Extremely subtle border pattern
             ctx.save();
-            ctx.globalAlpha = 0.12; // Slightly more visible
-            ctx.strokeStyle = '#C8B898';
-            ctx.lineWidth = 0.8;
+            ctx.globalAlpha = 0.025; // VERY SUBTLE - reduced from 0.12
+            ctx.strokeStyle = '#EDE4D3'; // Very light beige
+            ctx.lineWidth = 0.5;
             
             // Top border pattern
-            for(let x = 0; x < canvas.width; x += 15) {
+            for(let x = 0; x < canvas.width; x += 20) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
-                ctx.quadraticCurveTo(x + 7, 50, x + 15, 0);
+                ctx.quadraticCurveTo(x + 10, 60, x + 20, 0);
                 ctx.stroke();
             }
             
             // Bottom border pattern
-            for(let x = 0; x < canvas.width; x += 15) {
+            for(let x = 0; x < canvas.width; x += 20) {
                 ctx.beginPath();
                 ctx.moveTo(x, canvas.height);
-                ctx.quadraticCurveTo(x + 7, canvas.height - 50, x + 15, canvas.height);
+                ctx.quadraticCurveTo(x + 10, canvas.height - 60, x + 20, canvas.height);
                 ctx.stroke();
             }
             
             // Left border pattern
-            for(let y = 0; y < canvas.height; y += 15) {
+            for(let y = 0; y < canvas.height; y += 20) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
-                ctx.quadraticCurveTo(50, y + 7, 0, y + 15);
+                ctx.quadraticCurveTo(60, y + 10, 0, y + 20);
                 ctx.stroke();
             }
             
             // Right border pattern  
-            for(let y = 0; y < canvas.height; y += 15) {
+            for(let y = 0; y < canvas.height; y += 20) {
                 ctx.beginPath();
                 ctx.moveTo(canvas.width, y);
-                ctx.quadraticCurveTo(canvas.width - 50, y + 7, canvas.width, y + 15);
+                ctx.quadraticCurveTo(canvas.width - 60, y + 10, canvas.width, y + 20);
                 ctx.stroke();
             }
             ctx.restore();
         }
         
         function drawThirdGuillocheLayer() {
-            // THIRD LAYER - Round guilloche with oval center in signature area
-            // Positioned between signature, surname/initials, date printed, printed by, and stamp
+            // THIRD LAYER - Extremely subtle oval pattern in signature area
             ctx.save();
-            ctx.globalAlpha = 0.18; // Most visible layer
-            ctx.strokeStyle = '#BCA878';
-            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.03; // VERY SUBTLE - reduced from 0.18
+            ctx.strokeStyle = '#EAE0CC'; // Light cream/beige
+            ctx.lineWidth = 0.6;
             
             // Center position - in the middle of signature area
             const centerX = 1050; // Middle of document
@@ -363,7 +383,7 @@
             ctx.stroke();
             
             // Draw circular guilloche radiating from oval
-            for(let angle = 0; angle < 360; angle += 6) {
+            for(let angle = 0; angle < 360; angle += 12) { // Less dense
                 const radians = angle * Math.PI / 180;
                 ctx.beginPath();
                 
@@ -373,17 +393,17 @@
                 ctx.moveTo(startX, startY);
                 
                 // Create spiral pattern
-                for(let r = 150; r < 400; r += 10) {
-                    const spiralAngle = radians + (r - 150) * 0.01;
+                for(let r = 150; r < 350; r += 20) { // Smaller range
+                    const spiralAngle = radians + (r - 150) * 0.005;
                     const x = centerX + Math.cos(spiralAngle) * r;
-                    const y = centerY + Math.sin(spiralAngle) * (r * 0.67); // Maintain oval shape
+                    const y = centerY + Math.sin(spiralAngle) * (r * 0.67);
                     ctx.lineTo(x, y);
                 }
                 ctx.stroke();
             }
             
             // Add concentric ovals around center
-            for(let scale = 1.2; scale < 3; scale += 0.3) {
+            for(let scale = 1.3; scale < 2.5; scale += 0.4) { // Fewer ovals
                 ctx.beginPath();
                 ctx.ellipse(centerX, centerY, 150 * scale, 100 * scale, 0, 0, Math.PI * 2);
                 ctx.stroke();
