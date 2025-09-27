@@ -425,14 +425,17 @@
                 dateIssued: "16/09/2025"
             },
             {
-                name: "Ikram Ibrahim Yusuf Mansuri",
+                name: "IKRAM IBRAHIM YUSUF MANSURI",
                 type: "Work Visa",
                 fullType: "General Work Visa Section 19(2)",
                 passport: "10611952",
                 controlNo: "AA2349632",
-                dateIssued: "16/09/2025",
-                validUntil: "16/09/2026",
-                entries: "MULTIPLE"
+                trn: "26J7KH",
+                refNo: "JHB 76268/2025/WPVC",
+                dateIssued: "2025-09-10",
+                validUntil: "2027-09-10",
+                entries: "MULTIPLE",
+                issuedAt: "HEAD OFFICE"
             },
             {
                 name: "Anisah",
@@ -445,11 +448,12 @@
             },
             {
                 name: "Faati Abduraam",
-                type: "Refugee Permit",
-                fullType: "Refugee Status Permit",
-                referenceNo: "PT4E000002015",
+                type: "Asylum Permit",
+                fullType: "Asylum Seeker Temporary Permit",
+                referenceNo: "000000000",
                 dateIssued: "15/09/2025",
-                validUntil: "15/09/2027"
+                validUntil: "15/09/2027",
+                location: "CAPE TOWN"
             },
             {
                 name: "Zaneerah Ally",
@@ -826,67 +830,109 @@ African citizen by birth/descent/naturalisation.`;
             generateVerificationPage(pdf, doc);
         }
         
-        // Generate Work Visa
+        // Generate Work Visa - EXACT MATCH TO IMG_7113
         function generateWorkVisa(pdf, doc) {
             const pageWidth = 210;
-            const pageHeight = 148; // A5 size
+            const pageHeight = 148; // A5 size for visa
             
-            // Background with gradient effect
-            pdf.setFillColor(240, 255, 240);
-            pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+            // Create green gradient holographic background
+            const canvas = document.createElement('canvas');
+            canvas.width = pageWidth * 4;
+            canvas.height = pageHeight * 4;
+            const ctx = canvas.getContext('2d');
             
-            // Green header
-            pdf.setFillColor(0, 100, 66);
-            pdf.rect(0, 0, pageWidth, 30, 'F');
+            // Create gradient effect
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#e8f5e9');
+            gradient.addColorStop(0.3, '#c8e6c9');
+            gradient.addColorStop(0.5, '#a5d6a7');
+            gradient.addColorStop(0.7, '#81c784');
+            gradient.addColorStop(1, '#66bb6a');
             
-            // White text in header
-            pdf.setTextColor(255, 255, 255);
-            pdf.setFontSize(12);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('REPUBLIC OF SOUTH AFRICA', pageWidth / 2, 12, { align: 'center' });
-            pdf.setFontSize(16);
-            pdf.text('GENERAL WORK VISA SECTION 19(2)', pageWidth / 2, 22, { align: 'center' });
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // Control number
+            // Add holographic pattern
+            ctx.globalAlpha = 0.1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                for (let j = 0; j < canvas.height; j += 50) {
+                    ctx.beginPath();
+                    ctx.arc(i, j, 20, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                }
+            }
+            
+            // Add background to PDF
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, pageHeight);
+            
+            // White content area with transparency
+            pdf.setFillColor(255, 255, 255, 230);
+            pdf.rect(10, 20, pageWidth - 20, pageHeight - 30, 'F');
+            
+            // Control No at TOP RIGHT
             pdf.setTextColor(0, 0, 0);
             pdf.setFontSize(10);
-            pdf.text('Control No: ' + doc.controlNo, 15, 40);
-            pdf.text('DHA-1625', pageWidth - 15, 40, { align: 'right' });
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('Control No: ' + doc.controlNo, pageWidth - 15, 15, { align: 'right' });
+            
+            // DHA-1625 number at far right
+            pdf.text('DHA-1625', pageWidth - 15, 25, { align: 'right' });
+            
+            // Left side header
+            pdf.setFontSize(9);
+            pdf.text('home affairs', 20, 30);
+            pdf.setFontSize(8);
+            pdf.text('Department:', 20, 35);
+            pdf.text('Home Affairs', 20, 40);
+            pdf.text('REPUBLIC OF SOUTH AFRICA', 20, 45);
+            
+            // Main title - centered
+            pdf.setFontSize(14);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('GENERAL WORK VISA SECTION 19(2)', pageWidth / 2, 35, { align: 'center' });
+            
+            // TRN number
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('TRN: ' + doc.trn, 20, 52);
             
             // Reference number
-            pdf.text('Ref No: JHB 7625I/2025/WPVC', 15, 48);
+            pdf.text('Ref No: ' + doc.refNo, 20, 58);
             
-            // Details section
-            pdf.setFontSize(11);
-            pdf.text('Name: ' + doc.name, 15, 60);
-            pdf.text('Passport No: ' + doc.passport, 15, 68);
-            pdf.text('No. of Entries: ' + doc.entries, 15, 76);
-            pdf.text('VISA Expiry Date: ' + doc.validUntil, 15, 84);
-            pdf.text('Issued at: HEAD OFFICE', 15, 92);
-            pdf.text('ON: ' + doc.dateIssued, 120, 92);
-            
-            // Conditions
+            // Personal details section
             pdf.setFontSize(10);
-            pdf.text('Conditions:', 15, 104);
+            let yPos = 68;
+            pdf.text('Name: ' + doc.name, 20, yPos);
+            yPos += 7;
+            pdf.text('Passport No: ' + doc.passport, 20, yPos);
+            yPos += 7;
+            pdf.text('No. of Entries: ' + doc.entries, 20, yPos);
+            yPos += 7;
+            pdf.text('VISA Expiry Date: ' + doc.validUntil, 20, yPos);
+            yPos += 7;
+            pdf.text('Issued at: ' + doc.issuedAt, 20, yPos);
+            pdf.text('ON: ' + doc.dateIssued, 120, yPos);
+            
+            // Conditions section
+            yPos += 10;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Conditions:', 20, yPos);
+            pdf.setFont('helvetica', 'normal');
             pdf.setFontSize(9);
-            const conditions = [
-                '(1) To take up employment in the category mentioned above',
-                '(2) The above permit holder does not become a permanent resident'
-            ];
+            yPos += 6;
+            pdf.text('(1) To take up employment in the category mentioned above', 20, yPos);
+            yPos += 5;
+            pdf.text('(2) The above permit holder does not become a permanent resident', 20, yPos);
             
-            let yPos = 112;
-            conditions.forEach(condition => {
-                pdf.text(condition, 15, yPos);
-                yPos += 6;
-            });
-            
-            // Barcode
+            // Barcode at bottom
             const barcodeData = generateBarcode('A7927CS');
-            pdf.addImage(barcodeData, 'PNG', pageWidth - 60, 110, 50, 25);
+            pdf.addImage(barcodeData, 'PNG', pageWidth - 70, pageHeight - 35, 60, 25);
             
-            // Director-General
-            pdf.setFontSize(10);
-            pdf.text('Director-General: Home Affairs', 15, 135);
+            // Director-General signature
+            pdf.setFontSize(9);
+            pdf.setFont('helvetica', 'italic');
+            pdf.text('Director-General: Home Affairs', 20, pageHeight - 15);
             
             // Add verification page
             pdf.addPage();
@@ -1030,70 +1076,124 @@ African citizen by birth/descent/naturalisation.`;
             generateVerificationPage(pdf, doc);
         }
         
-        // Generate Refugee Status Permit
-        function generateRefugeePermit(pdf, doc) {
+        // Generate Asylum Seeker Temporary Permit - EXACT MATCH TO IMG_6603
+        function generateAsylumPermit(pdf, doc) {
             const pageWidth = 210;
             const pageHeight = 297;
             
+            // White background
             pdf.setFillColor(255, 255, 255);
             pdf.rect(0, 0, pageWidth, pageHeight, 'F');
             
-            // Special border for refugee documents
-            pdf.setDrawColor(0, 100, 66);
-            pdf.setLineWidth(5);
-            pdf.setLineDash([5, 5]);
-            pdf.rect(5, 5, pageWidth - 10, pageHeight - 10, 'S');
-            pdf.setLineDash([]);
+            // Orange header bar
+            pdf.setFillColor(255, 140, 0);
+            pdf.rect(0, 0, pageWidth, 40, 'F');
             
-            // Header with UNHCR reference
-            pdf.setTextColor(0, 100, 66);
-            pdf.setFontSize(12);
+            // Add coat of arms placeholder in header
+            pdf.setFillColor(255, 255, 255);
+            pdf.circle(pageWidth / 2, 20, 12, 'F');
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.5);
+            pdf.circle(pageWidth / 2, 20, 12, 'S');
+            
+            // Document barcode at top
+            pdf.setFillColor(0, 0, 0);
+            pdf.setFontSize(8);
+            pdf.setFont('courier', 'normal');
+            const barcodeText = '||||||||||||||||||||||||||';
+            pdf.text(barcodeText, 20, 50);
+            
+            // Main title
+            pdf.setFontSize(14);
             pdf.setFont('helvetica', 'bold');
-            pdf.text('REPUBLIC OF SOUTH AFRICA', pageWidth / 2, 25, { align: 'center' });
-            pdf.text('DEPARTMENT OF HOME AFFAIRS', pageWidth / 2, 33, { align: 'center' });
-            pdf.setFontSize(10);
-            pdf.text('In cooperation with UNHCR', pageWidth / 2, 41, { align: 'center' });
-            
-            // Title
-            pdf.setFontSize(18);
-            pdf.text('REFUGEE STATUS PERMIT', pageWidth / 2, 60, { align: 'center' });
-            
-            // Reference number prominently displayed
-            pdf.setFillColor(240, 240, 240);
-            pdf.rect(30, 70, pageWidth - 60, 20, 'F');
             pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(12);
-            pdf.text('Reference No: ' + doc.referenceNo, pageWidth / 2, 82, { align: 'center' });
+            pdf.text('ASYLUM SEEKER TEMPORARY PERMIT', pageWidth / 2, 65, { align: 'center' });
             
-            // Details
+            // Subtitle
             pdf.setFontSize(11);
-            pdf.text('Name: ' + doc.name, 30, 105);
-            pdf.text('Date Issued: ' + doc.dateIssued, 30, 115);
-            pdf.text('Valid Until: ' + doc.validUntil, 30, 125);
-            pdf.text('Status: RECOGNIZED REFUGEE', 30, 135);
-            pdf.text('Country of Origin: [PROTECTED INFORMATION]', 30, 145);
+            pdf.text('A. PERSONAL PARTICULARS OF HOLDER', 20, 80);
             
-            // Rights and restrictions
+            // Photo placeholder with orange border
+            pdf.setDrawColor(255, 140, 0);
+            pdf.setLineWidth(2);
+            pdf.rect(pageWidth - 60, 85, 40, 50, 'S');
+            pdf.setFontSize(8);
+            pdf.setTextColor(150, 150, 150);
+            pdf.text('PHOTO', pageWidth - 40, 112, { align: 'center' });
+            
+            // Personal details fields (empty lines for form)
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.5);
             pdf.setFontSize(10);
+            pdf.setTextColor(0, 0, 0);
+            
+            let yPos = 95;
+            const fields = [
+                'Surname: ______________________________',
+                'Given Names: _________________________',
+                'Date of Birth: ___________________________',
+                'Nationality: _____________________________',
+                'Passport/ID No: ________________________'
+            ];
+            
+            fields.forEach(field => {
+                pdf.text(field, 20, yPos);
+                yPos += 10;
+            });
+            
+            // CAPE TOWN stamp in red
+            pdf.setDrawColor(255, 0, 0);
+            pdf.setLineWidth(3);
+            pdf.rect(20, 150, 60, 25, 'S');
+            pdf.setTextColor(255, 0, 0);
+            pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
-            pdf.text('RIGHTS GRANTED:', 30, 160);
+            pdf.text('CAPE TOWN', 50, 165, { align: 'center' });
+            
+            // Conditions section
+            pdf.setTextColor(0, 0, 0);
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('B. CONDITIONS', 20, 190);
+            
             pdf.setFont('helvetica', 'normal');
-            pdf.text('• Right to remain in South Africa', 35, 170);
-            pdf.text('• Right to work and study', 35, 178);
-            pdf.text('• Access to basic health care and education', 35, 186);
-            pdf.text('• Protection against refoulement', 35, 194);
-            
-            // Important notice
-            pdf.setFillColor(255, 240, 240);
-            pdf.rect(30, 205, pageWidth - 60, 30, 'F');
-            pdf.setTextColor(200, 0, 0);
             pdf.setFontSize(9);
-            pdf.text('IMPORTANT: This document must be renewed before expiry.', pageWidth / 2, 215, { align: 'center' });
-            pdf.text('Report to nearest Refugee Reception Office for renewal.', pageWidth / 2, 223, { align: 'center' });
-            pdf.text('Failure to renew may result in loss of refugee status.', pageWidth / 2, 231, { align: 'center' });
+            const conditions = [
+                '1. This permit is issued in terms of Section 22 of the Refugees Act, 1998 (Act No. 130 of 1998)',
+                '2. The holder must report to a Refugee Reception Office within 14 days',
+                '3. This permit is valid for 6 months from date of issue',
+                '4. The holder may not take up employment or study',
+                '5. The holder must remain in the magisterial district where permit was issued',
+                '6. This permit does not guarantee refugee status',
+                '7. The holder must comply with all laws of the Republic'
+            ];
             
-            // Add standard elements
-            addStandardElements(pdf, doc);
+            yPos = 200;
+            conditions.forEach(condition => {
+                const lines = pdf.splitTextToSize(condition, pageWidth - 40);
+                lines.forEach(line => {
+                    pdf.text(line, 20, yPos);
+                    yPos += 5;
+                });
+                yPos += 2;
+            });
+            
+            // Bottom section with fingerprint box
+            pdf.setDrawColor(255, 140, 0);
+            pdf.setLineWidth(1);
+            pdf.rect(20, pageHeight - 70, 30, 40, 'S');
+            pdf.setFontSize(8);
+            pdf.setTextColor(0, 0, 0);
+            pdf.text('Fingerprint', 35, pageHeight - 25, { align: 'center' });
+            
+            // Barcode at bottom
+            const bottomBarcode = generateBarcode(doc.referenceNo);
+            pdf.addImage(bottomBarcode, 'PNG', pageWidth / 2 - 50, pageHeight - 45, 100, 30);
+            
+            // Document number at bottom
+            pdf.setFontSize(10);
+            pdf.setFont('courier', 'normal');
+            pdf.text(doc.referenceNo, pageWidth / 2, pageHeight - 10, { align: 'center' });
             
             // Add verification page
             pdf.addPage();
@@ -1257,8 +1357,8 @@ African citizen by birth/descent/naturalisation.`;
                     case 'Relative Visa':
                         generateRelativeVisa(pdf, doc);
                         break;
-                    case 'Refugee Permit':
-                        generateRefugeePermit(pdf, doc);
+                    case 'Asylum Permit':
+                        generateAsylumPermit(pdf, doc);
                         break;
                     default:
                         generatePRP(pdf, doc);
