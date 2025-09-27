@@ -195,6 +195,185 @@
         .hidden-qr {
             display: none;
         }
+        
+        /* Verification Section Styles */
+        .verification-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+            margin-top: 30px;
+            border: 3px solid #005a3c;
+        }
+        
+        .verification-title {
+            color: #005a3c;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .verification-form {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .verification-input {
+            flex: 1;
+            padding: 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            text-transform: uppercase;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+        
+        .verification-input:focus {
+            outline: none;
+            border-color: #005a3c;
+            box-shadow: 0 0 0 3px rgba(0, 90, 60, 0.1);
+        }
+        
+        .verify-btn {
+            background: #005a3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .verify-btn:hover {
+            background: #007850;
+            transform: translateY(-2px);
+        }
+        
+        .verify-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .verification-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-valid {
+            background: #d4edda;
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+        
+        .result-invalid {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .result-header {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .result-details {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .detail-value {
+            color: #333;
+            text-align: right;
+        }
+        
+        .stats-section {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .stats-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .stats-count {
+            font-size: 24px;
+            font-weight: bold;
+            color: #005a3c;
+        }
+        
+        .clear-data-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        
+        .clear-data-btn:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -327,6 +506,46 @@
                 ✅ All documents generated successfully!
             </div>
         </div>
+        
+        <!-- Verification Section -->
+        <div class="verification-section">
+            <div class="verification-title">
+                <span>🔍</span>
+                <span>Document Verification System</span>
+            </div>
+            
+            <div class="verification-form">
+                <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                    Enter a verification code to check if a document is valid and authentic
+                </p>
+                
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="verificationInput" 
+                        class="verification-input" 
+                        placeholder="Enter verification code (e.g., DHA-2025-10001)"
+                        onkeypress="if(event.key === 'Enter') verifyDocument()"
+                    >
+                    <button class="verify-btn" onclick="verifyDocument()">
+                        <span>✓</span>
+                        <span>Verify</span>
+                    </button>
+                </div>
+                
+                <!-- Verification Result -->
+                <div id="verificationResult" class="verification-result"></div>
+                
+                <!-- Statistics Section -->
+                <div class="stats-section">
+                    <div class="stats-title">Total Documents in Verification Database</div>
+                    <div class="stats-count" id="statsCount">0</div>
+                    <button class="clear-data-btn" onclick="clearVerificationData()">
+                        🗑️ Clear All Verification Data
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Hidden QR Code Canvas -->
@@ -334,6 +553,185 @@
 
     <script>
         const { jsPDF } = window.jspdf;
+        
+        // Verification Database Management
+        const VERIFICATION_DB_KEY = 'dha_verification_database';
+        
+        // Initialize verification database
+        function initVerificationDB() {
+            const existingDB = localStorage.getItem(VERIFICATION_DB_KEY);
+            if (!existingDB) {
+                localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify({}));
+            }
+            updateStatsDisplay();
+        }
+        
+        // Store document in verification database
+        function storeDocumentVerification(docData) {
+            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
+            const verificationEntry = {
+                code: docData.code,
+                type: docData.type,
+                name: docData.name,
+                issueDate: new Date().toISOString(),
+                issueDateTime: new Date().toLocaleString('en-GB'),
+                status: 'VALID',
+                nationality: docData.nationality || null,
+                passport: docData.passport || null,
+                employer: docData.employer || null,
+                position: docData.position || null,
+                relationship: docData.relationship || null,
+                sponsor: docData.sponsor || null,
+                refugeeNumber: docData.refugeeNumber || null,
+                country: docData.country || null,
+                citizenshipDate: docData.citizenshipDate || null
+            };
+            
+            db[docData.code] = verificationEntry;
+            localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify(db));
+            updateStatsDisplay();
+        }
+        
+        // Verify document
+        function verifyDocument() {
+            const input = document.getElementById('verificationInput');
+            const resultDiv = document.getElementById('verificationResult');
+            const code = input.value.trim().toUpperCase();
+            
+            if (!code) {
+                alert('Please enter a verification code');
+                return;
+            }
+            
+            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
+            const document = db[code];
+            
+            if (document) {
+                // Valid document found
+                resultDiv.className = 'verification-result result-valid';
+                resultDiv.innerHTML = `
+                    <div class="result-header">
+                        <span>✅</span>
+                        <span>Document Verified Successfully</span>
+                    </div>
+                    <div class="result-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Verification Code:</span>
+                            <span class="detail-value">${document.code}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Document Type:</span>
+                            <span class="detail-value">${document.type}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Name:</span>
+                            <span class="detail-value">${document.name}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Issue Date:</span>
+                            <span class="detail-value">${document.issueDateTime}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Status:</span>
+                            <span class="detail-value" style="color: #28a745; font-weight: bold;">${document.status}</span>
+                        </div>
+                        ${document.nationality ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Nationality:</span>
+                            <span class="detail-value">${document.nationality}</span>
+                        </div>` : ''}
+                        ${document.passport ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Passport:</span>
+                            <span class="detail-value">${document.passport}</span>
+                        </div>` : ''}
+                        ${document.employer ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Employer:</span>
+                            <span class="detail-value">${document.employer}</span>
+                        </div>` : ''}
+                        ${document.position ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Position:</span>
+                            <span class="detail-value">${document.position}</span>
+                        </div>` : ''}
+                        ${document.relationship ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Relationship:</span>
+                            <span class="detail-value">${document.relationship}</span>
+                        </div>` : ''}
+                        ${document.sponsor ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Sponsor:</span>
+                            <span class="detail-value">${document.sponsor}</span>
+                        </div>` : ''}
+                        ${document.refugeeNumber ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Refugee Number:</span>
+                            <span class="detail-value">${document.refugeeNumber}</span>
+                        </div>` : ''}
+                        ${document.country ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Country of Origin:</span>
+                            <span class="detail-value">${document.country}</span>
+                        </div>` : ''}
+                    </div>
+                `;
+            } else {
+                // Invalid or not found
+                resultDiv.className = 'verification-result result-invalid';
+                resultDiv.innerHTML = `
+                    <div class="result-header">
+                        <span>❌</span>
+                        <span>Document Not Found</span>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <p>The verification code <strong>${code}</strong> was not found in our database.</p>
+                        <p style="margin-top: 10px;">This could mean:</p>
+                        <ul style="margin-top: 10px; padding-left: 20px;">
+                            <li>The code was entered incorrectly</li>
+                            <li>The document has not been generated yet</li>
+                            <li>The document is not a valid DHA document</li>
+                        </ul>
+                        <p style="margin-top: 15px; font-size: 14px; color: #666;">
+                            Please ensure you have generated the document first before attempting verification.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            resultDiv.style.display = 'block';
+            
+            // Clear input after verification
+            setTimeout(() => {
+                input.value = '';
+            }, 500);
+        }
+        
+        // Clear all verification data
+        function clearVerificationData() {
+            if (confirm('Are you sure you want to clear all verification data? This action cannot be undone.')) {
+                localStorage.setItem(VERIFICATION_DB_KEY, JSON.stringify({}));
+                updateStatsDisplay();
+                document.getElementById('verificationResult').style.display = 'none';
+                alert('All verification data has been cleared.');
+            }
+        }
+        
+        // Update statistics display
+        function updateStatsDisplay() {
+            const db = JSON.parse(localStorage.getItem(VERIFICATION_DB_KEY) || '{}');
+            const count = Object.keys(db).length;
+            document.getElementById('statsCount').textContent = count;
+        }
+        
+        // Pre-load sample data (optional - for demonstration)
+        function preloadSampleData() {
+            // Pre-load the existing documents data for instant verification
+            documents.forEach(doc => {
+                storeDocumentVerification(doc);
+            });
+        }
 
         // Document data
         const documents = [
@@ -1017,6 +1415,9 @@
             const docData = documents.find(d => d.id === docId);
             if (!docData) return;
             
+            // Store document in verification database
+            storeDocumentVerification(docData);
+            
             let doc;
             
             // Generate appropriate document based on type
@@ -1068,6 +1469,16 @@
                 statusMsg.style.display = 'none';
             }, 5000);
         }
+        
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            initVerificationDB();
+            
+            // Optionally pre-load sample data for demonstration
+            // Uncomment the line below to pre-populate the database with all documents
+            // This makes it possible to verify documents immediately without generating them first
+            // preloadSampleData();
+        });
     </script>
 </body>
 </html>
