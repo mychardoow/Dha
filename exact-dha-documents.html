@@ -207,18 +207,42 @@
             pdf.setFillColor(250, 250, 248);
             pdf.rect(0, 0, pageWidth, pageHeight, 'F');
             
-            // Add actual South African coat of arms
-            // Since we can't directly load external images in jsPDF in browser, we'll create a better placeholder
-            // Draw coat of arms shape
-            pdf.setFillColor(255, 215, 0); // Gold
-            pdf.circle(32.5, 25, 12, 'F');
+            // South African coat of arms with correct elements
+            // Sun at top
+            pdf.setFillColor(255, 215, 0); // Gold sun
+            pdf.circle(32.5, 18, 4, 'F');
+            // Sun rays
+            for(let i = 0; i < 8; i++) {
+                const angle = (i * 45) * Math.PI / 180;
+                const x1 = 32.5 + 4 * Math.cos(angle);
+                const y1 = 18 + 4 * Math.sin(angle);
+                const x2 = 32.5 + 6 * Math.cos(angle);
+                const y2 = 18 + 6 * Math.sin(angle);
+                pdf.setDrawColor(255, 215, 0);
+                pdf.setLineWidth(0.3);
+                pdf.line(x1, y1, x2, y2);
+            }
+            
+            // Shield shape
             pdf.setFillColor(0, 100, 66); // Green
-            pdf.circle(32.5, 25, 10, 'F');
-            pdf.setFillColor(255, 255, 255); // White center
-            pdf.circle(32.5, 25, 8, 'F');
-            pdf.setTextColor(0, 0, 0);
-            pdf.setFontSize(5);
-            pdf.text('RSA', 32.5, 25, { align: 'center' });
+            pdf.setDrawColor(0, 0, 0);
+            pdf.setLineWidth(0.5);
+            pdf.rect(28, 22, 9, 10, 'FD');
+            
+            // Crossed spear and knobkierie
+            pdf.setDrawColor(139, 69, 19); // Brown
+            pdf.setLineWidth(0.8);
+            pdf.line(25, 20, 40, 35); // Spear
+            pdf.line(40, 20, 25, 35); // Knobkierie
+            
+            // Zulu figures on sides
+            pdf.setFillColor(0, 0, 0);
+            // Left figure
+            pdf.circle(23, 27, 1, 'F'); // Head
+            pdf.rect(22, 28, 2, 4, 'F'); // Body
+            // Right figure  
+            pdf.circle(42, 27, 1, 'F'); // Head
+            pdf.rect(41, 28, 2, 4, 'F'); // Body
             
             // Header text next to coat of arms
             pdf.setFontSize(10);
