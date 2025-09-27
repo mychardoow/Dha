@@ -293,13 +293,13 @@
 
             <div class="doc-card">
                 <span class="doc-type">PERMANENT RESIDENCE PERMIT</span>
-                <div class="doc-name">Muhammad Hasnain</div>
+                <div class="doc-name">Muhammad Hasnain Younis</div>
                 <div class="doc-details">
                     <span>🆔 ID: 37405-6961586-3</span>
                     <span>📅 Valid: INDEFINITE</span>
                     <span>✅ NPR Verified</span>
                 </div>
-                <button class="download-btn" onclick="generateDocument('Muhammad Hasnain', 'PRP', '37405-6961586-3')">
+                <button class="download-btn" onclick="generateDocument('Muhammad Hasnain Younis', 'PRP', '37405-6961586-3')">
                     Generate Official Document
                 </button>
             </div>
@@ -387,12 +387,12 @@
 
         // Document data with all details
         const documentData = {
-            'Muhammad Mohsin': { type: 'PRP', passport: 'AD0116281', country: 'Pakistan', docNumber: '548778854' },
-            'Tasleem Mohsin': { type: 'PRP', passport: 'AUD115281', country: 'Pakistan', docNumber: '548778855' },
-            'Khunsha': { type: 'PRP', passport: 'KV4122911', country: 'Pakistan', docNumber: '548778856' },
-            'Haroon': { type: 'PRP', passport: 'DT9840361', country: 'Pakistan', docNumber: '548778857' },
-            'Faisal': { type: 'PRP', passport: 'PK7856234', country: 'Pakistan', docNumber: '548778858' },
-            'Muhammad Hasnain': { type: 'PRP', idNumber: '37405-6961586-3', country: 'Pakistan', docNumber: '548778859' },
+            'Muhammad Mohsin': { type: 'PRP', passport: 'AD0116281', country: 'Pakistan', docNumber: 'PRP-2025-00001' },
+            'Tasleem Mohsin': { type: 'PRP', passport: 'AUD115281', country: 'Pakistan', docNumber: 'PRP-2025-00002' },
+            'Khunsha': { type: 'PRP', passport: 'KV4122911', country: 'Pakistan', docNumber: 'PRP-2025-00003' },
+            'Haroon': { type: 'PRP', passport: 'DT9840361', country: 'Pakistan', docNumber: 'PRP-2025-00004' },
+            'Faisal': { type: 'PRP', passport: 'PK7856234', country: 'Pakistan', docNumber: 'PRP-2025-00005' },
+            'Muhammad Hasnain Younis': { type: 'PRP', idNumber: '37405-6961586-3', country: 'Pakistan', docNumber: 'PRP-2025-00006' },
             'Anna Munaf': { type: 'NATURALISATION', certNumber: 'NC-2025-00742', country: 'South Africa' },
             'Ikram Ibrahim Yusuf Mansuri': { 
                 type: 'WORK', 
@@ -402,9 +402,9 @@
                 refNo: 'JHB 76268/2025/WPVC', 
                 country: 'India' 
             },
-            'Anisah': { type: 'VISA', passport: 'IND4578921', country: 'India', expiryDate: '2027-09-10' },
-            'Faati Abduraam': { type: 'REFUGEE', refNumber: 'PT4E000002015', country: 'Somalia' },
-            'Zaneerah Ally': { type: 'BIRTH', birthCertNo: 'BC-2025-ZA0892', dateOfBirth: '2005-03-15', country: 'South Africa' }
+            'Anisah': { type: 'VISA', passport: 'IND4578921', country: 'India', expiryDate: '16/09/2026' },
+            'Faati Abduraam': { type: 'REFUGEE', refNumber: 'PT4E000002015', country: 'Somalia', expiryDate: '15/09/2026' },
+            'Zaneerah Ally': { type: 'BIRTH', birthCertNo: 'BC-2025-ZA0892', dateOfBirth: '2010-03-15', country: 'South Africa' }
         };
 
         function generateBarcode(code) {
@@ -426,7 +426,13 @@
                 const docInfo = documentData[name];
                 const verifyCode = 'DHA-2025-' + Math.floor(30000 + Math.random() * 60000);
                 const today = new Date();
-                const dateIssued = '27/09/2025'; // Fixed date as requested
+                // Set specific dates for each person
+                let dateIssued = '';
+                if (name === 'Muhammad Mohsin' || name === 'Tasleem Mohsin' || name === 'Ikram Ibrahim Yusuf Mansuri' || name === 'Anna Munaf' || name === 'Faati Abduraam') {
+                    dateIssued = '15/09/2025'; // 15th September
+                } else {
+                    dateIssued = '16/09/2025'; // 16th September
+                }
                 
                 // Call specific layout function based on document type
                 switch(type) {
@@ -574,7 +580,7 @@
             doc.setFont(undefined, 'normal');
             doc.text('Document Number:', 35, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text(docInfo.docNumber || '548778854', 35, yPos + 7);
+            doc.text(docInfo.docNumber || 'PRP-2025-00001', 35, yPos + 7);
             
             yPos += 20;
             if (identifier.includes('-')) {
@@ -707,7 +713,7 @@
             doc.setFont(undefined, 'normal');
             doc.text('VISA Expiry Date:', 30, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('2027-09-10', 70, yPos);
+            doc.text('15/09/2027', 70, yPos);
             
             yPos += 10;
             doc.setFont(undefined, 'normal');
@@ -719,7 +725,7 @@
             doc.setFont(undefined, 'normal');
             doc.text('ON:', 30, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text('2025-09-10', 70, yPos);
+            doc.text(dateIssued, 70, yPos);
             
             // Conditions section
             yPos += 20;
@@ -872,43 +878,55 @@
             doc.rect(20, 20, 170, 257, 'F');
             
             // Coat of arms
-            doc.setFillColor(184, 134, 11);
+            doc.setFillColor(0, 100, 66);
             doc.circle(105, 40, 15);
-            doc.setTextColor(255, 255, 255);
+            doc.setTextColor(255, 235, 100);
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
             doc.text('RSA', 105, 42, { align: 'center' });
             
             // Title
-            doc.setTextColor(184, 134, 11);
-            doc.setFontSize(22);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'normal');
+            doc.text('Republic of South Africa', 105, 60, { align: 'center' });
+            doc.text('Department of Home Affairs', 105, 68, { align: 'center' });
+            
+            doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
-            doc.text('CERTIFICATE OF', 105, 65, { align: 'center' });
-            doc.text('NATURALISATION', 105, 75, { align: 'center' });
+            doc.text('Certificate of South African Citizenship', 105, 85, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'italic');
+            doc.text('(Section 18: South African Citizenship Act, 1995)', 105, 94, { align: 'center' });
             
             // Formal wording
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(11);
             doc.setFont(undefined, 'normal');
-            let yPos = 95;
+            let yPos = 110;
             
-            doc.text('This is to certify that', 105, yPos, { align: 'center' });
+            doc.text('This certificate is issued for the sole purpose of endowing the status', 105, yPos, { align: 'center' });
+            yPos += 7;
+            doc.text('of the person concerned on the date of issue.', 105, yPos, { align: 'center' });
             
             yPos += 15;
+            doc.text('It is hereby certified that', 105, yPos, { align: 'center' });
+            
+            yPos += 12;
             doc.setFontSize(14);
             doc.setFont(undefined, 'bold');
             doc.text(name.toUpperCase(), 105, yPos, { align: 'center' });
             
-            yPos += 15;
+            yPos += 12;
             doc.setFontSize(11);
             doc.setFont(undefined, 'normal');
-            doc.text('has been admitted as a citizen of the', 105, yPos, { align: 'center' });
+            doc.text('concerning whose particulars are set out below, is a South', 105, yPos, { align: 'center' });
+            yPos += 7;
+            doc.text('African citizen by birth/descent/naturalisation.', 105, yPos, { align: 'center' });
             
-            yPos += 8;
-            doc.text('Republic of South Africa by naturalisation', 105, yPos, { align: 'center' });
-            
-            yPos += 8;
-            doc.text('in terms of the South African Citizenship Act', 105, yPos, { align: 'center' });
+            yPos += 10;
+            doc.text('By order of the Minister', 105, yPos, { align: 'center' });
             
             yPos += 15;
             doc.text('Certificate Number: ' + identifier, 105, yPos, { align: 'center' });
@@ -1021,7 +1039,7 @@
             doc.setFont(undefined, 'normal');
             doc.text('Valid Until:', 30, yPos);
             doc.setFont(undefined, 'bold');
-            doc.text(docInfo.expiryDate || '2027-09-10', 70, yPos);
+            doc.text(docInfo.expiryDate || '16/09/2026', 70, yPos);
             
             yPos += 10;
             doc.setFont(undefined, 'normal');
@@ -1147,6 +1165,12 @@
             doc.setFont(undefined, 'bold');
             doc.text(dateIssued, 30, yPos + 7);
             
+            yPos += 20;
+            doc.setFont(undefined, 'normal');
+            doc.text('Valid Until:', 30, yPos);
+            doc.setFont(undefined, 'bold');
+            doc.text(docInfo.expiryDate || '15/09/2026', 30, yPos + 7);
+            
             // Rights and protections
             yPos += 30;
             doc.setFont(undefined, 'bold');
@@ -1179,135 +1203,117 @@
             doc.text('Director: Refugee Affairs', 105, yPos + 5, { align: 'center' });
         }
 
-        // NPR Verification Page
+        // Official Verification Page (Page 2)
         function drawNPRVerificationPage(doc, verifyCode, name) {
-            // Light gray background
-            doc.setFillColor(240, 245, 250);
+            // Gray background
+            doc.setFillColor(245, 245, 245);
             doc.rect(0, 0, 210, 297, 'F');
             
-            // NPR watermark
-            doc.saveGraphicsState();
-            doc.setGState(new doc.GState({opacity: 0.03}));
-            doc.setTextColor(100, 100, 100);
-            doc.setFontSize(20);
-            doc.setFont(undefined, 'bold');
-            
-            for (let i = 0; i < 10; i++) {
-                for (let j = 0; j < 5; j++) {
-                    doc.text('NPR VERIFIED', j * 50 + 20, i * 35 + 30, { angle: 45 });
-                }
-            }
-            doc.restoreGraphicsState();
-            
-            // Green header
+            // Green header bar
             doc.setFillColor(0, 100, 66);
-            doc.rect(0, 0, 210, 30, 'F');
+            doc.rect(0, 0, 210, 35, 'F');
+            
+            // Page number "2 of 2"
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text('2 of 2', 195, 10, { align: 'right' });
             
             // Header text
-            doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
             doc.setFont(undefined, 'bold');
-            doc.text('NATIONAL POPULATION REGISTER', 105, 12, { align: 'center' });
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            doc.text('VERIFICATION PAGE', 105, 20, { align: 'center' });
+            doc.text('REPUBLIC OF SOUTH AFRICA', 105, 15, { align: 'center' });
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'italic');
+            doc.text('This is an official document of the Republic of South Africa', 105, 25, { align: 'center' });
             
-            // Verification title
+            // Main title
             doc.setTextColor(0, 100, 66);
-            doc.setFontSize(18);
+            doc.setFontSize(20);
             doc.setFont(undefined, 'bold');
-            doc.text('NPR VERIFICATION STATUS', 105, 50, { align: 'center' });
+            doc.text('DOCUMENT VERIFICATION', 105, 55, { align: 'center' });
             
-            // Verification details box
+            // White verification box
             doc.setFillColor(255, 255, 255);
-            doc.rect(20, 60, 170, 120);
+            doc.rect(20, 65, 170, 100, 'F');
             doc.setDrawColor(0, 100, 66);
             doc.setLineWidth(1);
-            doc.rect(20, 60, 170, 120);
+            doc.rect(20, 65, 170, 100);
             
-            // Verification checks
-            doc.setFontSize(12);
-            let yPos = 75;
+            // Three main verification checkmarks
+            doc.setFontSize(13);
+            let yPos = 85;
             
             // Check 1
-            doc.setTextColor(0, 150, 0);
+            doc.setTextColor(0, 180, 0);
+            doc.setFontSize(16);
             doc.text('✓', 30, yPos);
             doc.setTextColor(0, 0, 0);
-            doc.setFont(undefined, 'normal');
-            doc.text('Verified with National Population Register', 40, yPos);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Document verified in DHA system', 45, yPos);
             
-            yPos += 15;
+            yPos += 25;
             // Check 2
-            doc.setTextColor(0, 150, 0);
+            doc.setTextColor(0, 180, 0);
+            doc.setFontSize(16);
             doc.text('✓', 30, yPos);
             doc.setTextColor(0, 0, 0);
-            doc.text('Biometric data confirmed', 40, yPos);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Biometric data confirmed', 45, yPos);
             
-            yPos += 15;
+            yPos += 25;
             // Check 3
-            doc.setTextColor(0, 150, 0);
+            doc.setTextColor(0, 180, 0);
+            doc.setFontSize(16);
             doc.text('✓', 30, yPos);
             doc.setTextColor(0, 0, 0);
-            doc.text('Identity authenticated against NPR database', 40, yPos);
-            
-            yPos += 15;
-            // Check 4
-            doc.setTextColor(0, 150, 0);
-            doc.text('✓', 30, yPos);
-            doc.setTextColor(0, 0, 0);
-            doc.text('Document integrity verified', 40, yPos);
-            
-            yPos += 15;
-            // Check 5
-            doc.setTextColor(0, 150, 0);
-            doc.text('✓', 30, yPos);
-            doc.setTextColor(0, 0, 0);
-            doc.text('International verification enabled', 40, yPos);
-            
-            yPos += 15;
-            // Person name
+            doc.setFontSize(12);
             doc.setFont(undefined, 'bold');
-            doc.text('Person:', 30, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.text(name, 55, yPos);
+            doc.text('International verification enabled', 45, yPos);
             
-            yPos += 10;
-            // Verification code
+            // Large barcode section
+            yPos = 180;
+            const barcodeCode = verifyCode.replace('DHA-2025-', '');
+            const barcodeImage = generateBarcode('DHA' + barcodeCode);
+            doc.addImage(barcodeImage, 'PNG', 50, yPos, 110, 30);
+            
+            // Verification code display
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(12);
             doc.setFont(undefined, 'bold');
-            doc.text('Verification Code:', 30, yPos);
-            doc.setFont(undefined, 'normal');
-            doc.text(verifyCode, 75, yPos);
+            doc.text('Verification Code: ' + verifyCode, 105, yPos + 40, { align: 'center' });
             
-            // NPR Barcode
-            yPos = 195;
-            const barcodeImage = generateBarcode('NPR' + verifyCode.replace('DHA-2025-', ''));
-            doc.addImage(barcodeImage, 'PNG', 55, yPos, 100, 25);
-            
-            doc.setFontSize(10);
-            doc.text('NPR-' + verifyCode, 105, yPos + 30, { align: 'center' });
-            
-            // Security features section
+            // Security features box
             yPos = 235;
+            doc.setFillColor(250, 250, 250);
+            doc.rect(20, yPos, 170, 40, 'F');
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.5);
-            doc.rect(20, yPos, 170, 35);
+            doc.rect(20, yPos, 170, 40);
             
-            doc.setFontSize(10);
+            doc.setTextColor(0, 100, 66);
+            doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('ENHANCED SECURITY FEATURES', 105, yPos + 8, { align: 'center' });
+            doc.text('SECURITY FEATURES', 105, yPos + 8, { align: 'center' });
             
+            doc.setTextColor(0, 0, 0);
             doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
-            doc.text('• Blockchain verification available', 30, yPos + 16);
-            doc.text('• Quantum-resistant encryption', 110, yPos + 16);
-            doc.text('• Real-time NPR database sync', 30, yPos + 24);
-            doc.text('• Biometric matching: Fingerprint & Facial', 110, yPos + 24);
+            doc.text('• Holographic seal', 30, yPos + 18);
+            doc.text('• UV responsive elements', 30, yPos + 26);
+            doc.text('• Watermark patterns', 30, yPos + 34);
+            doc.text('• Micro text borders', 110, yPos + 18);
+            doc.text('• Guilloche patterns', 110, yPos + 26);
+            doc.text('• Security thread', 110, yPos + 34);
             
             // Footer
             doc.setTextColor(100, 100, 100);
             doc.setFontSize(8);
-            doc.text('© Department of Home Affairs - National Population Register', 105, 285, { align: 'center' });
-            doc.text('This verification is valid for 90 days from generation date', 105, 290, { align: 'center' });
+            doc.setFont(undefined, 'italic');
+            doc.text('Department of Home Affairs - Republic of South Africa', 105, 285, { align: 'center' });
+            doc.text('Verification valid for 30 days from date of generation', 105, 290, { align: 'center' });
         }
 
         function downloadAllDocuments() {
@@ -1317,7 +1323,7 @@
                 { name: 'Khunsha', type: 'PRP', id: 'KV4122911' },
                 { name: 'Haroon', type: 'PRP', id: 'DT9840361' },
                 { name: 'Faisal', type: 'PRP', id: 'PK7856234' },
-                { name: 'Muhammad Hasnain', type: 'PRP', id: '37405-6961586-3' },
+                { name: 'Muhammad Hasnain Younis', type: 'PRP', id: '37405-6961586-3' },
                 { name: 'Anna Munaf', type: 'NATURALISATION', id: 'NC-2025-00742' },
                 { name: 'Ikram Ibrahim Yusuf Mansuri', type: 'WORK', id: '10611952' },
                 { name: 'Anisah', type: 'VISA', id: 'IND4578921' },
