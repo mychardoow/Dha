@@ -17,6 +17,7 @@ import PDFTestPage from "./pages/pdf-test";
 import DocumentVerificationPage from "./pages/verify";
 import NotFoundPage from "./pages/not-found";
 import SystemStatus from "./pages/system-status";
+import DHA802Generator from "./pages/DHA802Generator";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
 import AdminGuard from "./components/admin/AdminGuard";
 import AIChatAssistant from "./components/AIChatAssistant";
@@ -136,6 +137,11 @@ function App() {
             <Route path="/verify/:code">
               <AuthGuard>
                 <DocumentVerificationPage />
+              </AuthGuard>
+            </Route>
+            <Route path="/dha802">
+              <AuthGuard>
+                <DHA802Generator />
               </AuthGuard>
             </Route>
             <Route path="/debug">
