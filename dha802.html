@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DHA-802 Permanent Residence Permit</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #006642;
+            margin-bottom: 10px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #218838;
+        }
+        canvas {
+            border: 2px solid #006642;
+            background: white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 100%;
+            height: auto;
+        }
+        .error {
+            color: red;
+            padding: 20px;
+            border: 2px solid red;
+            background: #ffe6e6;
+            margin: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>DHA-802 Permanent Residence Permit Generator</h1>
+    <p>Click a name to generate their document</p>
+    
+    <div class="controls">
+        <button onclick="generatePRP('Muhammad Mohsin', 'AD0116281', 'PRP3628959')">Muhammad Mohsin</button>
+        <button onclick="generatePRP('Tasleem Mohsin', 'AUD115281', 'PRP3628960')">Tasleem Mohsin</button>
+        <button onclick="generatePRP('Khunsha', 'KV4122911', 'PRP3628961')">Khunsha</button>
+        <button onclick="downloadCanvas()">Download as Image</button>
+    </div>
+    
+    <canvas id="prpCanvas" width="2100" height="2970"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('prpCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas display size
+        canvas.style.width = '700px';
+        canvas.style.height = '990px';
+        
+        // Load the template image
+        const templateImage = new Image();
+        templateImage.src = 'client/public/templates/dha-802-template.png';
+        
+        templateImage.onload = function() {
+            console.log('Template loaded successfully');
+            generatePRP('Muhammad Mohsin', 'AD0116281', 'PRP3628959');
+        };
+        
+        templateImage.onerror = function() {
+            console.log('Template failed to load, generating without template');
+            generatePRPWithoutTemplate('Muhammad Mohsin', 'AD0116281', 'PRP3628959');
+        };
+        
+        function generatePRP(name, permitNumber, referenceNo) {
+            // Clear canvas
+            ctx.clearRect(0, 0, 2100, 2970);
+            
+            // If template is loaded, draw it
+            if (templateImage.complete && templateImage.naturalHeight !== 0) {
+                ctx.drawImage(templateImage, 0, 0, 2100, 2970);
+            } else {
+                generatePRPWithoutTemplate(name, permitNumber, referenceNo);
+                return;
+            }
+            
+            // Add dynamic text on top of template
+            ctx.font = 'bold 32px Arial';
+            ctx.fillStyle = '#000000';
+            
+            // Permit Number
+            ctx.fillText(permitNumber, 800, 945);
+            
+            // Reference Number  
+            ctx.fillText(referenceNo, 1400, 945);
+            
+            // Name fields
+            const names = name.split(' ');
+            ctx.fillText(names[names.length - 1], 620, 1055); // Surname
+            ctx.fillText(names[0], 620, 1165); // First name
+            
+            // Nationality
+            ctx.fillText('FRANCE', 620, 1275);
+            
+            // Date of Birth
+            ctx.fillText('1983/05/21', 620, 1385);
+            
+            // Gender
+            ctx.fillText('MALE', 1200, 1385);
+            
+            // Dates
+            ctx.font = '30px Arial';
+            ctx.fillText('2023/11/14', 515, 1785);
+            ctx.fillText('2023/11/14', 430, 1950);
+            
+            // Signature
+            ctx.font = 'italic 40px Arial';
+            ctx.fillText('Makholde', 450, 1730);
+            
+            // Office stamp
+            ctx.font = '24px Arial';
+            ctx.fillText('Makholde LT', 1450, 1710);
+            ctx.fillText('PRETORIA 0001', 1450, 1850);
+            
+            // Control Number
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('No. A 297966', 1650, 2850);
+        }
+        
+        function generatePRPWithoutTemplate(name, permitNumber, referenceNo) {
+            // Clear and set white background
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, 2100, 2970);
+            
+            // Draw border
+            ctx.strokeStyle = '#006642';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(40, 40, 2020, 2890);
+            
+            // Header background
+            ctx.fillStyle = '#E8F5E9';
+            ctx.fillRect(60, 60, 1980, 300);
+            
+            // DHA Header
+            ctx.fillStyle = '#006642';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 1050, 140);
+            ctx.fillText('REPUBLIC OF SOUTH AFRICA', 1050, 200);
+            
+            // Document Type
+            ctx.font = 'bold 60px Arial';
+            ctx.fillText('PERMANENT RESIDENCE PERMIT', 1050, 300);
+            
+            // Form Number
+            ctx.font = '36px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#000';
+            ctx.fillText('DHA-802', 1950, 320);
+            
+            // Main content area
+            ctx.fillStyle = '#FAF8F0';
+            ctx.fillRect(100, 400, 1900, 2000);
+            
+            // Form fields
+            ctx.fillStyle = '#000000';
+            ctx.font = '32px Arial';
+            ctx.textAlign = 'left';
+            
+            // Labels and values
+            const fields = [
+                { label: 'PERMIT NUMBER:', value: permitNumber, y: 600 },
+                { label: 'REFERENCE NO:', value: referenceNo, y: 700 },
+                { label: 'Surname:', value: name.split(' ').pop(), y: 850 },
+                { label: 'First Name(s):', value: name.split(' ')[0], y: 950 },
+                { label: 'Nationality:', value: 'FRANCE', y: 1050 },
+                { label: 'Date of birth:', value: '1983/05/21', y: 1150 },
+                { label: 'Gender:', value: 'MALE', y: 1250 }
+            ];
+            
+            fields.forEach(field => {
+                ctx.font = 'bold 32px Arial';
+                ctx.fillText(field.label, 200, field.y);
+                ctx.font = '32px Arial';
+                ctx.fillText(field.value, 600, field.y);
+            });
+            
+            // Authorization text
+            ctx.font = '28px Arial';
+            ctx.fillText('Authorization: The provision of section 27(b) of the Immigration Act, 2000', 200, 1450);
+            ctx.fillText('hereby permits the holder to reside in the Republic of South Africa', 200, 1510);
+            ctx.fillText('for permanent residence.', 200, 1570);
+            
+            // Signature section
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('SIGNATURE', 200, 1750);
+            
+            // Draw signature line
+            ctx.beginPath();
+            ctx.moveTo(200, 1850);
+            ctx.lineTo(600, 1850);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Signature
+            ctx.font = 'italic 40px Arial';
+            ctx.fillText('Makholde', 250, 1830);
+            
+            // Date of Issue
+            ctx.font = '32px Arial';
+            ctx.fillText('Date of issue: 2023/11/14', 200, 1950);
+            
+            // Office Stamp Box
+            ctx.strokeStyle = '#006642';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1400, 1650, 500, 350);
+            
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('OFFICE AND INITIALS', 1650, 1700);
+            ctx.fillText('Makholde LT', 1650, 1800);
+            ctx.fillText('PRETORIA 0001', 1650, 1900);
+            
+            // Footer
+            ctx.fillStyle = '#E8F5E9';
+            ctx.fillRect(60, 2500, 1980, 410);
+            
+            // Control number
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('No. A 297966', 1900, 2850);
+            
+            // Conditions
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Conditions:', 200, 2600);
+            ctx.fillText('(i) This permit is issued once only and must be kept safely', 200, 2650);
+            ctx.fillText('(ii) Permanent residents who are absent from the Republic for more than 3 years', 200, 2700);
+            ctx.fillText('may lose their right to permanent residence', 200, 2750);
+            
+            ctx.textAlign = 'left';
+        }
+        
+        function downloadCanvas() {
+            const link = document.createElement('a');
+            link.download = 'DHA-802_PRP.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Generate initial document
+        setTimeout(() => {
+            if (!templateImage.complete) {
+                generatePRPWithoutTemplate('Muhammad Mohsin', 'AD0116281', 'PRP3628959');
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
