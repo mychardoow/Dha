@@ -6,25 +6,23 @@
  * Updated to use emergency startup for reliability
  */
 
-import { spawn } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = __dirname || process.cwd();
 
 console.log('🚀 DHA Digital Services Platform - Starting...');
 console.log('👑 Queen Raeesa Ultra AI Platform');
 console.log('🇿🇦 Department of Home Affairs - Digital Services');
 console.log('=' .repeat(50));
 
-// Immediately redirect to emergency startup for better reliability
-console.log('\n🔄 Using emergency startup sequence for better reliability...');
-const emergencyProcess = spawn('node', ['emergency-start.js'], {
+// Start the emergency server directly (bypassing build issues)
+console.log('\n🔄 Starting emergency server directly...');
+const emergencyProcess = spawn('node', ['emergency-server.mjs'], {
   stdio: 'inherit',
   shell: true,
-  env: { ...process.env }
+  env: { ...process.env, PORT: '5000' }
 });
 
 emergencyProcess.on('error', (error) => {
