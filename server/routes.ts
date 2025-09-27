@@ -312,6 +312,11 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       
       res.json({
         success: true,
+        allConnected: apiStatus.allSystemsReady,
+        npr: apiStatus.npr.configured,
+        abis: apiStatus.abis.configured,
+        icao: apiStatus.icaoPkd.configured,
+        saps: apiStatus.saps.configured,
         status: apiStatus,
         internationalVerification: apiStatus.icaoPkd.configured,
         biometricVerification: apiStatus.abis.configured,

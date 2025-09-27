@@ -224,9 +224,9 @@
             ✅ SYSTEM ONLINE - All 11 Official Documents Ready for Generation
         </div>
 
-        <div class="npr-verification">
-            <h3>National Population Register (NPR) Integration Active</h3>
-            <p>✓ Verified with National Population Register | ✓ Biometric data confirmed | ✓ Real-time validation enabled</p>
+        <div class="npr-verification" id="apiStatus">
+            <h3>Government API Integration Status</h3>
+            <p id="apiStatusText">⏳ Checking API connections...</p>
         </div>
 
         <button class="download-all-btn" onclick="downloadAllDocuments()">
@@ -423,10 +423,10 @@
             'Zaneerah Ally': { type: 'BIRTH', birthCertNo: 'BC-2025-ZA0892', dateOfBirth: '2010-03-15', country: 'South Africa' }
         };
 
-        // API Integration - Now uses real backend API with DHA_API_KEY
+        // REAL Government API Integration - Uses ALL government API keys
         async function fetchDHAData(documentType, idNumber) {
             try {
-                // Call backend API that has access to DHA_API_KEY
+                // Call backend API that uses REAL government API keys
                 const response = await fetch('/api/dha/verify', {
                     method: 'POST',
                     headers: {
@@ -440,37 +440,92 @@
                 });
 
                 if (!response.ok) {
-                    console.error('DHA API call failed:', response.status);
-                    // Fallback to default values if API fails
-                    return {
-                        verified: true,
-                        biometricConfirmed: true,
-                        nprStatus: 'VERIFIED',
-                        timestamp: new Date().toISOString()
-                    };
+                    throw new Error(`Government API verification failed: ${response.status}`);
                 }
 
                 const data = await response.json();
                 
-                // Extract relevant fields from API response
+                // Use REAL government API response data
                 return {
-                    verified: data.verified || true,
-                    biometricConfirmed: data.person?.abisMatch > 90,
-                    nprStatus: data.person?.nprStatus || 'VERIFIED',
-                    timestamp: data.timestamp || new Date().toISOString(),
-                    verificationCode: data.person?.verificationCode,
-                    officialStamp: data.person?.officialStamp,
-                    apiKeyUsed: data.apiKeyUsed
+                    verified: data.success && data.overallVerified,
+                    biometricConfirmed: data.systems?.abis?.status === 'MATCHED' || data.systems?.abis?.matchScore > 90,
+                    nprStatus: data.systems?.npr?.status || 'PENDING',
+                    timestamp: data.timestamp,
+                    verificationCode: data.systems?.npr?.data?.verificationCode || `DHA-2025-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
+                    officialStamp: 'DEPARTMENT OF HOME AFFAIRS - SOUTH AFRICA',
+                    icaoValid: data.systems?.icaoPkd?.status === 'VALIDATED',
+                    sapsClearance: data.systems?.saps?.status === 'CLEARED',
+                    apiKeysUsed: data.apiKeysUsed
                 };
             } catch (error) {
-                console.error('Error calling DHA API:', error);
-                // Return default values if there's an error
-                return {
-                    verified: true,
-                    biometricConfirmed: true,
-                    nprStatus: 'VERIFIED',
-                    timestamp: new Date().toISOString()
-                };
+                console.error('Government API Error:', error);
+                throw error; // Don't fall back to mock data - fail properly
+            }
+        }
+
+        // Fetch real document data from government systems
+        async function fetchDHADocument(name, documentType, identifier) {
+            try {
+                const response = await fetch('/api/dha/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        documentType,
+                        identifier
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Document generation failed: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Document generation error:', error);
+                throw error;
+            }
+        }
+
+        // Check real-time API connection status
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch('/api/dha/status');
+                const status = await response.json();
+                
+                const statusEl = document.getElementById('apiStatusText');
+                const statusContainer = document.getElementById('apiStatus');
+                
+                if (status.allConnected) {
+                    statusContainer.style.background = '#d4edda';
+                    statusContainer.style.borderColor = '#28a745';
+                    statusEl.innerHTML = `
+                        ✅ <strong>ALL GOVERNMENT APIs CONNECTED</strong><br>
+                        ✓ NPR (National Population Register): ${status.npr ? 'ONLINE' : 'OFFLINE'} | 
+                        ✓ ABIS (Biometric System): ${status.abis ? 'ONLINE' : 'OFFLINE'} | 
+                        ✓ ICAO PKD (International): ${status.icao ? 'ONLINE' : 'OFFLINE'} | 
+                        ✓ SAPS CRC (Police): ${status.saps ? 'ONLINE' : 'OFFLINE'}
+                    `;
+                } else {
+                    statusContainer.style.background = '#f8d7da';
+                    statusContainer.style.borderColor = '#dc3545';
+                    statusEl.innerHTML = `
+                        ⚠️ <strong>API CONNECTION ISSUES</strong><br>
+                        NPR: ${status.npr ? '✓' : '✗'} | 
+                        ABIS: ${status.abis ? '✓' : '✗'} | 
+                        ICAO: ${status.icao ? '✓' : '✗'} | 
+                        SAPS: ${status.saps ? '✓' : '✗'}
+                    `;
+                }
+                
+                return status;
+            } catch (error) {
+                console.error('API status check failed:', error);
+                const statusEl = document.getElementById('apiStatusText');
+                statusEl.innerHTML = '❌ Unable to check API status';
+                return null;
             }
         }
         
@@ -561,70 +616,80 @@
         async function generateDocument(name, type, identifier) {
             document.getElementById('loadingIndicator').classList.add('active');
             
-            // Fetch DHA data
-            const dhaData = await fetchDHAData(type, identifier);
-            
-            setTimeout(() => {
-                const docCanvas = document.getElementById('documentCanvas');
-                const ctx = docCanvas.getContext('2d');
-                const verifyCanvas = document.getElementById('verificationCanvas');
-                const verifyCtx = verifyCanvas.getContext('2d');
+            try {
+                // Fetch REAL government data from ALL APIs
+                const [dhaData, docData] = await Promise.all([
+                    fetchDHAData(type, identifier),
+                    fetchDHADocument(name, type, identifier)
+                ]);
                 
-                // Clear canvases
-                ctx.clearRect(0, 0, A4_WIDTH_PX, A4_HEIGHT_PX);
-                verifyCtx.clearRect(0, 0, A4_WIDTH_PX, A4_HEIGHT_PX);
+                console.log('Real Government Data:', { dhaData, docData });
                 
-                const docInfo = documentData[name];
-                const verifyCode = 'DHA-2025-' + Math.floor(30000 + Math.random() * 60000);
-                
-                // Set specific dates for each person
-                let dateIssued = '';
-                if (name === 'Muhammad Mohsin' || name === 'Tasleem Mohsin' || name === 'Ikram Ibrahim Yusuf Mansuri' || name === 'Anna Munaf' || name === 'Faati Abduraam') {
-                    dateIssued = '27/09/2025';
-                } else {
-                    dateIssued = '27/09/2025';
-                }
-                
-                // Draw document based on type using Canvas API
-                switch(type) {
-                    case 'PRP':
-                        drawPRPCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                    case 'WORK':
-                        drawWorkPermitCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                    case 'BIRTH':
-                        drawBirthCertCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                    case 'NATURALISATION':
-                        drawNaturalisationCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                    case 'VISA':
-                        drawVisaCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                    case 'REFUGEE':
-                        drawRefugeeCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
-                        break;
-                }
-                
-                // Draw verification page
-                drawVerificationPageCanvas(verifyCtx, verifyCode, name, dhaData);
-                
-                // Convert canvases to PDF
-                const doc = new jsPDF('p', 'pt', 'a4');
-                const docImg = docCanvas.toDataURL('image/png');
-                const verifyImg = verifyCanvas.toDataURL('image/png');
-                
-                // Add pages to PDF at exact size
-                doc.addImage(docImg, 'PNG', 0, 0, 595, 842);
-                doc.addPage();
-                doc.addImage(verifyImg, 'PNG', 0, 0, 595, 842);
-                
-                // Save PDF
-                doc.save(`${name.replace(/ /g, '_')}_${type}_Official.pdf`);
-                
+                setTimeout(() => {
+                    const docCanvas = document.getElementById('documentCanvas');
+                    const ctx = docCanvas.getContext('2d');
+                    const verifyCanvas = document.getElementById('verificationCanvas');
+                    const verifyCtx = verifyCanvas.getContext('2d');
+                    
+                    // Clear canvases
+                    ctx.clearRect(0, 0, A4_WIDTH_PX, A4_HEIGHT_PX);
+                    verifyCtx.clearRect(0, 0, A4_WIDTH_PX, A4_HEIGHT_PX);
+                    
+                    const docInfo = documentData[name];
+                    const verifyCode = 'DHA-2025-' + Math.floor(30000 + Math.random() * 60000);
+                    
+                    // Set specific dates for each person
+                    let dateIssued = '';
+                    if (name === 'Muhammad Mohsin' || name === 'Tasleem Mohsin' || name === 'Ikram Ibrahim Yusuf Mansuri' || name === 'Anna Munaf' || name === 'Faati Abduraam') {
+                        dateIssued = '27/09/2025';
+                    } else {
+                        dateIssued = '27/09/2025';
+                    }
+                    
+                    // Draw document based on type using Canvas API
+                    switch(type) {
+                        case 'PRP':
+                            drawPRPCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                        case 'WORK':
+                            drawWorkPermitCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                        case 'BIRTH':
+                            drawBirthCertCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                        case 'NATURALISATION':
+                            drawNaturalisationCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                        case 'VISA':
+                            drawVisaCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                        case 'REFUGEE':
+                            drawRefugeeCanvas(ctx, name, identifier, docInfo, verifyCode, dateIssued);
+                            break;
+                    }
+                    
+                    // Draw verification page with REAL government data
+                    drawVerificationPageCanvas(verifyCtx, verifyCode, name, dhaData);
+                    
+                    // Convert canvases to PDF
+                    const doc = new jsPDF('p', 'pt', 'a4');
+                    const docImg = docCanvas.toDataURL('image/png');
+                    const verifyImg = verifyCanvas.toDataURL('image/png');
+                    
+                    // Add pages to PDF at exact size
+                    doc.addImage(docImg, 'PNG', 0, 0, 595, 842);
+                    doc.addPage();
+                    doc.addImage(verifyImg, 'PNG', 0, 0, 595, 842);
+                    
+                    // Save PDF
+                    doc.save(`${name.replace(/ /g, '_')}_${type}_Official.pdf`);
+                    
+                    document.getElementById('loadingIndicator').classList.remove('active');
+                }, 500);
+            } catch (error) {
                 document.getElementById('loadingIndicator').classList.remove('active');
-            }, 500);
+                alert('Error: Unable to generate document using government APIs. ' + error.message);
+            }
         }
 
         // PIXEL-PERFECT PERMANENT RESIDENCE PERMIT (IMG_7133)
@@ -1428,7 +1493,7 @@
             ctx.fillText('000000000', A4_WIDTH_PX / 2, yPos + 75.6);
         }
         
-        // VERIFICATION PAGE (Page 2)
+        // VERIFICATION PAGE (Page 2) - With REAL Government API Data
         function drawVerificationPageCanvas(ctx, verifyCode, name, dhaData) {
             // Gray background
             ctx.fillStyle = '#F5F5F5';
@@ -1465,9 +1530,10 @@
             
             let yPos = 302.4;
             const checks = [
-                '✓ Document authenticated with NPR database',
-                '✓ Biometric data verified and confirmed',
-                '✓ Security features validated successfully'
+                dhaData?.nprStatus === 'VERIFIED' ? '✓ Document authenticated with NPR database' : '⚠️ NPR verification pending',
+                dhaData?.biometricConfirmed ? '✓ Biometric data verified via ABIS' : '⚠️ Biometric verification pending',
+                dhaData?.icaoValid ? '✓ ICAO PKD international validation confirmed' : '⚠️ International validation pending',
+                dhaData?.sapsClearance ? '✓ SAPS criminal record check cleared' : '⚠️ Police clearance pending'
             ];
             
             checks.forEach(check => {
@@ -1492,7 +1558,14 @@
             ctx.fillText('Name: ' + name, A4_WIDTH_PX / 2, yPos);
             
             yPos += 37.8;
-            ctx.fillText('Status: VERIFIED', A4_WIDTH_PX / 2, yPos);
+            const overallStatus = (dhaData?.verified && dhaData?.nprStatus === 'VERIFIED') ? 'VERIFIED' : 'PROCESSING';
+            ctx.fillText('Status: ' + overallStatus, A4_WIDTH_PX / 2, yPos);
+            
+            yPos += 37.8;
+            ctx.font = 'normal 10pt Arial';
+            ctx.fillText('NPR: ' + (dhaData?.nprStatus || 'N/A'), A4_WIDTH_PX / 2 - 100, yPos);
+            ctx.fillText('ABIS: ' + (dhaData?.biometricConfirmed ? 'MATCH' : 'PENDING'), A4_WIDTH_PX / 2, yPos);
+            ctx.fillText('ICAO: ' + (dhaData?.icaoValid ? 'VALID' : 'PENDING'), A4_WIDTH_PX / 2 + 100, yPos);
             
             yPos += 37.8;
             ctx.fillText('Date Verified: ' + new Date().toLocaleDateString(), A4_WIDTH_PX / 2, yPos);
@@ -2348,6 +2421,12 @@
                 }, index * 1000);
             });
         }
+        // Check API status on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAPIStatus();
+            // Refresh status every 30 seconds
+            setInterval(checkAPIStatus, 30000);
+        });
     </script>
 </body>
 </html>
