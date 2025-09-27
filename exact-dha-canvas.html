@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DHA-802 Exact Canvas Replica</title>
+    <title>DHA-802 Exact Replica Using Template</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -17,6 +17,7 @@
         canvas {
             margin: 20px 0;
             box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            background: white;
         }
         .controls {
             margin: 20px 0;
@@ -41,464 +42,129 @@
         p {
             color: #ccc;
         }
-        .generated-images {
-            margin-top: 30px;
-            text-align: center;
-        }
-        .generated-images img {
-            max-width: 600px;
-            margin: 10px;
-            border: 2px solid #ddd;
-        }
     </style>
 </head>
 <body>
-    <h1>DHA-802 Permanent Residence Permit - Exact Replica</h1>
-    <p>Canvas-based exact replica with proper guilloche patterns and text layout</p>
+    <h1>DHA-802 Permanent Residence Permit - Exact Template</h1>
+    <p>Using official template with dynamic personal details</p>
     
     <div class="controls">
-        <button onclick="generatePRP('Muhammad Mohsin', 'AD0116281', '54877885001')">Muhammad Mohsin</button>
-        <button onclick="generatePRP('Tasleem Mohsin', 'AUD115281', '54877885002')">Tasleem Mohsin</button>
-        <button onclick="generatePRP('Khunsha', 'KV4122911', '54877885003')">Khunsha</button>
+        <button onclick="generatePRP('Muhammad Mohsin', 'AD0116281', 'PRP361176/2023 DRN')">Muhammad Mohsin</button>
+        <button onclick="generatePRP('Tasleem Mohsin', 'AUD115281', 'PRP361177/2023 DRN')">Tasleem Mohsin</button>
+        <button onclick="generatePRP('Khunsha', 'KV4122911', 'PRP361178/2023 DRN')">Khunsha</button>
         <button onclick="downloadCanvas()">Download as Image</button>
     </div>
     
     <canvas id="prpCanvas" width="2100" height="2970"></canvas>
-    
-    <div class="generated-images">
-        <h2>AI-Generated Replicas</h2>
-        <img src="attached_assets/generated_images/Perfect_DHA-802_replica_d7876710.png" alt="Perfect DHA-802">
-        <p>Latest AI-generated replica with guilloche patterns</p>
-    </div>
 
     <script>
         const canvas = document.getElementById('prpCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Scale factor for high-quality rendering
-        const scale = 10; // 10x for print quality
-        canvas.style.width = '210mm';
-        canvas.style.height = '297mm';
+        // Set canvas display size
+        canvas.style.width = '700px';
+        canvas.style.height = '990px';
         
-        function generatePRP(name, passport, permitNumber) {
+        // Load the reference template image
+        const templateImage = new Image();
+        templateImage.src = 'attached_assets/Untitled (A4).zip - 1_1759004195075.png';
+        
+        templateImage.onload = function() {
+            console.log('Template loaded successfully');
+            // Generate first document on load
+            generatePRP('Muhammad Mohsin', 'AD0116281', 'PRP361176/2023 DRN');
+        };
+        
+        templateImage.onerror = function() {
+            console.error('Failed to load template image');
+            // Fallback to blank document
+            ctx.fillStyle = '#F8F5F0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.font = '60px Arial';
+            ctx.fillText('Template image not found', 500, 500);
+        };
+        
+        function generatePRP(name, referenceNo, permitNumber) {
             // Clear canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Security paper background - light cream like authentic document
-            ctx.fillStyle = '#F8F5F0';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Draw the template image as background
+            if (templateImage.complete && templateImage.naturalHeight !== 0) {
+                ctx.drawImage(templateImage, 0, 0, canvas.width, canvas.height);
+            } else {
+                // If image not loaded, use cream background
+                ctx.fillStyle = '#F8F5F0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
             
-            // THREE DISTINCT GUILLOCHE LAYERS - MUCH MORE SUBTLE
-            drawFirstGuillocheLayer();   // Lightest background covering entire document
-            drawSecondGuillocheLayer();   // Border pattern around edges
-            drawThirdGuillocheLayer();    // Round/oval pattern in signature area
-            
-            // Draw coat of arms (positioned exactly at 14mm from left)
-            drawCoatOfArms(140, 150); // 14mm * 10 scale
-            
-            // Horizontal line under header
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(500, 450);
-            ctx.lineTo(1600, 450);
-            ctx.stroke();
-            
-            // Header text - exact positioning
-            ctx.fillStyle = '#006642'; // Green for home affairs
-            ctx.font = '75px Arial';
-            ctx.fillText('home affairs', 500, 240);
-            
+            // Set font for dynamic text
             ctx.fillStyle = '#000';
-            ctx.font = '55px Arial';
-            ctx.fillText('Department', 500, 310);
-            ctx.fillText('Home Affairs', 500, 365);
+            ctx.font = '52px Arial';
             
-            ctx.font = 'bold 55px Arial';
-            ctx.fillText('REPUBLIC OF SOUTH AFRICA', 500, 420);
+            // DYNAMIC FIELDS - positioned exactly over the template
+            // These positions are carefully measured from the reference image
             
-            // DHA-802 at top right
-            ctx.font = '70px Arial';
-            ctx.fillText('DHA-802', 1820, 140);
+            // Permit Number (left field at top)
+            ctx.fillText(permitNumber, 520, 570);
             
-            // Title
-            ctx.font = 'bold 100px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('PERMANENT RESIDENCE PERMIT', 1050, 580);
+            // Reference Number (right field at top)  
+            ctx.fillText(referenceNo, 1450, 570);
             
-            ctx.font = '55px Arial';
-            ctx.fillText('SECTIONS 26 AND 27 OF ACT NO. 13 OF 2002', 1050, 640);
-            
-            // Form fields with exact underline positions
-            ctx.textAlign = 'left';
-            
-            // PERMIT NUMBER field with longer underline
-            ctx.font = 'bold 65px Arial';
-            ctx.fillText('PERMIT NUMBER', 250, 920);
-            drawUnderline(650, 930, 900); // Increased from 700
-            ctx.font = '60px Arial';
-            ctx.fillText(permitNumber, 700, 915);
-            
-            // REFERENCE NO on same line with longer underline
-            ctx.font = 'bold 65px Arial';
-            ctx.fillText('REFERENCE NO', 1200, 920);
-            drawUnderline(1550, 930, 550); // Increased from 500
-            
-            // Legal text
-            ctx.font = '48px Arial';
-            const legalText = 'In terms of the provisions of section 27(b) of the Immigration Act, 2002 (Act No. 13 of 2002),';
-            ctx.fillText(legalText, 250, 1050);
-            
-            // Surname field with longer underline
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Surname', 250, 1150);
-            drawUnderline(450, 1160, 1600); // Increased from 1400
+            // Parse name
             const [firstName, ...lastNames] = name.split(' ');
-            ctx.font = '60px Arial';
-            ctx.fillText(lastNames.join(' ').toUpperCase(), 500, 1145);
+            const surname = lastNames.join(' ').toUpperCase();
+            const firstNameUpper = firstName.toUpperCase();
             
-            // Maiden Surname field with longer underline
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Maiden Surname', 250, 1250);
-            drawUnderline(600, 1260, 1450); // Increased from 1250
+            // Surname
+            ctx.fillText(surname, 420, 810);
             
-            // First Name(s) field with longer underline
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('First Name (s)', 250, 1350);
-            drawUnderline(550, 1360, 1500); // Increased from 1300
-            ctx.font = '60px Arial';
-            ctx.fillText(firstName.toUpperCase(), 600, 1345);
+            // First Name(s)
+            ctx.fillText(firstNameUpper, 450, 1015);
             
-            // Nationality field with longer underline
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Nationality', 250, 1450);
-            drawUnderline(450, 1460, 900); // Increased from 750
-            ctx.font = '60px Arial';
-            ctx.fillText('PAKISTANI', 500, 1445);
+            // Nationality (hardcoded as PAKISTANI for these examples)
+            ctx.fillText('PAKISTANI', 420, 1115);
             
-            // Date of birth & Gender with longer underlines
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Date of birth', 250, 1550);
-            drawUnderline(500, 1560, 600); // Increased from 500
+            // Date of birth (example dates)
+            let birthDate = '1985/05/21';
+            if (name.includes('Tasleem')) birthDate = '1987/03/15';
+            if (name.includes('Khunsha')) birthDate = '1990/08/10';
+            ctx.fillText(birthDate, 470, 1215);
             
-            ctx.fillText('Gender', 1200, 1550);
-            drawUnderline(1350, 1560, 500); // Increased from 400
-            ctx.font = '60px Arial';
-            ctx.fillText('MALE', 1400, 1545);
+            // Gender
+            const gender = name.includes('Khunsha') ? 'FEMALE' : 'MALE';
+            ctx.fillText(gender, 1150, 1215);
             
-            // Authorization paragraph text
-            ctx.font = '48px Arial';
-            const authText = [
-                'has been authorised to enter the Republic of South Africa for the purpose of taking up permanent residence,',
-                'or if he/she on the date of approval of application, already sojourns therein legally, to reside permanently.',
-                'Unless the holder of this permit enters the Republic of South Africa for the purpose of permanent residence',
-                'before or on ______________________ the permanent residence permit shall lapse.'
-            ];
-            let y = 1600;
-            authText.forEach(line => {
-                ctx.fillText(line, 140, y);
-                y += 70;
-            });
+            // Permit expiry date (in the paragraph text)
+            ctx.fillText('2026/12/31', 320, 1485);
             
-            // Date of issue with longer underline
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Date of issue', 250, 2100);
-            drawUnderline(500, 2110, 500); // Increased from 400
-            ctx.font = '60px Arial';
-            ctx.fillText('15/09/2025', 520, 2095);
+            // Date of issue
+            ctx.fillText('2023/11/14', 380, 1595);
             
-            // Signature
-            ctx.font = 'italic 80px Arial';
-            ctx.fillText('Makholde', 250, 2300);
+            // Date printed (bottom)
+            ctx.font = '44px Arial';
+            ctx.fillText('2023/11/14', 365, 2205);
             
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('DIRECTOR-GENERAL', 250, 2400);
-            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 250, 2450);
+            // System code
+            ctx.fillText('BENVEEN/ATC', 1090, 2205);
             
-            // Right side - Surname and initials
-            ctx.font = '60px Arial';
-            ctx.fillText('Makholde LT', 1200, 2300);
-            ctx.font = '50px Arial';
-            ctx.fillText('Surname and initials', 1200, 2350);
-            
-            // RED STAMP BOX WITH RED TEXT - CRITICAL FIX
-            ctx.strokeStyle = '#FF0000'; // RED border
-            ctx.lineWidth = 3;
-            ctx.strokeRect(1450, 2000, 400, 400);
-            
-            // Add RED text inside stamp box
-            ctx.fillStyle = '#FF0000'; // RED text
-            ctx.font = 'bold 35px Arial';
-            ctx.textAlign = 'center';
-            
-            // "Office stamp" header
-            ctx.font = '30px Arial';
-            ctx.fillText('Office stamp', 1650, 2030);
-            
-            // Main stamp text
-            ctx.font = 'bold 40px Arial';
-            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 1650, 2120);
-            
-            ctx.font = '35px Arial';
-            ctx.fillText('PRIVATE BAG X114', 1650, 2200);
-            ctx.fillText('PRETORIA  0001', 1650, 2250);
-            
-            // Large "07" at bottom of stamp
-            ctx.font = 'bold 80px Arial';
-            ctx.fillText('07', 1650, 2360);
-            
-            // Reset text alignment and color
-            ctx.textAlign = 'left';
-            ctx.fillStyle = '#000';
-            
-            // Date printed and Printed by - BELOW signature area with longer underlines
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Date printed', 250, 2600);
-            drawUnderline(450, 2610, 500); // Increased from 400
-            ctx.font = '60px Arial';
-            ctx.fillText('15/09/2025', 470, 2595);
-            
-            ctx.font = 'bold 60px Arial';
-            ctx.fillText('Printed by: (system code)', 900, 2600);
-            drawUnderline(1250, 2610, 500); // Increased from 400
-            ctx.font = '60px Arial';
-            ctx.fillText('CPT-RO-001', 1270, 2595);
-            
-            // Conditions section
-            ctx.font = 'bold 70px Arial';
-            ctx.fillText('Conditions', 250, 2700);
-            
-            ctx.font = '45px Arial';
-            ctx.fillText('(i) This permit is issued once only and must be duly safeguarded.', 250, 2750);
-            ctx.fillText('(ii) Permanent residents who are absent from the Republic for three years or longer may lose their right to permanent residence in', 250, 2800);
-            ctx.fillText('    the Republic. A period of absence may only be interrupted by an admission and sojourn in the Republic.', 250, 2850);
-            
-            // BOTTOM ELEMENTS
-            // Small barcode at bottom left corner - properly positioned
-            drawSmallBarcode(100, 2920);
-            
-            // Control Number at bottom right side
-            ctx.font = '55px Arial';
-            ctx.textAlign = 'right';
-            ctx.fillText('Control Number', 1950, 2920);
-            ctx.font = '65px Arial';
-            ctx.fillText('No. A', 1950, 2960);
-            
-            // VERY SMALL Government Printing Works text - much smaller and fainter
-            ctx.font = '10px Arial'; // Even smaller
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; // Extremely faint
-            ctx.textAlign = 'center';
-            ctx.fillText('Government Printing Works Tel: 012 748 6000', 1050, 2968);
-            
-            // Reset text alignment and color
-            ctx.textAlign = 'left';
-            ctx.fillStyle = '#000';
-        }
-        
-        // THREE GUILLOCHE LAYERS - MUCH MORE SUBTLE
-        function drawFirstGuillocheLayer() {
-            // FIRST LAYER - Extremely subtle background guilloche
-            ctx.save();
-            ctx.globalAlpha = 0.02; // VERY SUBTLE - reduced from 0.08
-            ctx.strokeStyle = '#F0E8D8'; // Very light cream
-            ctx.lineWidth = 0.3;
-            
-            // Create a mesh pattern across entire page
-            for(let x = 0; x < canvas.width; x += 40) {
-                for(let y = 0; y < canvas.height; y += 40) {
-                    ctx.beginPath();
-                    ctx.arc(x, y, 20, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
-            
-            // Wavy lines across page
-            for(let y = 0; y < canvas.height; y += 60) {
-                ctx.beginPath();
-                for(let x = 0; x < canvas.width; x += 10) {
-                    const waveY = y + Math.sin(x * 0.01) * 15;
-                    if(x === 0) ctx.moveTo(x, waveY);
-                    else ctx.lineTo(x, waveY);
-                }
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-        
-        function drawSecondGuillocheLayer() {
-            // SECOND LAYER - Extremely subtle border pattern
-            ctx.save();
-            ctx.globalAlpha = 0.025; // VERY SUBTLE - reduced from 0.12
-            ctx.strokeStyle = '#EDE4D3'; // Very light beige
-            ctx.lineWidth = 0.5;
-            
-            // Top border pattern
-            for(let x = 0; x < canvas.width; x += 20) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.quadraticCurveTo(x + 10, 60, x + 20, 0);
-                ctx.stroke();
-            }
-            
-            // Bottom border pattern
-            for(let x = 0; x < canvas.width; x += 20) {
-                ctx.beginPath();
-                ctx.moveTo(x, canvas.height);
-                ctx.quadraticCurveTo(x + 10, canvas.height - 60, x + 20, canvas.height);
-                ctx.stroke();
-            }
-            
-            // Left border pattern
-            for(let y = 0; y < canvas.height; y += 20) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.quadraticCurveTo(60, y + 10, 0, y + 20);
-                ctx.stroke();
-            }
-            
-            // Right border pattern  
-            for(let y = 0; y < canvas.height; y += 20) {
-                ctx.beginPath();
-                ctx.moveTo(canvas.width, y);
-                ctx.quadraticCurveTo(canvas.width - 60, y + 10, canvas.width, y + 20);
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-        
-        function drawThirdGuillocheLayer() {
-            // THIRD LAYER - Extremely subtle oval pattern in signature area
-            ctx.save();
-            ctx.globalAlpha = 0.03; // VERY SUBTLE - reduced from 0.18
-            ctx.strokeStyle = '#EAE0CC'; // Light cream/beige
-            ctx.lineWidth = 0.6;
-            
-            // Center position - in the middle of signature area
-            const centerX = 1050; // Middle of document
-            const centerY = 2350; // Between signature and date printed
-            
-            // Draw oval center
-            ctx.beginPath();
-            ctx.ellipse(centerX, centerY, 150, 100, 0, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Draw circular guilloche radiating from oval
-            for(let angle = 0; angle < 360; angle += 12) { // Less dense
-                const radians = angle * Math.PI / 180;
-                ctx.beginPath();
-                
-                // Start from oval edge
-                const startX = centerX + Math.cos(radians) * 150;
-                const startY = centerY + Math.sin(radians) * 100;
-                ctx.moveTo(startX, startY);
-                
-                // Create spiral pattern
-                for(let r = 150; r < 350; r += 20) { // Smaller range
-                    const spiralAngle = radians + (r - 150) * 0.005;
-                    const x = centerX + Math.cos(spiralAngle) * r;
-                    const y = centerY + Math.sin(spiralAngle) * (r * 0.67);
-                    ctx.lineTo(x, y);
-                }
-                ctx.stroke();
-            }
-            
-            // Add concentric ovals around center
-            for(let scale = 1.3; scale < 2.5; scale += 0.4) { // Fewer ovals
-                ctx.beginPath();
-                ctx.ellipse(centerX, centerY, 150 * scale, 100 * scale, 0, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-            ctx.restore();
-        }
-        
-        
-        function drawCoatOfArms(x, y) {
-            // Sun at top
-            ctx.fillStyle = '#FFD700';
-            ctx.beginPath();
-            ctx.arc(x + 125, y, 40, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Sun rays
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            for(let i = 0; i < 12; i++) {
-                const angle = i * 30 * Math.PI / 180;
-                ctx.beginPath();
-                ctx.moveTo(x + 125 + Math.cos(angle) * 45, y + Math.sin(angle) * 45);
-                ctx.lineTo(x + 125 + Math.cos(angle) * 60, y + Math.sin(angle) * 60);
-                ctx.stroke();
-            }
-            
-            // Shield
-            ctx.fillStyle = '#006642';
-            ctx.fillRect(x + 80, y + 60, 90, 100);
-            
-            // Crossed spear and knobkierie
-            ctx.strokeStyle = '#8B4513';
-            ctx.lineWidth = 8;
-            ctx.beginPath();
-            ctx.moveTo(x + 50, y + 40);
-            ctx.lineTo(x + 200, y + 190);
-            ctx.moveTo(x + 200, y + 40);
-            ctx.lineTo(x + 50, y + 190);
-            ctx.stroke();
-            
-            // Zulu figures
-            ctx.fillStyle = '#000';
-            // Left figure
-            ctx.beginPath();
-            ctx.arc(x + 30, y + 100, 15, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillRect(x + 20, y + 115, 20, 40);
-            
-            // Right figure
-            ctx.beginPath();
-            ctx.arc(x + 220, y + 100, 15, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillRect(x + 210, y + 115, 20, 40);
-        }
-        
-        function drawUnderline(x, y, width) {
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            ctx.lineTo(x + width, y);
-            ctx.stroke();
-        }
-        
-        function drawBarcode(x, y) {
-            // Simulated barcode
-            ctx.fillStyle = '#000';
-            const barcodePattern = [1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,0,0,1,1,0,1,1,1,0,0,1,0,1,1,0];
-            for(let i = 0; i < barcodePattern.length; i++) {
-                if(barcodePattern[i] === 1) {
-                    ctx.fillRect(x + i * 8, y, 6, 50);
-                }
-            }
-        }
-        
-        function drawSmallBarcode(x, y) {
-            // Small barcode for bottom left corner
-            ctx.fillStyle = '#000';
-            const barcodePattern = [1,0,1,1,0,1,0,0,1,1,1,0,1,0,1,0,0,1,1,0];
-            for(let i = 0; i < barcodePattern.length; i++) {
-                if(barcodePattern[i] === 1) {
-                    ctx.fillRect(x + i * 4, y, 3, 30); // Smaller dimensions
-                }
+            // Control number (unique per person)
+            ctx.font = '52px Arial';
+            if (name.includes('Tasleem')) {
+                ctx.fillText('297867', 1850, 2775);
+            } else if (name.includes('Khunsha')) {
+                ctx.fillText('297868', 1850, 2775);
+            } else {
+                ctx.fillText('297866', 1850, 2775);
             }
         }
         
         function downloadCanvas() {
             const link = document.createElement('a');
-            link.download = 'DHA-802-PRP.png';
+            link.download = 'DHA-802-permit.png';
             link.href = canvas.toDataURL();
             link.click();
         }
-        
-        // Generate initial document
-        generatePRP('Muhammad Mohsin', 'AD0116281', '54877885001');
     </script>
 </body>
 </html>
