@@ -308,7 +308,7 @@ app.get('/ultra-queen-ai', (req, res) => {
           responseDiv.innerHTML = '⏳ Processing with Ultra Queen AI...';
           
           try {
-            constant response = await fetch('/api/ultra-queen-ai/unlimited/process', {
+            const response = await fetch('/api/ultra-queen-ai/unlimited/process', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -326,7 +326,7 @@ app.get('/ultra-queen-ai', (req, res) => {
                 'Emotion: ' + data.emotion + '\\n\\n' +
                 data.content;
             } else {
-              responseDiv.innerHTML = : ' + (data.message || 'Unknown error');
+              responseDiv.innerHTML = '❌ Error: ' + (data.message || 'Unknown error');
             }
           } catch (error) {
             responseDiv.innerHTML = '❌ Error: ' + error.message;
@@ -351,8 +351,8 @@ app.listen(PORT, '0.0.0.0', () => {
 
 🚀 Backend is FULLY FUNCTIONAL and ready!
 ✅ OpenAI GPT-4: WORKING PERFECTLY!
-✅ Anthopic: WORKING PERFECTLY!
-✅Mistral:WORKING PERFECTLY!
+✅ Anthropic: WORKING PERFECTLY!
+✅ Mistral: WORKING PERFECTLY!
 ✅Perplexity:WOEKING PERFECTLY!
 ✅Quantum Mode:Enabled 
 ✅API Gateway:WORKING PEEFECTLY!

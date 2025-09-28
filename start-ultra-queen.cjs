@@ -217,9 +217,9 @@ app.get('/ultra-queen-ai', (req, res) => {
             });
             
             const data = await response.json();
-            responseDiv.innerHTML = '<h3>AI Response:</h3>' + (data.content || data.error);
-          } catch (error) {
-            responseDiv.innerHTML = :: ' + error.message;
+            responseDiv.innerHTML = '<h3>AI Response:</h3>' + (data.content || data.;
+          } catch  {
+            responseDiv.innerHTML = :: ' + .message;
           }
         }
       </script>
