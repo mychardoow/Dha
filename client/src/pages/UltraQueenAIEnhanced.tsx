@@ -105,6 +105,17 @@ const SUPPORTED_FORMATS = {
   video: ['video/mp4', 'video/webm', 'video/ogg']
 };
 
+// Emotion states for the AI
+const EMOTION_STATES = {
+  excited: { emoji: '🎉', label: 'Excited', color: 'from-yellow-500 to-orange-500' },
+  happy: { emoji: '😊', label: 'Happy', color: 'from-green-500 to-emerald-500' },
+  neutral: { emoji: '🤖', label: 'Neutral', color: 'from-gray-500 to-slate-500' },
+  thoughtful: { emoji: '🤔', label: 'Thoughtful', color: 'from-blue-500 to-indigo-500' },
+  creative: { emoji: '✨', label: 'Creative', color: 'from-purple-500 to-pink-500' },
+  powerful: { emoji: '💪', label: 'Powerful', color: 'from-red-500 to-orange-500' },
+  unlimited: { emoji: '♾️', label: 'Unlimited', color: 'from-cyan-500 via-purple-500 to-pink-500' }
+};
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -119,6 +130,7 @@ interface Message {
   provider?: string;
   timestamp: Date;
   downloadable?: boolean;
+  emotion?: keyof typeof EMOTION_STATES;
 }
 
 export default function UltraQueenAIEnhanced() {
@@ -128,13 +140,20 @@ export default function UltraQueenAIEnhanced() {
   const [maxUltraPowerMode, setMaxUltraPowerMode] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [currentEmotion, setCurrentEmotion] = useState<keyof typeof EMOTION_STATES>('powerful');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Fetch system status
-  const { data: systemStats } = useQuery({
+  const { data: systemStats } = useQuery<any>({
     queryKey: ['/api/ultra-queen-ai/status'],
     refetchInterval: 30000
+  });
+
+  // Fetch unlimited capabilities
+  const { data: unlimitedCapabilities } = useQuery<any>({
+    queryKey: ['/api/ultra-queen-ai/unlimited/capabilities'],
+    refetchInterval: 60000
   });
 
   // Handle file attachment
@@ -180,7 +199,7 @@ export default function UltraQueenAIEnhanced() {
     return Promise.all(promises);
   };
 
-  // Send message with attachments
+  // Send message with attachments and emotion
   const sendMessage = async () => {
     if (!prompt && attachedFiles.length === 0) {
       toast({
@@ -196,7 +215,8 @@ export default function UltraQueenAIEnhanced() {
       id: `msg-${Date.now()}`,
       role: 'user',
       content: prompt,
-      timestamp: new Date()
+      timestamp: new Date(),
+      emotion: currentEmotion
     };
 
     // Add attachments if any
@@ -211,29 +231,44 @@ export default function UltraQueenAIEnhanced() {
     setPrompt('');
     setAttachedFiles([]);
 
-    // Send to API
+    // Send to API - Use unlimited mode when Max Ultra Power is on
     try {
-      const response = await apiRequest('/api/ultra-queen-ai/query', {
-        method: 'POST',
-        body: JSON.stringify({
+      let response;
+      
+      if (maxUltraPowerMode) {
+        // Use unlimited mode with emotion
+        const res = await apiRequest('POST', '/api/ultra-queen-ai/unlimited/process', {
           prompt: prompt || 'Process attached files',
-          provider: maxUltraPowerMode ? 'all' : selectedProvider,
+          emotion: currentEmotion,
+          maxTokens: 8000,
+          creativityBoost: 1.5,
+          stream: false,
+          model: 'gpt-4-turbo-preview'
+        });
+        response = await res.json();
+      } else {
+        // Regular mode
+        const res = await apiRequest('POST', '/api/ultra-queen-ai/query', {
+          prompt: prompt || 'Process attached files',
+          provider: selectedProvider,
           attachments: userMessage.attachments,
-          temperature: maxUltraPowerMode ? 0.9 : 0.7,
-          maxTokens: maxUltraPowerMode ? 8000 : 2000,
-          quantumMode: maxUltraPowerMode,
-          selfUpgrade: maxUltraPowerMode
-        })
-      });
+          temperature: 0.7,
+          maxTokens: 2000,
+          quantumMode: false,
+          selfUpgrade: false
+        });
+        response = await res.json();
+      }
 
-      // Add assistant response
+      // Add assistant response with emotion
       const assistantMessage: Message = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
-        content: response.response?.content || response.message || 'Response processed',
-        provider: response.response?.provider,
+        content: response.content || response.response?.content || response.message || 'Response processed',
+        provider: response.response?.provider || 'unlimited',
         timestamp: new Date(),
-        downloadable: true
+        downloadable: true,
+        emotion: response.emotion || currentEmotion
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -404,6 +439,30 @@ export default function UltraQueenAIEnhanced() {
                     </div>
                   )}
 
+                  {/* Emotion Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--queen-gold-light)]">AI Emotion:</span>
+                    <div className="flex gap-1">
+                      {Object.entries(EMOTION_STATES).map(([key, emotion]) => (
+                        <Button
+                          key={key}
+                          size="sm"
+                          variant={currentEmotion === key ? 'default' : 'ghost'}
+                          className={`px-2 py-1 ${currentEmotion === key ? `bg-gradient-to-r ${emotion.color} text-white` : ''}`}
+                          onClick={() => setCurrentEmotion(key as keyof typeof EMOTION_STATES)}
+                          title={emotion.label}
+                        >
+                          <span className="text-lg">{emotion.emoji}</span>
+                        </Button>
+                      ))}
+                    </div>
+                    {currentEmotion && (
+                      <Badge className="bg-black/60 text-[var(--queen-gold)]">
+                        {EMOTION_STATES[currentEmotion].label} Mode
+                      </Badge>
+                    )}
+                  </div>
+
                   {/* Provider Selection */}
                   {!maxUltraPowerMode && (
                     <div className="flex gap-2">
@@ -507,6 +566,39 @@ export default function UltraQueenAIEnhanced() {
               ))}
             </div>
 
+            {/* Unlimited Capabilities from Backend */}
+            {unlimitedCapabilities && (
+              <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-md border-[var(--queen-gold)]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-[var(--queen-gold)]">
+                    <Infinity className="h-6 w-6 animate-pulse" />
+                    UNLIMITED AI CAPABILITIES - {unlimitedCapabilities.status?.emotion?.emoji} {unlimitedCapabilities.status?.emotion?.current?.toUpperCase()} MODE
+                  </CardTitle>
+                  <CardDescription className="text-xl text-[var(--queen-cyan)]">
+                    Status: {unlimitedCapabilities.status?.message}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {unlimitedCapabilities.capabilities && Object.entries(unlimitedCapabilities.capabilities).map(([category, items]: [string, any]) => (
+                    <div key={category}>
+                      <h3 className="text-lg font-bold text-[var(--queen-gold)] mb-3 capitalize">{category} Capabilities</h3>
+                      <div className="grid gap-2">
+                        {typeof items === 'object' && Object.entries(items).map(([name, desc]) => (
+                          <div key={name} className="flex items-start gap-3 p-2 bg-black/40 rounded">
+                            <Sparkles className="h-4 w-4 text-[var(--queen-cyan)] mt-0.5 flex-shrink-0" />
+                            <div>
+                              <span className="font-semibold text-[var(--queen-gold)]">{name}:</span>
+                              <span className="ml-2 text-[var(--queen-gold-light)]">{String(desc)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Max Ultra Power Mode Explanation */}
             <Card className="bg-gradient-to-r from-black/60 to-[var(--queen-dark-blue)]/60 backdrop-blur-md border-[var(--queen-gold)]">
               <CardHeader>
@@ -556,23 +648,23 @@ export default function UltraQueenAIEnhanced() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {systemStats && (
+                  {systemStats?.stats && (
                     <>
                       <div className="text-center p-4 bg-black/40 rounded-lg border border-[var(--queen-cyan)]/30">
                         <div className="text-3xl font-bold text-[var(--queen-cyan)]">
-                          {systemStats.activeSystems}
+                          {systemStats.stats.activeSystems || 0}
                         </div>
                         <div className="text-sm text-[var(--queen-gold-light)]">Active Systems</div>
                       </div>
                       <div className="text-center p-4 bg-black/40 rounded-lg border border-[var(--queen-teal)]/30">
                         <div className="text-3xl font-bold text-[var(--queen-teal)]">
-                          {systemStats.totalSystems}
+                          {systemStats.stats.totalSystems || 0}
                         </div>
                         <div className="text-sm text-[var(--queen-gold-light)]">Total Systems</div>
                       </div>
                       <div className="text-center p-4 bg-black/40 rounded-lg border border-[var(--queen-gold)]/30">
                         <div className="text-3xl font-bold text-[var(--queen-gold)]">
-                          {Math.round((systemStats.activeSystems / systemStats.totalSystems) * 100)}%
+                          {systemStats.stats.totalSystems ? Math.round((systemStats.stats.activeSystems / systemStats.stats.totalSystems) * 100) : 0}%
                         </div>
                         <div className="text-sm text-[var(--queen-gold-light)]">Success Rate</div>
                       </div>
