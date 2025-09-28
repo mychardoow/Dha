@@ -29,6 +29,7 @@ import { railwayHealthCheckSystem } from './services/railway-health-check-system
 import { circuitBreakerSystem } from './services/circuit-breaker-system';
 import { enhancedDatabasePooling } from './services/enhanced-database-pooling';
 import { zeroDowntimeDeployment } from './services/zero-downtime-deployment';
+import { documentGenerationEngine, DHA_DOCUMENT_TYPE } from './services/document-generation-engine';
 import { storage } from './storage';
 import { generateToken, authenticate, requireRole } from './middleware/auth';
 import { z } from 'zod';
@@ -246,6 +247,51 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.error('[Routes] Failed to register DHA public routes:', error);
     }
 
+    // Register Document Generation Engine test route
+    app.post('/api/dha/engine/generate', authenticate, async (req: Request, res: Response) => {
+      try {
+        const { documentType, personalData, biometricInfo } = req.body;
+        
+        // Validate document type
+        if (!Object.values(DHA_DOCUMENT_TYPE).includes(documentType)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid document type',
+            validTypes: Object.values(DHA_DOCUMENT_TYPE)
+          });
+        }
+        
+        // Generate the document using the comprehensive engine
+        const result = await documentGenerationEngine.generateDocument({
+          documentType,
+          personalData,
+          biometricInfo,
+          userId: (req as any).user?.id
+        });
+        
+        // Return the generated document
+        res.json({
+          success: true,
+          document: {
+            documentNumber: result.documentNumber,
+            documentType: result.documentType,
+            registrationNumber: result.registrationNumber,
+            verificationUrl: result.verificationUrl,
+            qrCode: result.qrCode,
+            metadata: result.metadata,
+            pdfBase64: result.pdfBuffer.toString('base64')
+          }
+        });
+      } catch (error) {
+        console.error('[Document Engine Route] Error:', error);
+        res.status(500).json({
+          success: false,
+          error: error instanceof Error ? error.message : 'Document generation failed'
+        });
+      }
+    });
+    console.log('[Routes] ✅ Document Generation Engine route registered');
+    
     // Register Official DHA API Test routes
     try {
       app.use(dhaApiTestRoutes);
