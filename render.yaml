@@ -1,9 +1,9 @@
 services:
-  # Web service for the Ultra Queen AI application
+  # Web service for the Ultra Queen AI Raeesa application
   - type: web
-    name: ultra-queen-ai
+    name: ultra-queen-ai-raeesa
     runtime: node
-    repo: https://github.com/yourusername/ultra-queen-ai
+    repo: https://github.com/yourusername/ultra-queen-ai-raeesa
     branch: main
     buildCommand: npm ci && npm run build
     startCommand: npm run start
@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: DATABASE_URL
         fromDatabase:
           name: ultra-queen-db
