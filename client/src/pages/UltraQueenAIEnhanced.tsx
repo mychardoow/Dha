@@ -141,6 +141,7 @@ export default function UltraQueenAIEnhanced() {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<keyof typeof EMOTION_STATES>('powerful');
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -159,7 +160,15 @@ export default function UltraQueenAIEnhanced() {
   // Handle file attachment
   const handleFileAttach = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
+    processFiles(files);
+  };
+  
+  // Process files (used by both file input and drag-drop)
+  const processFiles = (files: File[]) => {
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB per file
+    const MAX_TOTAL_SIZE = 25 * 1024 * 1024; // 25MB total
     const validFiles: File[] = [];
+    let totalSize = attachedFiles.reduce((acc, file) => acc + file.size, 0);
     
     files.forEach(file => {
       const fileType = file.type;
@@ -167,18 +176,75 @@ export default function UltraQueenAIEnhanced() {
         formats.includes(fileType)
       );
       
-      if (isSupported) {
-        validFiles.push(file);
-      } else {
+      // Check file type
+      if (!isSupported) {
         toast({
           title: 'Unsupported file type',
           description: `${file.name} is not supported`,
           variant: 'destructive'
         });
+        return;
       }
+      
+      // Check individual file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: 'File too large',
+          description: `${file.name} exceeds 10MB limit`,
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // Check total size
+      if (totalSize + file.size > MAX_TOTAL_SIZE) {
+        toast({
+          title: 'Total size exceeded',
+          description: 'Total file size cannot exceed 25MB',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      validFiles.push(file);
+      totalSize += file.size;
     });
     
-    setAttachedFiles(prev => [...prev, ...validFiles]);
+    // Check file count
+    if (attachedFiles.length + validFiles.length > 5) {
+      toast({
+        title: 'Too many files',
+        description: 'Maximum 5 files allowed in total',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
+    if (validFiles.length > 0) {
+      setAttachedFiles(prev => [...prev, ...validFiles]);
+      toast({
+        title: 'Files attached',
+        description: `${validFiles.length} file(s) added successfully`,
+      });
+    }
+  };
+  
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+  
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    processFiles(files);
   };
 
   // Convert files to base64
@@ -282,13 +348,35 @@ export default function UltraQueenAIEnhanced() {
     }
   };
 
-  // Download message content
-  const downloadMessage = (message: Message) => {
-    const blob = new Blob([message.content], { type: 'text/plain' });
+  // Download message content with multiple format support
+  const downloadMessage = (message: Message, format: 'txt' | 'json' | 'md' = 'txt') => {
+    let content = message.content;
+    let mimeType = 'text/plain';
+    let extension = 'txt';
+    
+    if (format === 'json') {
+      content = JSON.stringify({
+        id: message.id,
+        content: message.content,
+        role: message.role,
+        timestamp: message.timestamp,
+        provider: message.provider,
+        emotion: message.emotion,
+        attachments: message.attachments
+      }, null, 2);
+      mimeType = 'application/json';
+      extension = 'json';
+    } else if (format === 'md') {
+      content = `# Ultra Queen AI Raeesa Response\n\n**Date:** ${message.timestamp.toLocaleString()}\n**Provider:** ${message.provider || 'N/A'}\n**Emotion:** ${message.emotion || 'N/A'}\n\n## Response\n\n${message.content}`;
+      mimeType = 'text/markdown';
+      extension = 'md';
+    }
+    
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `ultra-queen-ai-${message.id}.txt`;
+    a.download = `ultra-queen-ai-${message.id}.${extension}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -369,8 +457,30 @@ export default function UltraQueenAIEnhanced() {
 
           {/* Chat Interface */}
           <TabsContent value="chat" className="space-y-4">
-            <Card className="bg-black/40 backdrop-blur-md border-[var(--queen-gold)]/30">
-              <CardContent className="p-0">
+            <Card 
+              className={`bg-black/40 backdrop-blur-md border-[var(--queen-gold)]/30 transition-all duration-200 ${
+                isDragging ? 'border-[var(--queen-cyan)] border-2 bg-[var(--queen-teal)]/10' : ''
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              <CardContent className="p-0 relative">
+                {/* Drag and Drop Overlay */}
+                {isDragging && (
+                  <div className="absolute inset-0 z-10 bg-[var(--queen-teal)]/20 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+                    <div className="text-center">
+                      <Upload className="h-12 w-12 mx-auto mb-4 text-[var(--queen-cyan)] animate-bounce" />
+                      <p className="text-[var(--queen-gold)] font-semibold">Drop files here</p>
+                      <p className="text-[var(--queen-gold-light)] text-sm mt-2">
+                        Supports images, documents, code, audio, and video
+                      </p>
+                      <p className="text-[var(--queen-gold-light)] text-xs mt-1">
+                        Max: 10MB per file • 25MB total • 5 files
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {/* Messages Area */}
                 <ScrollArea className="h-[400px] p-4">
                   {messages.length === 0 ? (
@@ -409,15 +519,38 @@ export default function UltraQueenAIEnhanced() {
                               </div>
                             )}
                             {message.downloadable && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="mt-2 text-xs"
-                                onClick={() => downloadMessage(message)}
-                              >
-                                <Download className="h-3 w-3 mr-1" />
-                                Download
-                              </Button>
+                              <div className="mt-2 flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => downloadMessage(message, 'txt')}
+                                  title="Download as text"
+                                >
+                                  <Download className="h-3 w-3 mr-1" />
+                                  TXT
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => downloadMessage(message, 'json')}
+                                  title="Download as JSON"
+                                >
+                                  <Download className="h-3 w-3 mr-1" />
+                                  JSON
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs"
+                                  onClick={() => downloadMessage(message, 'md')}
+                                  title="Download as Markdown"
+                                >
+                                  <Download className="h-3 w-3 mr-1" />
+                                  MD
+                                </Button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -430,19 +563,37 @@ export default function UltraQueenAIEnhanced() {
                 <div className="border-t border-[var(--queen-gold)]/30 p-4 space-y-3">
                   {/* File Attachments */}
                   {attachedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {attachedFiles.map((file, idx) => (
-                        <Badge key={idx} variant="outline" className="border-[var(--queen-cyan)] text-[var(--queen-cyan)]">
-                          {getFileIcon(file.type)}
-                          <span className="ml-1">{file.name}</span>
-                          <button
-                            className="ml-2 text-xs hover:text-red-500"
-                            onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
-                          >
-                            ×
-                          </button>
-                        </Badge>
-                      ))}
+                    <div className="p-3 bg-[var(--queen-teal)]/10 rounded-lg border border-[var(--queen-gold)]/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs text-[var(--queen-gold)]">
+                          {attachedFiles.length} file{attachedFiles.length > 1 ? 's' : ''} attached
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setAttachedFiles([])}
+                          className="text-red-400 hover:text-red-300 text-xs h-6"
+                        >
+                          Clear all
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {attachedFiles.map((file, idx) => (
+                          <Badge key={idx} variant="outline" className="border-[var(--queen-cyan)] text-[var(--queen-cyan)] px-3 py-1">
+                            {getFileIcon(file.type)}
+                            <span className="ml-1 mr-2 text-xs">
+                              {file.name} ({(file.size / 1024).toFixed(1)} KB)
+                            </span>
+                            <button
+                              className="text-xs hover:text-red-500 transition-colors"
+                              onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}
+                              title="Remove file"
+                            >
+                              ×
+                            </button>
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
 
