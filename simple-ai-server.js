@@ -331,7 +331,7 @@ app.get('/', (req, res) => {
   `);
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = 5000; // Replit requires port 5000 for web apps
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Ultra Queen AI Server running on port ${PORT}`);
   console.log(`Available APIs:`);
