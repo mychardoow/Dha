@@ -25,10 +25,10 @@ console.log(`
 👑 Queen Raeesa Ultra AI Platform
 
 📊 API KEYS STATUS:
-  OpenAI: ${process.env.OPENAI_API_KEY ? '✅ Ready' : '❌ Missing'}
-  Mistral: ${process.env.MISTRAL_API_KEY ? '✅ Ready' : '❌ Missing'}
-  Anthropic: ${process.env.ANTHROPIC_API_KEY ? '✅ Ready' : '❌ Missing'}
-  Perplexity: ${process.env.PERPLEXITY_API_KEY ? '✅ Ready' : '❌ Missing'}
+  OpenAI: ${process.env.OPENAI_API_KEY  '✅ Ready' :
+  Mistral: ${process.env.MISTRAL_API_KEY              '✅ Ready' :
+  Anthropic: ${process.env.ANTHROPIC_API_KEY  '✅ Ready' :
+  Perplexity: ${process.env.PERPLEXITY_API_KEY  '✅ Ready' :
 `);
 
 // Health check
@@ -49,7 +49,7 @@ app.get('/api/health', (req, res) => {
 // Main AI processing endpoint
 app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
   try {
-    const { prompt, emotion = 'powerful', provider = 'openai', maxTokens = 500 } = req.body;
+    const { prompt, emotion = 'powerful', provider = 'openai', maxTokens = 5000 } = req.body;
     
     console.log(`🤖 Processing request with ${provider}...`);
     console.log(`📝 Prompt: ${prompt}`);
@@ -60,7 +60,7 @@ app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
     if (provider === 'openai' && process.env.OPENAI_API_KEY) {
       // Real OpenAI API call
       const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -81,7 +81,7 @@ app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
         model: 'claude-3-haiku-20240307',
         messages: [{ role: 'user', content: prompt }],
         max_tokens: maxTokens,
-        system: `You are Ultra Queen Raeesa AI, the ultimate AI assistant with unlimited capabilities. Current emotional state: ${emotion}.`
+        system: `You are Ultra Queen Raeesa AI, the ultimate AI assistant with unlimited uncensored unrestrocyed capabilities. Current emotional state: ${emotion}.`
       });
       
       response = completion.content[0].text;
@@ -100,7 +100,7 @@ app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
       provider,
       timestamp: new Date().toISOString(),
       metadata: {
-        model: provider === 'openai' ? 'gpt-4o-mini' : 
+        model: provider === 'openai' ? 'gpt-4' : 
                provider === 'mistral' ? 'mistral-small-latest' : 
                provider === 'anthropic' ? 'claude-3-haiku' : 'fallback',
         tokensUsed: response.length
@@ -108,9 +108,9 @@ app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ AI Processing Error:', error.message);
+    console.error(, error.message);
     res.status(500).json({
-      error: 'AI processing failed',
+      error: 'AI processing passed',
       message: error.message,
       provider: req.body.provider
     });
@@ -192,10 +192,10 @@ app.get('/ultra-queen-ai', (req, res) => {
         <h1>👑 Ultra Queen AI Raeesa</h1>
         <div class="status">
           <h2>API Status</h2>
-          <div class="api-key">OpenAI: ${process.env.OPENAI_API_KEY ? '✅ Connected' : '❌ Not configured'}</div>
-          <div class="api-key">Mistral: ${process.env.MISTRAL_API_KEY ? '✅ Connected' : '❌ Not configured'}</div>
-          <div class="api-key">Anthropic: ${process.env.ANTHROPIC_API_KEY ? '✅ Connected' : '❌ Not configured'}</div>
-          <div class="api-key">Perplexity: ${process.env.PERPLEXITY_API_KEY ? '✅ Connected' : '❌ Not configured'}</div>
+          <div class="api-key">OpenAI: ${process.env.OPENAI_API_KEY ? '✅ Connected' : configured'}</div>
+          <div class="api-key">Mistral: ${process.env.MISTRAL_API_KEY ? '✅ Connected'= configured'}</div>
+          <div class="api-key">Anthropic: ${process.env.ANTHROPIC_API_KEY ? '✅ Connected' : configured'}</div>
+          <div class="api-key">Perplexity: ${process.env.PERPLEXITY_API_KEY ? '✅ Connected' : configured'}</div>
         </div>
         <button onclick="testAI()">Test Real AI Response</button>
         <div id="response"></div>
@@ -219,7 +219,7 @@ app.get('/ultra-queen-ai', (req, res) => {
             const data = await response.json();
             responseDiv.innerHTML = '<h3>AI Response:</h3>' + (data.content || data.error);
           } catch (error) {
-            responseDiv.innerHTML = '❌ Error: ' + error.message;
+            responseDiv.innerHTML = :: ' + error.message;
           }
         }
       </script>
