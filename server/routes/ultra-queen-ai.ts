@@ -1,0 +1,250 @@
+// Ultra Queen AI Raeesa - API Routes
+// Multi-provider AI system with quantum simulation and self-upgrade capabilities
+
+import express, { Request, Response, Router } from 'express';
+import { ultraQueenAI } from '../services/ultra-queen-ai-simple';
+import { authenticate, requireRole } from '../middleware/auth';
+import { z } from 'zod';
+
+const router = Router();
+
+// Schema for AI query requests
+const aiQuerySchema = z.object({
+  prompt: z.string().min(1, "Prompt is required"),
+  provider: z.enum(['openai', 'mistral', 'google', 'anthropic', 'perplexity']).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  maxTokens: z.number().min(1).max(8000).optional(),
+  stream: z.boolean().optional(),
+  quantumMode: z.boolean().optional(),
+  selfUpgrade: z.boolean().optional()
+});
+
+// Schema for government API queries
+const governmentQuerySchema = z.object({
+  apiType: z.enum(['dha_npr', 'dha_abis', 'saps_crc', 'icao_pkd']),
+  idNumber: z.string().optional(),
+  passportNumber: z.string().optional(),
+  biometricData: z.string().optional()
+});
+
+// Get system status and statistics
+router.get('/status', async (req: Request, res: Response) => {
+  try {
+    const stats = ultraQueenAI.getSystemStats();
+    res.json({
+      success: true,
+      stats,
+      message: 'Ultra Queen AI Raeesa System - Online',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve system status'
+    });
+  }
+});
+
+// Query AI providers
+router.post('/query', authenticate, async (req: Request, res: Response) => {
+  try {
+    const validatedData = aiQuerySchema.parse(req.body);
+    
+    // Apply quantum mode if requested
+    let quantumData = null;
+    if (validatedData.quantumMode) {
+      quantumData = await ultraQueenAI.simulateQuantum('query_enhancement', 6);
+    }
+
+    // Query AI provider
+    const result = await ultraQueenAI.queryAI(validatedData.prompt, {
+      provider: validatedData.provider,
+      temperature: validatedData.temperature,
+      maxTokens: validatedData.maxTokens,
+      stream: validatedData.stream
+    });
+
+    // Apply self-upgrade if requested
+    let upgradeData = null;
+    if (validatedData.selfUpgrade) {
+      upgradeData = await ultraQueenAI.performSelfUpgrade();
+    }
+
+    res.json({
+      success: result.success,
+      response: result,
+      quantum: quantumData,
+      selfUpgrade: upgradeData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Query error:', error);
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: error.errors
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Query failed'
+      });
+    }
+  }
+});
+
+// Stream AI responses
+router.post('/stream', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { prompt, provider } = req.body;
+    
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    const result = await ultraQueenAI.queryAI(prompt, {
+      provider,
+      stream: true
+    });
+
+    if (result && typeof result === 'object' && Symbol.asyncIterator in result) {
+      for await (const chunk of result as any) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        }
+      }
+    }
+    
+    res.write(`data: [DONE]\n\n`);
+    res.end();
+  } catch (error) {
+    console.error('[Ultra Queen AI] Stream error:', error);
+    res.write(`data: ${JSON.stringify({ error: 'Stream failed' })}\n\n`);
+    res.end();
+  }
+});
+
+// Query government APIs (mock mode)
+router.post('/government', authenticate, async (req: Request, res: Response) => {
+  try {
+    const validatedData = governmentQuerySchema.parse(req.body);
+    
+    const result = await ultraQueenAI.queryGovernmentAPI(
+      validatedData.apiType,
+      {
+        idNumber: validatedData.idNumber,
+        passportNumber: validatedData.passportNumber,
+        biometricData: validatedData.biometricData
+      }
+    );
+
+    res.json({
+      success: true,
+      data: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Government API error:', error);
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: error.errors
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Government API query failed'
+      });
+    }
+  }
+});
+
+// Quantum simulation endpoint
+router.post('/quantum', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { operation, qubits } = req.body;
+    
+    const result = await ultraQueenAI.simulateQuantum(
+      operation || 'general_computation',
+      qubits || 8
+    );
+
+    res.json({
+      success: true,
+      simulation: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Quantum simulation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Quantum simulation failed'
+    });
+  }
+});
+
+// Self-upgrade endpoint
+router.post('/self-upgrade', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const result = await ultraQueenAI.performSelfUpgrade();
+    
+    res.json({
+      success: true,
+      upgrade: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Self-upgrade error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Self-upgrade failed'
+    });
+  }
+});
+
+// Multi-provider comparison
+router.post('/compare', authenticate, async (req: Request, res: Response) => {
+  try {
+    const { prompt, providers } = req.body;
+    const results: any[] = [];
+    
+    const selectedProviders = providers || ['openai', 'mistral', 'google'];
+    
+    for (const provider of selectedProviders) {
+      const result = await ultraQueenAI.queryAI(prompt, { provider });
+      results.push({
+        provider,
+        ...result
+      });
+    }
+
+    res.json({
+      success: true,
+      comparisons: results,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Ultra Queen AI] Comparison error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Multi-provider comparison failed'
+    });
+  }
+});
+
+// Health check for deployment
+router.get('/health', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    service: 'Ultra Queen AI Raeesa',
+    status: 'operational',
+    timestamp: new Date().toISOString()
+  });
+});
+
+export default router;

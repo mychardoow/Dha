@@ -222,6 +222,93 @@ export const aiCommandInterfaces = pgTable("ai_command_interfaces", {
   completedAt: timestamp("completed_at"),
 });
 
+// ===================== ULTRA QUEEN AI SCHEMAS =====================
+
+export const ultraQueenAISystems = pgTable("ultra_queen_ai_systems", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  systemName: text("system_name").notNull(),
+  systemType: text("system_type").notNull(), // 'ai_provider' | 'web2' | 'web3' | 'blockchain' | 'government' | 'cloud'
+  provider: text("provider").notNull(), // 'openai' | 'anthropic' | 'mistral' | 'google' | 'meta' | etc
+  apiStatus: text("api_status").notNull().default("inactive"), // 'active' | 'inactive' | 'mock' | 'error'
+  credentials: jsonb("credentials"), // Encrypted credentials
+  configuration: jsonb("configuration"), // Provider-specific config
+  capabilities: jsonb("capabilities"), // List of capabilities
+  usageMetrics: jsonb("usage_metrics"), // Usage tracking
+  lastHealthCheck: timestamp("last_health_check"),
+  healthStatus: text("health_status").default("unknown"),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+export const ultraQueenAIConversations = pgTable("ultra_queen_ai_conversations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  activeProviders: jsonb("active_providers"), // List of active AI providers for this conversation
+  quantumMode: boolean("quantum_mode").default(false),
+  selfUpgradeEnabled: boolean("self_upgrade_enabled").default(false),
+  contextWindow: jsonb("context_window"), // Shared context across providers
+  metadata: jsonb("metadata"),
+  lastMessageAt: timestamp("last_message_at").notNull().default(sql`now()`),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+export const ultraQueenAIMessages = pgTable("ultra_queen_ai_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  conversationId: varchar("conversation_id").notNull().references(() => ultraQueenAIConversations.id),
+  role: text("role").notNull(), // 'user' | 'assistant' | 'system'
+  content: text("content").notNull(),
+  provider: text("provider"), // Which AI provider responded
+  providerMetadata: jsonb("provider_metadata"), // Provider-specific response data
+  processingTime: integer("processing_time"), // Milliseconds
+  quantumOperations: jsonb("quantum_operations"), // Quantum computing simulation data
+  selfUpgradeActions: jsonb("self_upgrade_actions"), // Self-improvement actions taken
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+export const ultraQueenAIIntegrations = pgTable("ultra_queen_ai_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  integrationType: text("integration_type").notNull(), // 'api' | 'blockchain' | 'database' | 'service'
+  integrationName: text("integration_name").notNull(),
+  category: text("category").notNull(), // 'ai' | 'web2' | 'web3' | 'government' | 'cloud' | 'blockchain'
+  status: text("status").notNull().default("inactive"), // 'active' | 'inactive' | 'testing' | 'error'
+  endpoint: text("endpoint"),
+  apiKey: text("api_key"), // Encrypted
+  configuration: jsonb("configuration"),
+  rateLimits: jsonb("rate_limits"),
+  lastUsed: timestamp("last_used"),
+  totalCalls: integer("total_calls").default(0),
+  successRate: real("success_rate").default(100),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at").notNull().default(sql`now()`)
+});
+
+export const quantumSimulations = pgTable("quantum_simulations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  simulationName: text("simulation_name").notNull(),
+  qubits: integer("qubits").notNull(),
+  gates: jsonb("gates"), // Quantum gates configuration
+  circuitComplexity: integer("circuit_complexity"),
+  executionResults: jsonb("execution_results"),
+  entanglementState: jsonb("entanglement_state"),
+  superpositionData: jsonb("superposition_data"),
+  measurementOutcome: jsonb("measurement_outcome"),
+  simulationTime: integer("simulation_time"), // Milliseconds
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
+export const selfUpgradeHistory = pgTable("self_upgrade_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  upgradeType: text("upgrade_type").notNull(), // 'model' | 'algorithm' | 'capability' | 'knowledge'
+  previousVersion: text("previous_version"),
+  newVersion: text("new_version"),
+  improvements: jsonb("improvements"),
+  performanceMetrics: jsonb("performance_metrics"),
+  validationResults: jsonb("validation_results"),
+  rollbackAvailable: boolean("rollback_available").default(true),
+  createdAt: timestamp("created_at").notNull().default(sql`now()`)
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -247,6 +334,18 @@ export type AiBotSession = typeof aiBotSessions.$inferSelect;
 export type InsertAiBotSession = typeof aiBotSessions.$inferInsert;
 export type AiCommandInterface = typeof aiCommandInterfaces.$inferSelect;
 export type InsertAiCommandInterface = typeof aiCommandInterfaces.$inferInsert;
+export type UltraQueenAISystem = typeof ultraQueenAISystems.$inferSelect;
+export type InsertUltraQueenAISystem = typeof ultraQueenAISystems.$inferInsert;
+export type UltraQueenAIConversation = typeof ultraQueenAIConversations.$inferSelect;
+export type InsertUltraQueenAIConversation = typeof ultraQueenAIConversations.$inferInsert;
+export type UltraQueenAIMessage = typeof ultraQueenAIMessages.$inferSelect;
+export type InsertUltraQueenAIMessage = typeof ultraQueenAIMessages.$inferInsert;
+export type UltraQueenAIIntegration = typeof ultraQueenAIIntegrations.$inferSelect;
+export type InsertUltraQueenAIIntegration = typeof ultraQueenAIIntegrations.$inferInsert;
+export type QuantumSimulation = typeof quantumSimulations.$inferSelect;
+export type InsertQuantumSimulation = typeof quantumSimulations.$inferInsert;
+export type SelfUpgradeHistory = typeof selfUpgradeHistory.$inferSelect;
+export type InsertSelfUpgradeHistory = typeof selfUpgradeHistory.$inferInsert;
 
 // ===================== DOCUMENT GENERATION SCHEMAS =====================
 

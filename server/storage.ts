@@ -156,6 +156,19 @@ export interface IStorage {
   createSecurityRule(rule: any): Promise<any>;
   getSecurityRules(): Promise<any[]>;
   updateSecurityRule(id: string, updates: any): Promise<any>;
+  
+  // Ultra Queen AI methods
+  createUltraQueenAISystem(system: any): Promise<any>;
+  getUltraQueenAISystems(): Promise<any[]>;
+  updateUltraQueenAISystem(id: string, updates: any): Promise<any>;
+  createUltraQueenAIConversation(conversation: any): Promise<any>;
+  getUltraQueenAIConversations(userId: string): Promise<any[]>;
+  createUltraQueenAIMessage(message: any): Promise<any>;
+  getUltraQueenAIMessages(conversationId: string): Promise<any[]>;
+  createQuantumSimulation(simulation: any): Promise<any>;
+  getQuantumSimulations(): Promise<any[]>;
+  createSelfUpgradeHistory(upgrade: any): Promise<any>;
+  getSelfUpgradeHistory(): Promise<any[]>;
 }
 
 // Create the storage instance using PostgreSQL
