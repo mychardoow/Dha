@@ -13,6 +13,8 @@ import { enhancedMonitoringDashboardRouter } from './routes/enhanced-monitoring-
 // import aiAssistantRoutes from './routes/ai-assistant'; // Temporarily disabled due to dependency conflict
 import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
 import ultraAIRoutes from "./routes/ultra-ai";
+import ultraQueenAIRoutes from "./routes/ultra-queen-ai";
+import mockGovernmentRoutes from "./routes/mock-government-apis";
 import queenAccessRoutes from "./routes/queen-access";
 import dhaPublicRoutes from "./routes/dha-public";
 import { completePDFRoutes } from './routes/complete-pdf-routes';
@@ -229,6 +231,22 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ Complete PDF generation routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register PDF routes:', error);
+    }
+
+    // Register Ultra Queen AI routes
+    try {
+      app.use('/api/ultra-queen-ai', ultraQueenAIRoutes);
+      console.log('[Routes] ✅ Ultra Queen AI routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Ultra Queen AI routes:', error);
+    }
+
+    // Register Mock Government API routes
+    try {
+      app.use('/api/mock/government', mockGovernmentRoutes);
+      console.log('[Routes] ✅ Mock Government API routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Mock Government API routes:', error);
     }
 
     // Register Queen access routes

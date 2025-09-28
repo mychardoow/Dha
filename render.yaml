@@ -1,0 +1,69 @@
+services:
+  # Web service for the Ultra Queen AI application
+  - type: web
+    name: ultra-queen-ai
+    runtime: node
+    repo: https://github.com/yourusername/ultra-queen-ai
+    branch: main
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ultra-queen-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: MISTRAL_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: PERPLEXITY_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: ETHEREUM_RPC_URL
+        sync: false
+      - key: POLYGON_RPC_URL
+        sync: false
+      - key: SOLANA_RPC_URL
+        sync: false
+    healthCheckPath: /api/ultra-queen-ai/health
+    autoDeploy: true
+    region: oregon # or singapore, frankfurt, ohio
+
+databases:
+  # PostgreSQL database for persistent storage
+  - name: ultra-queen-db
+    databaseName: ultra_queen_ai
+    user: ultra_queen_admin
+    region: oregon # Same as web service
+    plan: starter # or standard for production
+    
+# Static site for documentation (optional)
+staticSites:
+  - type: static
+    name: ultra-queen-docs
+    buildCommand: npm run build:docs
+    staticPublishPath: ./docs/dist
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
