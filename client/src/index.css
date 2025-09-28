@@ -122,12 +122,15 @@
   --destructive: hsl(3, 72%, 52%); /* Official SA Red #DE3831 */
   --destructive-foreground: hsl(0, 0%, 100%); /* White on red */
   
-  /* Ultra Queen AI Raeesa - Dark Theme with Golden Aesthetic */
+  /* Ultra Queen AI Raeesa - Dark Theme with Blue-Green Mix */
   --queen-gold: #FFD700; /* Pure gold */
   --queen-gold-light: #FFF8DC; /* Light gold/champagne */
   --queen-gold-dark: #B8860B; /* Dark gold */
-  --queen-purple: #800080; /* Royal purple */
-  --queen-purple-dark: #4B0082; /* Dark purple */
+  --queen-blue: #1E90FF; /* Dodger blue */
+  --queen-teal: #20B2AA; /* Light sea green */
+  --queen-cyan: #00CED1; /* Dark turquoise */
+  --queen-blue-green: #2E8B57; /* Sea green */
+  --queen-dark-blue: #003366; /* Dark navy blue */
   --queen-black: #0A0A0A; /* Almost black */
   --queen-gray: #1A1A1A; /* Dark gray */
   
