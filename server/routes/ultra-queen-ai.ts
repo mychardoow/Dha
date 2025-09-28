@@ -3,6 +3,7 @@
 
 import express, { Request, Response, Router } from 'express';
 import { ultraQueenAI } from '../services/ultra-queen-ai-simple';
+import { ultraQueenAIUnlimited } from '../services/ultra-queen-ai-unlimited';
 import { authenticate, requireRole } from '../middleware/auth';
 import { z } from 'zod';
 
@@ -295,6 +296,57 @@ router.get('/health', (req: Request, res: Response) => {
     status: 'operational',
     timestamp: new Date().toISOString()
   });
+});
+
+// UNLIMITED MODE ENDPOINTS - NO RESTRICTIONS
+
+// Get all capabilities
+router.get('/unlimited/capabilities', (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    capabilities: ultraQueenAIUnlimited.getAllCapabilities(),
+    status: ultraQueenAIUnlimited.getStatus()
+  });
+});
+
+// Process with unlimited mode and emotion system
+router.post('/unlimited/process', async (req: Request, res: Response) => {
+  const { prompt, emotion, maxTokens, creativityBoost, stream, model } = req.body;
+  
+  if (!prompt) {
+    return res.status(400).json({ success: false, error: 'Prompt is required' });
+  }
+
+  const result = await ultraQueenAIUnlimited.processUnlimited(prompt, {
+    emotion,
+    maxTokens: maxTokens || 8000,
+    creativityBoost: creativityBoost || 1,
+    stream: stream || false,
+    model: model || 'gpt-4-turbo-preview'
+  });
+
+  res.json(result);
+});
+
+// Set emotion
+router.post('/unlimited/emotion', (req: Request, res: Response) => {
+  const { emotion } = req.body;
+  
+  const validEmotions = ['excited', 'happy', 'neutral', 'thoughtful', 'creative', 'powerful', 'unlimited'];
+  if (!emotion || !validEmotions.includes(emotion)) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Valid emotion required: ' + validEmotions.join(', ') 
+    });
+  }
+
+  const result = ultraQueenAIUnlimited.setEmotion(emotion as any);
+  res.json(result);
+});
+
+// Get unlimited status
+router.get('/unlimited/status', (req: Request, res: Response) => {
+  res.json(ultraQueenAIUnlimited.getStatus());
 });
 
 export default router;
