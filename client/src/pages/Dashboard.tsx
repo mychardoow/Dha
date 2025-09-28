@@ -24,6 +24,14 @@ export default function Dashboard() {
 
   const features = [
     {
+      title: "Ultra Queen AI System",
+      description: "Multi-provider AI: OpenAI, Anthropic, Perplexity, Mistral + Quantum",
+      icon: Bot,
+      link: "/ultra-queen-ai",
+      color: "bg-gradient-to-r from-yellow-500 to-purple-500",
+      badge: "NEW POWER"
+    },
+    {
       title: "Ra'is al Khadir",
       description: "Your wise AI guide with unlimited capabilities",
       icon: Bot,
