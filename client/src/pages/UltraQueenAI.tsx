@@ -250,12 +250,12 @@ export default function UltraQueenAI() {
 
   const getProviderColor = (provider: AIProvider) => {
     switch (provider) {
-      case 'openai': return 'bg-green-500';
-      case 'anthropic': return 'bg-orange-500';
-      case 'perplexity': return 'bg-blue-500';
-      case 'mistral': return 'bg-purple-500';
-      case 'quantum': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+      case 'openai': return 'bg-[var(--queen-blue-green)]';
+      case 'anthropic': return 'bg-[var(--queen-gold)]';
+      case 'perplexity': return 'bg-[var(--queen-blue)]';
+      case 'mistral': return 'bg-[var(--queen-teal)]';
+      case 'quantum': return 'bg-[var(--queen-gold)]';
+      default: return 'bg-[var(--queen-gray)]';
     }
   };
 
@@ -263,32 +263,32 @@ export default function UltraQueenAI() {
     <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-4">
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-[var(--queen-gold)]/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-[var(--queen-cyan)]/20 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Crown className="h-8 w-8 text-yellow-500" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+            <Crown className="h-8 w-8 text-[var(--queen-gold)]" />
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[var(--queen-gold)] to-[var(--queen-gold-dark)] bg-clip-text text-transparent">
               Ultra Queen AI System
             </h1>
-            <Crown className="h-8 w-8 text-yellow-500" />
+            <Crown className="h-8 w-8 text-[var(--queen-gold)]" />
           </div>
-          <p className="text-gray-400">Multi-Provider Intelligence • Quantum Computing • Unlimited Power</p>
+          <p className="text-[var(--queen-gold-light)]">Multi-Provider Intelligence • Quantum Computing • Unlimited Power</p>
           
           {/* Provider Status Bar */}
           <div className="flex items-center justify-center gap-4 mt-4">
             {providerStatus.map(status => (
               <div key={status.provider} className="flex items-center gap-1">
                 {getProviderIcon(status.provider)}
-                <span className="text-xs text-gray-400">{status.provider}:</span>
+                <span className="text-xs text-[var(--queen-gold-light)]">{status.provider}:</span>
                 {status.status === 'active' ? (
-                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <CheckCircle className="h-3 w-3 text-[var(--queen-blue-green)]" />
                 ) : (
-                  <AlertCircle className="h-3 w-3 text-red-500" />
+                  <AlertCircle className="h-3 w-3 text-[var(--queen-gold)]" />
                 )}
               </div>
             ))}
@@ -298,9 +298,9 @@ export default function UltraQueenAI() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Settings Panel */}
           <div className="lg:col-span-1">
-            <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm">
+            <Card className="bg-[var(--queen-black)]/50 border-[var(--queen-gold)]/30 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-yellow-500 flex items-center gap-2">
+                <CardTitle className="text-[var(--queen-gold)] flex items-center gap-2">
                   <Settings className="h-5 w-5" />
                   Configuration
                 </CardTitle>
@@ -308,12 +308,12 @@ export default function UltraQueenAI() {
               <CardContent className="space-y-4">
                 {/* Provider Selection */}
                 <div>
-                  <Label htmlFor="provider" className="text-gray-300">AI Provider</Label>
+                  <Label htmlFor="provider" className="text-[var(--queen-gold-light)]">AI Provider</Label>
                   <Select value={provider} onValueChange={(v) => setProvider(v as AIProvider)}>
-                    <SelectTrigger id="provider" className="bg-gray-800 border-gray-700 text-white">
+                    <SelectTrigger id="provider" className="bg-[var(--queen-gray)] border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)]">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
+                    <SelectContent className="bg-[var(--queen-gray)] border-[var(--queen-gold)]/30">
                       <SelectItem value="auto">
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4" />
@@ -357,32 +357,32 @@ export default function UltraQueenAI() {
                 {/* Feature Toggles */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="compare" className="text-gray-300">Compare Providers</Label>
+                    <Label htmlFor="compare" className="text-[var(--queen-gold-light)]">Compare Providers</Label>
                     <Switch 
                       id="compare"
                       checked={compareMode}
                       onCheckedChange={setCompareMode}
-                      className="data-[state=checked]:bg-yellow-500"
+                      className="data-[state=checked]:bg-[var(--queen-gold)]"
                     />
                   </div>
                   
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="quantum" className="text-gray-300">Quantum Mode</Label>
+                    <Label htmlFor="quantum" className="text-[var(--queen-gold-light)]">Quantum Mode</Label>
                     <Switch 
                       id="quantum"
                       checked={quantumMode}
                       onCheckedChange={setQuantumMode}
-                      className="data-[state=checked]:bg-purple-500"
+                      className="data-[state=checked]:bg-[var(--queen-cyan)]"
                     />
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="voice" className="text-gray-300">Voice Output</Label>
+                    <Label htmlFor="voice" className="text-[var(--queen-gold-light)]">Voice Output</Label>
                     <Switch 
                       id="voice"
                       checked={voiceEnabled}
                       onCheckedChange={setVoiceEnabled}
-                      className="data-[state=checked]:bg-blue-500"
+                      className="data-[state=checked]:bg-[var(--queen-blue)]"
                     />
                   </div>
                 </div>
@@ -391,7 +391,7 @@ export default function UltraQueenAI() {
                 <div className="space-y-2">
                   <Button 
                     onClick={clearHistory}
-                    className="w-full bg-gray-800 hover:bg-gray-700 text-white"
+                    className="w-full bg-[var(--queen-gray)] hover:bg-[var(--queen-dark-blue)] text-[var(--queen-gold-light)]"
                     size="sm"
                   >
                     <History className="h-4 w-4 mr-2" />
@@ -400,7 +400,7 @@ export default function UltraQueenAI() {
                   
                   <Button 
                     onClick={fetchProviderStatus}
-                    className="w-full bg-gray-800 hover:bg-gray-700 text-white"
+                    className="w-full bg-[var(--queen-gray)] hover:bg-[var(--queen-dark-blue)] text-[var(--queen-gold-light)]"
                     size="sm"
                   >
                     <RefreshCw className="h-4 w-4 mr-2" />
@@ -413,18 +413,18 @@ export default function UltraQueenAI() {
 
           {/* Chat Panel */}
           <div className="lg:col-span-3">
-            <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-sm h-[80vh] flex flex-col">
-              <CardHeader className="border-b border-gray-800">
+            <Card className="bg-[var(--queen-black)]/50 border-[var(--queen-gold)]/30 backdrop-blur-sm h-[80vh] flex flex-col">
+              <CardHeader className="border-b border-[var(--queen-gold)]/30">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-yellow-500">Chat Interface</CardTitle>
+                  <CardTitle className="text-[var(--queen-gold)]">Chat Interface</CardTitle>
                   <div className="flex items-center gap-2">
                     {quantumMode && (
-                      <Badge className="bg-purple-500/20 text-purple-300 border-purple-500">
+                      <Badge className="bg-[var(--queen-cyan)]/20 text-[var(--queen-cyan)] border-[var(--queen-cyan)]">
                         Quantum Active
                       </Badge>
                     )}
                     {compareMode && (
-                      <Badge className="bg-blue-500/20 text-blue-300 border-blue-500">
+                      <Badge className="bg-[var(--queen-blue)]/20 text-[var(--queen-cyan)] border-[var(--queen-blue)]">
                         Compare Mode
                       </Badge>
                     )}
@@ -437,9 +437,9 @@ export default function UltraQueenAI() {
                 <ScrollArea className="flex-1 p-4">
                   {messages.length === 0 ? (
                     <div className="text-center py-12">
-                      <Sparkles className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-                      <p className="text-gray-400">Welcome to Ultra Queen AI</p>
-                      <p className="text-sm text-gray-500 mt-2">Ask anything. I have unlimited capabilities.</p>
+                      <Sparkles className="h-12 w-12 text-[var(--queen-gold)] mx-auto mb-4" />
+                      <p className="text-[var(--queen-gold-light)]">Welcome to Ultra Queen AI</p>
+                      <p className="text-sm text-[var(--queen-gold-light)] mt-2">Ask anything. I have unlimited capabilities.</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -451,23 +451,23 @@ export default function UltraQueenAI() {
                           <div
                             className={`max-w-[80%] rounded-lg p-4 ${
                               message.role === 'user'
-                                ? 'bg-yellow-500/20 border border-yellow-500/30 text-yellow-100'
-                                : 'bg-gray-800 border border-gray-700 text-gray-100'
+                                ? 'bg-[var(--queen-gold)]/20 border border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)]'
+                                : 'bg-[var(--queen-gray)] border border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)]'
                             }`}
                           >
                             {message.role === 'assistant' && message.provider && (
                               <div className="flex items-center gap-2 mb-2">
                                 <div className={`w-2 h-2 rounded-full ${getProviderColor(message.provider)}`} />
-                                <span className="text-xs text-gray-400">
+                                <span className="text-xs text-[var(--queen-gold-light)]">
                                   {message.provider.toUpperCase()}
                                 </span>
                                 {message.metadata?.confidence && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-[var(--queen-gray)]">
                                     ({(message.metadata.confidence * 100).toFixed(0)}% confidence)
                                   </span>
                                 )}
                                 {message.metadata?.executionTime && (
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-[var(--queen-gray)]">
                                     {message.metadata.executionTime}ms
                                   </span>
                                 )}
@@ -480,10 +480,10 @@ export default function UltraQueenAI() {
                       
                       {isTyping && (
                         <div className="flex justify-start">
-                          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+                          <div className="bg-[var(--queen-gray)] border border-[var(--queen-gold)]/30 rounded-lg p-4">
                             <div className="flex items-center gap-2">
-                              <Loader2 className="h-4 w-4 animate-spin text-yellow-500" />
-                              <span className="text-gray-400">Processing with {provider === 'auto' ? 'optimal provider' : provider}...</span>
+                              <Loader2 className="h-4 w-4 animate-spin text-[var(--queen-gold)]" />
+                              <span className="text-[var(--queen-gold-light)]">Processing with {provider === 'auto' ? 'optimal provider' : provider}...</span>
                             </div>
                           </div>
                         </div>
@@ -495,7 +495,7 @@ export default function UltraQueenAI() {
                 </ScrollArea>
 
                 {/* Input Area */}
-                <div className="p-4 border-t border-gray-800">
+                <div className="p-4 border-t border-[var(--queen-gold)]/30">
                   <div className="flex gap-2">
                     <div className="flex-1 relative">
                       <Textarea
@@ -508,21 +508,21 @@ export default function UltraQueenAI() {
                           }
                         }}
                         placeholder="Ask anything... I have unlimited capabilities"
-                        className="min-h-[60px] bg-gray-800 border-gray-700 text-white placeholder-gray-500 pr-20"
+                        className="min-h-[60px] bg-[var(--queen-gray)] border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)] placeholder-[var(--queen-gold-light)]/50 pr-20">
                       />
                       <div className="absolute right-2 top-2 flex gap-1">
                         <Button
                           size="icon"
                           variant="ghost"
                           onClick={toggleVoiceRecording}
-                          className={`h-8 w-8 ${isRecording ? 'text-red-500' : 'text-gray-400'} hover:text-white`}
+                          className={`h-8 w-8 ${isRecording ? 'text-[var(--queen-gold)]' : 'text-[var(--queen-gold-light)]'} hover:text-[var(--queen-cyan)]`}
                         >
                           {isRecording ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
                         </Button>
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="h-8 w-8 text-gray-400 hover:text-white"
+                          className="h-8 w-8 text-[var(--queen-gold-light)] hover:text-[var(--queen-cyan)]"
                         >
                           <Paperclip className="h-4 w-4" />
                         </Button>

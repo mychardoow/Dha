@@ -34,7 +34,7 @@ const API_CAPABILITIES = {
       "DALL-E 3 image generation"
     ],
     limits: "Rate limit: 10,000 requests/min",
-    color: "from-green-500 to-emerald-600"
+    color: "from-[var(--queen-blue-green)] to-[var(--queen-teal)]"
   },
   mistral: {
     name: "Mistral AI",
@@ -48,7 +48,7 @@ const API_CAPABILITIES = {
       "Cost-effective for high volume"
     ],
     limits: "Rate limit: 5,000 requests/min",
-    color: "from-orange-500 to-red-600"
+    color: "from-[var(--queen-gold)] to-[var(--queen-gold-dark)]"
   },
   google: {
     name: "Google Gemini",
@@ -62,7 +62,7 @@ const API_CAPABILITIES = {
       "Code generation across 20+ languages"
     ],
     limits: "Rate limit: 60 requests/min",
-    color: "from-blue-500 to-indigo-600"
+    color: "from-[var(--queen-blue)] to-[var(--queen-dark-blue)]"
   },
   anthropic: {
     name: "Anthropic Claude",
@@ -76,7 +76,7 @@ const API_CAPABILITIES = {
       "Multilingual support"
     ],
     limits: "Requires credits - Add via Anthropic Console",
-    color: "from-purple-500 to-pink-600"
+    color: "from-[var(--queen-cyan)] to-[var(--queen-teal)]"
   },
   perplexity: {
     name: "Perplexity AI",
@@ -90,7 +90,7 @@ const API_CAPABILITIES = {
       "Fact-checking with sources"
     ],
     limits: "Requires new API key - Generate at perplexity.ai",
-    color: "from-cyan-500 to-teal-600"
+    color: "from-[var(--queen-cyan)] to-[var(--queen-teal)]"
   }
 };
 
@@ -107,13 +107,13 @@ const SUPPORTED_FORMATS = {
 
 // Emotion states for the AI
 const EMOTION_STATES = {
-  excited: { emoji: '🎉', label: 'Excited', color: 'from-yellow-500 to-orange-500' },
-  happy: { emoji: '😊', label: 'Happy', color: 'from-green-500 to-emerald-500' },
-  neutral: { emoji: '🤖', label: 'Neutral', color: 'from-gray-500 to-slate-500' },
-  thoughtful: { emoji: '🤔', label: 'Thoughtful', color: 'from-blue-500 to-indigo-500' },
-  creative: { emoji: '✨', label: 'Creative', color: 'from-purple-500 to-pink-500' },
-  powerful: { emoji: '💪', label: 'Powerful', color: 'from-red-500 to-orange-500' },
-  unlimited: { emoji: '♾️', label: 'Unlimited', color: 'from-cyan-500 via-purple-500 to-pink-500' }
+  excited: { emoji: '🎉', label: 'Excited', color: 'from-[var(--queen-gold)] to-[var(--queen-cyan)]' },
+  happy: { emoji: '😊', label: 'Happy', color: 'from-[var(--queen-blue-green)] to-[var(--queen-teal)]' },
+  neutral: { emoji: '🤖', label: 'Neutral', color: 'from-[var(--queen-gray)] to-[var(--queen-dark-blue)]' },
+  thoughtful: { emoji: '🤔', label: 'Thoughtful', color: 'from-[var(--queen-blue)] to-[var(--queen-dark-blue)]' },
+  creative: { emoji: '✨', label: 'Creative', color: 'from-[var(--queen-blue)] to-[var(--queen-teal)]' },
+  powerful: { emoji: '💪', label: 'Powerful', color: 'from-[var(--queen-gold)] to-[var(--queen-gold-dark)]' },
+  unlimited: { emoji: '♾️', label: 'Unlimited', color: 'from-[var(--queen-cyan)] via-[var(--queen-blue-green)] to-[var(--queen-gold)]' }
 };
 
 interface Message {
@@ -568,7 +568,7 @@ export default function UltraQueenAIEnhanced() {
 
             {/* Unlimited Capabilities from Backend */}
             {unlimitedCapabilities && (
-              <Card className="bg-gradient-to-r from-purple-900/20 to-pink-900/20 backdrop-blur-md border-[var(--queen-gold)]">
+              <Card className="bg-gradient-to-r from-[var(--queen-dark-blue)]/20 to-[var(--queen-blue-green)]/20 backdrop-blur-md border-[var(--queen-gold)]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[var(--queen-gold)]">
                     <Infinity className="h-6 w-6 animate-pulse" />
