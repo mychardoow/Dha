@@ -17,23 +17,23 @@ export interface UltraAITestConfig {
   displayName: string;
   testMessages: string[];
   expectedCapabilities: string[];
-  requiresAuth: string;
+  requiresAuth: boolean;
   maxResponseTime: number; // milliseconds
-  streamingSupported: string;
-  militaryGradeAccess: string;
+  streamingSupported: boolean;
+  militaryGradeAccess: boolean;
 }
 
 export interface AIIntegrationTestResult {
   botType: string;
-  success: string;
+  success: boolean;
   duration: number;
   capabilities: {
-    responseGeneration: string;
-    streaming: string;
-    contextMaintenance: string;
-    securityCompliance: string;
-    errorHandling: string;
-    selfHealing: string;
+    responseGeneration: boolean;
+    streaming: boolean;
+    contextMaintenance: boolean;
+    securityCompliance: boolean;
+    errorHandling: boolean;
+    selfHealing: boolean;
   };
   performance: {
     averageResponseTime: number;
@@ -42,29 +42,29 @@ export interface AIIntegrationTestResult {
     cpuUtilization: number;
   };
   coordination: {
-    canReceiveFromOtherBots: number;
-    canSendToOtherBots: number;
-    sharedContextAccess: string;
-    crossBotTasking: string;
+    canReceiveFromOtherBots: boolean;
+    canSendToOtherBots: boolean;
+    sharedContextAccess: boolean;
+    crossBotTasking: boolean;
   };
   securityFeatures: {
-    accessControlEnabled:string;
+    accessControlEnabled: boolean;
     auditLogging: boolean;
-    threatDetection: string
+    threatDetection: boolean;
     dataEncryption: boolean;
   };
   error?: string;
 }
 
 export interface SelfHealingTestResult {
-  success: string;
-  healingCapabilities: number
-    errorDetection: number;
-    automaticRecovery: string
-    systemStabilization: string;
-    proactiveMaintenace: string;
+  success: boolean;
+  healingCapabilities: {
+    errorDetection: boolean;
+    automaticRecovery: boolean;
+    systemStabilization: boolean;
+    proactiveMaintenace: boolean;
   };
-  healingMetrics: number;
+  healingMetrics: {
     detectionTime: number;
     recoveryTime: number;
     successRate: number;
@@ -72,7 +72,7 @@ export interface SelfHealingTestResult {
   };
   integrationStatus: {
     monitoringIntegration: boolean;
-    aiSystemIntegration: string;
+    aiSystemIntegration: boolean;
     databaseIntegration: boolean;
     websocketIntegration: boolean;
   };
