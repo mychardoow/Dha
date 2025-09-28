@@ -11,12 +11,19 @@ const router = Router();
 // Schema for AI query requests
 const aiQuerySchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
-  provider: z.enum(['openai', 'mistral', 'google', 'anthropic', 'perplexity']).optional(),
+  provider: z.enum(['openai', 'mistral', 'google', 'anthropic', 'perplexity', 'all']).optional(),
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().min(1).max(8000).optional(),
   stream: z.boolean().optional(),
   quantumMode: z.boolean().optional(),
-  selfUpgrade: z.boolean().optional()
+  selfUpgrade: z.boolean().optional(),
+  attachments: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    size: z.number(),
+    data: z.string().optional(),
+    url: z.string().optional()
+  })).optional()
 });
 
 // Schema for government API queries
@@ -51,19 +58,60 @@ router.post('/query', authenticate, async (req: Request, res: Response) => {
   try {
     const validatedData = aiQuerySchema.parse(req.body);
     
+    // Process attachments if any
+    let processedPrompt = validatedData.prompt;
+    if (validatedData.attachments && validatedData.attachments.length > 0) {
+      const attachmentInfo = validatedData.attachments.map(a => 
+        `[Attached: ${a.name} (${a.type}, ${(a.size/1024).toFixed(1)}KB)]`
+      ).join('\n');
+      processedPrompt = `${attachmentInfo}\n\n${validatedData.prompt}`;
+    }
+    
     // Apply quantum mode if requested
     let quantumData = null;
     if (validatedData.quantumMode) {
-      quantumData = await ultraQueenAI.simulateQuantum('query_enhancement', 6);
+      quantumData = await ultraQueenAI.simulateQuantum('query_enhancement', 8);
     }
 
-    // Query AI provider
-    const result = await ultraQueenAI.queryAI(validatedData.prompt, {
-      provider: validatedData.provider,
-      temperature: validatedData.temperature,
-      maxTokens: validatedData.maxTokens,
-      stream: validatedData.stream
-    });
+    // Handle "all" provider mode for Max Ultra Power
+    let result;
+    if (validatedData.provider === 'all') {
+      // Query all available providers
+      const providers = ['openai', 'mistral', 'google'];
+      const allResults = await Promise.allSettled(
+        providers.map(provider => 
+          ultraQueenAI.queryAI(processedPrompt, {
+            provider,
+            temperature: validatedData.temperature || 0.9,
+            maxTokens: validatedData.maxTokens || 8000,
+            stream: false
+          })
+        )
+      );
+      
+      // Combine results
+      const successfulResults = allResults
+        .filter(r => r.status === 'fulfilled' && (r.value as any).success)
+        .map(r => (r.value as any));
+      
+      result = {
+        success: successfulResults.length > 0,
+        content: successfulResults.map(r => 
+          `[${r.provider?.toUpperCase() || 'AI'}]: ${r.content}`
+        ).join('\n\n---\n\n'),
+        provider: 'Multi-Provider (Max Ultra Power)',
+        providers: successfulResults.map(r => r.provider),
+        count: successfulResults.length
+      };
+    } else {
+      // Single provider query
+      result = await ultraQueenAI.queryAI(processedPrompt, {
+        provider: validatedData.provider,
+        temperature: validatedData.temperature,
+        maxTokens: validatedData.maxTokens,
+        stream: validatedData.stream
+      });
+    }
 
     // Apply self-upgrade if requested
     let upgradeData = null;
@@ -76,6 +124,8 @@ router.post('/query', authenticate, async (req: Request, res: Response) => {
       response: result,
       quantum: quantumData,
       selfUpgrade: upgradeData,
+      attachments: validatedData.attachments?.length || 0,
+      maxUltraPower: validatedData.provider === 'all',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
