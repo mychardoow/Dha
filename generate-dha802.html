@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>DHA-802 Working Generator</title>
+    <style>
+        body { font-family: Arial; margin: 20px; background: #f5f5f5; }
+        button { padding: 10px 20px; margin: 5px; background: #006642; color: white; border: none; cursor: pointer; }
+        button:hover { background: #004d31; }
+        #canvas { border: 2px solid #006642; background: white; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #006642; }
+    </style>
+</head>
+<body>
+    <h1>DHA-802 Document Generator - WORKING VERSION</h1>
+    <div>
+        <button onclick="generate('Muhammad Mohsin', 'AD0116281')">Muhammad Mohsin</button>
+        <button onclick="generate('Tasleem Mohsin', 'AUD115281')">Tasleem Mohsin</button>
+        <button onclick="generate('Khunsha', 'KV4122911')">Khunsha</button>
+        <button onclick="download()">Download</button>
+    </div>
+    <br>
+    <canvas id="canvas" width="2100" height="2970" style="width: 700px; height: 990px;"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function generate(name, permit) {
+            // Clear
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(0, 0, 2100, 2970);
+            
+            // Border
+            ctx.strokeStyle = '#006642';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(40, 40, 2020, 2890);
+            
+            // Header
+            ctx.fillStyle = '#E8F5E9';
+            ctx.fillRect(60, 60, 1980, 300);
+            
+            // SA Coat of Arms placeholder
+            ctx.fillStyle = '#006642';
+            ctx.beginPath();
+            ctx.arc(400, 210, 80, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(400, 210, 60, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Title
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('home affairs', 1050, 140);
+            ctx.font = '36px Arial';
+            ctx.fillText('Department:', 1050, 100);
+            ctx.fillText('REPUBLIC OF SOUTH AFRICA', 1050, 200);
+            
+            // Document Type
+            ctx.font = 'bold 60px Arial';
+            ctx.fillText('PERMANENT RESIDENCE PERMIT', 1050, 300);
+            
+            // Form Number
+            ctx.font = '36px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('DHA-802', 1950, 320);
+            
+            // Subtitle
+            ctx.textAlign = 'center';
+            ctx.font = '28px Arial';
+            ctx.fillText('SECTIONS 25 AND 27 OF ACT NO. 13 OF 2002', 1050, 420);
+            
+            // Main content
+            ctx.fillStyle = '#FAF8F0';
+            ctx.fillRect(100, 500, 1900, 1900);
+            
+            // Form fields
+            ctx.fillStyle = '#000';
+            ctx.font = '32px Arial';
+            ctx.textAlign = 'left';
+            
+            // FORM FIELDS line
+            ctx.fillText('FORM FIELDS: Seqrimens of section 27(b) of the Immigration Act, 2000', 350, 650);
+            
+            // Permit Number
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('PERMIT NUMBER REFERENCE NO:', 350, 750);
+            ctx.font = '32px Arial';
+            ctx.fillText(permit, 950, 750);
+            ctx.fillText('PRP3628959', 1400, 750);
+            
+            // Personal Details
+            const fields = [
+                { label: 'Surname', value: name.split(' ').pop() },
+                { label: 'Maiden Surname', value: '' },
+                { label: 'First Name (s)', value: name.split(' ')[0] },
+                { label: 'Nationality', value: 'FRANCE' },
+                { label: 'Date of birth', value: '1983/05/21' },
+                { label: 'Gender', value: 'MALE' }
+            ];
+            
+            let y = 900;
+            fields.forEach(field => {
+                ctx.font = '32px Arial';
+                ctx.fillText(field.label, 350, y);
+                
+                // Draw line for value
+                ctx.beginPath();
+                ctx.moveTo(600, y + 5);
+                ctx.lineTo(1200, y + 5);
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Value
+                ctx.fillText(field.value, 620, y);
+                
+                y += 120;
+            });
+            
+            // Authorization text
+            ctx.font = '28px Arial';
+            ctx.fillText('Has been authorised to enter the Republic of South Africa for the purpose of taking up permanent', 350, 1650);
+            ctx.fillText('residence, or if he/she has date of approval of application, already secured therein legally, to', 350, 1700);
+            ctx.fillText('reside permanently. Unless the holder of this permit before or on 2024/11/12', 350, 1750);
+            ctx.fillText('(the permanent residence permit shall lapse)', 350, 1800);
+            
+            // Signature section
+            ctx.font = 'bold 32px Arial';
+            ctx.fillText('SIGNATURE', 350, 1950);
+            ctx.font = 'italic 40px Arial';
+            ctx.fillText('Makholde', 400, 2050);
+            
+            // Date
+            ctx.font = '28px Arial';
+            ctx.fillText('Date of issue', 350, 2150);
+            ctx.fillText('2023/11/14', 600, 2150);
+            
+            // Director General
+            ctx.font = '28px Arial';
+            ctx.fillText('DIRECTOR-GENERAL', 350, 2250);
+            ctx.fillText('DEPARTMENT OF HOME AFFAIRS', 350, 2300);
+            
+            // Office Stamp
+            ctx.strokeStyle = '#006642';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(1400, 1900, 500, 400);
+            ctx.strokeRect(1405, 1905, 490, 390);
+            
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('OFFICE AND INITIALS', 1650, 1950);
+            ctx.fillText('OF', 1650, 1990);
+            ctx.fillText('PRIVATE BAG X114', 1650, 2030);
+            
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('Makholde LT', 1650, 2120);
+            ctx.fillText('PRETORIA 0001', 1650, 2200);
+            
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(1415, 2070, 470, 180);
+            
+            // Stamp text in red
+            ctx.fillStyle = '#FF0000';
+            ctx.font = '20px Arial';
+            ctx.fillText('DEPARTEMENT VAN', 1650, 2100);
+            ctx.fillText('BINNELANDSE SAKE', 1650, 2130);
+            ctx.fillText('2023 -11- 14', 1650, 2170);
+            ctx.fillText('PRETORIA: 0001', 1650, 2210);
+            
+            // Footer
+            ctx.fillStyle = '#E8F5E9';
+            ctx.fillRect(60, 2500, 1980, 410);
+            
+            // Control number
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 36px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText('No. A 297966', 1900, 2850);
+            
+            // Date printed
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('Date printed: 2023/11/14', 350, 2450);
+            ctx.fillText('Date printed', 350, 2480);
+            
+            // Conditions
+            ctx.font = '24px Arial';
+            ctx.fillText('Conditions:', 200, 2600);
+            ctx.font = '20px Arial';
+            ctx.fillText('(i) This permit is issued once only and must be kept by delegate/subdel', 200, 2650);
+            ctx.fillText('(ii) Permanent residents who are absent from the Republic for three years or longer may lose their right to permanent residence in', 200, 2700);
+            ctx.fillText('the Republic. A period of absence may be interrupted by an admission and subject to the Republic.', 200, 2750);
+            
+            // Bottom barcode area
+            ctx.fillStyle = '#000';
+            for(let i = 0; i < 50; i++) {
+                let width = Math.random() * 3 + 1;
+                let x = 900 + i * 6;
+                ctx.fillRect(x, 2800, width, 40);
+            }
+            
+            // Control Number
+            ctx.font = '18px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('200000627015001', 1050, 2870);
+            
+            ctx.textAlign = 'left';
+        }
+        
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'DHA-802.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Generate initial
+        generate('Muhammad Mohsin', 'AD0116281');
+    </script>
+</body>
+</html>
