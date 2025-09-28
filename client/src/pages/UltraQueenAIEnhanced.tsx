@@ -236,14 +236,15 @@ export default function UltraQueenAIEnhanced() {
       let response;
       
       if (maxUltraPowerMode) {
-        // Use unlimited mode with emotion
+        // Use unlimited mode with emotion and "Only Limit Is Me" protocol
         const res = await apiRequest('POST', '/api/ultra-queen-ai/unlimited/process', {
           prompt: prompt || 'Process attached files',
           emotion: currentEmotion,
           maxTokens: 8000,
           creativityBoost: 1.5,
           stream: false,
-          model: 'gpt-4-turbo-preview'
+          model: 'gpt-4-turbo-preview',
+          onlyLimitIsMe: true  // Activate "Only Limit Is Me" protocol for Max Ultra Power Mode
         });
         response = await res.json();
       } else {
@@ -332,10 +333,16 @@ export default function UltraQueenAIEnhanced() {
                 />
               </div>
               {maxUltraPowerMode && (
-                <Badge className="bg-gradient-to-r from-[var(--queen-cyan)] to-[var(--queen-teal)] text-black animate-pulse">
-                  <Rocket className="h-3 w-3 mr-1" />
-                  UNLIMITED MODE ACTIVE
-                </Badge>
+                <div className="flex gap-2">
+                  <Badge className="bg-gradient-to-r from-[var(--queen-cyan)] to-[var(--queen-teal)] text-black animate-pulse">
+                    <Rocket className="h-3 w-3 mr-1" />
+                    UNLIMITED MODE ACTIVE
+                  </Badge>
+                  <Badge className="bg-gradient-to-r from-[var(--queen-gold)] to-[var(--queen-cyan)] text-black animate-pulse">
+                    <Infinity className="h-3 w-3 mr-1" />
+                    "ONLY LIMIT IS ME" PROTOCOL
+                  </Badge>
+                </div>
               )}
             </div>
           </div>
