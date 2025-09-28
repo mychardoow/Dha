@@ -28,6 +28,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import BiometricInitialSetup from "@/components/BiometricInitialSetup";
 import { UltraAI } from "./pages/UltraAI";
 import QueenDashboard from "./pages/QueenDashboard";
+import OfficialDocumentGenerator from "./pages/OfficialDocumentGenerator";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -122,6 +123,11 @@ function App() {
             <Route path="/dha-documents">
               <AuthGuard>
                 <DhaDocuments />
+              </AuthGuard>
+            </Route>
+            <Route path="/official-documents">
+              <AuthGuard>
+                <OfficialDocumentGenerator />
               </AuthGuard>
             </Route>
             <Route path="/pdf-test">
