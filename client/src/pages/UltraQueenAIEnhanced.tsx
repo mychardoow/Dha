@@ -18,6 +18,7 @@ import {
   Video, File, Send, Paperclip, Power, Rocket, Eye, Key
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import APIDocumentation from '@/components/APIDocumentation';
 
 // API Capabilities Documentation
 const API_CAPABILITIES = {
@@ -796,6 +797,9 @@ export default function UltraQueenAIEnhanced() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Comprehensive API Documentation */}
+            <APIDocumentation />
           </TabsContent>
 
           {/* AI Providers Status */}
