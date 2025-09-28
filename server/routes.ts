@@ -17,10 +17,12 @@ import queenAccessRoutes from "./routes/queen-access";
 import dhaPublicRoutes from "./routes/dha-public";
 import { completePDFRoutes } from './routes/complete-pdf-routes';
 import { railwayHealthRoutes } from './routes/railway-health-routes';
+import dhaApiTestRoutes from './routes/dha-api-test';
 import { queenUltraAI } from "./services/queen-ultra-ai";
 import { dhaPublicAI } from "./services/dha-public-ai";
 import { dhaDocumentGenerator } from "./services/dha-document-generator";
 import { governmentAPIs } from "./services/government-api-integrations";
+import { getOfficialDHAAPI } from "./services/official-dha-api";
 import { completePDFGenerationService } from './services/complete-pdf-generation-service';
 import { railwayAutoScalingService } from './services/railway-auto-scaling-service';
 import { railwayHealthCheckSystem } from './services/railway-health-check-system';
@@ -242,6 +244,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ DHA public routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register DHA public routes:', error);
+    }
+
+    // Register Official DHA API Test routes
+    try {
+      app.use(dhaApiTestRoutes);
+      console.log('[Routes] ✅ Official DHA API test routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Official DHA API test routes:', error);
     }
 
     // Register monitoring routes
