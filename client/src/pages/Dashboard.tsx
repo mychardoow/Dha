@@ -32,6 +32,14 @@ export default function Dashboard() {
       badge: "Ultra AI"
     },
     {
+      title: "Official Document Generator",
+      description: "Generate all 21 official DHA document types",
+      icon: FileText,
+      link: "/official-documents",
+      color: "bg-[#006642]",
+      badge: "ALL 21 TYPES"
+    },
+    {
       title: "DHA-802 Permit Generator",
       description: "Generate Permanent Residence Permits with official template",
       icon: FileText,
