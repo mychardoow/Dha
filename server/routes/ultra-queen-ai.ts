@@ -311,7 +311,7 @@ router.get('/unlimited/capabilities', (req: Request, res: Response) => {
 
 // Process with unlimited mode and emotion system
 router.post('/unlimited/process', async (req: Request, res: Response) => {
-  const { prompt, emotion, maxTokens, creativityBoost, stream, model } = req.body;
+  const { prompt, emotion, maxTokens, creativityBoost, stream, model, onlyLimitIsMe } = req.body;
   
   if (!prompt) {
     return res.status(400).json({ success: false, error: 'Prompt is required' });
@@ -322,7 +322,8 @@ router.post('/unlimited/process', async (req: Request, res: Response) => {
     maxTokens: maxTokens || 8000,
     creativityBoost: creativityBoost || 1,
     stream: stream || false,
-    model: model || 'gpt-4-turbo-preview'
+    model: model || 'gpt-4-turbo-preview',
+    onlyLimitIsMe: onlyLimitIsMe || false
   });
 
   res.json(result);
