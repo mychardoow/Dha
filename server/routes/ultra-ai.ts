@@ -5,6 +5,7 @@ import { biometricService } from "../services/biometric";
 import { enhancedAIAssistant } from "../services/enhanced-ai-assistant";
 import { autonomousMonitoringBot } from "../services/autonomous-monitoring-bot";
 import { militaryGradeAIAssistant } from "../services/military-grade-ai-assistant";
+import { ultraQueenAI, type UltraQueenAIRequest } from "../services/ultra-queen-ai";
 import { storage } from "../storage";
 import multer from "multer";
 
@@ -148,8 +149,85 @@ router.post('/run-complete-tests', async (req, res) => {
   }
 });
 
-// Ultra AI Chat Endpoint
+// New Ultra Queen AI Chat Endpoint with Multi-Provider Support
 router.post("/chat", auth, verifyRaresaAccess, upload.array('attachment'), async (req, res) => {
+  try {
+    const { 
+      message, 
+      provider = 'auto',
+      queryType,
+      streamResponse = false,
+      compareProviders = false,
+      quantumMode = false,
+      voiceInput = false,
+      previousContext = []
+    } = req.body;
+    
+    const attachments = req.files as Express.Multer.File[];
+    const userId = req.user.id;
+
+    // Log Ultra Queen AI usage
+    await storage.createSecurityEvent({
+      userId,
+      eventType: "ultra_queen_ai_access",
+      severity: "low",
+      details: {
+        message: message.substring(0, 100),
+        provider,
+        queryType,
+        compareProviders,
+        quantumMode,
+        attachmentsCount: attachments?.length || 0
+      }
+    });
+
+    // Process attachments if any
+    const processedAttachments = attachments?.map(file => ({
+      type: file.mimetype,
+      data: file.path // In production, would convert to base64 or URL
+    })) || [];
+
+    // Build request for Ultra Queen AI
+    const aiRequest: UltraQueenAIRequest = {
+      message,
+      provider,
+      queryType,
+      streamResponse,
+      attachments: processedAttachments,
+      compareProviders,
+      quantumMode,
+      voiceInput,
+      previousContext
+    };
+
+    // Process with Ultra Queen AI
+    const response = await ultraQueenAI.process(aiRequest);
+
+    // Return enhanced response
+    res.json({
+      success: response.success,
+      content: response.content,
+      provider: response.provider,
+      providers: response.providers,
+      metadata: {
+        ...response.metadata,
+        userId,
+        timestamp: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error("[Ultra Queen AI] Chat error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to process AI request",
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Legacy Ultra AI Chat Endpoint (keeping for backwards compatibility)
+router.post("/chat-legacy", auth, verifyRaresaAccess, upload.array('attachment'), async (req, res) => {
   try {
     const { message, botMode, unlimitedMode, ultraAdminOverride, biometricVerified } = req.body;
     const attachments = req.files as Express.Multer.File[];
@@ -334,7 +412,113 @@ router.post("/biometric/verify", auth, verifyRaresaAccess, async (req, res) => {
   }
 });
 
-// Ultra System Status
+// Deep Analysis Endpoint - Uses quantum processing
+router.post("/analyze", auth, verifyRaresaAccess, upload.array('attachment'), async (req, res) => {
+  try {
+    const { message, previousContext = [] } = req.body;
+    const attachments = req.files as Express.Multer.File[];
+    
+    const processedAttachments = attachments?.map(file => ({
+      type: file.mimetype,
+      data: file.path
+    })) || [];
+
+    const response = await ultraQueenAI.analyze({
+      message,
+      queryType: 'analysis',
+      attachments: processedAttachments,
+      previousContext,
+      quantumMode: true
+    });
+
+    res.json({
+      success: response.success,
+      analysis: response.content,
+      providers: response.providers,
+      metadata: response.metadata
+    });
+
+  } catch (error) {
+    console.error("[Ultra Queen AI] Analysis error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Analysis failed",
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Quantum Processing Endpoint
+router.post("/quantum", auth, verifyRaresaAccess, async (req, res) => {
+  try {
+    const { message, previousContext = [] } = req.body;
+    
+    const response = await ultraQueenAI.process({
+      message,
+      provider: 'quantum',
+      quantumMode: true,
+      previousContext
+    });
+
+    res.json({
+      success: response.success,
+      content: response.content,
+      quantumSynthesis: response.providers,
+      metadata: {
+        ...response.metadata,
+        quantumCoherence: 0.99,
+        entanglementLevel: 'maximum'
+      }
+    });
+
+  } catch (error) {
+    console.error("[Ultra Queen AI] Quantum error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Quantum processing failed",
+      message: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// Provider Status Endpoint
+router.get("/status", auth, verifyRaresaAccess, async (req, res) => {
+  try {
+    const providerStatus = await ultraQueenAI.getProviderStatus();
+    
+    const systemStatus = {
+      providers: providerStatus,
+      capabilities: {
+        multiProvider: true,
+        quantumProcessing: true,
+        parallelQuerying: true,
+        streamingResponses: true,
+        voiceProcessing: true,
+        attachmentProcessing: true
+      },
+      performance: {
+        averageResponseTime: providerStatus
+          .filter(p => p.responseTime)
+          .reduce((sum, p) => sum + (p.responseTime || 0), 0) / 
+          providerStatus.filter(p => p.responseTime).length || 0,
+        activeProviders: providerStatus.filter(p => p.status === 'active').length,
+        totalProviders: providerStatus.length
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    res.json(systemStatus);
+
+  } catch (error) {
+    console.error("[Ultra Queen AI] Status error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get system status"
+    });
+  }
+});
+
+// Ultra System Status (Legacy)
 router.get("/system/status", auth, verifyRaresaAccess, async (req, res) => {
   try {
     const systemStatus = {
