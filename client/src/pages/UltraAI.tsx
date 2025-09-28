@@ -198,13 +198,13 @@ export function UltraAI() {
 
   if (!biometricStatus.verified) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-black flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-black/80 border-purple-500">
+      <div className="min-h-screen bg-gradient-to-br from-[var(--queen-dark-blue)] via-[var(--queen-blue-green)] to-black flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-black/80 border-[var(--queen-gold)]">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-20 h-20 bg-purple-500 rounded-full flex items-center justify-center">
+            <div className="mx-auto mb-4 w-20 h-20 bg-[var(--queen-cyan)] rounded-full flex items-center justify-center">
               <Eye className="w-10 h-10 text-white" />
             </div>
-            <CardTitle className="text-purple-400">Ultra AI Access Control</CardTitle>
+            <CardTitle className="text-[var(--queen-gold)]">Ultra AI Access Control</CardTitle>
             <CardDescription className="text-gray-300">
               Raeesa-Only Biometric Authentication
             </CardDescription>
@@ -217,7 +217,7 @@ export function UltraAI() {
               <Progress value={biometricStatus.confidence} className="mb-4" />
               <Button 
                 onClick={performBiometricScan}
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-[var(--queen-cyan)] hover:bg-[var(--queen-teal)] text-black"
                 data-testid="button-biometric-scan"
               >
                 <Eye className="w-4 h-4 mr-2" />
@@ -231,7 +231,7 @@ export function UltraAI() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-black text-white p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--queen-dark-blue)] via-[var(--queen-blue-green)] to-black text-white p-4">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header with Biometric Status */}
@@ -280,9 +280,9 @@ export function UltraAI() {
         </Card>
 
         {/* 5-Bot Choice System */}
-        <Card className="bg-black/60 border-purple-500">
+        <Card className="bg-black/60 border-[var(--queen-gold)]">
           <CardHeader>
-            <CardTitle className="text-purple-400">
+            <CardTitle className="text-[var(--queen-gold)]">
               ✅ 5-BOT CHOICE SYSTEM
             </CardTitle>
           </CardHeader>
@@ -429,7 +429,7 @@ export function UltraAI() {
                 <div className="flex items-center gap-4">
                   <Button
                     onClick={processCommand}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-[var(--queen-cyan)] hover:bg-[var(--queen-teal)] text-black"
                     data-testid="button-process-command"
                   >
                     <Zap className="w-4 h-4 mr-2" />
@@ -456,9 +456,9 @@ export function UltraAI() {
               </div>
 
               {response && (
-                <Card className="bg-purple-900/40 border-purple-400">
+                <Card className="bg-[var(--queen-dark-blue)]/40 border-[var(--queen-gold)]">
                   <CardContent className="p-4">
-                    <div className="text-purple-200" data-testid="text-ai-response">
+                    <div className="text-[var(--queen-gold-light)]" data-testid="text-ai-response">
                       {response}
                     </div>
                   </CardContent>

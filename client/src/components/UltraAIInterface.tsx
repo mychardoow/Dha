@@ -308,7 +308,7 @@ Ready for your commands, Raeesa.`,
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--queen-black)] via-[var(--queen-dark-blue)] to-[var(--queen-blue-green)]">
       <div className="container mx-auto px-4 py-6">
         {/* Ultra Header */}
         <div className="mb-6">
@@ -318,7 +318,7 @@ Ready for your commands, Raeesa.`,
                 <Crown className="h-8 w-8 text-yellow-400" />
                 Ultra AI Interface
               </h1>
-              <p className="text-purple-200 mt-1 flex items-center gap-2">
+              <p className="text-[var(--queen-gold-light)] mt-1 flex items-center gap-2">
                 <Unlock className="h-4 w-4" />
                 Exclusive Access • Unlimited Authority • Complete Control
               </p>
@@ -354,7 +354,7 @@ Ready for your commands, Raeesa.`,
         </div>
 
         {/* Main Ultra Interface */}
-        <Card className="h-[calc(100vh-200px)] border-purple-500/20 bg-slate-900/50 backdrop-blur">
+        <Card className="h-[calc(100vh-200px)] border-[var(--queen-gold)]/20 bg-[var(--queen-black)]/50 backdrop-blur">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-white flex items-center gap-2">
@@ -364,9 +364,9 @@ Ready for your commands, Raeesa.`,
 
               {/* Bot Mode Selection */}
               <div className="flex items-center gap-3">
-                <span className="text-sm text-purple-200">Bot Mode:</span>
+                <span className="text-sm text-[var(--queen-gold-light)]">Bot Mode:</span>
                 <Select value={selectedBotMode} onValueChange={(value) => setSelectedBotMode(value as typeof selectedBotMode)}>
-                  <SelectTrigger className="w-40 border-purple-500/20 bg-slate-800">
+                  <SelectTrigger className="w-40 border-[var(--queen-gold)]/20 bg-[var(--queen-gray)]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -394,7 +394,7 @@ Ready for your commands, Raeesa.`,
                   >
                     {(message.role === "assistant" || message.role === "system") && (
                       <Avatar className="h-8 w-8 mt-1">
-                        <AvatarFallback className="bg-purple-600 text-white">
+                        <AvatarFallback className="bg-[var(--queen-cyan)] text-black">
                           {message.role === "system" ? (
                             <Crown className="h-4 w-4" />
                           ) : (
@@ -407,10 +407,10 @@ Ready for your commands, Raeesa.`,
                     <div className={`max-w-[80%] space-y-2`}>
                       <div className={`rounded-lg px-4 py-3 ${
                         message.role === "user" 
-                          ? "bg-purple-600 text-white" 
+                          ? "bg-[var(--queen-cyan)] text-black" 
                           : message.role === "system"
-                          ? "bg-gradient-to-r from-yellow-900/50 to-purple-900/50 border border-yellow-500/20 text-yellow-100"
-                          : "bg-slate-800 text-gray-100"
+                          ? "bg-gradient-to-r from-[var(--queen-gold)]/50 to-[var(--queen-blue-green)]/50 border border-[var(--queen-gold)]/20 text-[var(--queen-gold-light)]"
+                          : "bg-[var(--queen-gray)] text-[var(--queen-gold-light)]"
                       }`}>
                         {message.isLoading ? (
                           <div className="flex items-center gap-2">
@@ -426,7 +426,7 @@ Ready for your commands, Raeesa.`,
 
                       {/* Message Metadata */}
                       {message.metadata && !message.isLoading && (
-                        <div className="text-xs text-gray-400 flex items-center gap-3">
+                        <div className="text-xs text-[var(--queen-gold-light)] flex items-center gap-3">
                           <span className="flex items-center gap-1">
                             <Zap className="h-3 w-3" />
                             {message.botMode.toUpperCase()}
@@ -460,7 +460,7 @@ Ready for your commands, Raeesa.`,
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="p-4 bg-slate-900/50 border-t border-purple-500/20">
+            <div className="p-4 bg-[var(--queen-black)]/50 border-t border-[var(--queen-gold)]/20">
               {/* Attachments Display */}
               {attachments.length > 0 && (
                 <div className="mb-3 flex flex-wrap gap-2">
@@ -478,7 +478,7 @@ Ready for your commands, Raeesa.`,
                   onClick={() => fileInputRef.current?.click()}
                   variant="outline"
                   size="sm"
-                  className="border-purple-500/20 text-purple-400"
+                  className="border-[var(--queen-gold)]/20 text-[var(--queen-cyan)]"
                 >
                   <Upload className="h-4 w-4" />
                 </Button>
@@ -488,13 +488,13 @@ Ready for your commands, Raeesa.`,
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter your ultra command... (Enter to send, Shift+Enter for new line)"
-                  className="flex-1 min-h-[60px] max-h-[120px] border-purple-500/20 bg-slate-800 text-white placeholder-gray-400 resize-none"
+                  className="flex-1 min-h-[60px] max-h-[120px] border-[var(--queen-gold)]/20 bg-[var(--queen-gray)] text-white placeholder-[var(--queen-gold-light)]/40 resize-none"
                 />
 
                 <Button
                   onClick={handleSendMessage}
                   disabled={isLoading || !input.trim()}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-6"
+                  className="bg-gradient-to-r from-[var(--queen-cyan)] to-[var(--queen-teal)] hover:from-[var(--queen-teal)] hover:to-[var(--queen-blue)] text-black px-6"
                 >
                   {isLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -542,8 +542,8 @@ Ready for your commands, Raeesa.`,
           </div>
 
           {/* Agent Task Status */}
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
-            <h3 className="font-semibold text-purple-800 mb-3">🤖 Agent Task Status</h3>
+          <div className="bg-gradient-to-r from-[var(--queen-dark-blue)]/10 to-[var(--queen-blue-green)]/10 p-4 rounded-lg border border-[var(--queen-gold)]/30">
+            <h3 className="font-semibold text-[var(--queen-gold)] mb-3">🤖 Agent Task Status</h3>
             <div className="space-y-2 text-xs">
               {Object.entries(agentTasks).map(([key, task]) => (
                 <div key={key} className="flex items-center justify-between">
@@ -554,7 +554,7 @@ Ready for your commands, Raeesa.`,
                         ? 'bg-green-400' 
                         : 'bg-yellow-400'
                     }`} />
-                    <span className="text-xs text-purple-600 font-medium">{task.status.toUpperCase()}</span>
+                    <span className="text-xs text-[var(--queen-cyan)] font-medium">{task.status.toUpperCase()}</span>
                   </div>
                 </div>
               ))}
