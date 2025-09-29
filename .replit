@@ -83,7 +83,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "WORKING NOW"
+runButton = "Start DHA Services"
 
 [[workflows.workflow]]
 name = "Project"
@@ -348,3 +348,20 @@ args = "echo \"✅ Starting WORKING server...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node start-simple.js"
+
+[[workflows.workflow]]
+name = "Start DHA Services"
+author = 47994971
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
