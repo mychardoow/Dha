@@ -365,3 +365,36 @@ args = "npm run build"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "Start DHA Platform"
+author = 47994971
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🇿🇦 Starting DHA Digital Services Platform on Replit\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"==================================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔧 Building client...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm install && npm run build && cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting DHA server on Replit...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node server/simple-server.ts"
