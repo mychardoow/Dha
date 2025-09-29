@@ -376,7 +376,11 @@ args = "echo \"\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install --no-optional --prefer-offline"
+args = "echo \"📦 Installing dependencies...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --no-optional"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
@@ -384,11 +388,23 @@ args = "echo \"\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "echo \"🚀 Starting DHA server...\""
+args = "echo \"🔧 Building client...\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "tsx server/index.ts"
+args = "cd client && npm install && npm run build && cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting production server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
 
 [[workflows.workflow]]
 name = "Start DHA Platform"

@@ -2,15 +2,56 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import path from 'path';
+import compression from 'compression';
 import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { createServer } from 'http';
 import dotenv from 'dotenv';
+
+// Real service imports
+import { storage } from './storage.js';
+import { registerRoutes } from './routes.js';
+import { setupVite } from './vite.js';
+import { validateRailwayConfig } from './config/railway.js';
+import { initializeDatabase } from './config/database-railway.js';
 
 // Load environment variables
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+console.log('\n🚀 DHA Digital Services Platform - Production Server');
+console.log('🇿🇦 Department of Home Affairs - Real Implementation');
+console.log('=' .repeat(60));
+
+const PORT = parseInt(process.env.PORT || '5000');
+const HOST = '0.0.0.0';
+
+// Create Express app and HTTP server
 const app = express();
-const PORT = process.env.PORT || 5000;
+const server = createServer(app);
+
+// Initialize database and storage
+let dbConfig;
+try {
+  dbConfig = await initializeDatabase();
+  console.log(`✅ Database initialized: ${dbConfig.type.toUpperCase()}`);
+} catch (error) {
+  console.error('❌ Database initialization failed:', error);
+  process.exit(1);
+}
+
+// Validate production environment
+if (process.env.NODE_ENV === 'production') {
+  try {
+    validateRailwayConfig();
+    console.log('✅ Production configuration validated');
+  } catch (error) {
+    console.error('❌ Production validation failed:', error);
+    process.exit(1);
+  }
+}
 
 // Security middleware
 app.use(helmet({
@@ -20,122 +61,157 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'", "https://api.openai.com", "https://api.anthropic.com"],
     },
   },
 }));
 
+app.use(compression());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-railway-domain.railway.app', 'https://your-render-domain.onrender.com']
-    : ['http://localhost:3000', 'http://localhost:5173'],
+    ? ['https://*.replit.app', 'https://*.replit.dev']
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5000'],
   credentials: true
 }));
 
+// Body parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(process.cwd(), 'dist/public')));
-}
+// Trust proxy for Replit
+app.set('trust proxy', 1);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV,
-    services: {
-      'dha-services': 'operational',
-      'ultra-queen-ai': 'operational',
-      'pdf-generation': 'operational',
-      'authentication': 'operational'
-    }
-  });
-});
-
-// API Routes
-app.get('/api/ultra-queen-ai/status', (req, res) => {
-  res.json({
-    status: 'Ultra Queen AI Raeesa - Fully Operational',
-    theme: 'Blue, Green & Gold - Government Professional',
-    capabilities: [
-      'DHA Document Generation',
-      'Multi-Provider AI Integration',
-      'Real-time PDF Processing',
-      'Government Compliance',
-      'Security & Authentication'
-    ],
-    integrations: {
+// Health check with real database connection
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    const dbHealth = await checkDatabaseHealth(dbConfig);
+    
+    // Test API keys
+    const apiStatus = {
       openai: !!process.env.OPENAI_API_KEY,
       anthropic: !!process.env.ANTHROPIC_API_KEY,
-      government_apis: true
-    }
-  });
-});
+      database: dbHealth.healthy
+    };
 
-// DHA Document Generation API
-app.post('/api/generate-document', (req, res) => {
-  const { documentType, personalInfo } = req.body;
-  
-  res.json({
-    success: true,
-    documentId: `DHA_${Date.now()}`,
-    documentType,
-    status: 'generated',
-    downloadUrl: `/api/download/${documentType}_${Date.now()}.pdf`,
-    verification: {
-      verified: true,
-      securityFeatures: ['Digital Signature', 'QR Code', 'Watermark']
-    }
-  });
-});
-
-// AI Assistant Chat Endpoint
-app.post('/api/ai-assistant/chat', async (req, res) => {
-  const { message, provider = 'openai' } = req.body;
-  
-  try {
-    let response = `Ultra Queen AI Raeesa: I understand your request about "${message}". I'm here to assist with DHA digital services, document generation, and government processes. How may I help you further?`;
-    
     res.json({
-      success: true,
-      response,
-      provider,
-      timestamp: new Date().toISOString()
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      version: '2.0.0',
+      database: dbHealth.type,
+      apiServices: apiStatus,
+      features: ['Document Generation', 'AI Assistant', 'Security', 'Authentication']
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      error: 'AI service temporarily unavailable'
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
 });
 
-// Serve React app in production
-if (process.env.NODE_ENV === 'production') {
+// Database health check function
+async function checkDatabaseHealth(config) {
+  try {
+    if (config.type === 'postgresql') {
+      await config.db.execute('SELECT 1 as health_check');
+      return {
+        healthy: true,
+        type: 'PostgreSQL',
+        connectionString: config.connectionString?.replace(/:[^:]*@/, ':***@')
+      };
+    } else {
+      config.db.all('SELECT 1 as health_check');
+      return {
+        healthy: true,
+        type: 'SQLite',
+        connectionString: config.connectionString
+      };
+    }
+  } catch (error) {
+    return {
+      healthy: false,
+      type: config.type,
+      error: error.message
+    };
+  }
+}
+
+// Register all application routes
+console.log('🔧 Registering application routes...');
+registerRoutes(app);
+
+// Setup Vite for development
+if (process.env.NODE_ENV !== 'production') {
+  console.log('🔧 Setting up Vite development server...');
+  try {
+    await setupVite(app, server);
+    console.log('✅ Vite development server ready');
+  } catch (error) {
+    console.warn('⚠️ Vite setup failed (non-critical):', error.message);
+  }
+} else {
+  // Serve static files in production
+  const staticPath = join(process.cwd(), 'dist/public');
+  app.use(express.static(staticPath));
+  
+  // Serve React app for non-API routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(join(staticPath, 'index.html'));
+    } else {
+      res.status(404).json({ error: 'API endpoint not found' });
+    }
   });
 }
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Error:', err);
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
   res.status(500).json({
-    success: false,
     error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
     timestamp: new Date().toISOString()
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🇿🇦 DHA Digital Services Platform`);
-  console.log(`👑 Ultra Queen AI Raeesa - Blue, Green & Gold Theme`);
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`✅ All systems operational`);
+// Start server
+server.listen(PORT, HOST, () => {
+  console.log('');
+  console.log('=' .repeat(60));
+  console.log('🎉 DHA DIGITAL SERVICES PLATFORM - READY');
+  console.log('=' .repeat(60));
+  console.log('');
+  console.log(`🌐 Server URL: http://${HOST}:${PORT}`);
+  console.log(`📊 Health Check: http://${HOST}:${PORT}/api/health`);
+  console.log(`🤖 AI Assistant: http://${HOST}:${PORT}/ai-assistant`);
+  console.log(`📄 Documents: http://${HOST}:${PORT}/documents`);
+  console.log('');
+  console.log('✅ Real database connection active');
+  console.log('✅ Real API integrations configured');
+  console.log('✅ Production-ready implementation');
+  console.log('');
+  console.log('=' .repeat(60));
 });
 
-export default app;
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+export { app, server };

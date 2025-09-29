@@ -22,6 +22,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^2.0.32",
     "@anthropic-ai/sdk": "^0.27.0",
+    "canvas": "^2.11.2",
+    "pdfkit": "^0.14.0",
     "@esbuild/linux-x64": "^0.25.10",
     "@google/genai": "^1.20.0",
     "@hookform/resolvers": "^3.3.4",
