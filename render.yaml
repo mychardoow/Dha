@@ -1,50 +1,18 @@
 services:
-  # Web service for the Ultra Queen AI Raeesa application
   - type: web
-    name: ultra-queen-ai-raeesa
-    runtime: node
-    repo: https://github.com/yourusername/ultra-queen-ai-raeesa
-    branch: main
-    buildCommand: npm ci && npm run build
-    startCommand: npm run start
+    name: dha-digital-services
+    env: node
+    plan: starter
+    buildCommand: npm install --force && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000
-      - key: DATABASE_URL
-        fromDatabase:
-          name: ultra-queen-db
-          property: connectionString
-      - key: JWT_SECRET
-        generateValue: true
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: MISTRAL_API_KEY
-        sync: false
-      - key: GOOGLE_API_KEY
-        sync: false
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: PERPLEXITY_API_KEY
-        sync: false
-      - key: GITHUB_TOKEN
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
-      - key: ETHEREUM_RPC_URL
-        sync: false
-      - key: POLYGON_RPC_URL
-        sync: false
-      - key: SOLANA_RPC_URL
-        sync: false
-    healthCheckPath: /api/ultra-dashboard/status
+        value: 5000
     autoDeploy: true
-    region: oregon # or singapore, frankfurt, ohio
+    branch: main
 
 databases:
   # PostgreSQL database for persistent storage
@@ -53,7 +21,7 @@ databases:
     user: ultra_queen_admin
     region: oregon # Same as web service
     plan: starter # or standard for production
-    
+
 # Static site for documentation (optional)
 staticSites:
   - type: static

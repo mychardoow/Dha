@@ -27,9 +27,207 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { aiRateLimit } from '../middleware/rate-limiting';
 import { config } from '../config/production-config';
 
+// *** START EDITED CODE ***
+import { Router } from 'express';
+import OpenAI from 'openai';
+
 const router = express.Router();
 const aiAssistant = new AIAssistantService();
 const militaryGradeAI = new MilitaryGradeAIAssistant();
+
+// Initialize real AI clients
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+}) : null;
+
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+}) : null;
+
+// Real AI chat endpoint
+router.post('/chat', requireAuth, async (req, res) => {
+  try {
+    const { message, provider = 'auto', conversationHistory = [] } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Message is required and must be a string'
+      });
+    }
+
+    let response = null;
+    let usedProvider = null;
+
+    // Try OpenAI first
+    if ((provider === 'auto' || provider === 'openai') && openai) {
+      try {
+        console.log('🧠 Using OpenAI GPT-4 for response...');
+
+        const messages = [
+          {
+            role: 'system',
+            content: `You are an AI assistant for the Department of Home Affairs (DHA) Digital Services Platform. 
+            Help users with document generation, government processes, and general inquiries. 
+            Be professional, helpful, and accurate. If you cannot help with something, explain why clearly.`
+          },
+          ...conversationHistory.slice(-10), // Keep last 10 messages for context
+          { role: 'user', content: message }
+        ];
+
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-4-turbo-preview',
+          messages,
+          temperature: 0.7,
+          max_tokens: 1000,
+          presence_penalty: 0.1,
+          frequency_penalty: 0.1
+        });
+
+        response = completion.choices[0].message.content;
+        usedProvider = 'openai';
+
+      } catch (openaiError) {
+        console.error('OpenAI API error:', openaiError.message);
+        if (provider === 'openai') {
+          return res.status(500).json({
+            success: false,
+            error: 'OpenAI API error: ' + openaiError.message
+          });
+        }
+      }
+    }
+
+    // Try Anthropic if OpenAI failed or not available
+    if (!response && (provider === 'auto' || provider === 'anthropic') && anthropic) {
+      try {
+        console.log('🎭 Using Anthropic Claude for response...');
+
+        const completion = await anthropic.messages.create({
+          model: 'claude-3-sonnet-20240229',
+          max_tokens: 1000,
+          temperature: 0.7,
+          system: `You are an AI assistant for the Department of Home Affairs (DHA) Digital Services Platform. 
+          Help users with document generation, government processes, and general inquiries. 
+          Be professional, helpful, and accurate.`,
+          messages: [
+            ...conversationHistory.slice(-10),
+            { role: 'user', content: message }
+          ]
+        });
+
+        response = completion.content[0].text;
+        usedProvider = 'anthropic';
+
+      } catch (anthropicError) {
+        console.error('Anthropic API error:', anthropicError.message);
+        if (provider === 'anthropic') {
+          return res.status(500).json({
+            success: false,
+            error: 'Anthropic API error: ' + anthropicError.message
+          });
+        }
+      }
+    }
+
+    if (!response) {
+      return res.status(503).json({
+        success: false,
+        error: 'No AI providers available. Please check API key configuration.',
+        availableProviders: {
+          openai: !!openai,
+          anthropic: !!anthropic
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      response,
+      provider: usedProvider,
+      timestamp: new Date().toISOString(),
+      messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    });
+
+  } catch (error) {
+    console.error('AI Assistant error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// Get available AI providers
+router.get('/providers', (req, res) => {
+  const providers = {
+    openai: {
+      available: !!openai,
+      model: 'gpt-4-turbo-preview',
+      capabilities: ['chat', 'code', 'analysis']
+    },
+    anthropic: {
+      available: !!anthropic,
+      model: 'claude-3-sonnet-20240229',
+      capabilities: ['chat', 'analysis', 'writing']
+    }
+  };
+
+  const availableCount = Object.values(providers).filter(p => p.available).length;
+
+  res.json({
+    success: true,
+    providers,
+    availableCount,
+    recommendedProvider: availableCount > 0 ? 'auto' : null
+  });
+});
+
+// AI service health check
+router.get('/health', async (req, res) => {
+  const health = {
+    openai: { available: false, status: 'unconfigured' },
+    anthropic: { available: false, status: 'unconfigured' }
+  };
+
+  // Test OpenAI
+  if (openai) {
+    try {
+      await openai.models.list();
+      health.openai = { available: true, status: 'healthy' };
+    } catch (error) {
+      health.openai = { available: false, status: 'error', error: error.message };
+    }
+  }
+
+  // Test Anthropic
+  if (anthropic) {
+    try {
+      // Simple test message
+      await anthropic.messages.create({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'Hi' }]
+      });
+      health.anthropic = { available: true, status: 'healthy' };
+    } catch (error) {
+      health.anthropic = { available: false, status: 'error', error: error.message };
+    }
+  }
+
+  const overallHealth = Object.values(health).some(h => h.available);
+
+  res.json({
+    success: true,
+    overall: overallHealth ? 'healthy' : 'no_providers',
+    services: health,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// *** END EDITED CODE ***
+
 
 // Configure multer for audio and document uploads
 const upload = multer({
@@ -253,7 +451,7 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //   try {
 //     const { message, conversationId, includeContext = true, language = 'en', enableVoice = false, documentContext, formData } = req.body;
 //     const userId = (req as any).user.id;
-
+//
 //     // Validate required fields
 //     if (!message || typeof message !== 'string') {
 //       return res.status(400).json({
@@ -261,10 +459,10 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //         error: 'Message is required and must be a string'
 //       });
 //     }
-
+//
 //     // Check if streaming is requested
 //     const isStreamingRequest = req.headers.accept === 'text/event-stream';
-
+//
 //     if (isStreamingRequest) {
 //       // Set up Server-Sent Events
 //       res.writeHead(200, {
@@ -274,7 +472,7 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //         'Access-Control-Allow-Origin': '*',
 //         'Access-Control-Allow-Headers': 'Cache-Control'
 //       });
-
+//
 //       try {
 //         // Process the message and stream response
 //         const response = await aiAssistant.streamResponse(
@@ -291,12 +489,12 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //             enablePIIRedaction: true
 //           }
 //         );
-
+//
 //         // Send final response
 //         res.write(`data: ${JSON.stringify({ type: 'complete', ...response })}\n\n`);
 //         res.write('data: [DONE]\n\n');
 //         res.end();
-
+//
 //       } catch (error) {
 //         res.write(`data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'AI service error' })}\n\n`);
 //         res.end();
@@ -314,7 +512,7 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //           enablePIIRedaction: true
 //         }
 //       );
-
+//
 //       // Add real-time validation if form data provided
 //       if (formData && response.success) {
 //         const validationResponse = await realTimeValidationService.validateRealTime({
@@ -325,14 +523,14 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //           formData,
 //           validationType: 'form'
 //         });
-
+//
 //         response.realTimeValidation = {
 //           isValid: validationResponse.isValid,
 //           validationErrors: validationResponse.errors,
 //           governmentVerification: validationResponse.governmentVerification
 //         };
 //       }
-
+//
 //       // Generate voice response if requested
 //       if (enableVoice && response.success && response.content) {
 //         try {
@@ -341,7 +539,7 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //             voice: 'female',
 //             format: 'mp3'
 //           });
-
+//
 //           if (voiceResponse.success) {
 //             response.voiceResponse = {
 //               audioUrl: voiceResponse.audioUrl,
@@ -353,10 +551,10 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //           console.warn('Voice generation failed:', voiceError);
 //         }
 //       }
-
+//
 //       res.json(response);
 //     }
-
+//
 //   } catch (error) {
 //     console.error('AI chat error:', error);
 //     res.status(500).json({
@@ -365,7 +563,7 @@ router.post('/military', requireAuth, requireRole(['admin']), aiRateLimit, async
 //     });
 //   }
 // });
-
+//
 /**
  * POST /api/ai/voice/stt - Speech to Text
  */

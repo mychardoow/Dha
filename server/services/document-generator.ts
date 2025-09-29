@@ -1,981 +1,339 @@
-import { storage } from "../storage";
-import { 
-  InsertCertificate, InsertPermit, Certificate, Permit, DocumentTemplate,
-  InsertBirthCertificate, InsertMarriageCertificate, InsertPassport, 
-  InsertDeathCertificate, InsertWorkPermit, InsertPermanentVisa, InsertIdCard,
-  BirthCertificate, MarriageCertificate, Passport, DeathCertificate, 
-  WorkPermit, PermanentVisa, IdCard, InsertDocumentVerification
-} from "@shared/schema";
-import PDFDocument from "pdfkit";
-import QRCode from "qrcode";
-import crypto from "crypto";
-import fs from "fs/promises";
-import path from "path";
+import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
+import JsBarcode from 'jsbarcode';
+import { createCanvas } from 'canvas';
+import crypto from 'crypto';
+import fs from 'fs/promises';
+import path from 'path';
 
-const DOCUMENTS_DIR = process.env.DOCUMENTS_DIR || "./documents";
-const TEMPLATES_DIR = process.env.TEMPLATES_DIR || "./templates";
-
-// Ensure directories exist
-fs.mkdir(DOCUMENTS_DIR, { recursive: true }).catch(console.error);
-fs.mkdir(TEMPLATES_DIR, { recursive: true }).catch(console.error);
-
-export interface GenerateDocumentOptions {
-  templateType: string;
-  title: string;
-  description: string;
-  data: Record<string, any>;
-  expiresAt?: Date;
+export interface DocumentData {
+  documentType: string;
+  personalInfo: {
+    fullName: string;
+    idNumber?: string;
+    birthDate?: string;
+    nationality?: string;
+    [key: string]: any;
+  };
+  applicationNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
 }
 
-export interface DocumentGenerationResult {
-  success: boolean;
-  documentId?: string;
-  documentUrl?: string;
-  verificationCode?: string;
-  qrCodeUrl?: string;
-  error?: string;
-}
+export class DocumentGenerator {
+  private static instance: DocumentGenerator;
 
-export class DocumentGeneratorService {
+  static getInstance(): DocumentGenerator {
+    if (!DocumentGenerator.instance) {
+      DocumentGenerator.instance = new DocumentGenerator();
+    }
+    return DocumentGenerator.instance;
+  }
 
-  /**
-   * Generate a new certificate document
-   */
-  async generateCertificate(
-    userId: string,
-    type: string,
-    options: GenerateDocumentOptions
-  ): Promise<DocumentGenerationResult> {
-    try {
-      // Generate unique identifiers
-      const serialNumber = this.generateSerialNumber();
-      const verificationCode = this.generateVerificationCode();
+  async generateDocument(documentData: DocumentData): Promise<Buffer> {
+    console.log(`📄 Generating real PDF document: ${documentData.documentType}`);
 
-      // Create certificate data
-      const certificateData: InsertCertificate = {
-        userId,
-        type,
-        title: options.title,
-        description: options.description,
-        templateType: options.templateType,
-        data: options.data,
-        serialNumber,
-        verificationCode,
-        expiresAt: options.expiresAt || null,
-        issuedAt: new Date(),
-        status: "active",
-        qrCodeUrl: null,
-        documentUrl: null,
-        digitalSignature: null,
-        isRevoked: false
-      };
-
-      // Generate PDF document
-      const pdfResult = await this.generatePDF('certificate', certificateData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
+    const doc = new PDFDocument({
+      size: 'A4',
+      margins: { top: 50, bottom: 50, left: 50, right: 50 },
+      info: {
+        Title: this.getDocumentTitle(documentData.documentType),
+        Author: 'Department of Home Affairs',
+        Subject: documentData.documentType.replace('_', ' ').toUpperCase(),
+        Creator: 'DHA Digital Services Platform',
+        Producer: 'DHA PDF Generator',
+        CreationDate: new Date(),
+        ModDate: new Date()
       }
+    });
 
-      // Generate QR code
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
+    // Generate unique document ID
+    const documentId = this.generateDocumentId(documentData);
 
-      // Update certificate with URLs
-      certificateData.documentUrl = pdfResult.documentUrl;
-      certificateData.qrCodeUrl = qrCodeUrl;
-      certificateData.digitalSignature = this.generateDigitalSignature(certificateData);
+    // Add security features
+    await this.addSecurityFeatures(doc, documentId, documentData);
 
-      // Save to storage
-      const certificate = await storage.createCertificate(certificateData);
+    // Add document content based on type
+    await this.addDocumentContent(doc, documentData, documentId);
 
-      return {
-        success: true,
-        documentId: certificate.id,
-        documentUrl: certificate.documentUrl || undefined,
-        verificationCode: certificate.verificationCode,
-        qrCodeUrl: certificate.qrCodeUrl || undefined
-      };
+    // Add QR code verification
+    await this.addQRCodeVerification(doc, documentId, documentData);
 
-    } catch (error) {
-      console.error('Error generating certificate:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
+    // Add barcode
+    await this.addBarcode(doc, documentId);
+
+    // Add security watermark
+    this.addSecurityWatermark(doc);
+
+    // Finalize document
+    doc.end();
+
+    // Convert to buffer
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      doc.on('data', chunk => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
   }
 
-  /**
-   * Generate a new permit document
-   */
-  async generatePermit(
-    userId: string,
-    type: string,
-    options: GenerateDocumentOptions & { conditions?: Record<string, any> }
-  ): Promise<DocumentGenerationResult> {
-    try {
-      // Generate unique identifiers
-      const permitNumber = this.generatePermitNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      // Create permit data
-      const permitData: InsertPermit = {
-        userId,
-        type,
-        title: options.title,
-        description: options.description,
-        templateType: options.templateType,
-        data: options.data,
-        permitNumber,
-        verificationCode,
-        expiresAt: options.expiresAt || null,
-        issuedAt: new Date(),
-        status: "active",
-        qrCodeUrl: null,
-        documentUrl: null,
-        conditions: options.conditions || null,
-        isRevoked: false
-      };
-
-      // Generate PDF document
-      const pdfResult = await this.generatePDF('permit', permitData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      // Generate QR code
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-
-      // Update permit with URLs
-      permitData.documentUrl = pdfResult.documentUrl;
-      permitData.qrCodeUrl = qrCodeUrl;
-
-      // Save to storage
-      const permit = await storage.createPermit(permitData);
-
-      return {
-        success: true,
-        documentId: permit.id,
-        documentUrl: permit.documentUrl || undefined,
-        verificationCode: permit.verificationCode,
-        qrCodeUrl: permit.qrCodeUrl || undefined
-      };
-
-    } catch (error) {
-      console.error('Error generating permit:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
+  private generateDocumentId(documentData: DocumentData): string {
+    const prefix = this.getDocumentPrefix(documentData.documentType);
+    const timestamp = Date.now().toString();
+    const random = crypto.randomBytes(4).toString('hex').toUpperCase();
+    return `${prefix}${timestamp.slice(-8)}${random}`;
   }
 
-  /**
-   * Generate a Birth Certificate
-   */
-  async generateBirthCertificate(
-    userId: string,
-    data: Omit<InsertBirthCertificate, 'userId' | 'registrationNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const registrationNumber = this.generateRegistrationNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const birthCertData: InsertBirthCertificate = {
-        ...data,
-        userId,
-        registrationNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        securityFeatures: this.generateSecurityFeatures('birth_certificate'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('birth_certificate', birthCertData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      birthCertData.documentUrl = pdfResult.documentUrl;
-      birthCertData.qrCodeUrl = qrCodeUrl;
-      birthCertData.digitalSignature = this.generateDigitalSignature(birthCertData);
-
-      const certificate = await storage.createBirthCertificate(birthCertData);
-
-      return {
-        success: true,
-        documentId: certificate.id,
-        documentUrl: certificate.documentUrl || undefined,
-        verificationCode: certificate.verificationCode,
-        qrCodeUrl: certificate.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating birth certificate:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
+  private getDocumentPrefix(documentType: string): string {
+    const prefixes = {
+      'birth_certificate': 'BC',
+      'death_certificate': 'DC',
+      'marriage_certificate': 'MC',
+      'smart_id_card': 'ID',
+      'passport': 'PP',
+      'work_permit': 'WP',
+      'study_permit': 'SP',
+      'visitor_visa': 'VV',
+      'permanent_residence': 'PR'
+    };
+    return prefixes[documentType] || 'DOC';
   }
 
-  /**
-   * Generate a Marriage Certificate
-   */
-  async generateMarriageCertificate(
-    userId: string,
-    data: Omit<InsertMarriageCertificate, 'userId' | 'licenseNumber' | 'registrationNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const licenseNumber = this.generateLicenseNumber();
-      const registrationNumber = this.generateRegistrationNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const marriageCertData: InsertMarriageCertificate = {
-        ...data,
-        userId,
-        licenseNumber,
-        registrationNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        securityFeatures: this.generateSecurityFeatures('marriage_certificate'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('marriage_certificate', marriageCertData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      marriageCertData.documentUrl = pdfResult.documentUrl;
-      marriageCertData.qrCodeUrl = qrCodeUrl;
-      marriageCertData.digitalSignature = this.generateDigitalSignature(marriageCertData);
-
-      const certificate = await storage.createMarriageCertificate(marriageCertData);
-
-      return {
-        success: true,
-        documentId: certificate.id,
-        documentUrl: certificate.documentUrl || undefined,
-        verificationCode: certificate.verificationCode,
-        qrCodeUrl: certificate.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating marriage certificate:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
+  private getDocumentTitle(documentType: string): string {
+    const titles = {
+      'birth_certificate': 'Birth Certificate',
+      'death_certificate': 'Death Certificate',
+      'marriage_certificate': 'Marriage Certificate',
+      'smart_id_card': 'Smart ID Card',
+      'passport': 'South African Passport',
+      'work_permit': 'Work Permit',
+      'study_permit': 'Study Permit',
+      'visitor_visa': 'Visitor Visa',
+      'permanent_residence': 'Permanent Residence Permit'
+    };
+    return titles[documentType] || 'Official Document';
   }
 
-  /**
-   * Generate a Passport
-   */
-  async generatePassport(
-    userId: string,
-    data: Omit<InsertPassport, 'userId' | 'passportNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const passportNumber = this.generatePassportNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const passportData: InsertPassport = {
-        ...data,
-        userId,
-        passportNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        machineReadableZone: this.generateMRZ(data.fullName, passportNumber, data.nationality),
-        rfidChipData: this.generateRFIDData(),
-        securityFeatures: this.generateSecurityFeatures('passport'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('passport', passportData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      passportData.documentUrl = pdfResult.documentUrl;
-      passportData.qrCodeUrl = qrCodeUrl;
-      passportData.digitalSignature = this.generateDigitalSignature(passportData);
-
-      const passport = await storage.createPassport(passportData);
-
-      return {
-        success: true,
-        documentId: passport.id,
-        documentUrl: passport.documentUrl || undefined,
-        verificationCode: passport.verificationCode,
-        qrCodeUrl: passport.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating passport:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
-   * Generate a Death Certificate
-   */
-  async generateDeathCertificate(
-    userId: string,
-    data: Omit<InsertDeathCertificate, 'userId' | 'registrationNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const registrationNumber = this.generateRegistrationNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const deathCertData: InsertDeathCertificate = {
-        ...data,
-        userId,
-        registrationNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        securityFeatures: this.generateSecurityFeatures('death_certificate'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('death_certificate', deathCertData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      deathCertData.documentUrl = pdfResult.documentUrl;
-      deathCertData.qrCodeUrl = qrCodeUrl;
-      deathCertData.digitalSignature = this.generateDigitalSignature(deathCertData);
-
-      const certificate = await storage.createDeathCertificate(deathCertData);
-
-      return {
-        success: true,
-        documentId: certificate.id,
-        documentUrl: certificate.documentUrl || undefined,
-        verificationCode: certificate.verificationCode,
-        qrCodeUrl: certificate.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating death certificate:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
-   * Generate a Work Permit
-   */
-  async generateWorkPermit(
-    userId: string,
-    data: Omit<InsertWorkPermit, 'userId' | 'permitNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const permitNumber = this.generateWorkPermitNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const workPermitData: InsertWorkPermit = {
-        ...data,
-        userId,
-        permitNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        securityFeatures: this.generateSecurityFeatures('work_permit'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('work_permit', workPermitData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      workPermitData.documentUrl = pdfResult.documentUrl;
-      workPermitData.qrCodeUrl = qrCodeUrl;
-      workPermitData.digitalSignature = this.generateDigitalSignature(workPermitData);
-
-      const permit = await storage.createWorkPermit(workPermitData);
-
-      return {
-        success: true,
-        documentId: permit.id,
-        documentUrl: permit.documentUrl || undefined,
-        verificationCode: permit.verificationCode,
-        qrCodeUrl: permit.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating work permit:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
-   * Generate a Permanent Visa
-   */
-  async generatePermanentVisa(
-    userId: string,
-    data: Omit<InsertPermanentVisa, 'userId' | 'visaNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const visaNumber = this.generateVisaNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const visaData: InsertPermanentVisa = {
-        ...data,
-        userId,
-        visaNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        fingerprintData: this.generateFingerprintData(),
-        securityFeatures: this.generateSecurityFeatures('permanent_visa'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('permanent_visa', visaData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      visaData.documentUrl = pdfResult.documentUrl;
-      visaData.qrCodeUrl = qrCodeUrl;
-      visaData.digitalSignature = this.generateDigitalSignature(visaData);
-
-      const visa = await storage.createPermanentVisa(visaData);
-
-      return {
-        success: true,
-        documentId: visa.id,
-        documentUrl: visa.documentUrl || undefined,
-        verificationCode: visa.verificationCode,
-        qrCodeUrl: visa.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating permanent visa:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
-   * Generate an ID Card
-   */
-  async generateIdCard(
-    userId: string,
-    data: Omit<InsertIdCard, 'userId' | 'idNumber' | 'verificationCode' | 'documentUrl' | 'qrCodeUrl' | 'digitalSignature' | 'isRevoked' | 'status'>
-  ): Promise<DocumentGenerationResult> {
-    try {
-      const idNumber = this.generateIdNumber();
-      const verificationCode = this.generateVerificationCode();
-
-      const idCardData: InsertIdCard = {
-        ...data,
-        userId,
-        idNumber,
-        verificationCode,
-        documentUrl: null,
-        qrCodeUrl: null,
-        digitalSignature: null,
-        rfidChipData: this.generateRFIDData(),
-        securityFeatures: this.generateSecurityFeatures('id_card'),
-        status: "active",
-        isRevoked: false
-      };
-
-      const pdfResult = await this.generateGovernmentPDF('id_card', idCardData);
-      if (!pdfResult.success) {
-        return { success: false, error: pdfResult.error };
-      }
-
-      const qrCodeUrl = await this.generateQRCode(verificationCode);
-      idCardData.documentUrl = pdfResult.documentUrl;
-      idCardData.qrCodeUrl = qrCodeUrl;
-      idCardData.digitalSignature = this.generateDigitalSignature(idCardData);
-
-      const idCard = await storage.createIdCard(idCardData);
-
-      return {
-        success: true,
-        documentId: idCard.id,
-        documentUrl: idCard.documentUrl || undefined,
-        verificationCode: idCard.verificationCode,
-        qrCodeUrl: idCard.qrCodeUrl || undefined
-      };
-    } catch (error) {
-      console.error('Error generating ID card:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
-      };
-    }
-  }
-
-  /**
-   * Generate PDF document using PDFKit with official styling
-   */
-  private async generatePDF(
-    documentType: 'certificate' | 'permit',
-    data: InsertCertificate | InsertPermit
-  ): Promise<{ success: boolean; documentUrl?: string; error?: string }> {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50
-      });
-
-      const filename = `${documentType}_${data.verificationCode}.pdf`;
-      const filepath = path.join(DOCUMENTS_DIR, filename);
-      const writeStream = require('fs').createWriteStream(filepath);
-
-      doc.pipe(writeStream);
-
-      // Add official header with branding
-      this.addPDFKitHeader(doc, documentType);
-
-      // Add document content
-      if (documentType === 'certificate') {
-        this.addPDFKitCertificateContent(doc, data as InsertCertificate);
-      } else {
-        this.addPDFKitPermitContent(doc, data as InsertPermit);
-      }
-
-      // Add footer with verification info
-      this.addPDFKitFooter(doc, data.verificationCode);
-
-      // Add security features
-      this.addPDFKitSecurityFeatures(doc, data);
-
-      // Finalize the PDF
-      doc.end();
-
-      // Wait for write to complete
-      await new Promise((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-
-      return {
-        success: true,
-        documentUrl: `/documents/${filename}`
-      };
-
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'PDF generation failed'
-      };
-    }
-  }
-
-  /**
-   * Generate government PDF for official documents
-   */
-  private async generateGovernmentPDF(
-    documentType: string,
-    data: any
-  ): Promise<{ success: boolean; documentUrl?: string; error?: string }> {
-    try {
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 40,
-        info: {
-          Title: `DHA ${documentType.replace('_', ' ').toUpperCase()}`,
-          Author: 'Department of Home Affairs - Republic of South Africa',
-          Subject: `Official ${documentType.replace('_', ' ')}`,
-          Creator: 'DHA Document Generation System'
-        }
-      });
-
-      const filename = `${documentType}_${data.verificationCode}.pdf`;
-      const filepath = path.join(DOCUMENTS_DIR, filename);
-      const writeStream = require('fs').createWriteStream(filepath);
-
-      doc.pipe(writeStream);
-
-      // Add government header
-      this.addGovernmentHeader(doc, documentType);
-
-      // Add document-specific content
-      this.addGovernmentDocumentContent(doc, documentType, data);
-
-      // Add government footer
-      this.addGovernmentFooter(doc, data.verificationCode);
-
-      // Add security features
-      this.addGovernmentSecurityFeatures(doc, data);
-
-      // Finalize the PDF
-      doc.end();
-
-      // Wait for write to complete
-      await new Promise((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-      });
-
-      return {
-        success: true,
-        documentUrl: `/documents/${filename}`
-      };
-
-    } catch (error) {
-      console.error('Error generating government PDF:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Government PDF generation failed'
-      };
-    }
-  }
-
-  // Helper methods for PDF generation
-  private addPDFKitHeader(doc: any, documentType: string): void {
-    const pageWidth = doc.page.width;
-
-    doc.rect(0, 0, pageWidth, 60)
-       .fillColor('#2980b9')
-       .fill();
-
-    const title = documentType === 'certificate' ? 'OFFICIAL CERTIFICATE' : 'OFFICIAL PERMIT';
-    doc.fillColor('white')
-       .fontSize(24)
-       .font('Helvetica-Bold')
-       .text(title, 0, 20, {
-         align: 'center',
-         width: pageWidth
-       });
-
-    doc.fillColor('black').font('Helvetica');
-  }
-
-  private addPDFKitCertificateContent(doc: any, data: InsertCertificate): void {
-    const pageWidth = doc.page.width;
-    let yPos = 100;
-
-    doc.fontSize(28)
-       .font('Helvetica-Bold')
-       .text(data.title, 0, yPos, {
-         align: 'center',
-         width: pageWidth
-       });
-    yPos += 50;
+  private async addSecurityFeatures(doc: PDFDocument, documentId: string, documentData: DocumentData): Promise<void> {
+    // Add document header with SA coat of arms placeholder
+    doc.fontSize(20)
+       .fillColor('#000080')
+       .text('REPUBLIC OF SOUTH AFRICA', 50, 50, { align: 'center' });
 
     doc.fontSize(16)
-       .font('Helvetica')
-       .text(data.description, 0, yPos, {
-         align: 'center',
-         width: pageWidth
-       });
-    yPos += 60;
+       .text('DEPARTMENT OF HOME AFFAIRS', 50, 75, { align: 'center' });
 
-    doc.fontSize(14);
-    doc.text(`Serial Number: ${data.serialNumber}`, 50, yPos);
-    yPos += 25;
-    doc.text(`Issue Date: ${(data.issuedAt || new Date()).toLocaleDateString()}`, 50, yPos);
-    yPos += 25;
-    if (data.expiresAt) {
-      doc.text(`Expires: ${data.expiresAt.toLocaleDateString()}`, 50, yPos);
-      yPos += 25;
-    }
-
-    if (data.data && typeof data.data === 'object') {
-      yPos += 30;
-      Object.entries(data.data).forEach(([key, value]) => {
-        doc.text(`${key}: ${value}`, 50, yPos);
-        yPos += 20;
-      });
-    }
-  }
-
-  private addPDFKitPermitContent(doc: any, data: InsertPermit): void {
-    const pageWidth = doc.page.width;
-    let yPos = 100;
-
-    doc.fontSize(28)
-       .font('Helvetica-Bold')
-       .text(data.title, 0, yPos, {
-         align: 'center',
-         width: pageWidth
-       });
-    yPos += 50;
-
-    doc.fontSize(16)
-       .font('Helvetica')
-       .text(data.description, 0, yPos, {
-         align: 'center',
-         width: pageWidth
-       });
-    yPos += 60;
-
-    doc.fontSize(14);
-    doc.text(`Permit Number: ${data.permitNumber}`, 50, yPos);
-    yPos += 25;
-    doc.text(`Issue Date: ${(data.issuedAt || new Date()).toLocaleDateString()}`, 50, yPos);
-    yPos += 25;
-    if (data.expiresAt) {
-      doc.text(`Expires: ${data.expiresAt.toLocaleDateString()}`, 50, yPos);
-      yPos += 25;
-    }
-
-    if (data.data && typeof data.data === 'object') {
-      yPos += 30;
-      Object.entries(data.data).forEach(([key, value]) => {
-        doc.text(`${key}: ${value}`, 50, yPos);
-        yPos += 20;
-      });
-    }
-  }
-
-  private addPDFKitFooter(doc: any, verificationCode: string): void {
-    const pageHeight = doc.page.height;
-    const pageWidth = doc.page.width;
-
+    // Add document security number
     doc.fontSize(10)
        .fillColor('#666666')
-       .text(`Verification Code: ${verificationCode}`, 50, pageHeight - 50);
+       .text(`Security ID: ${documentId}`, 50, 100);
 
-    doc.text('Verify at: https://dha.gov.za/verify', pageWidth - 250, pageHeight - 50);
+    doc.text(`Generated: ${new Date().toISOString()}`, 400, 100);
   }
 
-  private addPDFKitSecurityFeatures(doc: any, data: any): void {
-    // Add watermark
-    doc.fontSize(60)
-       .fillColor('#EEEEEE')
-       .text('DHA OFFICIAL', 100, 300, {
-         rotate: 45,
-         width: 400,
-         align: 'center'
-       });
-  }
+  private async addDocumentContent(doc: PDFDocument, documentData: DocumentData, documentId: string): Promise<void> {
+    const { documentType, personalInfo } = documentData;
 
-  private addGovernmentHeader(doc: any, documentType: string): void {
-    const pageWidth = doc.page.width;
-
-    // SA Government colors
-    doc.fillColor('#006747'); // SA Green
-    doc.fontSize(20)
-       .font('Helvetica-Bold')
-       .text('REPUBLIC OF SOUTH AFRICA', 0, 50, {
-         align: 'center',
-         width: pageWidth
-       });
-
-    doc.fontSize(16)
-       .text('DEPARTMENT OF HOME AFFAIRS', 0, 80, {
-         align: 'center',
-         width: pageWidth
-       });
-
+    // Title
     doc.fontSize(18)
        .fillColor('#000000')
-       .text(documentType.replace('_', ' ').toUpperCase(), 0, 120, {
-         align: 'center',
-         width: pageWidth
-       });
-  }
+       .text(this.getDocumentTitle(documentType), 50, 150, { align: 'center' });
 
-  private addGovernmentDocumentContent(doc: any, documentType: string, data: any): void {
-    let yPos = 180;
+    // Document-specific content
+    let yPosition = 200;
 
-    // Common fields for all government documents
-    doc.fontSize(12).fillColor('#000000');
-
-    if (data.fullName) {
-      doc.text(`Full Name: ${data.fullName}`, 50, yPos);
-      yPos += 20;
+    if (documentType === 'birth_certificate') {
+      yPosition = await this.addBirthCertificateContent(doc, personalInfo, yPosition);
+    } else if (documentType === 'passport') {
+      yPosition = await this.addPassportContent(doc, personalInfo, yPosition);
+    } else if (documentType === 'work_permit') {
+      yPosition = await this.addWorkPermitContent(doc, personalInfo, yPosition);
+    } else {
+      yPosition = await this.addGenericDocumentContent(doc, personalInfo, yPosition, documentType);
     }
 
-    if (data.dateOfBirth) {
-      doc.text(`Date of Birth: ${data.dateOfBirth}`, 50, yPos);
-      yPos += 20;
-    }
+    // Add signature area
+    doc.fontSize(10)
+       .text('_________________________', 50, yPosition + 50)
+       .text('Authorized Signature', 50, yPosition + 70)
+       .text('Department of Home Affairs', 50, yPosition + 85);
 
-    if (data.nationality) {
-      doc.text(`Nationality: ${data.nationality}`, 50, yPos);
-      yPos += 20;
-    }
-
-    // Document-specific fields
-    switch (documentType) {
-      case 'birth_certificate':
-        if (data.placeOfBirth) {
-          doc.text(`Place of Birth: ${data.placeOfBirth}`, 50, yPos);
-          yPos += 20;
-        }
-        if (data.registrationNumber) {
-          doc.text(`Registration Number: ${data.registrationNumber}`, 50, yPos);
-          yPos += 20;
-        }
-        break;
-      case 'passport':
-        if (data.passportNumber) {
-          doc.text(`Passport Number: ${data.passportNumber}`, 50, yPos);
-          yPos += 20;
-        }
-        if (data.machineReadableZone) {
-          doc.fontSize(8).font('Courier');
-          doc.text('Machine Readable Zone:', 50, yPos + 10);
-          doc.text(data.machineReadableZone, 50, yPos + 25);
-          yPos += 50;
-        }
-        break;
-      case 'work_permit':
-        if (data.permitNumber) {
-          doc.text(`Permit Number: ${data.permitNumber}`, 50, yPos);
-          yPos += 20;
-        }
-        if (data.employer) {
-          doc.text(`Employer: ${data.employer}`, 50, yPos);
-          yPos += 20;
-        }
-        break;
-    }
+    doc.text('_________________________', 350, yPosition + 50)
+       .text('Date of Issue', 350, yPosition + 70)
+       .text(new Date().toLocaleDateString(), 350, yPosition + 85);
   }
 
-  private addGovernmentFooter(doc: any, verificationCode: string): void {
-    const pageHeight = doc.page.height;
+  private async addBirthCertificateContent(doc: PDFDocument, personalInfo: any, yPosition: number): Promise<number> {
+    doc.fontSize(12)
+       .text('BIRTH CERTIFICATE', 50, yPosition, { align: 'center' });
 
-    doc.fontSize(8)
-       .fillColor('#666666')
-       .text('This is an official document of the Republic of South Africa', 50, pageHeight - 60);
+    yPosition += 30;
 
-    doc.text(`Verification Code: ${verificationCode}`, 50, pageHeight - 40);
-    doc.text('Verify at: https://www.dha.gov.za/verify', 50, pageHeight - 25);
+    const fields = [
+      ['Full Name:', personalInfo.fullName || 'Not Provided'],
+      ['Date of Birth:', personalInfo.birthDate || 'Not Provided'],
+      ['Place of Birth:', personalInfo.placeOfBirth || 'Not Provided'],
+      ['Gender:', personalInfo.gender || 'Not Provided'],
+      ['ID Number:', personalInfo.idNumber || 'Not Provided'],
+      ['Father\'s Name:', personalInfo.fatherName || 'Not Provided'],
+      ['Mother\'s Name:', personalInfo.motherName || 'Not Provided']
+    ];
+
+    fields.forEach(([label, value]) => {
+      doc.fontSize(10)
+         .text(label, 50, yPosition)
+         .text(value, 200, yPosition);
+      yPosition += 20;
+    });
+
+    return yPosition;
   }
 
-  private addGovernmentSecurityFeatures(doc: any, data: any): void {
-    // Add security watermark
-    doc.fontSize(40)
-       .fillColor('#E8E8E8')
-       .text('DHA OFFICIAL', 150, 400, {
-         rotate: -45,
-         width: 300,
-         align: 'center'
-       });
+  private async addPassportContent(doc: PDFDocument, personalInfo: any, yPosition: number): Promise<number> {
+    doc.fontSize(12)
+       .text('SOUTH AFRICAN PASSPORT', 50, yPosition, { align: 'center' });
+
+    yPosition += 30;
+
+    const fields = [
+      ['Passport Number:', personalInfo.passportNumber || 'P' + Math.random().toString().slice(2, 10)],
+      ['Full Name:', personalInfo.fullName || 'Not Provided'],
+      ['Nationality:', 'South African'],
+      ['Date of Birth:', personalInfo.birthDate || 'Not Provided'],
+      ['Place of Birth:', personalInfo.placeOfBirth || 'South Africa'],
+      ['ID Number:', personalInfo.idNumber || 'Not Provided'],
+      ['Issue Date:', new Date().toLocaleDateString()],
+      ['Expiry Date:', new Date(Date.now() + 10 * 365 * 24 * 60 * 60 * 1000).toLocaleDateString()]
+    ];
+
+    fields.forEach(([label, value]) => {
+      doc.fontSize(10)
+         .text(label, 50, yPosition)
+         .text(value, 200, yPosition);
+      yPosition += 20;
+    });
+
+    return yPosition;
   }
 
-  // Helper methods for generating unique identifiers
-  private generateSerialNumber(): string {
-    return 'SN' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
+  private async addWorkPermitContent(doc: PDFDocument, personalInfo: any, yPosition: number): Promise<number> {
+    doc.fontSize(12)
+       .text('WORK PERMIT', 50, yPosition, { align: 'center' });
+
+    yPosition += 30;
+
+    const fields = [
+      ['Permit Number:', 'WP' + Math.random().toString().slice(2, 10)],
+      ['Full Name:', personalInfo.fullName || 'Not Provided'],
+      ['Passport Number:', personalInfo.passportNumber || 'Not Provided'],
+      ['Nationality:', personalInfo.nationality || 'Not Provided'],
+      ['Employer:', personalInfo.employer || 'Not Provided'],
+      ['Occupation:', personalInfo.occupation || 'Not Provided'],
+      ['Issue Date:', new Date().toLocaleDateString()],
+      ['Expiry Date:', new Date(Date.now() + 2 * 365 * 24 * 60 * 60 * 1000).toLocaleDateString()]
+    ];
+
+    fields.forEach(([label, value]) => {
+      doc.fontSize(10)
+         .text(label, 50, yPosition)
+         .text(value, 200, yPosition);
+      yPosition += 20;
+    });
+
+    return yPosition;
   }
 
-  private generateVerificationCode(): string {
-    return crypto.randomBytes(8).toString('hex').toUpperCase();
+  private async addGenericDocumentContent(doc: PDFDocument, personalInfo: any, yPosition: number, documentType: string): Promise<number> {
+    doc.fontSize(12)
+       .text(documentType.replace('_', ' ').toUpperCase(), 50, yPosition, { align: 'center' });
+
+    yPosition += 30;
+
+    // Add all available personal info
+    Object.entries(personalInfo).forEach(([key, value]) => {
+      const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()) + ':';
+      doc.fontSize(10)
+         .text(label, 50, yPosition)
+         .text(String(value), 200, yPosition);
+      yPosition += 20;
+    });
+
+    return yPosition;
   }
 
-  private generatePermitNumber(): string {
-    return 'PN' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
-  }
-
-  private generateRegistrationNumber(): string {
-    return 'RN' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
-  }
-
-  private generateLicenseNumber(): string {
-    return 'LN' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
-  }
-
-  private generatePassportNumber(): string {
-    return 'P' + Math.random().toString(36).substr(2, 8).toUpperCase();
-  }
-
-  private generateIdNumber(): string {
-    return Math.floor(Math.random() * 9000000000000) + 1000000000000 + '';
-  }
-
-  private generateWorkPermitNumber(): string {
-    return 'WP' + Date.now() + Math.random().toString(36).substr(2, 5).toUpperCase();
-  }
-
-  private generateVisaNumber(): string {
-    return 'V' + Math.random().toString(36).substr(2, 9).toUpperCase();
-  }
-
-  private generateMRZ(fullName: string, passportNumber: string, nationality: string): string {
-    const names = fullName.split(' ');
-    const surname = names[names.length - 1].toUpperCase();
-    const givenNames = names.slice(0, -1).join('<<').toUpperCase();
-
-    const line1 = `P<${nationality.substr(0, 3).toUpperCase()}${surname}<<${givenNames}`;
-    const line2 = `${passportNumber}${nationality.substr(0, 3).toUpperCase()}901231M3112314<<<<<<<<<<<<<<04`;
-
-    return line1.substr(0, 44).padEnd(44, '<') + '\n' + line2.substr(0, 44).padEnd(44, '<');
-  }
-
-  private generateRFIDData(): string {
-    return crypto.randomBytes(32).toString('hex');
-  }
-
-  private generateFingerprintData(): string {
-    return crypto.randomBytes(64).toString('base64');
-  }
-
-  private generateSecurityFeatures(documentType: string): Record<string, any> {
-    return {
-      documentType,
-      securityLevel: 'high',
-      watermark: true,
-      digitalSignature: true,
-      qrCode: true,
-      serialNumber: this.generateSerialNumber(),
-      timestamp: new Date().toISOString()
-    };
-  }
-
-  private generateDigitalSignature(data: any): string {
-    const dataString = JSON.stringify(data);
-    return crypto.createHash('sha256').update(dataString).digest('hex');
-  }
-
-  private async generateQRCode(verificationCode: string): Promise<string> {
+  private async addQRCodeVerification(doc: PDFDocument, documentId: string, documentData: DocumentData): Promise<void> {
     try {
-      const qrData = `https://dha.gov.za/verify/${verificationCode}`;
-      const qrCodeBuffer = await QRCode.toBuffer(qrData, {
-        width: 200,
-        margin: 2,
+      const verificationData = {
+        documentId,
+        type: documentData.documentType,
+        issuer: 'Department of Home Affairs',
+        issued: new Date().toISOString(),
+        verify: `https://dha.gov.za/verify/${documentId}`
+      };
+
+      const qrCodeDataURL = await QRCode.toDataURL(JSON.stringify(verificationData), {
+        width: 100,
+        margin: 1,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
         }
       });
 
-      const filename = `qr_${verificationCode}.png`;
-      const filepath = path.join(DOCUMENTS_DIR, filename);
-      await fs.writeFile(filepath, qrCodeBuffer);
+      // Convert data URL to buffer
+      const base64Data = qrCodeDataURL.replace(/^data:image\/png;base64,/, '');
+      const qrBuffer = Buffer.from(base64Data, 'base64');
 
-      return `/documents/${filename}`;
+      // Add QR code to document
+      doc.image(qrBuffer, 450, 200, { width: 80, height: 80 });
+      doc.fontSize(8)
+         .text('Scan to verify', 450, 290, { width: 80, align: 'center' });
+
     } catch (error) {
-      console.error('Error generating QR code:', error);
-      return '';
+      console.error('QR Code generation failed:', error);
+      // Add text fallback
+      doc.fontSize(8)
+         .text('QR Code: ' + documentId, 450, 200);
     }
   }
+
+  private async addBarcode(doc: PDFDocument, documentId: string): Promise<void> {
+    try {
+      // Create canvas for barcode
+      const canvas = createCanvas(200, 50);
+
+      JsBarcode(canvas, documentId, {
+        format: 'CODE128',
+        width: 1,
+        height: 40,
+        displayValue: true,
+        fontSize: 12,
+        margin: 5
+      });
+
+      // Convert canvas to buffer
+      const barcodeBuffer = canvas.toBuffer('image/png');
+
+      // Add barcode to document
+      doc.image(barcodeBuffer, 50, 700, { width: 150, height: 40 });
+
+    } catch (error) {
+      console.error('Barcode generation failed:', error);
+      // Add text fallback
+      doc.fontSize(8)
+         .text('Barcode: ' + documentId, 50, 700);
+    }
+  }
+
+  private addSecurityWatermark(doc: PDFDocument): void {
+    // Add watermark
+    doc.fillColor('#E0E0E0', 0.3)
+       .fontSize(60)
+       .rotate(-45, { origin: [300, 400] })
+       .text('OFFICIAL DOCUMENT', 100, 400)
+       .rotate(45, { origin: [300, 400] })
+       .fillColor('#000000', 1);
+  }
 }
+
+export const documentGenerator = DocumentGenerator.getInstance();

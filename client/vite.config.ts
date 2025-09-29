@@ -4,21 +4,25 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  root: path.resolve(__dirname),
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+  optimizeDeps: {
+    exclude: ["lucide-react"],
   },
   server: {
-    host: '0.0.0.0',
-    port: 5173,
+    host: "::",
+    port: 8080,
   },
   build: {
     outDir: '../dist/public',
     emptyOutDir: true,
+    sourcemap: false,
     rollupOptions: {
-      input: path.resolve(__dirname, 'index.html')
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+        }
+      }
     }
   },
+  base: '/'
 });
