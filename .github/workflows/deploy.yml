@@ -302,3 +302,5 @@ jobs:
           echo "🚀 Government platform deployment completed"
           - name: Metrics embed
   uses: lowlighter/metrics@v3.34
+  - name: GitHub Pages
+  uses: crazy-max/ghaction-github-pages@v4.2.0
