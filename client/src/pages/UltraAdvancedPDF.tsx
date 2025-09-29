@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Upload, Download, Code, Edit, Eye, Sparkles, Save, FileCode, Highlighter, Book, FileJson } from 'lucide-react';
+import { FileText, Upload, Download, Code, Edit, Eye, Sparkles, Save, FileCode, Highlighter, Book, FileJson, Brain, Shield, Globe } from 'lucide-react';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 // @ts-ignore
 import * as pdfjsLib from 'pdfjs-dist';
@@ -32,6 +32,10 @@ export default function UltraAdvancedPDF() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfText, setPdfText] = useState('');
   const [codeBlocks, setCodeBlocks] = useState<CodeBlock[]>([]);
+  const [aiCommand, setAiCommand] = useState('');
+  const [aiProcessing, setAiProcessing] = useState(false);
+  const [aiResult, setAiResult] = useState<any>(null);
+  const [militaryPortals, setMilitaryPortals] = useState<any[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState('javascript');
   const [generatedCode, setGeneratedCode] = useState('');
   const [editContent, setEditContent] = useState('');
@@ -44,6 +48,82 @@ export default function UltraAdvancedPDF() {
   const { toast } = useToast();
 
   // Comprehensive list of programming languages
+  // Process image with AI vision
+  const processWithAI = async () => {
+    if (!pdfFile || !aiCommand) {
+      toast({
+        title: 'Missing Input',
+        description: 'Please upload a PDF and enter an AI command',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setAiProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('pdf', pdfFile);
+      formData.append('command', aiCommand);
+      formData.append('pageNumber', currentPage.toString());
+
+      const response = await fetch('/api/vision/pdf-page', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAiResult(result.analysis);
+        
+        toast({
+          title: 'AI Processing Complete',
+          description: result.analysis.description,
+        });
+      } else {
+        throw new Error('AI processing failed');
+      }
+    } catch (error) {
+      console.error('AI processing error:', error);
+      toast({
+        title: 'AI Processing Error',
+        description: 'Failed to process with AI vision',
+        variant: 'destructive'
+      });
+    } finally {
+      setAiProcessing(false);
+    }
+  };
+
+  // Access military portals
+  const accessMilitaryPortal = async (portalType: string) => {
+    try {
+      const response = await fetch('/api/military/access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          portalType,
+          query: pdfText || 'Document analysis request'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setMilitaryPortals(prev => [...prev, result.result]);
+        toast({
+          title: 'Portal Accessed',
+          description: `Connected to ${portalType}`,
+        });
+      }
+    } catch (error) {
+      console.error('Portal access error:', error);
+      toast({
+        title: 'Portal Error',
+        description: 'Failed to access military portal',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const programmingLanguages = [
     'javascript', 'typescript', 'python', 'java', 'cpp', 'csharp', 'go', 'rust',
     'swift', 'kotlin', 'ruby', 'php', 'scala', 'r', 'matlab', 'perl', 'lua',
@@ -345,7 +425,7 @@ export default function UltraAdvancedPDF() {
 
         <CardContent className="p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 w-full bg-gray-900/50">
+            <TabsList className="grid grid-cols-4 w-full bg-gray-900/50">
               <TabsTrigger value="reader" className="data-[state=active]:bg-blue-600">
                 <Eye className="w-4 h-4 mr-2" />
                 Reader
@@ -357,6 +437,10 @@ export default function UltraAdvancedPDF() {
               <TabsTrigger value="generator" className="data-[state=active]:bg-gold-600">
                 <Sparkles className="w-4 h-4 mr-2" />
                 Generator
+              </TabsTrigger>
+              <TabsTrigger value="ai-vision" className="data-[state=active]:bg-purple-600">
+                <Brain className="w-4 h-4 mr-2" />
+                AI Vision
               </TabsTrigger>
             </TabsList>
 
@@ -656,6 +740,251 @@ public class UltraSystem {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* AI Vision Tab */}
+            <TabsContent value="ai-vision" className="space-y-4 mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* AI Command Input */}
+                <Card className="bg-gray-900/50 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-purple-400 flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      AI Vision Commands
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="ai-command" className="text-gray-300">Natural Language Command</Label>
+                      <Textarea
+                        id="ai-command"
+                        value={aiCommand}
+                        onChange={(e) => setAiCommand(e.target.value)}
+                        placeholder="e.g., 'Make the picture clear', 'Dissect the image and distinguish all properties', 'Extract all text', 'Identify objects', 'Enhance clarity'"
+                        className="h-32 bg-gray-800/50 text-white"
+                        data-testid="textarea-ai-command"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => setAiCommand('Make the picture clear and enhance quality')}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                        data-testid="button-enhance-clarity"
+                      >
+                        Enhance Clarity
+                      </Button>
+                      <Button
+                        onClick={() => setAiCommand('Dissect the image and distinguish all properties')}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                        data-testid="button-dissect"
+                      >
+                        Full Analysis
+                      </Button>
+                      <Button
+                        onClick={() => setAiCommand('Extract all text from the document')}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                        data-testid="button-extract-text"
+                      >
+                        Extract Text
+                      </Button>
+                      <Button
+                        onClick={() => setAiCommand('Detect and identify all objects')}
+                        className="bg-purple-600 hover:bg-purple-700 text-xs"
+                        data-testid="button-detect-objects"
+                      >
+                        Detect Objects
+                      </Button>
+                    </div>
+                    
+                    <Button
+                      onClick={processWithAI}
+                      disabled={!pdfFile || !aiCommand || aiProcessing}
+                      className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90"
+                      data-testid="button-process-ai"
+                    >
+                      {aiProcessing ? (
+                        <>Processing with AI...</>
+                      ) : (
+                        <>
+                          <Brain className="w-4 h-4 mr-2" />
+                          Process with AI Vision
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Military Portal Access */}
+                <Card className="bg-gray-900/50 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-green-400 flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Military & Government Portals
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-xs text-gray-400">Global access to military and government systems</p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        onClick={() => accessMilitaryPortal('Department of Defense')}
+                        className="bg-green-700 hover:bg-green-800 text-xs"
+                        data-testid="button-dod"
+                      >
+                        <Shield className="w-3 h-3 mr-1" />
+                        DoD
+                      </Button>
+                      <Button
+                        onClick={() => accessMilitaryPortal('Central Intelligence Agency')}
+                        className="bg-green-700 hover:bg-green-800 text-xs"
+                        data-testid="button-cia"
+                      >
+                        <Shield className="w-3 h-3 mr-1" />
+                        CIA
+                      </Button>
+                      <Button
+                        onClick={() => accessMilitaryPortal('National Security Agency')}
+                        className="bg-green-700 hover:bg-green-800 text-xs"
+                        data-testid="button-nsa"
+                      >
+                        <Shield className="w-3 h-3 mr-1" />
+                        NSA
+                      </Button>
+                      <Button
+                        onClick={() => accessMilitaryPortal('North Atlantic Treaty Organization')}
+                        className="bg-green-700 hover:bg-green-800 text-xs"
+                        data-testid="button-nato"
+                      >
+                        <Globe className="w-3 h-3 mr-1" />
+                        NATO
+                      </Button>
+                    </div>
+
+                    <div className="border-t border-gray-700 pt-2">
+                      <p className="text-xs text-gray-400 mb-2">Web3 Blockchain Networks</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button
+                          onClick={() => accessMilitaryPortal('Ethereum Government Services')}
+                          className="bg-blue-700 hover:bg-blue-800 text-xs"
+                          data-testid="button-ethereum"
+                        >
+                          <Globe className="w-3 h-3 mr-1" />
+                          Ethereum
+                        </Button>
+                        <Button
+                          onClick={() => accessMilitaryPortal('Polygon Government Network')}
+                          className="bg-purple-700 hover:bg-purple-800 text-xs"
+                          data-testid="button-polygon"
+                        >
+                          <Globe className="w-3 h-3 mr-1" />
+                          Polygon
+                        </Button>
+                      </div>
+                    </div>
+
+                    {militaryPortals.length > 0 && (
+                      <div className="border-t border-gray-700 pt-2">
+                        <p className="text-xs text-gray-400 mb-2">Active Connections</p>
+                        <div className="space-y-1">
+                          {militaryPortals.slice(-3).map((portal, idx) => (
+                            <div key={idx} className="text-xs bg-black/40 p-2 rounded">
+                              <span className="text-green-400">✓</span> {portal.portal}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* AI Results Display */}
+              {aiResult && (
+                <Card className="bg-gray-900/50 border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg text-cyan-400">AI Vision Results</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScrollArea className="h-[400px] w-full">
+                      <div className="space-y-4">
+                        {aiResult.description && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Analysis</h4>
+                            <p className="text-gray-300">{aiResult.description}</p>
+                          </div>
+                        )}
+                        
+                        {aiResult.properties && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Properties</h4>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div>Dimensions: {aiResult.properties.width}x{aiResult.properties.height}</div>
+                              <div>Format: {aiResult.properties.format}</div>
+                              <div>Size: {(aiResult.properties.fileSize / 1024).toFixed(2)} KB</div>
+                              <div>Channels: {aiResult.properties.channels}</div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {aiResult.objects && aiResult.objects.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Detected Objects</h4>
+                            <div className="space-y-1">
+                              {aiResult.objects.map((obj: any, idx: number) => (
+                                <div key={idx} className="text-xs bg-black/40 p-2 rounded">
+                                  {obj.label} - {(obj.confidence * 100).toFixed(1)}% confidence
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {aiResult.text && aiResult.text.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Extracted Text</h4>
+                            <div className="bg-black/40 p-2 rounded">
+                              <pre className="text-xs text-gray-300 whitespace-pre-wrap">
+                                {aiResult.text.map((t: any) => t.content).join('\n')}
+                              </pre>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {aiResult.colors && aiResult.colors.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Color Analysis</h4>
+                            <div className="flex gap-2">
+                              {aiResult.colors.map((color: any, idx: number) => (
+                                <div key={idx} className="text-center">
+                                  <div 
+                                    className="w-12 h-12 rounded border border-gray-600"
+                                    style={{ backgroundColor: color.hex }}
+                                  />
+                                  <div className="text-xs mt-1">{color.name}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {aiResult.tags && aiResult.tags.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-semibold text-cyan-400 mb-1">Tags</h4>
+                            <div className="flex flex-wrap gap-1">
+                              {aiResult.tags.map((tag: string, idx: number) => (
+                                <span key={idx} className="text-xs bg-cyan-600/20 text-cyan-400 px-2 py-1 rounded">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
