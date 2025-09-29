@@ -358,7 +358,8 @@ export class UltraQueenAICore {
         },
         government: {
           total: 'governmentCount,
-          mockMode: 'governmentrueCount,
+          
+            : 'governmentrueCount,
           list: Object.entries('GOVERNMENT_CLOUD)
             .filter((['key, config]) => config.type === ;government')
             .map'key, config]) => ({

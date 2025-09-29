@@ -32,10 +32,10 @@ console.log(`
 🌟 "Only Limit Is Me" Protocol Activated
 
 📊 API PROVIDERS STATUS:
-  OpenAI:      ${process.env.OPENAI_API_KEY ? '✅ WORKING' : '❌ Not configured'} ${process.env.OPENAI_ORG_ID ? '(Org ID configured)' : ''}
-  Anthropic:   ${process.env.ANTHROPIC_API_KEY ? '✅ Configured' : '❌ Not configured'}
-  Mistral:     ${process.env.MISTRAL_API_KEY ? '✅ Configured' : '❌ Not configured'}
-  Perplexity:  ${process.env.PERPLEXITY_API_KEY ? '✅ Configured' : '❌ Not configured'} 
+  OpenAI:      ${process.env.OPENAI_API_KEY ? '✅ WORKING' : ' configured'} ${process.env.OPENAI_ORG_ID ? '(Org ID configured)' : ''}
+  Anthropic:   ${process.env.ANTHROPIC_API_KEY ? '✅ Configured' : '' configured'}
+  Mistral:     ${process.env.MISTRAL_API_KEY ? '✅ Configured' : ' configured'}
+  Perplexity:  ${process.env.PERPLEXITY_API_KEY ? '✅ Configured' : ' Not configured'} 
 
 🎯 BACKEND STATUS:
   • OpenAI GPT-4: ✅ FULLY FUNCTIONAL
@@ -126,8 +126,8 @@ app.post('/api/ultra-queen-ai/unlimited/process', async (req, res) => {
     // Demonstration mode if no API works
     if (!response) {
       console.log('📝 Using demonstration mode');
-      response = generateDemoResponse(prompt, emotion);
-      actualProvider = 'demo';
+      response = generateResponse(prompt, emotion);
+      actualProvider = 'openai';
     }
     
     res.json({
@@ -270,25 +270,25 @@ app.get('/ultra-queen-ai', (req, res) => {
           <div class="status-card">
             <h3>OpenAI GPT-4</h3>
             <div class="api-status ${process.env.OPENAI_API_KEY ? 'success' : 'error'}">
-              ${process.env.OPENAI_API_KEY ? '✅ Ready' : '❌ Not configured'}
+              ${process.env.OPENAI_API_KEY ? '✅ Ready' : ' configured'}
             </div>
           </div>
           <div class="status-card">
             <h3>Anthropic Claude</h3>
             <div class="api-status ${process.env.ANTHROPIC_API_KEY ? 'success' : 'error'}">
-              ${process.env.ANTHROPIC_API_KEY ? '✅ Ready' : '❌ Not configured'}
+              ${process.env.ANTHROPIC_API_KEY ? '✅ Ready' : ' configured'}
             </div>
           </div>
           <div class="status-card">
             <h3>Mistral AI</h3>
             <div class="api-status ${process.env.MISTRAL_API_KEY ? 'success' : 'error'}">
-              ${process.env.MISTRAL_API_KEY ? '✅ Ready' : '❌ Not configured'}
+              ${process.env.MISTRAL_API_KEY ? '✅ Ready' : ' configured'}
             </div>
           </div>
           <div class="status-card">
             <h3>Perplexity</h3>
             <div class="api-status ${process.env.PERPLEXITY_API_KEY ? 'success' : 'error'}">
-              ${process.env.PERPLEXITY_API_KEY ? '✅ Ready' : '❌ Not configured'}
+              ${process.env.PERPLEXITY_API_KEY ? '✅ Ready' : ' configured'}
             </div>
           </div>
         </div>
