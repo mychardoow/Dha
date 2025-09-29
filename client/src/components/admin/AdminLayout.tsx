@@ -36,9 +36,16 @@ const adminNavigationItems = [
     description: "System overview and metrics"
   },
   {
+    title: "Ultra Queen Control",
+    href: "/ultra-dashboard",
+    icon: Crown,
+    description: "Complete system control panel",
+    badge: "ULTRA"
+  },
+  {
     title: "AI Assistant",
     href: "/admin/ai-chat",
-    icon: Crown,
+    icon: Bot,
     description: "Unlimited AI chat with admin authority",
     badge: "UNLIMITED"
   },
