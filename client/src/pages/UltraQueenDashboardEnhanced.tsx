@@ -13,6 +13,7 @@ import {
   Crown, Lock, Server, Activity, Wallet,
   Download, MessageSquare, Image
 } from 'lucide-react';
+import GlobalAccessTab from './GlobalAccessTab';
 
 export default function UltraQueenDashboardEnhanced() {
   const { toast } = useToast();
@@ -247,84 +248,118 @@ export default function UltraQueenDashboardEnhanced() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-black text-white p-6">
+    <div className="min-h-screen bg-gradient-to-br from-black via-teal-950 to-emerald-950 text-white p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Golden Crown Header */}
+        <div className="flex items-center justify-between mb-8 p-6 bg-gradient-to-r from-yellow-900/30 via-amber-800/20 to-yellow-900/30 rounded-xl border border-yellow-600/30">
           <div className="flex items-center gap-4">
-            <Crown className="w-12 h-12 text-yellow-500" />
+            <div className="relative">
+              <Crown className="w-16 h-16 text-yellow-500 animate-pulse" />
+              <div className="absolute -top-2 -right-2">
+                <Badge className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs">
+                  ULTRA
+                </Badge>
+              </div>
+            </div>
             <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-purple-400 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-400 bg-clip-text text-transparent">
                 Ultra Queen AI Raeesa
               </h1>
-              <p className="text-gray-400">REAL Integrations Active</p>
+              <p className="text-emerald-400 font-semibold">Global Access • Unlimited Authority • Only Limit Is Me</p>
             </div>
           </div>
-          <Badge className="bg-green-600 text-white px-4 py-2">
-            ALL SYSTEMS LIVE
-          </Badge>
+          <div className="flex flex-col items-end gap-2">
+            <Badge className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2">
+              ALL SYSTEMS LIVE
+            </Badge>
+            <span className="text-xs text-yellow-400">Queen Raeesa Exclusive Access</span>
+          </div>
         </div>
 
-        {/* Status Cards */}
+        {/* Status Cards with Queen Theme */}
         {systemStatus && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-gray-800/50 border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            {/* AI Status Card */}
+            <Card className="bg-gradient-to-br from-teal-900/50 to-emerald-900/50 border-emerald-600/30">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">OpenAI Status</p>
-                    <p className="text-2xl font-bold">
-                      {systemStatus.ai?.connected ? 'CONNECTED' : 'OFFLINE'}
+                    <p className="text-xs text-emerald-400 uppercase font-semibold">AI Engine</p>
+                    <p className="text-xl font-bold text-yellow-400">
+                      {systemStatus.ai?.connected ? '🟢 LIVE' : '🔴 OFFLINE'}
                     </p>
+                    <p className="text-xs text-gray-400 mt-1">GPT-4 Turbo</p>
                   </div>
-                  <Cpu className={`w-8 h-8 ${systemStatus.ai?.connected ? 'text-green-500' : 'text-red-500'}`} />
+                  <Cpu className={`w-8 h-8 ${systemStatus.ai?.connected ? 'text-emerald-400' : 'text-red-500'}`} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            {/* Blockchain Status Card */}
+            <Card className="bg-gradient-to-br from-purple-900/50 to-indigo-900/50 border-purple-600/30">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Blockchain</p>
-                    <p className="text-2xl font-bold">
-                      {systemStatus.blockchain?.ethereum?.connected ? 'LIVE' : 'OFFLINE'}
+                    <p className="text-xs text-purple-400 uppercase font-semibold">Blockchain</p>
+                    <p className="text-xl font-bold text-yellow-400">
+                      {systemStatus.blockchain?.ethereum?.connected ? '🟢 LIVE' : '🔴 OFFLINE'}
                     </p>
+                    <p className="text-xs text-gray-400 mt-1">ETH/MATIC/ZORA</p>
                   </div>
-                  <Network className={`w-8 h-8 ${systemStatus.blockchain?.ethereum?.connected ? 'text-purple-500' : 'text-red-500'}`} />
+                  <Network className={`w-8 h-8 ${systemStatus.blockchain?.ethereum?.connected ? 'text-purple-400' : 'text-red-500'}`} />
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-800/50 border-gray-700">
+            {/* Documents Card */}
+            <Card className="bg-gradient-to-br from-yellow-900/50 to-amber-900/50 border-yellow-600/30">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Documents</p>
-                    <p className="text-2xl font-bold">23 TYPES</p>
+                    <p className="text-xs text-yellow-400 uppercase font-semibold">Documents</p>
+                    <p className="text-xl font-bold text-emerald-400">23 TYPES</p>
+                    <p className="text-xs text-gray-400 mt-1">PDF Ready</p>
                   </div>
-                  <FileText className="w-8 h-8 text-yellow-500" />
+                  <FileText className="w-8 h-8 text-yellow-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Global Access Card */}
+            <Card className="bg-gradient-to-br from-red-900/50 to-pink-900/50 border-red-600/30">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-red-400 uppercase font-semibold">Authority</p>
+                    <p className="text-xl font-bold text-yellow-400">UNLIMITED</p>
+                    <p className="text-xs text-gray-400 mt-1">Global Access</p>
+                  </div>
+                  <Shield className="w-8 h-8 text-red-400" />
                 </div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Main Tabs */}
+        {/* Main Tabs with Queen Theme */}
         <Tabs defaultValue="overview" className="mt-6">
-          <TabsList className="bg-gray-800/50 border-gray-700">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="ai">AI Assistant</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="blockchain">Blockchain</TabsTrigger>
+          <TabsList className="bg-gradient-to-r from-teal-900/50 via-emerald-900/50 to-teal-900/50 border border-emerald-600/30">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600">Overview</TabsTrigger>
+            <TabsTrigger value="ai" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600">AI Assistant</TabsTrigger>
+            <TabsTrigger value="documents" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600">Documents</TabsTrigger>
+            <TabsTrigger value="blockchain" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600">Blockchain</TabsTrigger>
+            <TabsTrigger value="global" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-amber-600">Global Access</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="mt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-gray-800/50 border-gray-700">
+              <Card className="bg-gradient-to-br from-teal-900/30 to-emerald-900/30 border-emerald-600/30">
                 <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
+                  <CardTitle className="text-yellow-400 flex items-center gap-2">
+                    <Zap className="w-5 h-5" />
+                    Quick Actions
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button 
@@ -351,9 +386,12 @@ export default function UltraQueenDashboardEnhanced() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gray-800/50 border-gray-700">
+              <Card className="bg-gradient-to-br from-purple-900/30 to-indigo-900/30 border-purple-600/30">
                 <CardHeader>
-                  <CardTitle>System Information</CardTitle>
+                  <CardTitle className="text-yellow-400 flex items-center gap-2">
+                    <Activity className="w-5 h-5" />
+                    System Information
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {systemStatus && (
@@ -522,6 +560,11 @@ export default function UltraQueenDashboardEnhanced() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Global Access Tab */}
+          <TabsContent value="global" className="mt-6">
+            <GlobalAccessTab />
           </TabsContent>
         </Tabs>
       </div>
