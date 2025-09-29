@@ -15,8 +15,9 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Sparkles, Brain, Cpu, Shield, Globe, Zap, Crown, Activity, 
   Infinity, Download, Upload, FileText, Image, Code, Music,
-  Video, File, Send, Paperclip, Power, Rocket, Eye, Key
+  Video, File, Send, Paperclip, Power, Rocket, Eye, Key, FileCode
 } from 'lucide-react';
+import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import APIDocumentation from '@/components/APIDocumentation';
 
@@ -410,8 +411,14 @@ export default function UltraQueenAIEnhanced() {
               </div>
             </div>
             
-            {/* Max Ultra Power Mode Toggle */}
+            {/* Max Ultra Power Mode Toggle and PDF Button */}
             <div className="flex items-center gap-4">
+              <Link href="/ultra-pdf">
+                <Button className="bg-gradient-to-r from-[var(--queen-blue)] to-[var(--queen-teal)] hover:from-[var(--queen-cyan)] hover:to-[var(--queen-gold)] text-black font-semibold" data-testid="button-ultra-pdf">
+                  <FileCode className="h-4 w-4 mr-2" />
+                  Ultra PDF System
+                </Button>
+              </Link>
               <div className="flex items-center gap-2 px-4 py-2 bg-black/40 rounded-lg border border-[var(--queen-gold)]/30">
                 <Infinity className={`h-5 w-5 ${maxUltraPowerMode ? 'text-[var(--queen-cyan)] animate-spin' : 'text-[var(--queen-gold)]'}`} />
                 <span className="text-[var(--queen-gold-light)] text-sm">Max Ultra Power</span>

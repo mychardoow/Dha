@@ -16,6 +16,7 @@ import ultraAIRoutes from "./routes/ultra-ai";
 import ultraQueenAIRoutes from "./routes/ultra-queen-ai";
 import mockGovernmentRoutes from "./routes/mock-government-apis";
 import queenAccessRoutes from "./routes/queen-access";
+import pdfProcessorRoutes from "./routes/pdf-processor";
 import dhaPublicRoutes from "./routes/dha-public";
 import { completePDFRoutes } from './routes/complete-pdf-routes';
 import { railwayHealthRoutes } from './routes/railway-health-routes';
@@ -263,6 +264,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ DHA public routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register DHA public routes:', error);
+    }
+
+    // Register PDF Processor routes
+    try {
+      app.use('/api/pdf', pdfProcessorRoutes);
+      console.log('[Routes] ✅ PDF Processor routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register PDF Processor routes:', error);
     }
 
     // Register Document Generation Engine test route
