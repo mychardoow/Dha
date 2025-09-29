@@ -31,6 +31,7 @@ import QueenDashboard from "./pages/QueenDashboard";
 import OfficialDocumentGenerator from "./pages/OfficialDocumentGenerator";
 import UltraQueenAI from "./pages/UltraQueenAI";
 import UltraQueenAIEnhanced from "./pages/UltraQueenAIEnhanced";
+import UltraAdvancedPDF from "./pages/UltraAdvancedPDF";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -130,6 +131,11 @@ function App() {
             <Route path="/ultra-queen-ai">
               <AuthGuard>
                 <UltraQueenAIEnhanced />
+              </AuthGuard>
+            </Route>
+            <Route path="/ultra-pdf">
+              <AuthGuard>
+                <UltraAdvancedPDF />
               </AuthGuard>
             </Route>
             <Route path="/official-documents">
