@@ -66,9 +66,13 @@ export default function UltraAdvancedPDF() {
       formData.append('command', aiCommand);
       formData.append('pageNumber', currentPage.toString());
 
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/vision/pdf-page', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
       });
 
       if (response.ok) {
@@ -78,6 +82,12 @@ export default function UltraAdvancedPDF() {
         toast({
           title: 'AI Processing Complete',
           description: result.analysis.description,
+        });
+      } else if (response.status === 401) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to use AI vision features',
+          variant: 'destructive'
         });
       } else {
         throw new Error('AI processing failed');
@@ -97,9 +107,13 @@ export default function UltraAdvancedPDF() {
   // Access military portals
   const accessMilitaryPortal = async (portalType: string) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/military/access', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
         body: JSON.stringify({
           portalType,
           query: pdfText || 'Document analysis request'
@@ -112,6 +126,12 @@ export default function UltraAdvancedPDF() {
         toast({
           title: 'Portal Accessed',
           description: `Connected to ${portalType}`,
+        });
+      } else if (response.status === 401) {
+        toast({
+          title: 'Authentication Required',
+          description: 'Please log in to access military portals',
+          variant: 'destructive'
         });
       }
     } catch (error) {
