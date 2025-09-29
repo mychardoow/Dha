@@ -1,4 +1,6 @@
 // Ultra Queen AI - Advanced Vision Processing Service
+// IMPORTANT: This is a SIMULATION for demonstration purposes
+// Actual AI vision processing would require integration with vision APIs
 // AI-Powered Image Analysis, Enhancement, and Understanding
 
 import { z } from 'zod';

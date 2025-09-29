@@ -1,4 +1,6 @@
 // Ultra Queen AI - Military and Government Portal Integration Service
+// IMPORTANT: This is a SIMULATION/STUB for demonstration purposes
+// Actual military/government integration requires official credentials
 // Global Access to All Military and Government Systems
 // Web2 and Web3 Integration with CAC/PIV Authentication
 
