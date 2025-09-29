@@ -42,27 +42,45 @@ export default function UltraQueenDashboard() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [systemStatus, setSystemStatus] = useState({
-    admin: true,
-    documents: true,
-    blockchain: true,
-    ai: true,
-    government: true
+    admin: false,
+    documents: false,
+    blockchain: false,
+    ai: false,
+    government: false
   });
+  const [fullStatus, setFullStatus] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check system status
     checkSystemStatus();
   }, []);
 
-  const checkSystemStatus = () => {
-    // Simulate system checks
-    setSystemStatus({
-      admin: true,
-      documents: true,
-      blockchain: true,
-      ai: true,
-      government: true
-    });
+  const checkSystemStatus = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/ultra-dashboard/status', {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setFullStatus(data.status);
+        setSystemStatus({
+          admin: data.status.admin,
+          documents: data.status.documents.ready,
+          blockchain: data.status.blockchain.ethereum.connected && data.status.blockchain.polygon.connected,
+          ai: data.status.ai.status === 'active',
+          government: data.status.government.dha.connected && data.status.government.vfs.connected
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch system status:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const testBlockchain = async (network: string) => {
@@ -71,13 +89,33 @@ export default function UltraQueenDashboard() {
       description: `Testing ${network} connection...`,
     });
     
-    // Simulate blockchain test
-    setTimeout(() => {
-      toast({
-        title: 'Connection Successful',
-        description: `Connected to ${network} network`,
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/ultra-dashboard/test-blockchain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ network })
       });
-    }, 1500);
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Connection Successful',
+          description: `Connected to ${network} - Block #${data.result.blockNumber}`,
+        });
+      } else {
+        throw new Error('Connection failed');
+      }
+    } catch (error) {
+      toast({
+        title: 'Connection Failed',
+        description: `Failed to connect to ${network}`,
+        variant: 'destructive'
+      });
+    }
   };
 
   const testGovernmentAPI = async (api: string) => {
@@ -86,13 +124,33 @@ export default function UltraQueenDashboard() {
       description: `Testing ${api} connection...`,
     });
     
-    // Simulate API test
-    setTimeout(() => {
-      toast({
-        title: 'API Connected',
-        description: `${api} integration verified`,
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/ultra-dashboard/test-government-api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ api })
       });
-    }, 1500);
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'API Connected',
+          description: `${api} verified - Response time: ${data.result.responseTime}`,
+        });
+      } else {
+        throw new Error('API test failed');
+      }
+    } catch (error) {
+      toast({
+        title: 'API Test Failed',
+        description: `Failed to connect to ${api}`,
+        variant: 'destructive'
+      });
+    }
   };
 
   return (
@@ -133,7 +191,7 @@ export default function UltraQueenDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs text-gray-400">All 23 DHA Documents</p>
-                <p className="text-sm font-semibold text-white">Ready for Generation</p>
+                <p className="text-sm font-semibold text-white">23 Types Available</p>
               </div>
               {systemStatus.documents ? (
                 <CheckCircle className="w-8 h-8 text-green-500" />
