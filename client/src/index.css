@@ -429,7 +429,7 @@ body {
   background: var(--sa-green);
   color: white;
   padding: 1.25rem;
-  margin: -2rem -2rem 2rem -2rem;
+  margin: -2rem -2rem 2rem;
   border-radius: 3px 3px 0 0;
   text-align: center;
   font-weight: 600;
@@ -748,7 +748,7 @@ body {
 .prose h1, .prose h2, .prose h3, .prose h4 {
   color: var(--foreground);
   font-weight: 600;
-  margin: 1.5em 0 0.5em 0;
+  margin: 1.5em 0 0.5em;
 }
 
 .prose ul, .prose ol {
