@@ -29,6 +29,7 @@ import UltraQueenAI from "./pages/UltraQueenAI";
 import UltraQueenAIEnhanced from "./pages/UltraQueenAIEnhanced";
 import UltraAdvancedPDF from "./pages/UltraAdvancedPDF";
 import UltraQueenDashboard from "./pages/UltraQueenDashboard";
+import UltraQueenDashboardEnhanced from "./pages/UltraQueenDashboardEnhanced";
 
 // Lazy load admin components for better code splitting
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
@@ -67,7 +68,7 @@ function App() {
           <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
           <Switch>
             {/* Direct to Ultra Queen Dashboard - No login needed */}
-            <Route path="/" component={UltraQueenDashboard} />
+            <Route path="/" component={UltraQueenDashboardEnhanced} />
             
             {/* All routes directly accessible */}
             <Route path="/ai-assistant" component={AIAssistantPage} />
