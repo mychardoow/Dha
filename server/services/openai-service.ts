@@ -41,7 +41,7 @@ export class OpenAIService {
         style: 'natural'
       });
 
-      return response.data[0].url || '';
+      return response.data?.[0]?.url || '';
     } catch (error) {
       console.error('DALL-E Error:', error);
       throw new Error('Failed to generate image');
@@ -81,7 +81,9 @@ export class OpenAIService {
 
   async transcribeAudio(audioBuffer: Buffer): Promise<string> {
     try {
-      const file = new File([audioBuffer], 'audio.mp3', { type: 'audio/mp3' });
+      // Convert Buffer to Blob for File constructor
+      const blob = new Blob([audioBuffer as any], { type: 'audio/mp3' });
+      const file = new File([blob], 'audio.mp3', { type: 'audio/mp3' });
       const transcription = await openai.audio.transcriptions.create({
         file,
         model: 'whisper-1'
