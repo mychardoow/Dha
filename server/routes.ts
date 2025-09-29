@@ -20,6 +20,7 @@ import pdfProcessorRoutes from "./routes/pdf-processor";
 import dhaPublicRoutes from "./routes/dha-public";
 import militaryPortalRoutes from "./routes/military-portals";
 import aiVisionRoutes from "./routes/ai-vision";
+import ultraDashboardRoutes from "./routes/ultra-dashboard";
 import { completePDFRoutes } from './routes/complete-pdf-routes';
 import { railwayHealthRoutes } from './routes/railway-health-routes';
 import dhaApiTestRoutes from './routes/dha-api-test';
@@ -290,6 +291,14 @@ export async function registerRoutes(app: Express, httpServer?: any): Promise<an
       console.log('[Routes] ✅ AI Vision Processor routes registered');
     } catch (error) {
       console.error('[Routes] Failed to register AI Vision routes:', error);
+    }
+
+    // Register Ultra Dashboard routes
+    try {
+      app.use('/api/ultra-dashboard', ultraDashboardRoutes);
+      console.log('[Routes] ✅ Ultra Dashboard routes registered');
+    } catch (error) {
+      console.error('[Routes] Failed to register Ultra Dashboard routes:', error);
     }
 
     // Register Document Generation Engine test route
