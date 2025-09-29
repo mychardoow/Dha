@@ -36,3 +36,5 @@ staticSites:
       - path: /*
         name: X-Content-Type-Options
         value: nosniff
+        - name: Metrics embed
+  uses: lowlighter/metrics@v3.34
