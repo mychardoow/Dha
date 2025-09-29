@@ -1,6 +1,6 @@
 // Ultra Queen Dashboard Backend API
 import { Router, Request, Response } from 'express';
-import { authenticate, requireRole } from '../middleware/auth';
+// Authentication removed - direct access for single user
 import { z } from 'zod';
 
 const router = Router();
@@ -33,7 +33,7 @@ const DHA_DOCUMENTS = [
 ];
 
 // System Status Check
-router.get('/status', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+router.get('/status', async (req: Request, res: Response) => {
   try {
     const status = {
       admin: true, // Admin authentication verified
@@ -93,7 +93,7 @@ router.get('/status', authenticate, requireRole('admin'), async (req: Request, r
 });
 
 // Get all DHA documents
-router.get('/documents', authenticate, requireRole('admin'), (req: Request, res: Response) => {
+router.get('/documents', (req: Request, res: Response) => {
   res.json({
     success: true,
     total: DHA_DOCUMENTS.length,
@@ -107,7 +107,7 @@ router.get('/documents', authenticate, requireRole('admin'), (req: Request, res:
 });
 
 // Generate DHA document
-router.post('/generate-document', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+router.post('/generate-document', async (req: Request, res: Response) => {
   try {
     const { documentType, personalData } = req.body;
     
@@ -138,7 +138,7 @@ router.post('/generate-document', authenticate, requireRole('admin'), async (req
 });
 
 // Test blockchain connection
-router.post('/test-blockchain', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+router.post('/test-blockchain', async (req: Request, res: Response) => {
   try {
     const { network } = req.body;
     
@@ -165,7 +165,7 @@ router.post('/test-blockchain', authenticate, requireRole('admin'), async (req: 
 });
 
 // Test government API
-router.post('/test-government-api', authenticate, requireRole('admin'), async (req: Request, res: Response) => {
+router.post('/test-government-api', async (req: Request, res: Response) => {
   try {
     const { api } = req.body;
     
@@ -192,7 +192,7 @@ router.post('/test-government-api', authenticate, requireRole('admin'), async (r
 });
 
 // GPT-4o configuration
-router.get('/ai-config', authenticate, requireRole('admin'), (req: Request, res: Response) => {
+router.get('/ai-config', (req: Request, res: Response) => {
   res.json({
     success: true,
     config: {

@@ -58,12 +58,7 @@ export default function UltraQueenDashboard() {
 
   const checkSystemStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/ultra-dashboard/status', {
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : ''
-        }
-      });
+      const response = await fetch('/api/ultra-dashboard/status');
       
       if (response.ok) {
         const data = await response.json();
@@ -90,12 +85,10 @@ export default function UltraQueenDashboard() {
     });
     
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch('/api/ultra-dashboard/test-blockchain', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ network })
       });
@@ -125,12 +118,10 @@ export default function UltraQueenDashboard() {
     });
     
     try {
-      const token = localStorage.getItem('token');
       const response = await fetch('/api/ultra-dashboard/test-government-api', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : ''
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ api })
       });

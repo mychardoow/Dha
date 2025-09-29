@@ -5,8 +5,6 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
-import AuthGuard from "@/components/AuthGuard";
-import Login from "@/pages/Login";
 import Dashboard from "./pages/Dashboard";
 import AIAssistantPage from "./pages/ai-assistant";
 import DocumentGenerationPage from "./pages/document-generation";
@@ -19,13 +17,11 @@ import NotFoundPage from "./pages/not-found";
 import SystemStatus from "./pages/system-status";
 import DHA802Generator from "./pages/DHA802Generator";
 import { DebugDashboard } from "./components/debug/DebugDashboard";
-import AdminGuard from "./components/admin/AdminGuard";
 import AIChatAssistant from "./components/AIChatAssistant";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
-import BiometricInitialSetup from "@/components/BiometricInitialSetup";
 import { UltraAI } from "./pages/UltraAI";
 import QueenDashboard from "./pages/QueenDashboard";
 import OfficialDocumentGenerator from "./pages/OfficialDocumentGenerator";
@@ -63,20 +59,6 @@ function AdminLoadingFallback() {
 function App() {
   const [showAIChat, setShowAIChat] = useState(false);
   const isMobile = useIsMobile();
-  const [isBiometricSetupComplete, setIsBiometricSetupComplete] = useState(false);
-
-  useEffect(() => {
-    // Check if biometric setup has already been completed
-    const setupComplete = localStorage.getItem("biometricSetupComplete");
-    if (setupComplete === "true") {
-      setIsBiometricSetupComplete(true);
-    }
-  }, []);
-
-  const handleBiometricSetupSuccess = () => {
-    localStorage.setItem("biometricSetupComplete", "true");
-    setIsBiometricSetupComplete(true);
-  };
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -84,196 +66,79 @@ function App() {
         <ErrorBoundary>
           <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
           <Switch>
-            {/* Biometric Setup Route */}
-            {!isBiometricSetupComplete && (
-              <Route path="/biometric-setup">
-                <BiometricInitialSetup onSetupComplete={handleBiometricSetupSuccess} />
-              </Route>
-            )}
+            {/* Direct to Ultra Queen Dashboard - No login needed */}
+            <Route path="/" component={UltraQueenDashboard} />
+            
+            {/* All routes directly accessible */}
+            <Route path="/ai-assistant" component={AIAssistantPage} />
+            <Route path="/documents" component={DocumentGenerationPage} />
+            <Route path="/document-services" component={DocumentServices} />
+            <Route path="/document-upload" component={DocumentUploadPage} />
+            <Route path="/document-generation" component={DocumentGenerationPage} />
+            <Route path="/dha-documents" component={DhaDocuments} />
+            <Route path="/ultra-queen-ai" component={UltraQueenAIEnhanced} />
+            <Route path="/ultra-dashboard" component={UltraQueenDashboard} />
+            <Route path="/ultra-pdf" component={UltraAdvancedPDF} />
+            <Route path="/official-documents" component={OfficialDocumentGenerator} />
+            <Route path="/pdf-test" component={PDFTestPage} />
+            <Route path="/verify" component={DocumentVerificationPage} />
+            <Route path="/verify/:code" component={DocumentVerificationPage} />
+            <Route path="/dha802" component={DHA802Generator} />
+            <Route path="/debug" component={DebugDashboard} />
+            <Route path="/system-status" component={SystemStatus} />
 
-            <Route path="/login" component={Login} />
-
-            {/* Protected Routes */}
-            <Route path="/">
-              <AuthGuard>
-                <Dashboard />
-              </AuthGuard>
-            </Route>
-            <Route path="/ai-assistant">
-              <AuthGuard>
-                <AIAssistantPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/documents">
-              <AuthGuard>
-                <DocumentGenerationPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/document-services">
-              <AuthGuard>
-                <DocumentServices />
-              </AuthGuard>
-            </Route>
-            <Route path="/document-upload">
-              <AuthGuard>
-                <DocumentUploadPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/document-generation">
-              <AuthGuard>
-                <DocumentGenerationPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/dha-documents">
-              <AuthGuard>
-                <DhaDocuments />
-              </AuthGuard>
-            </Route>
-            <Route path="/ultra-queen-ai">
-              <AuthGuard>
-                <UltraQueenAIEnhanced />
-              </AuthGuard>
-            </Route>
-            <Route path="/ultra-dashboard">
-              <AuthGuard>
-                <UltraQueenDashboard />
-              </AuthGuard>
-            </Route>
-            <Route path="/ultra-pdf">
-              <AuthGuard>
-                <UltraAdvancedPDF />
-              </AuthGuard>
-            </Route>
-            <Route path="/official-documents">
-              <AuthGuard>
-                <OfficialDocumentGenerator />
-              </AuthGuard>
-            </Route>
-            <Route path="/pdf-test">
-              <AuthGuard>
-                <PDFTestPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/verify">
-              <AuthGuard>
-                <DocumentVerificationPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/verify/:code">
-              <AuthGuard>
-                <DocumentVerificationPage />
-              </AuthGuard>
-            </Route>
-            <Route path="/dha802">
-              <AuthGuard>
-                <DHA802Generator />
-              </AuthGuard>
-            </Route>
-            <Route path="/debug">
-              <AuthGuard>
-                <DebugDashboard />
-              </AuthGuard>
-            </Route>
-            <Route path="/system-status">
-              <SystemStatus />
-            </Route>
-
-            {/* Admin Routes - Protected with code splitting */}
+            {/* Admin Routes - Direct Access */}
             <Route path="/admin/dashboard">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <AdminDashboard />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <AdminDashboard />
+              </Suspense>
             </Route>
             <Route path="/admin/users">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <UserManagement />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <UserManagement />
+              </Suspense>
             </Route>
             <Route path="/admin/documents">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <DocumentManagement />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <DocumentManagement />
+              </Suspense>
             </Route>
             <Route path="/admin/security">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <SecurityCenter />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <SecurityCenter />
+              </Suspense>
             </Route>
             <Route path="/admin/system">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <SystemMonitoring />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <SystemMonitoring />
+              </Suspense>
             </Route>
             <Route path="/admin/ai-analytics">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <AIAnalytics />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <AIAnalytics />
+              </Suspense>
             </Route>
             <Route path="/admin/government-operations">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <GovernmentOperations />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <GovernmentOperations />
+              </Suspense>
             </Route>
             <Route path="/admin/monitoring">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <MonitoringDashboard />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <MonitoringDashboard />
+              </Suspense>
             </Route>
             <Route path="/admin/ai-chat">
-              <AuthGuard>
-                <AdminGuard>
-                  <Suspense fallback={<AdminLoadingFallback />}>
-                    <AdminAIChat />
-                  </Suspense>
-                </AdminGuard>
-              </AuthGuard>
+              <Suspense fallback={<AdminLoadingFallback />}>
+                <AdminAIChat />
+              </Suspense>
             </Route>
 
-            {/* Ultra AI Route - Admin Only */}
-            <Route path="/ultra-ai">
-              <AuthGuard>
-                <AdminGuard>
-                  <UltraAI />
-                </AdminGuard>
-              </AuthGuard>
-            </Route>
+            {/* Ultra AI Route */}
+            <Route path="/ultra-ai" component={UltraAI} />
 
             {/* Queen Dashboard - Live System Test */}
-            <Route path="/queen-dashboard">
-              <QueenDashboard />
-            </Route>
+            <Route path="/queen-dashboard" component={QueenDashboard} />
 
             <Route component={NotFoundPage} />
           </Switch>
