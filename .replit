@@ -83,7 +83,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "Start DHA Platform"
+runButton = "Start DHA Services"
 
 [[workflows.workflow]]
 name = "Project"
@@ -356,15 +356,39 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install --force"
+args = "echo \"🇿🇦 STARTING DHA DIGITAL SERVICES\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run build"
+args = "echo \"==================================\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm start"
+args = "echo \"👑 Ultra Queen AI Raeesa\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🎨 Blue, Green & Gold Government Theme\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --no-optional --prefer-offline"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting DHA server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "tsx server/index.ts"
 
 [[workflows.workflow]]
 name = "Start DHA Platform"
@@ -398,3 +422,52 @@ args = "echo \"🚀 Starting DHA server on Replit...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "Deploy to Production"
+author = 47994971
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🇿🇦 DHA DIGITAL SERVICES DEPLOYMENT\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"====================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"👑 Ultra Queen AI Raeesa Platform\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🎨 Blue, Green & Gold Theme\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Build complete - Ready for deployment!\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Push to GitHub for Railway/Render auto-deploy\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash push-to-github.sh"
