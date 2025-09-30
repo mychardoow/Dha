@@ -52,6 +52,10 @@ export class EnhancedAIAssistant {
    * UNLIMITED AI PROCESSING WITH GLOBAL SYSTEM ACCESS
    */
   async processUnlimitedRequest(request: EnhancedAIRequest): Promise<EnhancedAIResponse> {
+    // Runtime type validation to prevent type confusion/tampering
+    if (typeof request.message !== 'string') {
+      throw new Error('Invalid request: message parameter must be a string.');
+    }
     const startTime = Date.now();
     
     console.log(`🌟 [Enhanced AI] Processing unlimited request from ${request.userId}`);
