@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 9999
-externalPort = 8081
-
-[[ports]]
 localPort = 33633
 externalPort = 6800
 
@@ -102,8 +98,11 @@ mode = "parallel"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "node dev-server.js"
 waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [[workflows.workflow]]
 name = "Simple "
@@ -580,3 +579,20 @@ args = "echo \"🚀 Starting production server on 0.0.0.0:5000...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=5000 HOST=0.0.0.0 npm start"
+
+[[workflows.workflow]]
+name = "Deploy on Replit"
+author = 48220034
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Deploying DHA Digital Services to Replit\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
