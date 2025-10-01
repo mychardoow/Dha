@@ -83,7 +83,7 @@ NODE_ENV = "production"
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_websocket:1.0.0", "javascript_object_storage:1.0.0", "github:1.0.0"]
 
 [workflows]
-runButton = "Project"
+runButton = "Production Ready"
 
 [[workflows.workflow]]
 name = "Project"
@@ -546,3 +546,36 @@ args = "echo \"✅ Starting production server...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm start"
+
+[[workflows.workflow]]
+name = "Production Ready"
+author = 48166188
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🇿🇦 DHA DIGITAL SERVICES - PRODUCTION READY\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"============================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --force --no-optional --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔧 Building client for production...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm install && npm run build && cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting production server on 0.0.0.0:5000...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=5000 HOST=0.0.0.0 npm start"
