@@ -172,3 +172,20 @@
   "author": "DHA Digital Services Team",
   "license": "UNLICENSED"
 }
+{
+  "name": "dha-digital-services",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/server/index.js",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build",
+    "build:server": "tsc -p tsconfig.server.json --skipLibCheck",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "vite",
+    "dev:server": "tsx watch server/index.ts",
+    "db:migrate": "drizzle-kit push:pg",
+    "validate": "tsc --noEmit",
+    "test": "vitest"
+  }
+}
