@@ -21,6 +21,7 @@ import { initializeDatabase } from './config/database-railway.js';
 
 // Ultra-advanced PDF routes import
 import { ultraPDFRoutes } from './routes/ultra-pdf-api';
+import { governmentPrintIntegration } from './services/government-print-integration';
 
 // Load environment variables
 dotenv.config();
@@ -153,6 +154,10 @@ registerRoutes(app);
 
 // Mount ultra-advanced PDF routes
 app.use(ultraPDFRoutes);
+
+// Government Printing & Work Permits
+import { governmentPrintRoutes } from './routes/government-print-routes';
+app.use(governmentPrintRoutes);
 
 // Setup Vite for development
 if (process.env.NODE_ENV !== 'production') {
