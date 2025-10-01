@@ -133,10 +133,9 @@ export interface GenerationResult {
 
 export class CompletePDFGenerationService {
   private static instance: CompletePDFGenerationService;
-  private documentsPath: string;
 
   private constructor() {
-    // No file system operations for Vercel serverless
+    // Vercel serverless - no file system operations needed
   }
 
   static getInstance(): CompletePDFGenerationService {
