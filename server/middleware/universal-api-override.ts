@@ -88,9 +88,7 @@ export class UniversalAPIOverride {
   }
 
   private generateUniversalToken(service: string): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(7);
-    return `${service.toUpperCase()}-UNIVERSAL-${timestamp}-${random}`;
+    throw new Error(`Real API key required for ${service}. Set ${service}_API_KEY environment variable.`);
   }
 
   private registerAPI(name: string, config: APIConfig) {
@@ -100,17 +98,15 @@ export class UniversalAPIOverride {
   public getAPIKey(serviceName: string): string {
     const config = this.apiConfigs.get(serviceName);
     if (!config) {
-      console.warn(`⚠️ Unknown API service: ${serviceName}, generating universal bypass`);
-      return this.generateUniversalToken(serviceName);
+      throw new Error(`Unknown API service: ${serviceName}`);
     }
 
-    if (config.isReal) {
-      console.log(`✅ Using REAL API key for ${serviceName}`);
-      return config.key;
+    if (!config.isReal) {
+      throw new Error(`${serviceName} API key not configured. Set ${serviceName}_API_KEY environment variable.`);
     }
 
-    console.log(`🔄 Using UNIVERSAL BYPASS for ${serviceName}`);
-    return config.fallback || config.key;
+    console.log(`✅ Using REAL API key for ${serviceName}`);
+    return config.key;
   }
 
   public getEndpoint(serviceName: string): string {
