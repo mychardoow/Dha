@@ -9,8 +9,6 @@
 import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
 import { storage } from '../mem-storage';
 
 // All DHA Document Types - Complete Implementation
@@ -138,8 +136,7 @@ export class CompletePDFGenerationService {
   private documentsPath: string;
 
   private constructor() {
-    this.documentsPath = process.env.DOCUMENTS_STORAGE_PATH || './generated_documents';
-    this.ensureDirectoryExists();
+    // No file system operations for Vercel serverless
   }
 
   static getInstance(): CompletePDFGenerationService {
@@ -147,14 +144,6 @@ export class CompletePDFGenerationService {
       CompletePDFGenerationService.instance = new CompletePDFGenerationService();
     }
     return CompletePDFGenerationService.instance;
-  }
-
-  private async ensureDirectoryExists(): Promise<void> {
-    try {
-      await fs.mkdir(this.documentsPath, { recursive: true });
-    } catch (error) {
-      console.error('Failed to create documents directory:', error);
-    }
   }
 
   /**
