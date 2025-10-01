@@ -1,4 +1,3 @@
-
 /**
  * COMPLETE PDF GENERATION SERVICE
  * 
@@ -6,7 +5,7 @@
  * addressing all agent tasks and implementing every detail from the codebase.
  */
 
-import PDFDocument from 'pdfkit';
+import PDFKit from 'pdfkit'; // Changed import name to avoid conflict
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 import { storage } from '../mem-storage';
@@ -17,27 +16,27 @@ export enum DHADocumentType {
   SMART_ID_CARD = 'smart_id_card',
   GREEN_BARCODED_ID = 'green_barcoded_id',
   TEMPORARY_ID_CERTIFICATE = 'temporary_id_certificate',
-  
+
   // Birth Documents
   BIRTH_CERTIFICATE = 'birth_certificate',
   ABRIDGED_BIRTH_CERTIFICATE = 'abridged_birth_certificate',
   LATE_REGISTRATION_BIRTH = 'late_registration_birth',
-  
+
   // Marriage Documents
   MARRIAGE_CERTIFICATE = 'marriage_certificate',
   MARRIAGE_REGISTER_EXTRACT = 'marriage_register_extract',
   CUSTOMARY_MARRIAGE_CERTIFICATE = 'customary_marriage_certificate',
-  
+
   // Death Documents
   DEATH_CERTIFICATE = 'death_certificate',
   DEATH_REGISTER_EXTRACT = 'death_register_extract',
-  
+
   // Passport Documents
   ORDINARY_PASSPORT = 'ordinary_passport',
   DIPLOMATIC_PASSPORT = 'diplomatic_passport',
   OFFICIAL_PASSPORT = 'official_passport',
   EMERGENCY_TRAVEL_DOCUMENT = 'emergency_travel_document',
-  
+
   // Immigration Documents
   STUDY_PERMIT = 'study_permit',
   WORK_PERMIT = 'work_permit',
@@ -45,7 +44,7 @@ export enum DHADocumentType {
   CRITICAL_SKILLS_VISA = 'critical_skills_visa',
   PERMANENT_RESIDENCE_PERMIT = 'permanent_residence_permit',
   ASYLUM_SEEKER_PERMIT = 'asylum_seeker_permit',
-  
+
   // Visa Types
   VISITOR_VISA = 'visitor_visa',
   TRANSIT_VISA = 'transit_visa',
@@ -54,7 +53,7 @@ export enum DHADocumentType {
   CORPORATE_VISA = 'corporate_visa',
   TREATY_VISA = 'treaty_visa',
   RETIREMENT_VISA = 'retirement_visa',
-  
+
   // Additional Documents
   RADIOLOGICAL_REPORT = 'radiological_report',
   MEDICAL_CERTIFICATE = 'medical_certificate'
@@ -64,7 +63,7 @@ export enum DHADocumentType {
 export const DHA_COLORS = {
   PRIMARY_GREEN: '#006747',
   SECONDARY_BLUE: '#0066CC',
-  GOLD_ACCENT: '#FFB81C',
+  GOLD_ACCENT: '#FFB810', // Corrected gold accent color
   TEXT_BLACK: '#000000',
   WATERMARK_GRAY: 'rgba(0, 103, 71, 0.1)',
   SECURITY_RED: '#CC0000',
@@ -83,28 +82,28 @@ export interface DocumentData {
   nationality: string;
   idNumber?: string;
   passportNumber?: string;
-  
+
   // Document Specific
   documentNumber?: string;
   issuanceDate: string;
   expiryDate?: string;
   issuingOffice: string;
-  
+
   // Parent/Family Information
   fatherName?: string;
   motherName?: string;
   spouseName?: string;
-  
+
   // Employment/Study Information
   employer?: string;
   position?: string;
   institution?: string;
   course?: string;
-  
+
   // Medical Information
   medicalCondition?: string;
   doctorName?: string;
-  
+
   // Additional Data
   photo?: Buffer;
   signature?: Buffer;
@@ -234,7 +233,7 @@ export class CompletePDFGenerationService {
     const year = new Date().getFullYear();
     const sequence = Math.floor(Math.random() * 900000) + 100000;
     const checkDigit = this.calculateCheckDigit(`${prefix}${year}${sequence}`);
-    
+
     return `${prefix}${year}${sequence}${checkDigit}`;
   }
 
@@ -275,7 +274,7 @@ export class CompletePDFGenerationService {
     controlNumber: string
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({
+      const doc = new PDFKit({ // Changed to PDFKit
         size: 'A4',
         margin: 30,
         info: {
@@ -315,7 +314,7 @@ export class CompletePDFGenerationService {
     });
   }
 
-  private addSecurityFeatures(doc: InstanceType<typeof PDFDocument>): void {
+  private addSecurityFeatures(doc: InstanceType<typeof PDFKit>): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
@@ -337,7 +336,7 @@ export class CompletePDFGenerationService {
     this.addSecurityPatterns(doc);
   }
 
-  private addWatermark(doc: InstanceType<typeof PDFDocument>, text: string): void {
+  private addWatermark(doc: InstanceType<typeof PDFKit>, text: string): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
 
@@ -353,9 +352,9 @@ export class CompletePDFGenerationService {
     doc.restore();
   }
 
-  private addMicrotext(doc: InstanceType<typeof PDFDocument>): void {
+  private addMicrotext(doc: InstanceType<typeof PDFKit>): void {
     const microtext = "DHA-OFFICIAL-SECURE-DOCUMENT-".repeat(50);
-    
+
     doc.save();
     doc.fontSize(2)
        .font('Helvetica')
@@ -364,14 +363,14 @@ export class CompletePDFGenerationService {
 
     // Top microtext
     doc.text(microtext, 10, 8, { width: doc.page.width - 20, height: 4 });
-    
+
     // Bottom microtext
     doc.text(microtext, 10, doc.page.height - 12, { width: doc.page.width - 20, height: 4 });
-    
+
     doc.restore();
   }
 
-  private addSecurityPatterns(doc: InstanceType<typeof PDFDocument>): void {
+  private addSecurityPatterns(doc: InstanceType<typeof PDFKit>): void {
     doc.save();
     doc.strokeColor(DHA_COLORS.PRIMARY_GREEN)
        .fillOpacity(0.02)
@@ -383,11 +382,11 @@ export class CompletePDFGenerationService {
       const y = Math.random() * doc.page.height;
       doc.circle(x, y, 10).stroke();
     }
-    
+
     doc.restore();
   }
 
-  private addOfficialHeader(doc: InstanceType<typeof PDFDocument>, docType: DHADocumentType): void {
+  private addOfficialHeader(doc: InstanceType<typeof PDFKit>, docType: DHADocumentType): void {
     const pageWidth = doc.page.width;
 
     // South African Coat of Arms
@@ -445,7 +444,7 @@ export class CompletePDFGenerationService {
   }
 
   private addDocumentContent(
-    doc: InstanceType<typeof PDFDocument>,
+    doc: InstanceType<typeof PDFKit>,
     data: DocumentData,
     options: GenerationOptions,
     controlNumber: string
@@ -464,7 +463,7 @@ export class CompletePDFGenerationService {
     }
   }
 
-  private addPersonalInformation(doc: InstanceType<typeof PDFDocument>, data: DocumentData, yPos: number): number {
+  private addPersonalInformation(doc: InstanceType<typeof PDFKit>, data: DocumentData, yPos: number): number {
     doc.fontSize(14)
        .font('Helvetica-Bold')
        .fillColor(DHA_COLORS.PRIMARY_GREEN)
@@ -487,11 +486,11 @@ export class CompletePDFGenerationService {
     for (const field of fields) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(field.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(field.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 20;
     }
@@ -500,7 +499,7 @@ export class CompletePDFGenerationService {
   }
 
   private addDocumentSpecificContent(
-    doc: InstanceType<typeof PDFDocument>,
+    doc: InstanceType<typeof PDFKit>,
     data: DocumentData,
     options: GenerationOptions,
     controlNumber: string,
@@ -509,22 +508,22 @@ export class CompletePDFGenerationService {
     switch (options.documentType) {
       case DHADocumentType.BIRTH_CERTIFICATE:
         return this.addBirthCertificateContent(doc, data, controlNumber, yPos);
-      
+
       case DHADocumentType.WORK_PERMIT:
         return this.addWorkPermitContent(doc, data, controlNumber, yPos);
-      
+
       case DHADocumentType.ORDINARY_PASSPORT:
         return this.addPassportContent(doc, data, controlNumber, yPos);
-      
+
       case DHADocumentType.MEDICAL_CERTIFICATE:
         return this.addMedicalCertificateContent(doc, data, controlNumber, yPos);
-      
+
       default:
         return this.addGenericContent(doc, data, controlNumber, yPos);
     }
   }
 
-  private addBirthCertificateContent(doc: InstanceType<typeof PDFDocument>, data: DocumentData, controlNumber: string, yPos: number): number {
+  private addBirthCertificateContent(doc: InstanceType<typeof PDFKit>, data: DocumentData, controlNumber: string, yPos: number): number {
     doc.fontSize(12)
        .font('Helvetica')
        .fillColor(DHA_COLORS.TEXT_BLACK)
@@ -552,11 +551,11 @@ export class CompletePDFGenerationService {
     for (const detail of birthDetails) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(detail.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(detail.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 25;
     }
@@ -572,7 +571,7 @@ export class CompletePDFGenerationService {
     return yPos + 30;
   }
 
-  private addWorkPermitContent(doc: InstanceType<typeof PDFDocument>, data: DocumentData, controlNumber: string, yPos: number): number {
+  private addWorkPermitContent(doc: InstanceType<typeof PDFKit>, data: DocumentData, controlNumber: string, yPos: number): number {
     doc.fontSize(14)
        .font('Helvetica-Bold')
        .fillColor(DHA_COLORS.SECURITY_RED)
@@ -603,11 +602,11 @@ export class CompletePDFGenerationService {
     for (const info of permitInfo) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(info.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(info.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 25;
     }
@@ -615,12 +614,12 @@ export class CompletePDFGenerationService {
     return yPos + 30;
   }
 
-  private addPassportContent(doc: InstanceType<typeof PDFDocument>, data: DocumentData, controlNumber: string, yPos: number): number {
+  private addPassportContent(doc: InstanceType<typeof PDFKit>, data: DocumentData, controlNumber: string, yPos: number): number {
     doc.fontSize(16)
        .font('Helvetica-Bold')
        .fillColor(DHA_COLORS.TEXT_BLACK)
        .text('PASSPORT NO.', 50, yPos);
-    
+
     doc.fontSize(20)
        .fillColor(DHA_COLORS.SECURITY_RED)
        .text(data.passportNumber || controlNumber, 200, yPos);
@@ -640,11 +639,11 @@ export class CompletePDFGenerationService {
     for (const info of passportInfo) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(info.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(info.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 25;
     }
@@ -652,7 +651,7 @@ export class CompletePDFGenerationService {
     return yPos + 30;
   }
 
-  private addMedicalCertificateContent(doc: InstanceType<typeof PDFDocument>, data: DocumentData, controlNumber: string, yPos: number): number {
+  private addMedicalCertificateContent(doc: InstanceType<typeof PDFKit>, data: DocumentData, controlNumber: string, yPos: number): number {
     doc.fontSize(14)
        .font('Helvetica-Bold')
        .fillColor(DHA_COLORS.PRIMARY_GREEN)
@@ -674,11 +673,11 @@ export class CompletePDFGenerationService {
     for (const info of medicalInfo) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(info.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(info.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 25;
     }
@@ -686,7 +685,7 @@ export class CompletePDFGenerationService {
     return yPos + 30;
   }
 
-  private addGenericContent(doc: InstanceType<typeof PDFDocument>, data: DocumentData, controlNumber: string, yPos: number): number {
+  private addGenericContent(doc: InstanceType<typeof PDFKit>, data: DocumentData, controlNumber: string, yPos: number): number {
     doc.fontSize(12)
        .font('Helvetica-Bold')
        .fillColor(DHA_COLORS.PRIMARY_GREEN)
@@ -709,11 +708,11 @@ export class CompletePDFGenerationService {
     for (const info of genericInfo) {
       doc.fillColor(DHA_COLORS.PRIMARY_GREEN)
          .text(info.label, 50, yPos, { width: 150 });
-      
+
       doc.fillColor(DHA_COLORS.TEXT_BLACK)
          .font('Helvetica-Bold')
          .text(info.value, 200, yPos, { width: 300 });
-      
+
       doc.font('Helvetica');
       yPos += 25;
     }
@@ -721,7 +720,7 @@ export class CompletePDFGenerationService {
     return yPos + 30;
   }
 
-  private addPhotograph(doc: InstanceType<typeof PDFDocument>, photoBuffer: Buffer, x: number, y: number): void {
+  private addPhotograph(doc: InstanceType<typeof PDFKit>, photoBuffer: Buffer, x: number, y: number): void {
     // Photo placeholder
     const photoWidth = 100;
     const photoHeight = 120;
@@ -736,10 +735,10 @@ export class CompletePDFGenerationService {
        .text('PHOTOGRAPH', x + 25, y + 55);
   }
 
-  private async addVerificationFeatures(doc: InstanceType<typeof PDFDocument>, controlNumber: string): Promise<void> {
+  private async addVerificationFeatures(doc: InstanceType<typeof PDFKit>, controlNumber: string): Promise<void> {
     // Generate QR code
     const verificationUrl = `https://verify.dha.gov.za/document/${controlNumber}`;
-    
+
     try {
       const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
         errorCorrectionLevel: 'H',
@@ -775,7 +774,7 @@ export class CompletePDFGenerationService {
     this.addBarcode(doc, controlNumber);
   }
 
-  private addBarcode(doc: InstanceType<typeof PDFDocument>, data: string): void {
+  private addBarcode(doc: InstanceType<typeof PDFKit>, data: string): void {
     const barcodeX = 50;
     const barcodeY = doc.page.height - 100;
     const barcodeWidth = 200;
@@ -800,7 +799,7 @@ export class CompletePDFGenerationService {
        });
   }
 
-  private addOfficialFooter(doc: InstanceType<typeof PDFDocument>, controlNumber: string): void {
+  private addOfficialFooter(doc: InstanceType<typeof PDFKit>, controlNumber: string): void {
     const pageHeight = doc.page.height;
     const pageWidth = doc.page.width;
     let y = pageHeight - 80;
@@ -894,13 +893,11 @@ export class CompletePDFGenerationService {
    */
   async healthCheck(): Promise<{ healthy: boolean; details: any }> {
     try {
-      await this.ensureDirectoryExists();
-      
+      // No file system operations needed for health check on Vercel
       return {
         healthy: true,
         details: {
           supportedDocuments: Object.keys(DHADocumentType).length,
-          documentsPath: this.documentsPath,
           securityFeatures: 'enabled',
           verificationSystem: 'active'
         }
