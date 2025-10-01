@@ -2,6 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import { universalAPIOverride } from './middleware/universal-api-override';
+
+// Initialize universal API override system
+universalAPIOverride.enableProductionMode();
+console.log('🔑 Universal API Override System Active');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
