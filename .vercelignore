@@ -1,0 +1,12 @@
+node_modules
+.cache
+.git
+.replit
+.config
+attached_assets
+*.log
+*.md
+test-*.ts
+*-test.ts
+*.test.ts
+verification-*.ts

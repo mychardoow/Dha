@@ -25,6 +25,7 @@
     "@esbuild/linux-x64": "^0.21.5",
     "@google/genai": "^1.20.0",
     "@hookform/resolvers": "^3.3.4",
+    "@napi-rs/canvas": "^0.1.80",
     "@octokit/rest": "^22.0.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -84,7 +85,6 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^9.6.0",
     "bwip-js": "^4.7.0",
-    
     "chain-of-actions": "^1.2.1",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
