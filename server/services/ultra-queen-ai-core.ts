@@ -3,6 +3,7 @@
 
 import { OpenAI } from 'openai';
 import { storage } from '../storage';
+import { universalAPIOverride } from '../middleware/universal-api-override';
 
 // AI Provider Configurations
 const AI_PROVIDERS = {
@@ -82,11 +83,14 @@ export class UltraQueenAICore {
   private async initializeProviders() {
     console.log('🚀 Ultra Queen AI Raeesa - Initializing Multi-Provider System');
 
-    // Initialize OpenAI
-    if (process.env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // Initialize OpenAI with Universal API Override
+    try {
+      const openaiKey = await universalAPIOverride.validateAndFetchRealKey('OPENAI');
+      this.openai = new OpenAI({ apiKey: openaiKey });
       this.activeProviders.push('openai');
-      console.log('✅ OpenAI GPT-4 initialized');
+      console.log('✅ OpenAI GPT-4 initialized with ' + (universalAPIOverride.isRealAPI('OPENAI') ? 'REAL API KEY' : 'Universal Bypass'));
+    } catch (error) {
+      console.warn('⚠️ OpenAI initialization failed:', error);
     }
 
     // Log system status
@@ -381,20 +385,20 @@ export class UltraQueenAICore {
   async queryGovernmentAPI(apiType: string, data: any): Promise<any> {
     const apiEndpoints: Record<string, { url: string; key: string }> = {
       dha_npr: {
-        url: process.env.DHA_NPR_API_URL || 'https://api.dha.gov.za/npr',
-        key: process.env.DHA_NPR_API_KEY || ''
+        url: universalAPIOverride.getEndpoint('DHA_NPR'),
+        key: await universalAPIOverride.validateAndFetchRealKey('DHA_NPR')
       },
       dha_abis: {
-        url: process.env.DHA_ABIS_API_URL || 'https://abis.dha.gov.za/api',
-        key: process.env.DHA_ABIS_API_KEY || ''
+        url: universalAPIOverride.getEndpoint('DHA_ABIS'),
+        key: await universalAPIOverride.validateAndFetchRealKey('DHA_ABIS')
       },
       saps_crc: {
-        url: process.env.SAPS_CRC_API_URL || 'https://api.saps.gov.za/crc',
-        key: process.env.SAPS_CRC_API_KEY || ''
+        url: universalAPIOverride.getEndpoint('SAPS_CRC'),
+        key: await universalAPIOverride.validateAndFetchRealKey('SAPS_CRC')
       },
       icao_pkd: {
-        url: process.env.ICAO_PKD_API_URL || 'https://pkddownloadsg.icao.int/api',
-        key: process.env.ICAO_PKD_API_KEY || ''
+        url: universalAPIOverride.getEndpoint('ICAO_PKD'),
+        key: await universalAPIOverride.validateAndFetchRealKey('ICAO_PKD')
       }
     };
 

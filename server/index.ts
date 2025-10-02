@@ -5,7 +5,7 @@ import compression from 'compression';
 import { universalAPIOverride } from './middleware/universal-api-override';
 
 // Initialize universal API override system
-universalAPIOverride.enableProductionMode();
+// universalAPIOverride.enableProductionMode(); // This line is moved to where app is initialized
 console.log('🔑 Universal API Override System Active');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -38,6 +38,11 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 
 // Create Express app and HTTP server
 const app = express();
+
+// 🔑 ACTIVATE UNIVERSAL API OVERRIDE SYSTEM
+console.log('🔑 Activating Universal API Override System...');
+universalAPIOverride.enableProductionMode();
+
 const server = createServer(app);
 
 // Initialize database and storage
@@ -77,7 +82,7 @@ app.use(helmet({
 
 app.use(compression());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
+  origin: process.env.NODE_ENV === 'production'
     ? ['https://*.replit.app', 'https://*.replit.dev']
     : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5000'],
   credentials: true
