@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 33633
-externalPort = 6800
-
-[[ports]]
 localPort = 34605
 externalPort = 3000
 
@@ -96,13 +92,13 @@ name = "Start application"
 author = "agent"
 mode = "parallel"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node dev-server.js"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev:server"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Simple "
