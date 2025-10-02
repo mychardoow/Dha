@@ -76,7 +76,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Project"
+runButton = "Start DHA Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -617,3 +617,16 @@ args = "npx tsc -p tsconfig.server.json --skipLibCheck"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "echo \"✅ Build complete - Ready for Vercel deployment\""
+
+[[workflows.workflow]]
+name = "Start DHA Server"
+author = 48247852
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx server/index.ts"

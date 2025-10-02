@@ -69,10 +69,10 @@ const WEB_INTEGRATIONS = {
 
 // Government & Cloud Services
 const GOVERNMENT_CLOUD = {
-  dha_npr: { active: !!process.env.DHA_NPR_API_KEY, type: 'government', : true },
-  dha_abis: { active: !!process.env.DHA_ABIS_API_KEY, type: 'government', : true },
-  saps_crc: { active: !!process.env.SAPS_CRC_API_KEY, type: 'government', : true },
-  icao_pkd: { active: !!process.env.ICAO_PKD_API_KEY, type: 'government', : true },
+  dha_npr: { active: !!process.env.DHA_NPR_API_KEY, type: 'government', secure: true },
+  dha_abis: { active: !!process.env.DHA_ABIS_API_KEY, type: 'government', secure: true },
+  saps_crc: { active: !!process.env.SAPS_CRC_API_KEY, type: 'government', secure: true },
+  icao_pkd: { active: !!process.env.ICAO_PKD_API_KEY, type: 'government', secure: true },
   aws: { active: !!process.env.AWS_ACCESS_KEY_ID, type: 'cloud' },
   azure: { active: !!process.env.AZURE_CLIENT_ID, type: 'cloud' },
   gcp: { active: !!process.env.GOOGLE_CLOUD_PROJECT, type: 'cloud' },
@@ -81,9 +81,9 @@ const GOVERNMENT_CLOUD = {
 };
 
 export class UltraQueenAICore {
-  private openai: OpenAI | string = openai ||;
-  private mistral: any | string = mistral ||;
-  private gemini: any | string = gemini ||;
+  private openai: OpenAI | null = null;
+  private mistral: any | null = null;
+  private gemini: any | null = null;
   private activeProviders: string[] = [];
   private systemStatus: Map<string, any> = new Map();
 
@@ -107,7 +107,8 @@ export class UltraQueenAICore {
         this.mistral = createMistral({ apiKey: process.env.MISTRAL_API_KEY });
         this.activeProviders.push('mistral');
         console.log('✅ Mistral AI initialized');
-      } catch
+      } catch (error) {
+        console.error('[UltraQueenAI] Mistral initialization failed:', error);
       }
     }
 
@@ -119,7 +120,7 @@ export class UltraQueenAICore {
         this.activeProviders.push('google');
         console.log('✅ Google Gemini initialized');
       } catch (error) {
-        console.log
+        console.error('[UltraQueenAI] Gemini initialization failed:', error);
       }
     }
 
@@ -176,7 +177,7 @@ export class UltraQueenAICore {
     maxTokens?: number;
     quantumMode?: boolean;
     selfUpgrade?: boolean;
-  } = {}) {
+  } = {}): Promise<any> {
     const selectedProviders = options.providers || this.activeProviders;
     const results: any[] = [];
     const errors: any[] = [];
@@ -219,7 +220,7 @@ export class UltraQueenAICore {
                   model: 'mistral-large-latest'
                 };
               } catch (e) {
-                console.:', e);
+                console.error('[UltraQueenAI] Mistral error:', e);
               }
             }
             break;
@@ -234,7 +235,7 @@ export class UltraQueenAICore {
                   model: 'gemini-pro'
                 };
               } catch (e) {
-                console.error, e);
+                console.error('[UltraQueenAI] Gemini error:', e);
               }
             }
             break;
@@ -274,8 +275,8 @@ export class UltraQueenAICore {
   }
 
   // Quantum computing simulation
-  async applyQuantumProcessing(data: any[]): Promise<any[]> {
-    const quantumSimulation = {
+  private async applyQuantumProcessing(data: any[]): Promise<any[]> {
+    const quantumSimulation: any = {
       id: `quantum-${Date.now()}`,
       qubits: 8,
       gates: {
@@ -310,8 +311,8 @@ export class UltraQueenAICore {
   }
 
   // Self-upgrade capability
-  async performSelfUpgrade(results: any[]): Promise<void> {
-    const upgrade: Partial<SelfUpgradeHistory> = {
+  private async performSelfUpgrade(results: any[]): Promise<void> {
+    const upgrade: any = {
       upgradeType: 'algorithm',
       previousVersion: '1.0.0',
       newVersion: '1.0.1',
@@ -332,7 +333,7 @@ export class UltraQueenAICore {
   }
 
   // Get system statistics
-  async getSystemStats() {
+  async getSystemStats(): Promise<any> {
     const aiProviderCount = Object.values(AI_PROVIDERS).filter(p => p.active).length;
     const webIntegrationCount = Object.values(WEB_INTEGRATIONS).filter(i => i.active).length;
     const governmentCount = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government').length;
@@ -388,7 +389,7 @@ export class UltraQueenAICore {
   }
 
   // government API responses
-  async queryGovernmentAPI(apiType: string, data: any) {
+  async queryGovernmentAPI(apiType: string, data: any): Promise<any> {
     const realResponses: Record<string, any> = {
       dha_npr: {
         success: true,

@@ -1,4 +1,4 @@
-{\n  \"version\": 2,\n  \"buildCommand\": \"npm run build\",\n  \"outputDirectory\": \"dist\",\n  \"framework\": \"vite\",\n  \"env\": {\n    \"NODE_ENV\": \"production\",\n    \"NEXT_PUBLIC_API_URL\": \"/api\",\n    \"UNIVERSAL_BYPASS\": \"enabled\",\n    \"API_OVERRIDE\": \"enabled\",\n    \"SECURITY_LAYER\": \"maximum\"\n  },\n  \"builds\": [\n    {\n      \"src\": \"package.json\",\n      \"use\": \"@vercel/node\",\n      \"config\": {\n        \"nodeVersion\": \"20.x\",\n        \"installCommand\": \"npm install --legacy-peer-deps\"\n      }\n    },\n    {\n      \"src\": \"client/package.json\",\n      \"use\": \"@vercel/static\",\n      \"config\": {\n        \"buildCommand\": \"npm run build:client\",\n        \"outputDirectory\": \"dist/client\"\n      }\n    }\n  ],\n  \"routes\": [\n    { \"src\": \"/api/(.*)\", \"dest\": \"server/api/$1\" },\n    { \"src\": \"/(.*)\", \"dest\": \"client/$1\" }\n  ]\n}
+
 {
   "version": 2,
   "builds": [
