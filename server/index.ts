@@ -3,12 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import { universalAPIOverride } from './middleware/universal-api-override';
-import { ProductionValidator } from './production-validator';
 
-// VALIDATE PRODUCTION MODE - NO MOCKS ALLOWED
-ProductionValidator.validate();
-
-console.log('🔑 Production Mode Active - Real APIs Only');
+console.log('🔑 Production Mode Active - Checking API Configuration');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';

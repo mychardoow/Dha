@@ -13,23 +13,17 @@ export class UltraQueenAICore {
   }
 
   private async initializeProviders() {
-    console.log('🚀 Ultra Queen AI - Real APIs with Persistent Retry');
+    console.log('🚀 Ultra Queen AI - Initializing with Real API Keys');
 
     try {
-      // Force immediate retry if needed
-      await universalAPIOverride.forceImmediateRetry();
-      
       const openaiKey = await universalAPIOverride.validateAndFetchRealKey('OPENAI');
       this.openai = new OpenAI({ apiKey: openaiKey });
       this.activeProviders.push('openai');
-      console.log('✅ OpenAI GPT-4 initialized with API KEY:', openaiKey.substring(0, 10) + '...');
+      console.log('✅ OpenAI GPT-4 initialized');
     } catch (error) {
-      console.warn('⚠️ OpenAI initialization with retry:', error);
-      // Will use bypass token temporarily
-      const bypassKey = await universalAPIOverride.getAPIKey('OPENAI');
-      this.openai = new OpenAI({ apiKey: bypassKey });
-      this.activeProviders.push('openai-bypass');
-      console.log('🔄 OpenAI using bypass mode - will retry for real key');
+      console.error('❌ OpenAI initialization failed:', error instanceof Error ? error.message : 'Unknown error');
+      console.log('⚠️ Add OPENAI_API_KEY to Replit Secrets for AI functionality');
+      this.activeProviders.push('openai-unavailable');
     }
   }
 

@@ -7,7 +7,7 @@ const router = Router();
 /**
  * Get current status of all API keys
  */
-router.get('/api/api-keys/status', async (req: Request, res: Response) => {
+router.get('/api/api-keys/status', (req: Request, res: Response) => {
   try {
     const status = universalAPIOverride.getStatus();
     res.json({
@@ -48,10 +48,10 @@ router.post('/api/api-keys/retry', async (req: Request, res: Response) => {
 /**
  * Test specific API key
  */
-router.post('/api/api-keys/test/:service', async (req: Request, res: Response) => {
+router.post('/api/api-keys/test/:service', (req: Request, res: Response) => {
   try {
     const { service } = req.params;
-    const apiKey = await universalAPIOverride.getAPIKey(service.toUpperCase());
+    const apiKey = universalAPIOverride.getAPIKey(service.toUpperCase());
     const isReal = universalAPIOverride.isRealAPI(service.toUpperCase());
     
     res.json({
@@ -59,7 +59,7 @@ router.post('/api/api-keys/test/:service', async (req: Request, res: Response) =
       service,
       hasKey: Boolean(apiKey),
       isReal,
-      keyPreview: apiKey.substring(0, 15) + '...',
+      keyPreview: apiKey ? apiKey.substring(0, 15) + '...' : 'N/A',
       timestamp: new Date().toISOString()
     });
   } catch (error) {
