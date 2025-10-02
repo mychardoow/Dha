@@ -2,17 +2,7 @@
 // Connects 40+ APIs including AI providers, web2/web3, blockchain, government, cloud services
 
 import { OpenAI } from 'openai';
-import { createMistral } from '@ai-sdk/mistral';
-import { genAI } from '@google/genai';
 import { storage } from '../storage';
-import { 
-  UltraQueenAISystem, 
-  UltraQueenAIConversation,
-  UltraQueenAIMessage,
-  UltraQueenAIIntegration,
-  QuantumSimulation,
-  SelfUpgradeHistory
-} from '@shared/schema';
 
 // AI Provider Configurations
 const AI_PROVIDERS = {
@@ -76,14 +66,12 @@ const GOVERNMENT_CLOUD = {
   aws: { active: !!process.env.AWS_ACCESS_KEY_ID, type: 'cloud' },
   azure: { active: !!process.env.AZURE_CLIENT_ID, type: 'cloud' },
   gcp: { active: !!process.env.GOOGLE_CLOUD_PROJECT, type: 'cloud' },
-  railway: { active: true, type: 'cloud' }, // Always active for deployment
-  render: { active: true, type: 'cloud' } // Always active for deployment
+  railway: { active: true, type: 'cloud' },
+  render: { active: true, type: 'cloud' }
 };
 
 export class UltraQueenAICore {
   private openai: OpenAI | null = null;
-  private mistral: any | null = null;
-  private gemini: any | null = null;
   private activeProviders: string[] = [];
   private systemStatus: Map<string, any> = new Map();
 
@@ -93,35 +81,12 @@ export class UltraQueenAICore {
 
   private async initializeProviders() {
     console.log('🚀 Ultra Queen AI Raeesa - Initializing Multi-Provider System');
-    
+
     // Initialize OpenAI
     if (process.env.OPENAI_API_KEY) {
       this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       this.activeProviders.push('openai');
       console.log('✅ OpenAI GPT-4 initialized');
-    }
-
-    // Initialize Mistral
-    if (process.env.MISTRAL_API_KEY) {
-      try {
-        this.mistral = createMistral({ apiKey: process.env.MISTRAL_API_KEY });
-        this.activeProviders.push('mistral');
-        console.log('✅ Mistral AI initialized');
-      } catch (error) {
-        console.error('[UltraQueenAI] Mistral initialization failed:', error);
-      }
-    }
-
-    // Initialize Google Gemini
-    const googleKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (googleKey) {
-      try {
-        this.gemini = genAI({ apiKey: googleKey });
-        this.activeProviders.push('google');
-        console.log('✅ Google Gemini initialized');
-      } catch (error) {
-        console.error('[UltraQueenAI] Gemini initialization failed:', error);
-      }
     }
 
     // Log system status
@@ -186,59 +151,20 @@ export class UltraQueenAICore {
     for (const provider of selectedProviders) {
       try {
         let response;
-        
-        switch (provider) {
-          case 'openai':
-            if (this.openai) {
-              const completion = await this.openai.chat.completions.create({
-                model: 'gpt-4-turbo-preview',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: options.temperature || 0.7,
-                max_tokens: options.maxTokens || 20000
-              });
-              response = {
-                provider: 'openai',
-                content: completion.choices[0].message.content,
-                model: 'gpt-4-turbo-preview',
-                usage: completion.usage
-              };
-            }
-            break;
 
-          case 'mistral':
-            if (this.mistral) {
-              try {
-                const model = this.mistral('mistral-large-latest');
-                const { text } = await model.generateText({
-                  prompt,
-                  temperature: options.temperature || 0.7,
-                  maxTokens: options.maxTokens || 2000
-                });
-                response = {
-                  provider: 'mistral',
-                  content: text,
-                  model: 'mistral-large-latest'
-                };
-              } catch (e) {
-                console.error('[UltraQueenAI] Mistral error:', e);
-              }
-            }
-            break;
-
-          case 'google':
-            if (this.gemini) {
-              try {
-                const result = await this.gemini.generateContent(prompt);
-                response = {
-                  provider: 'google',
-                  content: result.text || '',
-                  model: 'gemini-pro'
-                };
-              } catch (e) {
-                console.error('[UltraQueenAI] Gemini error:', e);
-              }
-            }
-            break;
+        if (provider === 'openai' && this.openai) {
+          const completion = await this.openai.chat.completions.create({
+            model: 'gpt-4-turbo-preview',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: options.temperature || 0.7,
+            max_tokens: options.maxTokens || 2000
+          });
+          response = {
+            provider: 'openai',
+            content: completion.choices[0].message.content,
+            model: 'gpt-4-turbo-preview',
+            usage: completion.usage
+          };
         }
 
         if (response) {
@@ -296,9 +222,6 @@ export class UltraQueenAICore {
       processingTime: Math.floor(Math.random() * 1000)
     };
 
-    // Store quantum (method will be added to storage)
-    // await storage.createQuantum as any);
-
     // Apply quantum enhancements to results
     return data.map(item => ({
       ...item,
@@ -329,7 +252,7 @@ export class UltraQueenAICore {
       rollbackAvailable: true
     };
 
-    // await storage.createSelfUpgradeHistory(upgrade as any);
+    console.log('[UltraQueenAI] Self-upgrade completed:', upgrade);
   }
 
   // Get system statistics
@@ -342,7 +265,7 @@ export class UltraQueenAICore {
 
     return {
       totalSystems: Object.keys({...AI_PROVIDERS, ...WEB_INTEGRATIONS, ...GOVERNMENT_CLOUD}).length,
-      activeSystems: aiProviderCount + webIntegrationCount + governmentCount + cloudCount,
+      activeSystems: aiProviderCount + webIntegrationCount + governmentActiveCount + cloudCount,
       breakdown: {
         aiProviders: {
           total: Object.keys(AI_PROVIDERS).length,
@@ -358,7 +281,7 @@ export class UltraQueenAICore {
           active: webIntegrationCount,
           list: Object.entries(WEB_INTEGRATIONS).map(([key, config]) => ({
             name: key,
-            status: config.active ? 'active' : 'active',
+            status: config.active ? 'active' : 'inactive',
             type: config.type
           }))
         },
@@ -366,10 +289,10 @@ export class UltraQueenAICore {
           total: governmentCount,
           active: governmentActiveCount,
           list: Object.entries(GOVERNMENT_CLOUD)
-            .filter(([key, config]) => config.type === 'government')
+            .filter(([_, config]) => config.type === 'government')
             .map(([key, config]) => ({
               name: key,
-              status: (config as any).active ? 'active' : 'inactive'
+              status: config.active ? 'active' : 'inactive'
             }))
         },
         cloud: {
@@ -388,7 +311,7 @@ export class UltraQueenAICore {
     };
   }
 
-  // government API responses
+  // Simulate government API responses
   async queryGovernmentAPI(apiType: string, data: any): Promise<any> {
     const realResponses: Record<string, any> = {
       dha_npr: {
@@ -424,7 +347,7 @@ export class UltraQueenAICore {
 
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     return {
       ...realResponses[apiType],
       simulationMode: true,
