@@ -19,9 +19,9 @@ import { setupVite } from './vite.js';
 import { validateRailwayConfig } from './config/railway.js';
 import { initializeDatabase } from './config/database-railway.js';
 
-// Ultra-advanced PDF routes import
-import { ultraPDFRoutes } from './routes/ultra-pdf-api';
-import { governmentPrintIntegration } from './services/government-print-integration';
+// Ultra-advanced PDF routes import (commented out due to syntax errors)
+// import { ultraPDFRoutes } from './routes/ultra-pdf-api';
+// import { governmentPrintIntegration } from './services/government-print-integration';
 
 // Load environment variables
 dotenv.config();
@@ -152,12 +152,12 @@ async function checkDatabaseHealth(config) {
 console.log('🔧 Registering application routes...');
 registerRoutes(app);
 
-// Mount ultra-advanced PDF routes
-app.use(ultraPDFRoutes);
+// Mount ultra-advanced PDF routes (commented out due to syntax errors)
+// app.use(ultraPDFRoutes);
 
-// Government Printing & Work Permits
-import { governmentPrintRoutes } from './routes/government-print-routes';
-app.use(governmentPrintRoutes);
+// Government Printing & Work Permits (commented out due to syntax errors)
+// import { governmentPrintRoutes } from './routes/government-print-routes';
+// app.use(governmentPrintRoutes);
 
 // Setup Vite for development
 if (process.env.NODE_ENV !== 'production') {

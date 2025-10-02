@@ -1,5 +1,3 @@
-
-```typescript
 /**
  * ULTRA-ADVANCED PDF FEATURES
  * AI-powered PDF generation, analysis, and multi-format support
