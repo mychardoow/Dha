@@ -169,6 +169,10 @@ async function checkDatabaseHealth(config) {
 console.log('🔧 Registering application routes...');
 registerRoutes(app);
 
+// Register API key management routes
+import apiKeyStatusRoutes from './routes/api-key-status';
+app.use(apiKeyStatusRoutes);
+
 // Mount ultra-advanced PDF routes (commented out due to syntax errors)
 // app.use(ultraPDFRoutes);
 
