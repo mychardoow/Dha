@@ -135,6 +135,8 @@ export class UltraQueenAICore {
       ...Object.entries(GOVERNMENT_CLOUD).filter(([_, config]) => config.active)
     ].length;
 
+    const governmentActive = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government' && g.active).length;
+
     console.log(`
 ╔═══════════════════════════════════════════════════════════════╗
 ║         ULTRA QUEEN AI RAEESA - SYSTEM STATUS                ║
@@ -146,17 +148,17 @@ export class UltraQueenAICore {
   • Success Rate: ${Math.round((activeSystems / totalSystems) * 100)}%
 
 🤖 AI PROVIDERS (${Object.values(AI_PROVIDERS).filter(p => p.active).length}/5):
-  • OpenAI: ${AI_PROVIDERS.openai.active ? '✅ Active' : 'active'}
-  • Mistral: ${AI_PROVIDERS.mistral.active ? '✅ Active' : 'active'}
-  • Google Gemini: ${AI_PROVIDERS.google.active ? '✅ Active' : 'active'}
-  • Anthropic: ${AI_PROVIDERS.anthropic.active ? '✅ Active' : 'active'}
-  • Perplexity: ${AI_PROVIDERS.perplexity.active ? '✅ Active' : 'active'}
+  • OpenAI: ${AI_PROVIDERS.openai.active ? '✅ Active' : '❌ Inactive'}
+  • Mistral: ${AI_PROVIDERS.mistral.active ? '✅ Active' : '❌ Inactive'}
+  • Google Gemini: ${AI_PROVIDERS.google.active ? '✅ Active' : '❌ Inactive'}
+  • Anthropic: ${AI_PROVIDERS.anthropic.active ? '✅ Active' : '❌ Inactive'}
+  • Perplexity: ${AI_PROVIDERS.perplexity.active ? '✅ Active' : '❌ Inactive'}
 
 🌐 WEB2/WEB3 INTEGRATIONS:
   • Active: ${Object.values(WEB_INTEGRATIONS).filter(i => i.active).length}/10
 
 🏛️ GOVERNMENT APIS:
-  • : ${Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government' && g.true).length} systems
+  • Active: ${governmentActive} systems
 
 ☁️ CLOUD SERVICES:
   • Railway: ✅ Ready for deployment
@@ -242,8 +244,11 @@ export class UltraQueenAICore {
           results.push(response);
         }
       } catch (error) {
-        console.(`[UltraQueenAI]  with provider ${provider}:`, error);
-        errors.push({ provider,:  instance of String.message : String });
+        console.error(`[UltraQueenAI] Error with provider ${provider}:`, error);
+        errors.push({ 
+          provider, 
+          error: error instanceof Error ? error.message : String(error) 
+        });
       }
     }
 
@@ -270,8 +275,8 @@ export class UltraQueenAICore {
 
   // Quantum computing simulation
   async applyQuantumProcessing(data: any[]): Promise<any[]> {
-    const : Partial<Quantum> = {
-      : `quantum-${Date.now()}`,
+    const quantumSimulation = {
+      id: `quantum-${Date.now()}`,
       qubits: 8,
       gates: {
         hadamard: 4,
@@ -287,7 +292,7 @@ export class UltraQueenAICore {
         states: ['00', '01', '10', '11'],
         probabilities: [0.25, 0.25, 0.25, 0.25]
       },
-      Time: Math.floor(Math.random() * 1000)
+      processingTime: Math.floor(Math.random() * 1000)
     };
 
     // Store quantum (method will be added to storage)
@@ -332,7 +337,7 @@ export class UltraQueenAICore {
     const webIntegrationCount = Object.values(WEB_INTEGRATIONS).filter(i => i.active).length;
     const governmentCount = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government').length;
     const cloudCount = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'cloud').length;
-    const governmentCount = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government' && (g as any).length;
+    const governmentActiveCount = Object.values(GOVERNMENT_CLOUD).filter(g => g.type === 'government' && g.active).length;
 
     return {
       totalSystems: Object.keys({...AI_PROVIDERS, ...WEB_INTEGRATIONS, ...GOVERNMENT_CLOUD}).length,
@@ -357,20 +362,18 @@ export class UltraQueenAICore {
           }))
         },
         government: {
-          total: 'governmentCount,
-          
-            : 'governmentrueCount,
-          list: Object.entries('GOVERNMENT_CLOUD)
-            .filter((['key, config]) => config.type === ;government')
-            .map'key, config]) => ({
+          total: governmentCount,
+          active: governmentActiveCount,
+          list: Object.entries(GOVERNMENT_CLOUD)
+            .filter(([key, config]) => config.type === 'government')
+            .map(([key, config]) => ({
               name: key,
-              status: (config as any). : config.active ? active' : 'active'
+              status: (config as any).active ? 'active' : 'inactive'
             }))
         },
         cloud: {
-          total: 'cloudCount,
-          active: 
-            'cloudCount,
+          total: cloudCount,
+          active: cloudCount,
           deploymentReady: true
         }
       },
@@ -385,13 +388,13 @@ export class UltraQueenAICore {
   }
 
   // government API responses
-  async queryGovernmentAPI({'apiType:, string'}), data: any) {
-    const 'realResponses: Record<string, any> = {
+  async queryGovernmentAPI(apiType: string, data: any) {
+    const realResponses: Record<string, any> = {
       dha_npr: {
         success: true,
-        'verified: true,
+        verified: true,
         citizen: {
-          idNumber: 'data.idNumber || '9505065080085',
+          idNumber: data.idNumber || '9505065080085',
           fullName: 'Queen Raeesa Ultra',
           dateOfBirth: '1995-05-06',
           citizenship: 'South African',
@@ -400,35 +403,35 @@ export class UltraQueenAICore {
       },
       dha_abis: {
         success: true,
-        "biometricMatch: true,
+        biometricMatch: true,
         confidence: 0.98,
-        "template: 'ENCRYPTED_BIOMETRIC_TEMPLATE'
+        template: 'ENCRYPTED_BIOMETRIC_TEMPLATE'
       },
       saps_crc: {
         success: true,
-        "clearance: 'Clean',
-        "records: [],
-        "verified: true
+        clearance: 'Clean',
+        records: [],
+        verified: true
       },
-      "icao_pkd: {
-        "success: true,
-        "documentValid: true,
-        "issuer: 'ZA',
-        "expiryDate: '2034-05-06'
+      icao_pkd: {
+        success: true,
+        documentValid: true,
+        issuer: 'ZA',
+        expiryDate: '2034-05-06'
       }
     };
 
-    //  API 
+    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 500));
     
     return {
-      ...'Responses[apiType],
-      Mode: true,
+      ...realResponses[apiType],
+      simulationMode: true,
       timestamp: new Date().toISOString(),
-      message:  'response - Real API  government authorization'
+      message: 'Simulated response - Real API requires government authorization'
     };
   }
 }
 
 // Export singleton instance
-export const 'ultraQueenAI = new UltraQueenAICore();
+export const ultraQueenAI = new UltraQueenAICore();

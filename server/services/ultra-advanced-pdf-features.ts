@@ -17,7 +17,7 @@ export interface AdvancedPDFOptions {
 }
 
 export class UltraAdvancedPDFService {
-  
+
   /**
    * AI-Enhanced PDF Generation
    * Analyzes content and optimizes layout automatically
@@ -71,11 +71,11 @@ export class UltraAdvancedPDFService {
   private applyAILayout(doc: InstanceType<typeof PDFDocument>, content: any): void {
     const pageWidth = doc.page.width;
     const pageHeight = doc.page.height;
-    
+
     // Intelligent content positioning
     let yPos = 50;
     const margin = 40;
-    
+
     // Add content with AI spacing
     if (content.title) {
       doc.fontSize(24)
@@ -123,7 +123,7 @@ export class UltraAdvancedPDFService {
     doc.strokeColor('#E0E0E0')
        .lineWidth(0.5)
        .fillOpacity(0.1);
-    
+
     for (let i = 0; i < pageWidth; i += 10) {
       for (let j = 0; j < pageHeight; j += 10) {
         doc.circle(i, j, 1).stroke();
@@ -138,7 +138,7 @@ export class UltraAdvancedPDFService {
   private addBlockchainVerification(doc: InstanceType<typeof PDFDocument>, content: any): void {
     const hash = crypto.createHash('sha256').update(JSON.stringify(content)).digest('hex');
     const blockchainRef = `0x${hash.substring(0, 40)}`;
-    
+
     doc.save();
     doc.fontSize(8)
        .fillColor('#000000')
@@ -152,7 +152,7 @@ export class UltraAdvancedPDFService {
   private addDynamicWatermark(doc: InstanceType<typeof PDFDocument>): void {
     const timestamp = new Date().toISOString();
     const watermarkText = `GENERATED ${timestamp}`;
-    
+
     doc.save();
     doc.rotate(-45, { origin: [doc.page.width / 2, doc.page.height / 2] })
        .fontSize(40)
@@ -174,7 +174,7 @@ export class UltraAdvancedPDFService {
       const biometricHash = crypto.createHash('sha256')
         .update(JSON.stringify(content.biometric))
         .digest('hex');
-      
+
       doc.info.Keywords = `BIO:${biometricHash}`;
     }
   }
@@ -203,7 +203,7 @@ export class UltraAdvancedPDFService {
   addEditableLayers(doc: InstanceType<typeof PDFDocument>, content: string): void {
     const lines = content.split('\n');
     let yPos = 100;
-    
+
     lines.forEach(line => {
       doc.fontSize(12)
          .text(line, 50, yPos);
@@ -218,25 +218,24 @@ export class UltraAdvancedPDFService {
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ size: 'A4' });
       const chunks: Buffer[] = [];
-      
+
       doc.on('data', chunk => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
       doc.fontSize(16)
          .text(`Converted from ${fileType.toUpperCase()}`, 50, 50);
-      
+
       doc.fontSize(12)
          .text('Original content converted to PDF format', 50, 100);
-      
+
       // For images, would embed them
       // For text files, would parse and format
       // For DOCX, would extract and format
-      
+
       doc.end();
     });
   }
 }
 
 export const ultraAdvancedPDFService = new UltraAdvancedPDFService();
-```
