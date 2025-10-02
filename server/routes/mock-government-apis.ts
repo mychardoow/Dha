@@ -1,11 +1,18 @@
-// Mock Government API Routes
-// Simulates DHA NPR, ABIS, SAPS CRC, and ICAO PKD APIs for development
+// PRODUCTION ONLY - NO MOCK ROUTES
+// All endpoints require real government API credentials
 
 import express, { Request, Response, Router } from 'express';
-import { z } from 'zod';
-import crypto from 'crypto';
 
 const router = Router();
+
+// Disable all mock endpoints in production
+router.all('*', (req: Request, res: Response) => {
+  res.status(403).json({
+    success: false,
+    error: 'Mock APIs disabled. Production requires real government API credentials.',
+    message: 'Configure real API keys in Replit Secrets'
+  });
+});
 
 // Validation schemas
 const nprVerifySchema = z.object({

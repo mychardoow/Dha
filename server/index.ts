@@ -3,10 +3,12 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import { universalAPIOverride } from './middleware/universal-api-override';
+import { ProductionValidator } from './production-validator';
 
-// Initialize universal API override system
-// universalAPIOverride.enableProductionMode(); // This line is moved to where app is initialized
-console.log('🔑 Universal API Override System Active');
+// VALIDATE PRODUCTION MODE - NO MOCKS ALLOWED
+ProductionValidator.validate();
+
+console.log('🔑 Production Mode Active - Real APIs Only');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
@@ -39,9 +41,19 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 // Create Express app and HTTP server
 const app = express();
 
-// 🔑 ACTIVATE UNIVERSAL API OVERRIDE SYSTEM
-console.log('🔑 Activating Universal API Override System...');
+// 🔑 FORCE PRODUCTION MODE - REAL APIs ONLY
+console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
+process.env.NODE_ENV = 'production';
+process.env.FORCE_REAL_APIS = 'true';
 universalAPIOverride.enableProductionMode();
+
+// Validate real API keys exist
+const requiredKeys = ['OPENAI_API_KEY'];
+const missingKeys = requiredKeys.filter(key => !process.env[key]);
+if (missingKeys.length > 0) {
+  console.warn('⚠️ Missing API keys:', missingKeys.join(', '));
+  console.warn('⚠️ Add keys via Replit Secrets for full functionality');
+}
 
 const server = createServer(app);
 
