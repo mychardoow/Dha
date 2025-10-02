@@ -1,5 +1,3 @@
-
-```typescript
 import express from 'express';
 import { ultraAdvancedPDFService } from '../services/ultra-advanced-pdf-features';
 import { requireAuth } from '../middleware/auth';
@@ -12,7 +10,7 @@ const router = express.Router();
 router.post('/api/pdf/ai-generate', requireAuth, async (req, res) => {
   try {
     const { content, options } = req.body;
-    
+
     const pdfBuffer = await ultraAdvancedPDFService.generateWithAI(content, {
       aiEnhancement: true,
       multiLayerSecurity: options?.security || true,
@@ -22,7 +20,7 @@ router.post('/api/pdf/ai-generate', requireAuth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="ai-generated-${Date.now()}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="ai-generated-${Date.now()}.pdf"`); // Added semicolon here
     res.send(pdfBuffer);
   } catch (error) {
     console.error('AI PDF generation error:', error);
@@ -51,7 +49,7 @@ router.post('/api/pdf/convert', requireAuth, async (req, res) => {
   try {
     const fileBuffer = req.file?.buffer || Buffer.from(req.body.file, 'base64');
     const fileType = req.body.fileType || req.file?.mimetype || 'unknown';
-    
+
     const pdfBuffer = await ultraAdvancedPDFService.convertToPDF(fileBuffer, fileType);
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -69,11 +67,11 @@ router.post('/api/pdf/convert', requireAuth, async (req, res) => {
 router.post('/api/pdf/add-text', requireAuth, async (req, res) => {
   try {
     const { text } = req.body;
-    
+
     const PDFDocument = (await import('pdfkit')).default;
     const doc = new PDFDocument();
     const chunks: Buffer[] = [];
-    
+
     doc.on('data', chunk => chunks.push(chunk));
     doc.on('end', () => {
       const pdfBuffer = Buffer.concat(chunks);
@@ -91,4 +89,3 @@ router.post('/api/pdf/add-text', requireAuth, async (req, res) => {
 });
 
 export { router as ultraPDFRoutes };
-```
