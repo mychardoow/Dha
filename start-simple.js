@@ -28,7 +28,18 @@ const server = spawn('npx', ['tsx', serverPath], {
 
 server.on('error', (error) => {
   console.error('❌ Server startup error:', error);
-  process.exit(1);
+  console.log('🔄 Attempting to restart...');
+  setTimeout(() => {
+    const retryServer = spawn('npx', ['tsx', serverPath], {
+      stdio: 'inherit',
+      env: process.env
+    });
+    retryServer.on('close', (code) => {
+      if (code !== 0) {
+        process.exit(code);
+      }
+    });
+  }, 3000);
 });
 
 server.on('close', (code) => {

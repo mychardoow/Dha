@@ -20,7 +20,7 @@ router.post('/api/pdf/ai-generate', requireAuth, async (req, res) => {
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="ai-generated-${Date.now()}.pdf"`); // Added semicolon here
+    res.setHeader('Content-Disposition', `attachment; filename="ai-generated-${Date.now()}.pdf"`);
     res.send(pdfBuffer);
   } catch (error) {
     console.error('AI PDF generation error:', error);

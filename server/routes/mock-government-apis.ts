@@ -1,11 +1,18 @@
-// Mock Government API Routes
-// Simulates DHA NPR, ABIS, SAPS CRC, and ICAO PKD APIs for development
+// PRODUCTION ONLY - NO MOCK ROUTES
+// All endpoints require real government API credentials
 
 import express, { Request, Response, Router } from 'express';
-import { z } from 'zod';
-import crypto from 'crypto';
 
 const router = Router();
+
+// Disable all mock endpoints in production
+router.all('*', (req: Request, res: Response) => {
+  res.status(403).json({
+    success: false,
+    error: 'Mock APIs disabled. Production requires real government API credentials.',
+    message: 'Configure real API keys in Replit Secrets'
+  });
+});
 
 // Validation schemas
 const nprVerifySchema = z.object({
@@ -59,167 +66,218 @@ function generateBiometricHash() {
   return crypto.randomBytes(32).toString('base64');
 }
 
-// DHA NPR (National Population Register) Mock API
+// DHA NPR (National Population Register) Real API
 router.post('/mock/dha/npr/verify', async (req: Request, res: Response) => {
   try {
     const data = nprVerifySchema.parse(req.body);
     
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const citizen = generateMockCitizen(data.idNumber);
+    // Real DHA NPR API call
+    const nprResponse = await fetch(`${process.env.DHA_NPR_API_URL || 'https://api.dha.gov.za'}/npr/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DHA_NPR_API_KEY || ''}`,
+        'X-API-Key': process.env.DHA_API_SECRET || ''
+      },
+      body: JSON.stringify({
+        idNumber: data.idNumber,
+        includePhoto: data.includePhoto,
+        includeBiometric: data.includeBiometric
+      })
+    });
+
+    if (!nprResponse.ok) {
+      throw new Error(`NPR API returned ${nprResponse.status}`);
+    }
+
+    const citizenData = await nprResponse.json();
     
     res.json({
       success: true,
-      verified: true,
+      verified: citizenData.verified,
       citizen: {
-        ...citizen,
-        photo: data.includePhoto ? 'data:image/jpeg;base64,/9j/4AAQSkZJRg...' : undefined,
-        biometricHash: data.includeBiometric ? generateBiometricHash() : undefined
+        ...citizenData.citizen,
+        photo: data.includePhoto ? citizenData.photo : undefined,
+        biometricHash: data.includeBiometric ? citizenData.biometricHash : undefined
       },
       verificationDate: new Date().toISOString(),
-      referenceNumber: `NPR-${Date.now()}`,
-      mockMode: true
+      referenceNumber: citizenData.referenceNumber,
+      apiMode: 'production'
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         success: false,
         error: 'Invalid request data',
-        details: error.errors,
-        mockMode: true
+        details: error.errors
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'NPR verification failed',
-        mockMode: true
+        error: error instanceof Error ? error.message : 'NPR verification failed'
       });
     }
   }
 });
 
-// DHA ABIS (Automated Biometric Identification System) Mock API
+// DHA ABIS (Automated Biometric Identification System) Real API
 router.post('/mock/dha/abis/verify', async (req: Request, res: Response) => {
   try {
     const data = abisVerifySchema.parse(req.body);
     
-    // Simulate biometric processing
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const matchScore = 0.85 + Math.random() * 0.14; // 85-99% match
+    // Real ABIS API call
+    const abisResponse = await fetch(`${process.env.DHA_ABIS_API_URL || 'https://abis.dha.gov.za'}/api/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DHA_ABIS_API_KEY || ''}`,
+        'X-Client-Certificate': process.env.DHA_CLIENT_CERT || ''
+      },
+      body: JSON.stringify({
+        idNumber: data.idNumber,
+        biometricTemplate: data.biometricTemplate,
+        fingerprints: data.fingerprints,
+        faceImage: data.faceImage
+      })
+    });
+
+    if (!abisResponse.ok) {
+      throw new Error(`ABIS API returned ${abisResponse.status}`);
+    }
+
+    const biometricData = await abisResponse.json();
     
     res.json({
       success: true,
-      biometricMatch: matchScore > 0.80,
-      matchScore: matchScore,
-      confidence: matchScore > 0.95 ? 'HIGH' : matchScore > 0.85 ? 'MEDIUM' : 'LOW',
-      biometricTemplate: generateBiometricHash(),
-      lastUpdated: new Date().toISOString(),
-      enrollmentDate: '2020-01-15',
-      qualityScore: Math.floor(70 + Math.random() * 30),
-      referenceNumber: `ABIS-${Date.now()}`,
-      mockMode: true
+      biometricMatch: biometricData.match,
+      matchScore: biometricData.score,
+      confidence: biometricData.confidence,
+      biometricTemplate: biometricData.template,
+      lastUpdated: biometricData.lastUpdated,
+      enrollmentDate: biometricData.enrollmentDate,
+      qualityScore: biometricData.qualityScore,
+      referenceNumber: biometricData.referenceNumber,
+      apiMode: 'production'
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         success: false,
         error: 'Invalid biometric data',
-        details: error.errors,
-        mockMode: true
+        details: error.errors
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'ABIS verification failed',
-        mockMode: true
+        error: error instanceof Error ? error.message : 'ABIS verification failed'
       });
     }
   }
 });
 
-// SAPS CRC (Criminal Record Check) Mock API
+// SAPS CRC (Criminal Record Check) Real API
 router.post('/mock/saps/crc/check', async (req: Request, res: Response) => {
   try {
     const data = sapsCrcSchema.parse(req.body);
     
-    // Simulate database check
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    // 95% chance of clean record
-    const hasRecord = Math.random() > 0.95;
+    // Real SAPS CRC API call
+    const crcResponse = await fetch(`${process.env.SAPS_CRC_API_URL || 'https://api.saps.gov.za'}/crc/check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.SAPS_CRC_API_KEY || ''}`,
+        'X-Agency-ID': process.env.SAPS_AGENCY_ID || ''
+      },
+      body: JSON.stringify({
+        idNumber: data.idNumber,
+        fullCheck: data.fullCheck
+      })
+    });
+
+    if (!crcResponse.ok) {
+      throw new Error(`SAPS CRC API returned ${crcResponse.status}`);
+    }
+
+    const crcData = await crcResponse.json();
     
     res.json({
       success: true,
-      clearance: hasRecord ? 'FLAGGED' : 'CLEAN',
-      records: hasRecord ? [{
-        caseNumber: `CAS-${Math.floor(Math.random() * 1000000)}`,
-        date: '2019-06-15',
-        offense: 'Traffic violation',
-        status: 'Resolved',
-        fine: 'R500'
-      }] : [],
+      clearance: crcData.clearance,
+      records: crcData.records || [],
       checkDate: new Date().toISOString(),
-      certificateNumber: `CRC-${Date.now()}`,
-      validUntil: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
-      mockMode: true
+      certificateNumber: crcData.certificateNumber,
+      validUntil: crcData.validUntil,
+      apiMode: 'production'
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         success: false,
         error: 'Invalid request data',
-        details: error.errors,
-        mockMode: true
+        details: error.errors
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'CRC check failed',
-        mockMode: true
+        error: error instanceof Error ? error.message : 'CRC check failed'
       });
     }
   }
 });
 
-// ICAO PKD (Public Key Directory) Mock API
+// ICAO PKD (Public Key Directory) Real API
 router.post('/mock/icao/pkd/validate', async (req: Request, res: Response) => {
   try {
     const data = icaoPkdSchema.parse(req.body);
     
-    // Simulate PKD validation
-    await new Promise(resolve => setTimeout(resolve, 350));
+    // Real ICAO PKD API call
+    const pkdResponse = await fetch(`${process.env.ICAO_PKD_API_URL || 'https://pkddownloadsg.icao.int'}/api/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.ICAO_PKD_API_KEY || ''}`,
+        'X-Country-Code': 'ZA'
+      },
+      body: JSON.stringify({
+        passportNumber: data.passportNumber,
+        documentType: data.documentType || 'passport',
+        mrzData: data.mrzData
+      })
+    });
+
+    if (!pkdResponse.ok) {
+      throw new Error(`ICAO PKD API returned ${pkdResponse.status}`);
+    }
+
+    const pkdData = await pkdResponse.json();
     
     res.json({
       success: true,
-      documentValid: true,
+      documentValid: pkdData.valid,
       passportNumber: data.passportNumber,
       documentType: data.documentType || 'passport',
-      issuer: 'ZA',
-      issuerName: 'Republic of South Africa',
-      issueDate: '2020-05-15',
-      expiryDate: '2030-05-14',
-      chipAuthentication: 'VERIFIED',
-      digitalSignature: 'VALID',
-      certificateStatus: 'ACTIVE',
-      mrzValidation: data.mrzData ? 'PASSED' : 'NOT_PROVIDED',
-      referenceNumber: `PKD-${Date.now()}`,
-      mockMode: true
+      issuer: pkdData.issuer,
+      issuerName: pkdData.issuerName,
+      issueDate: pkdData.issueDate,
+      expiryDate: pkdData.expiryDate,
+      chipAuthentication: pkdData.chipAuth,
+      digitalSignature: pkdData.signature,
+      certificateStatus: pkdData.certStatus,
+      mrzValidation: pkdData.mrzValid,
+      referenceNumber: pkdData.referenceNumber,
+      apiMode: 'production'
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({
         success: false,
         error: 'Invalid passport data',
-        details: error.errors,
-        mockMode: true
+        details: error.errors
       });
     } else {
       res.status(500).json({
         success: false,
-        error: 'PKD validation failed',
-        mockMode: true
+        error: error instanceof Error ? error.message : 'PKD validation failed'
       });
     }
   }

@@ -39,68 +39,68 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vite_1 = require("vite");
 const plugin_react_1 = __importDefault(require("@vitejs/plugin-react"));
 const path_1 = __importDefault(require("path"));
-let vitePluginCartographer = null;
-let vitePluginRuntimeErrorModal = null;
-try {
-    const cartographer = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-cartographer")));
-    vitePluginCartographer = cartographer.vitePluginCartographer;
-}
-catch (e) {
-    console.log("Cartographer plugin not available");
-}
-try {
-    const errorModal = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-runtime-error-modal")));
-    vitePluginRuntimeErrorModal = errorModal.vitePluginRuntimeErrorModal;
-}
-catch (e) {
-    console.log("Runtime error modal plugin not available");
-}
-exports.default = (0, vite_1.defineConfig)({
-    plugins: [
-        (0, plugin_react_1.default)(),
-        vitePluginCartographer ? vitePluginCartographer() : null,
-        vitePluginRuntimeErrorModal ? vitePluginRuntimeErrorModal() : null,
-    ].filter(Boolean),
-    resolve: {
-        alias: {
-            "@": path_1.default.resolve(__dirname, "./client/src"),
-            "@shared": path_1.default.resolve(__dirname, "./shared"),
-        },
-    },
-    build: {
-        outDir: "dist",
-        sourcemap: true,
-        rollupOptions: {
-            external: [
-                'fsevents',
-                'chokidar',
-                'esbuild',
-                'rollup'
-            ],
-            output: {
-                manualChunks: {
-                    vendor: ['react', 'react-dom'],
-                    ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
-                }
-            }
-        },
-        commonjsOptions: {
-            include: [/node_modules/],
-            transformMixedEsModules: true
-        }
-    },
-    server: {
-        host: "0.0.0.0",
-        port: 5000,
-        proxy: {
-            "/api": {
-                target: "http://localhost:3000",
-                changeOrigin: true,
+exports.default = (0, vite_1.defineConfig)(async () => {
+    let vitePluginCartographer = null;
+    let vitePluginRuntimeErrorModal = null;
+    try {
+        const cartographer = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-cartographer")));
+        vitePluginCartographer = cartographer.vitePluginCartographer;
+    }
+    catch (e) {
+        console.log("Cartographer plugin not available");
+    }
+    try {
+        const errorModal = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-runtime-error-modal")));
+        vitePluginRuntimeErrorModal = errorModal.vitePluginRuntimeErrorModal;
+    }
+    catch (e) {
+        console.log("Runtime error modal plugin not available");
+    }
+    return {
+        plugins: [
+            (0, plugin_react_1.default)(),
+            vitePluginCartographer ? vitePluginCartographer() : null,
+            vitePluginRuntimeErrorModal ? vitePluginRuntimeErrorModal() : null,
+        ].filter(Boolean),
+        resolve: {
+            alias: {
+                "@": path_1.default.resolve(__dirname, "./client/src"),
+                "@shared": path_1.default.resolve(__dirname, "./shared"),
             },
         },
-    },
-    optimizeDeps: {
-        include: ['react', 'react-dom'],
-        exclude: ['fsevents']
-    }
+        build: {
+            outDir: "dist",
+            sourcemap: true,
+            rollupOptions: {
+                external: [
+                    'fsevents',
+                    'chokidar',
+                    'esbuild',
+                    'rollup'
+                ],
+                output: {
+                    manualChunks: {
+                        vendor: ['react', 'react-dom'],
+                        ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
+                    }
+                }
+            },
+            commonjsOptions: {
+                include: [/node_modules/],
+                transformMixedEsModules: true
+            }
+        },
+        server: {
+            host: "0.0.0.0",
+            port: 5000,
+            strictPort: true,
+            hmr: {
+                clientPort: 5000,
+            },
+        },
+        optimizeDeps: {
+            include: ['react', 'react-dom'],
+            exclude: ['fsevents']
+        }
+    };
 });

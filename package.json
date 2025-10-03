@@ -8,7 +8,7 @@
     "start": "node dist/server/index.js",
     "build": "npm run build:client || echo 'Client build completed' && npm run build:server || echo 'Server build completed'",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "npx tsx watch --clear-screen=false --respawn server/index.ts",
+    "dev:server": "npm run build:server && node dist/server/index.js",
     "dev:client": "vite --config client/vite.config.ts",
     "build:client": "cd client && npm install --legacy-peer-deps && vite build",
     "build:server": "npx tsc -p tsconfig.server.json --skipLibCheck",
@@ -25,7 +25,6 @@
     "@esbuild/linux-x64": "^0.21.5",
     "@google/genai": "^1.20.0",
     "@hookform/resolvers": "^3.3.4",
-    
     "@octokit/rest": "^22.0.0",
     "@radix-ui/react-accordion": "^1.1.2",
     "@radix-ui/react-alert-dialog": "^1.0.5",
@@ -135,7 +134,6 @@
     "supertest": "^7.1.4",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "tsx": "^4.16.2",
     "uuid": "^9.0.1",
     "vaul": "^0.9.1",
     "vite-node": "^3.2.4",
@@ -162,7 +160,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
     "ts-node": "^10.9.2",
-    "tsx": "^4.16.2",
+    "tsx": "^4.20.6",
     "typescript": "^5.5.3",
     "vite": "^5.3.3",
     "vitest": "^1.6.0"

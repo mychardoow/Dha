@@ -1,17 +1,17 @@
+
 {
   "version": 2,
   "builds": [
     {
       "src": "api/index.ts",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 60,
-        "memory": 3008
-      }
+      "use": "@vercel/node"
     },
     {
-      "src": "client/dist/**",
-      "use": "@vercel/static"
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "client/dist"
+      }
     }
   ],
   "routes": [
@@ -20,15 +20,11 @@
       "dest": "/api/index.ts"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/client/dist/index.html"
+      "dest": "/client/dist/$1"
     }
   ],
   "env": {
-    "NODE_ENV": "production",
-    "VITE_FALLBACK_API_KEY": "@vite-fallback-api-key"
+    "NODE_ENV": "production"
   }
 }
