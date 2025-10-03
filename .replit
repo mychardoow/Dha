@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 33633
-externalPort = 6800
-
-[[ports]]
 localPort = 34605
 externalPort = 3000
 
@@ -80,7 +76,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Project"
+runButton = "Start DHA Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -96,13 +92,13 @@ name = "Start application"
 author = "agent"
 mode = "parallel"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node dev-server.js"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev:server"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Simple "
@@ -596,3 +592,41 @@ args = "npm install --legacy-peer-deps"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run build"
+
+[[workflows.workflow]]
+name = "Build for Vercel"
+author = 48247852
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Building for Vercel Deployment\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm install --legacy-peer-deps && npm run build && cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsc -p tsconfig.server.json --skipLibCheck"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Build complete - Ready for Vercel deployment\""
+
+[[workflows.workflow]]
+name = "Start DHA Server"
+author = 48247852
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx server/index.ts"
