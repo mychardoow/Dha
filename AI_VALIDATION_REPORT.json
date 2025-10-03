@@ -1,31 +1,31 @@
 {
-  "timestamp": "2025-09-26T02:11:15.581Z",
-  "overallScore": 100,
+  "timestamp": "2025-10-03T12:28:21.470Z",
+  "overallScore": 80,
   "summary": {
-    "pass": 10,
+    "pass": 8,
     "partial": 0,
-    "fail": 0
+    "fail": 2
   },
   "categories": [
     {
       "name": "OpenAI Integration",
-      "status": "PASS",
+      "status": "FAIL",
       "details": [
         {
           "test": "OpenAI API Key Configuration",
-          "status": "PASS",
-          "message": "API key configured"
+          "status": "FAIL",
+          "message": "API key missing or placeholder"
         }
       ]
     },
     {
       "name": "Anthropic Integration",
-      "status": "PASS",
+      "status": "FAIL",
       "details": [
         {
           "test": "Anthropic API Key Configuration",
-          "status": "PASS",
-          "message": "API key configured"
+          "status": "FAIL",
+          "message": "API key missing or placeholder"
         }
       ]
     },
@@ -93,13 +93,13 @@
         {
           "test": "AI Endpoint Structure",
           "status": "PASS",
-          "message": "32 AI endpoints discovered across 3 route files",
+          "message": "35 AI endpoints discovered across 3 route files",
           "routes": [
             {
               "file": "ai-assistant.ts",
-              "endpointCount": 16,
-              "postEndpoints": 13,
-              "getEndpoints": 3,
+              "endpointCount": 19,
+              "postEndpoints": 14,
+              "getEndpoints": 5,
               "hasAuthentication": true,
               "hasRateLimiting": true,
               "hasAsyncHandling": true
@@ -321,8 +321,10 @@
         {
           "test": "Deployment Readiness Assessment",
           "status": "PASS",
-          "message": "Deployment score: 6/6",
-          "issues": []
+          "message": "Deployment score: 5/6",
+          "issues": [
+            "Missing environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, DATABASE_URL"
+          ]
         }
       ]
     }
@@ -340,12 +342,12 @@
       "/api/ai/stats",
       "/api/ultra-ai/*"
     ],
-    "totalFound": 32
+    "totalFound": 35
   },
   "deploymentRecommendation": "READY",
   "railwayReadiness": {
-    "score": 100,
-    "apiKeysConfigured": true,
+    "score": 80,
+    "apiKeysConfigured": false,
     "servicesOperational": true,
     "securityEnabled": true,
     "deploymentReady": true

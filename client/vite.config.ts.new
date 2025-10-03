@@ -1,0 +1,68 @@
+import { defineConfig } from "vite";import { defineConfig } from "vite";
+
+import react from "@vitejs/plugin-react";import react from "@vitejs/plugin-react";
+
+import path from "path";import path from "path";
+
+
+
+export default defineConfig({export default defineConfig({
+
+  plugins: [react()],  plugins: [react()],
+
+  resolve: {  resolve: {
+
+    alias: {    alias: {
+
+      "@": path.resolve(__dirname, "./src"),      "@": path.resolve(__dirname, "./src"),
+
+      "@shared": path.resolve(__dirname, "../shared")      "@shared": path.resolve(__dirname, "../shared")
+
+    }    }
+
+  },  },
+
+  build: {  build: {
+
+    outDir: "dist",    outDir: "dist",
+
+    sourcemap: true,    sourcemap: true,
+
+    commonjsOptions: {    rollupOptions: {
+
+      include: [      output: {
+
+        /node_modules/,        manualChunks: {
+
+        /pdf-lib/,          vendor: [
+
+        /pdfjs-dist/,            'react', 
+
+        /recharts/,            'react-dom',
+
+        /highlight\.js/,            'pdf-lib',
+
+        /socket\.io-client/,            'pdfjs-dist',
+
+        /date-fns/            'recharts',
+
+      ]            'highlight.js',
+
+    },            'socket.io-client',
+
+    rollupOptions: {            'date-fns'
+
+      external: [],          ]
+
+      output: {        }
+
+        format: 'es',      }
+
+        chunkFileNames: '[name]-[hash].js',    }
+
+        manualChunks: undefined  }
+
+      }});
+    }
+  }
+});
