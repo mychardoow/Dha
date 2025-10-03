@@ -7,39 +7,30 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@shared": path.resolve(__dirname, "../shared"),
-      process: "process/browser",
-      stream: "stream-browserify",
-      http: "stream-http",
-      https: "https-browserify",
-      os: "os-browserify/browser"
-    },
+      "@shared": path.resolve(__dirname, "../shared")
+    }
   },
   build: {
     outDir: "dist",
     sourcemap: true,
+    commonjsOptions: {
+      include: [
+        /node_modules/,
+        /pdf-lib/,
+        /pdfjs-dist/,
+        /recharts/,
+        /highlight\.js/,
+        /socket\.io-client/,
+        /date-fns/
+      ]
+    },
     rollupOptions: {
-      external: ['fsevents', 'chokidar', 'esbuild', 'rollup'],
+      external: [],
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          web3: ['web3', 'ethers', '@web3-react/core'],
-          security: ['crypto-browserify', 'stream-browserify']
-        }
+        format: "es",
+        chunkFileNames: "[name]-[hash].js",
+        manualChunks: undefined
       }
     }
-  },
-  define: {
-    'process.env': {},
-    global: {},
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
-  },
-  server: {
-    host: "0.0.0.0",
-    port: 5000,
-    strictPort: true,
-    hmr: {
-      clientPort: 5000,
-    },
   }
 });
