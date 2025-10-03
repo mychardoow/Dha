@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const API_KEYS = {
   OPENAI_API_KEYS: process.env.OPENAI_API_KEYS?.split(',') || [],
@@ -6,7 +6,7 @@ const API_KEYS = {
   ULTRA_AI_KEYS: process.env.ULTRA_AI_KEYS?.split(',') || [],
 };
 
-export async function validateAndGetKey(service: keyof typeof API_KEYS, req: NextApiRequest): Promise<string> {
+export async function validateAndGetKey(service: keyof typeof API_KEYS, req: VercelRequest): Promise<string> {
   const keys = API_KEYS[service];
   const override = req.headers['x-api-key-override'];
   
@@ -89,7 +89,7 @@ async function testUltraAIKey(key: string): Promise<{ valid: boolean }> {
 }
 
 export function withKeyValidation(handler: any) {
-  return async (req: NextApiRequest, res: NextApiResponse) => {
+  return async (req: VercelRequest, res: VercelResponse) => {
     try {
       // Attach validated keys to the request
       const validatedKeys = {
