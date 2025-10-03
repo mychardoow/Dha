@@ -169,6 +169,14 @@ registerRoutes(app);
 import apiKeyStatusRoutes from './routes/api-key-status';
 app.use(apiKeyStatusRoutes);
 
+// Register comprehensive API status routes
+import apiStatusRoutes from './routes/api-status';
+app.use(apiStatusRoutes);
+
+// Initialize Universal API Manager
+import { universalAPIManager } from './services/universal-api-manager';
+console.log('✅ Universal API Manager initialized with 40+ integrations');
+
 // Mount ultra-advanced PDF routes (commented out due to syntax errors)
 // app.use(ultraPDFRoutes);
 
