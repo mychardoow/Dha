@@ -80,7 +80,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Start DHA Server"
+runButton = "Quick Start (No Build)"
 
 [[workflows.workflow]]
 name = "Project"
@@ -634,3 +634,12 @@ args = "npm install --legacy-peer-deps"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx server/index.ts"
+
+[[workflows.workflow]]
+name = "Quick Start (No Build)"
+author = 48413871
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"
