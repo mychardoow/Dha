@@ -32,6 +32,10 @@ localPort = 35653
 externalPort = 9000
 
 [[ports]]
+localPort = 38597
+externalPort = 6800
+
+[[ports]]
 localPort = 39631
 externalPort = 5000
 
@@ -76,7 +80,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Start DHA Server"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -97,7 +101,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev:server"
+args = "npm run dev"
 waitForPort = 5000
 
 [[workflows.workflow]]
