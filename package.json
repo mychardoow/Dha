@@ -135,6 +135,7 @@
     "react-router-dom": "^6.23.1",
     "recharts": "^2.15.4",
     "serverless-http": "^4.0.0",
+    "sharp": "^0.34.4",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "sonner": "^1.4.41",
@@ -142,6 +143,7 @@
     "supertest": "^7.1.4",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "tesseract.js": "^6.0.1",
     "uuid": "^9.0.1",
     "vaul": "^0.9.1",
     "vite-node": "^3.2.4",
@@ -154,7 +156,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "@types/node": "^24.6.2",
+    "@types/node": "^24.7.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^7.0.2",
