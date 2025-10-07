@@ -1,25 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 
-// Dynamic imports for better compatibility
-let createWorker: any = null;
-let PSM: any = null;
-let sharp: any = null;
-
-try {
-  const tesseract = await import("tesseract.js");
-  createWorker = tesseract.createWorker;
-  PSM = tesseract.PSM;
-} catch (error) {
-  console.warn("[OCR] Tesseract.js not available - OCR disabled");
-}
-
-try {
-  sharp = require("sharp");
-} catch (error) {
-  console.warn("[OCR] Sharp not available - image optimization disabled");
-}
-
 /**
  * Enhanced OCR Service specifically designed for South African Government Documents
  * 
@@ -76,24 +57,9 @@ export interface SAOCROptions {
 
 export class EnhancedSAOCRService {
   private tesseractReady = false;
-
-  constructor() {
-    this.initializeTesseract();
-  }
-
-  private async initializeTesseract() {
-    try {
-      if (!createWorker) {
-        const tesseract = await import("tesseract.js");
-        createWorker = tesseract.createWorker;
-        PSM = tesseract.PSM;
-      }
-      this.tesseractReady = true;
-    } catch (error) {
-      console.error("[OCR] Failed to initialize tesseract:", error);
-      this.tesseractReady = false;
-    }
-  }
+  private createWorker: any = null;
+  private PSM: any = null;
+  private sharp: any = null;
 
   private readonly SA_DOCUMENT_PATTERNS = {
     // Work Permit Patterns
@@ -107,7 +73,7 @@ export class EnhancedSAOCRService {
       conditions: /(?:Conditions|Voorwaardes)\s*:?\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/gi,
       issueDate: /(?:Date\s+of\s+Issue|Issue\s+Date|Datum\s+van\s+Uitreiking)\s*:?\s*(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4})/gi
     },
-    
+
     // Residence Permit Patterns  
     residence_permit: {
       permitNumber: /(?:Residence\s+Permit\s+Number|Permit\s+No\.?|Verblyf\s+Vergunning\s+Nommer)\s*:?\s*([A-Z0-9\-\/]{8,20})/gi,
@@ -119,7 +85,7 @@ export class EnhancedSAOCRService {
       endorsements: /(?:Endorsements|Aantekeninge)\s*:?\s*([\s\S]*?)(?=\n\n|\n[A-Z]|$)/gi,
       workAuthorization: /(?:Work\s+Authorization|Authorized\s+to\s+Work|Werk\s+Magtiging)\s*:?\s*(Yes|No|Ja|Nee)/gi
     },
-    
+
     // Common Government Document Patterns
     common: {
       dhaOffice: /(?:Department\s+of\s+Home\s+Affairs|DHA\s+Office|Kantoor)\s*:?\s*(.+?)(?:\n|$)/gi,
@@ -131,13 +97,32 @@ export class EnhancedSAOCRService {
   };
 
   private readonly SA_DATE_FORMATS = [
-    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/,  // DD/MM/YYYY or DD-MM-YYYY
-    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/,  // YYYY/MM/DD or YYYY-MM-DD
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/,
+    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/,
     /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December|Januarie|Februarie|Maart|April|Mei|Junie|Julie|Augustus|September|Oktober|November|Desember)\s+(\d{4})/gi
   ];
 
   constructor() {
-    // Initialize any required resources
+    this.initializeDependencies();
+  }
+
+  private async initializeDependencies() {
+    try {
+      // Try to load tesseract dynamically
+      const tesseract = await import("tesseract.js");
+      this.createWorker = tesseract.createWorker;
+      this.PSM = tesseract.PSM;
+      this.tesseractReady = true;
+    } catch (error) {
+      console.warn("[OCR] Tesseract.js not available - OCR disabled");
+      this.tesseractReady = false;
+    }
+
+    try {
+      this.sharp = require("sharp");
+    } catch (error) {
+      console.warn("[OCR] Sharp not available - image optimization disabled");
+    }
   }
 
   /**
@@ -156,8 +141,8 @@ export class EnhancedSAOCRService {
   ): Promise<SAOCRResult> {
     const startTime = Date.now();
 
-    if (!this.tesseractReady || !createWorker) {
-      await this.initializeTesseract();
+    if (!this.tesseractReady) {
+      await this.initializeDependencies();
       if (!this.tesseractReady) {
         throw new Error("Tesseract OCR is not available");
       }
@@ -171,13 +156,13 @@ export class EnhancedSAOCRService {
 
       // Perform multi-language OCR
       const ocrResult = await this.performEnhancedOCR(processedImagePath, options);
-      
+
       // Analyze document layout and structure
       const layoutAnalysis = await this.analyzeDocumentLayout(ocrResult.text, processedImagePath);
-      
+
       // Detect document type
       const documentType = this.detectDocumentType(ocrResult.text);
-      
+
       // Extract structured fields
       const extractedFields = options.extractFields 
         ? await this.extractStructuredFields(ocrResult.text, documentType)
@@ -242,21 +227,18 @@ export class EnhancedSAOCRService {
     }
   }
 
-  /**
-   * Preprocess image to enhance OCR accuracy
-   */
   private async preprocessImage(filePath: string, mimeType: string): Promise<string> {
-    if (!mimeType.startsWith('image/')) {
-      return filePath; // Skip preprocessing for non-image files
+    if (!mimeType.startsWith('image/') || !this.sharp) {
+      return filePath;
     }
 
     const outputPath = filePath.replace(/\.(jpg|jpeg|png|tiff)$/i, '_processed.png');
 
     try {
-      await sharp(filePath)
+      await this.sharp(filePath)
         .resize(null, 2000, { 
           withoutEnlargement: true,
-          kernel: sharp.kernel.lanczos3
+          kernel: this.sharp.kernel.lanczos3
         })
         .normalize()
         .sharpen({ sigma: 1.5 })
@@ -267,35 +249,34 @@ export class EnhancedSAOCRService {
       return outputPath;
     } catch (error) {
       console.error('Image preprocessing failed:', error);
-      return filePath; // Fallback to original if preprocessing fails
+      return filePath;
     }
   }
 
-  /**
-   * Perform enhanced OCR with multi-language support
-   */
   private async performEnhancedOCR(filePath: string, options: SAOCROptions): Promise<{
     text: string;
     confidence: number;
   }> {
-    const worker = await createWorker();
+    if (!this.createWorker) {
+      throw new Error('Tesseract worker not available');
+    }
+
+    const worker = await this.createWorker();
 
     try {
       await worker.load();
-      
-      // Configure OCR for multi-language support (English + Afrikaans)
+
       const languages = options.enableMultiLanguage ? 'eng+afr' : 'eng';
       await worker.reinitialize(languages);
 
-      // Optimize OCR settings for government documents
       await worker.setParameters({
         tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:-/()[]',
-        tessedit_pageseg_mode: PSM.AUTO_OSD, // Automatic page segmentation with OSD
+        tessedit_pageseg_mode: this.PSM?.AUTO_OSD || 1,
         preserve_interword_spaces: '1'
       });
 
       const { data: { text, confidence } } = await worker.recognize(filePath);
-      
+
       return {
         text: this.cleanExtractedText(text),
         confidence: Math.round(confidence)
@@ -306,20 +287,14 @@ export class EnhancedSAOCRService {
     }
   }
 
-  /**
-   * Clean and normalize extracted text
-   */
   private cleanExtractedText(text: string): string {
     return text
-      .replace(/\s+/g, ' ')                    // Normalize whitespace
-      .replace(/[^\x00-\x7F]/g, '')           // Remove non-ASCII characters
-      .replace(/(\r\n|\r|\n)/g, '\n')         // Normalize line endings
+      .replace(/\s+/g, ' ')
+      .replace(/[^\x00-\x7F]/g, '')
+      .replace(/(\r\n|\r|\n)/g, '\n')
       .trim();
   }
 
-  /**
-   * Analyze document layout and structure
-   */
   private async analyzeDocumentLayout(text: string, imagePath: string): Promise<{
     documentStructure: 'single_page' | 'multi_page' | 'booklet';
     hasOfficialStamps: boolean;
@@ -335,24 +310,14 @@ export class EnhancedSAOCRService {
       hasPhotograph: false
     };
 
-    // Check for official stamps
     analysis.hasOfficialStamps = this.SA_DOCUMENT_PATTERNS.common.officialStamp.test(text);
-
-    // Check for watermarks (basic text-based detection)
     analysis.hasWatermarks = /(?:REPUBLIC OF SOUTH AFRICA|DEPARTEMENT VAN BINNELANDSE SAKE)/i.test(text);
-
-    // Check for barcodes (look for specific patterns)
     analysis.hasBarcodes = /[0-9]{8,}/.test(text) && text.includes('|||');
-
-    // Check for photograph references
     analysis.hasPhotograph = /(?:photograph|foto|picture)/i.test(text);
 
     return analysis;
   }
 
-  /**
-   * Detect document type based on content
-   */
   private detectDocumentType(text: string): 'work_permit' | 'residence_permit' | 'temporary_permit' | 'permanent_visa' | 'unknown' {
     const textLower = text.toLowerCase();
 
@@ -378,18 +343,14 @@ export class EnhancedSAOCRService {
     return 'unknown';
   }
 
-  /**
-   * Extract structured fields based on document type
-   */
   private async extractStructuredFields(
     text: string, 
     documentType: 'work_permit' | 'residence_permit' | 'temporary_permit' | 'permanent_visa' | 'unknown'
   ): Promise<SADocumentField[]> {
     const fields: SADocumentField[] = [];
 
-    // Get patterns based on document type
     let patterns: Record<string, RegExp>;
-    
+
     if (documentType === 'work_permit') {
       patterns = { ...this.SA_DOCUMENT_PATTERNS.work_permit, ...this.SA_DOCUMENT_PATTERNS.common };
     } else if (documentType === 'residence_permit' || documentType === 'temporary_permit' || documentType === 'permanent_visa') {
@@ -398,20 +359,19 @@ export class EnhancedSAOCRService {
       patterns = this.SA_DOCUMENT_PATTERNS.common;
     }
 
-    // Extract fields using patterns
     for (const [fieldName, pattern] of Object.entries(patterns)) {
       const matches = Array.from(text.matchAll(pattern));
-      
+
       if (matches.length > 0) {
         const match = matches[0];
         const value = match[1]?.trim() || match[0]?.trim();
-        
+
         if (value) {
           fields.push({
             name: fieldName,
             value,
             confidence: this.calculateFieldConfidence(fieldName, value, text),
-            position: { x: 0, y: 0, width: 0, height: 0 }, // Would need image analysis for actual positions
+            position: { x: 0, y: 0, width: 0, height: 0 },
             validationPattern: pattern,
             isRequired: this.isRequiredField(fieldName, documentType)
           });
@@ -422,13 +382,9 @@ export class EnhancedSAOCRService {
     return fields;
   }
 
-  /**
-   * Calculate confidence score for extracted field
-   */
   private calculateFieldConfidence(fieldName: string, value: string, fullText: string): number {
-    let confidence = 70; // Base confidence
+    let confidence = 70;
 
-    // Increase confidence for well-formatted values
     if (fieldName.includes('Number') && /^[A-Z0-9\-\/]{8,20}$/.test(value)) {
       confidence += 15;
     }
@@ -437,7 +393,6 @@ export class EnhancedSAOCRService {
       confidence += 10;
     }
 
-    // Decrease confidence for very short or suspicious values
     if (value.length < 3) {
       confidence -= 20;
     }
@@ -445,9 +400,6 @@ export class EnhancedSAOCRService {
     return Math.max(0, Math.min(100, confidence));
   }
 
-  /**
-   * Check if field is required for document type
-   */
   private isRequiredField(fieldName: string, documentType: string): boolean {
     const requiredFields = {
       work_permit: ['permitNumber', 'employerName', 'validFrom', 'validUntil'],
@@ -459,9 +411,6 @@ export class EnhancedSAOCRService {
     return requiredFields[documentType as keyof typeof requiredFields]?.includes(fieldName) || false;
   }
 
-  /**
-   * Validate extracted data
-   */
   private validateExtractedData(fields: SADocumentField[], documentType: string): {
     formatValid: boolean;
     requiredFieldsPresent: boolean;
@@ -475,16 +424,12 @@ export class EnhancedSAOCRService {
     let dateFormatsValid = true;
     let referenceNumbersValid = true;
 
-    const fieldNames = fields.map(f => f.name);
-    
-    // Check required fields
     const requiredFields = fields.filter(f => f.isRequired);
     if (requiredFields.length === 0 || requiredFields.some(f => !f.value)) {
       requiredFieldsPresent = false;
       issues.push('Missing required fields');
     }
 
-    // Validate dates
     const dateFields = fields.filter(f => f.name.includes('Date') || f.name.includes('valid'));
     for (const dateField of dateFields) {
       if (!this.SA_DATE_FORMATS.some(format => format.test(dateField.value))) {
@@ -493,7 +438,6 @@ export class EnhancedSAOCRService {
       }
     }
 
-    // Validate reference numbers
     const numberFields = fields.filter(f => f.name.includes('Number') || f.name.includes('permitNumber'));
     for (const numberField of numberFields) {
       if (!/^[A-Z0-9\-\/]{6,20}$/.test(numberField.value)) {
@@ -513,9 +457,6 @@ export class EnhancedSAOCRService {
     };
   }
 
-  /**
-   * Detect primary language of the document
-   */
   private detectLanguage(text: string): 'english' | 'afrikaans' | 'mixed' {
     const afrikaansKeywords = ['vergunning', 'werkgewer', 'geldig', 'verval', 'kantoor', 'departement', 'binnelandse'];
     const englishKeywords = ['permit', 'employer', 'valid', 'expires', 'office', 'department', 'affairs'];
@@ -530,5 +471,4 @@ export class EnhancedSAOCRService {
   }
 }
 
-// Export singleton instance
 export const enhancedSAOCR = new EnhancedSAOCRService();
