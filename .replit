@@ -76,7 +76,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Quick Start (No Build)"
+runButton = "Production Build & Deploy"
 
 [[workflows.workflow]]
 name = "Project"
