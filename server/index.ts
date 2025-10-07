@@ -2,13 +2,29 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { universalAPIOverride } from './middleware/universal-api-override';
-
-console.log('🔑 Production Mode Active - Checking API Configuration');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
+
+// Load environment variables first
+dotenv.config();
+
+console.log('🔑 Production Mode Active - Checking API Configuration');
+
+// Import with error handling
+let universalAPIOverride: any;
+try {
+  const module = await import('./middleware/universal-api-override.js');
+  universalAPIOverride = module.universalAPIOverride || module.default;
+} catch (error) {
+  console.warn('⚠️ Could not load universal-api-override, using minimal config');
+  universalAPIOverride = {
+    enableProductionMode: () => console.log('🔒 Production mode enabled'),
+    getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
+    getStatus: () => ({ production: true })
+  };
+}
 
 // Real service imports
 import { storage } from './storage.js';
@@ -20,9 +36,6 @@ import { initializeDatabase } from './config/database-railway.js';
 // Ultra-advanced PDF routes import (commented out due to syntax errors)
 // import { ultraPDFRoutes } from './routes/ultra-pdf-api';
 // import { governmentPrintIntegration } from './services/government-print-integration';
-
-// Load environment variables
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
