@@ -696,3 +696,56 @@ args = "echo \"📦 Files ready in dist/\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "ls -la dist/"
+
+[[workflows.workflow]]
+name = "Test Startup & Routes"
+author = 48416046
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🧪 Starting DHA Server for Testing...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js &"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SERVER_PID=$!"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 3"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔍 Running Route Tests...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx test-startup-and-routes.ts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "TEST_EXIT=$?"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🛑 Stopping test server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "kill $SERVER_PID 2>/dev/null || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "exit $TEST_EXIT"
