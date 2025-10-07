@@ -508,7 +508,7 @@ export default function UltraQueenAI() {
                           }
                         }}
                         placeholder="Ask anything... I have unlimited capabilities"
-                        className="min-h-[60px] bg-[var(--queen-gray)] border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)] placeholder-[var(--queen-gold-light)]/50 pr-20">
+                        className="min-h-[60px] bg-[var(--queen-gray)] border-[var(--queen-gold)]/30 text-[var(--queen-gold-light)] placeholder-[var(--queen-gold-light)]/50 pr-20"
                       />
                       <div className="absolute right-2 top-2 flex gap-1">
                         <Button

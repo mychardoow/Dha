@@ -32,35 +32,17 @@ import {
   ExternalLink, Zap, Target, Settings, HelpCircle
 } from "lucide-react";
 
-// Import unified schemas from shared
+// Ensure proper imports for shadcn/ui components
+import * as React from "react";
+
 import {
   documentGenerationRequestSchema,
   documentTypeSchemas,
   type DocumentGenerationRequest,
   type SmartIdCardData,
   type IdentityDocumentBookData,
-  type TemporaryIdCertificateData,
-  type SouthAfricanPassportData,
-  type EmergencyTravelCertificateData,
-  type RefugeeTravelDocumentData,
-  type BirthCertificateData,
-  type DeathCertificateData,
-  type MarriageCertificateData,
-  type DivorceCertificateData,
-  type GeneralWorkVisaData,
-  type CriticalSkillsWorkVisaData,
-  type IntraCompanyTransferWorkVisaData,
-  type BusinessVisaData,
-  type StudyVisaPermitData,
-  type VisitorVisaData,
-  type MedicalTreatmentVisaData,
-  type RetiredPersonVisaData,
-  type ExchangeVisaData,
-  type RelativesVisaData,
-  type PermanentResidencePermitData,
-  type CertificateOfExemptionData,
-  type CertificateOfSouthAfricanCitizenshipData
-} from "../../../shared/schema";
+  type SouthAfricanPassportData
+} from "../shared/schema";
 
 // Document type definitions
 interface DocumentTypeInfo {

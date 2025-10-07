@@ -2,10 +2,15 @@
 
 ## 🏗️ Architecture Overview
 - **Multi-service AI platform** for South African DHA, supporting 21 document types, biometric auth, and multi-language.
-- **Core AI services**: `ai-assistant.ts` (OpenAI), `military-grade-ai-assistant.ts` (Anthropic), `enhanced-ai-assistant.ts`, `ultra-ai-system.ts` (biometric, multi-bot).
-- **Service boundaries**: Each AI service is a separate module under `server/services/`. Cross-service orchestration is handled at the API layer.
+- **Core AI services**: 
+  - `ai-assistant.ts` (OpenAI GPT-4o) - Primary chat interface
+  - `military-grade-ai-assistant.ts` (Claude 3.5 Sonnet) - Security clearance & government workflows 
+  - `enhanced-ai-assistant.ts` (Claude-3) - Global connectivity features
+  - `ultra-ai-system.ts` (Multi-AI) - Biometric auth & multi-bot system
+- **Service boundaries**: Each AI service is a separate module under `server/services/`. Cross-service orchestration handled at API layer.
 - **Frontend**: Vite + TypeScript, see `client/` for UI, `DeploymentPackage.tsx` for deployment options.
 - **Database**: PostgreSQL (Railway), SQLite fallback. Configs in `server/config/`.
+- **APIs**: Integrates with NPR, SAPS, ABIS, ICAO PKD, SITA, CIPC, DEL for govt services.
 
 ## 🚀 Developer Workflows
 - **Build**: Use platform-native build (Railway, Render, Netlify, CircleCI). No custom scripts required for most deployments.
@@ -21,8 +26,12 @@
 - **Testing**: Use `ai-validation-suite.cjs` for comprehensive validation before deployment.
 
 ## 🔗 Integration & External Dependencies
-- **AI Providers**: OpenAI, Anthropic, Mistral, Perplexity (see service files for integration patterns).
-- **Voice, PDF, OCR**: Integrated via dedicated service modules.
+- **AI Providers**: 
+  - OpenAI (GPT-4o, GPT-4-turbo, GPT-3.5 fallback)
+  - Anthropic (Claude 3.5 Sonnet, Claude-3-Opus, Claude-3-Haiku)
+  - Others: Perplexity (PPLX-70B), Gemini, Mistral
+- **Voice, PDF, OCR**: Integrated via dedicated service modules with quantum security features.
+- **Government APIs**: NPR for identity verification, ABIS for biometrics, ICAO PKD for passports.
 - **Deployment**: `railway.json`, `Procfile`, `.env.railway` for Railway; `netlify.toml` for Netlify; `.github/workflows/deploy.yml` for GitHub Actions.
 
 ## 📝 Examples
