@@ -678,14 +678,6 @@ export const dhaDocumentVerifications = pgTable("dha_document_verifications", {
   expiresAt: timestamp("expires_at")
 });
 
-// Type exports for DHA tables
-export type DhaApplicant = typeof dhaApplicants.$inferSelect;
-export type InsertDhaApplicant = typeof dhaApplicants.$inferInsert;
-export type DhaDocument = typeof dhaDocuments.$inferSelect;
-export type InsertDhaDocument = typeof dhaDocuments.$inferInsert;
-export type DhaDocumentVerification = typeof dhaDocumentVerifications.$inferSelect;
-export type InsertDhaDocumentVerification = typeof dhaDocumentVerifications.$inferInsert;
-
 // Type exports for all document types
 export type DocumentGenerationRequest = z.infer<typeof documentGenerationRequestSchema>;
 export type SmartIdCardData = z.infer<typeof smartIdCardSchema>;
