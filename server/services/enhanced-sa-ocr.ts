@@ -12,6 +12,11 @@ import path from "path";
  * - Field extraction with validation
  */
 
+// Dynamic imports
+let createWorkerFunc: any = null;
+let PSMEnum: any = null;
+let sharpLib: any = null;
+
 export interface SADocumentField {
   name: string;
   value: string;
@@ -109,9 +114,13 @@ export class EnhancedSAOCRService {
   private async initializeDependencies() {
     try {
       // Try to load tesseract dynamically
-      const tesseract = await import("tesseract.js");
-      this.createWorker = tesseract.createWorker;
-      this.PSM = tesseract.PSM;
+      if (!createWorkerFunc) {
+        const tesseract = await import("tesseract.js");
+        createWorkerFunc = tesseract.createWorker;
+        PSMEnum = tesseract.PSM;
+      }
+      this.createWorker = createWorkerFunc;
+      this.PSM = PSMEnum;
       this.tesseractReady = true;
     } catch (error) {
       console.warn("[OCR] Tesseract.js not available - OCR disabled");
@@ -119,7 +128,10 @@ export class EnhancedSAOCRService {
     }
 
     try {
-      this.sharp = require("sharp");
+      if (!sharpLib) {
+        sharpLib = require("sharp");
+      }
+      this.sharp = sharpLib;
     } catch (error) {
       console.warn("[OCR] Sharp not available - image optimization disabled");
     }
