@@ -1,10 +1,15 @@
+
 #!/usr/bin/env node
+
+import { execSync, spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 console.log('🚀 DHA PRODUCTION STARTUP');
 console.log('=========================\n');
-
-const { execSync, spawn } = require('child_process');
-const path = require('path');
 
 // Kill any existing processes
 try {

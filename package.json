@@ -6,7 +6,9 @@
   "main": "dist/server/index.js",
   "scripts": {
     "start": "node dist/server/index.js",
-    "build": "npm install --legacy-peer-deps && npm run build:api && npm run build:client || true",
+    "dev:start": "node start-simple.js",
+    "build": "node build-production.js",
+    "build:quick": "npx tsc --project tsconfig.json --noEmitOnError false",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
     "dev:api": "tsc -w",
     "dev:client": "vite --config client/vite.config.ts",
