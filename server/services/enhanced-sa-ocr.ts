@@ -1,8 +1,19 @@
-import { createWorker, PSM } from "tesseract.js";
 import fs from "fs/promises";
 import path from "path";
-// import sharp from "sharp"; // Temporarily disabled for deployment
+
+// Dynamic imports for better compatibility
+let createWorker: any = null;
+let PSM: any = null;
 let sharp: any = null;
+
+try {
+  const tesseract = await import("tesseract.js");
+  createWorker = tesseract.createWorker;
+  PSM = tesseract.PSM;
+} catch (error) {
+  console.warn("[OCR] Tesseract.js not available - OCR disabled");
+}
+
 try {
   sharp = require("sharp");
 } catch (error) {
@@ -64,6 +75,26 @@ export interface SAOCROptions {
 }
 
 export class EnhancedSAOCRService {
+  private tesseractReady = false;
+
+  constructor() {
+    this.initializeTesseract();
+  }
+
+  private async initializeTesseract() {
+    try {
+      if (!createWorker) {
+        const tesseract = await import("tesseract.js");
+        createWorker = tesseract.createWorker;
+        PSM = tesseract.PSM;
+      }
+      this.tesseractReady = true;
+    } catch (error) {
+      console.error("[OCR] Failed to initialize tesseract:", error);
+      this.tesseractReady = false;
+    }
+  }
+
   private readonly SA_DOCUMENT_PATTERNS = {
     // Work Permit Patterns
     work_permit: {
@@ -124,6 +155,13 @@ export class EnhancedSAOCRService {
     }
   ): Promise<SAOCRResult> {
     const startTime = Date.now();
+
+    if (!this.tesseractReady || !createWorker) {
+      await this.initializeTesseract();
+      if (!this.tesseractReady) {
+        throw new Error("Tesseract OCR is not available");
+      }
+    }
 
     try {
       // Preprocess image for better OCR accuracy
