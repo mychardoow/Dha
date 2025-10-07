@@ -179,15 +179,15 @@ console.log('🔧 Registering application routes...');
 registerRoutes(app);
 
 // Register API key management routes
-import apiKeyStatusRoutes from './routes/api-key-status';
+import apiKeyStatusRoutes from './routes/api-key-status.js';
 app.use(apiKeyStatusRoutes);
 
 // Register comprehensive API status routes
-import apiStatusRoutes from './routes/api-status';
+import apiStatusRoutes from './routes/api-status.js';
 app.use(apiStatusRoutes);
 
 // Initialize Universal API Manager
-import { universalAPIManager } from './services/universal-api-manager';
+import { universalAPIManager } from './services/universal-api-manager.js';
 console.log('✅ Universal API Manager initialized with 40+ integrations');
 
 // Mount ultra-advanced PDF routes (commented out due to syntax errors)

@@ -116,7 +116,10 @@ router.post('/chat', requireAuth, async (req, res) => {
           ]
         });
 
-        response = completion.content[0].text;
+        const firstBlock = completion.content[0];
+        if (firstBlock.type === 'text') {
+          response = firstBlock.text;
+        }
         usedProvider = 'anthropic';
 
       } catch (anthropicError) {

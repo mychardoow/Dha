@@ -9,8 +9,8 @@ import { EnhancedErrorCorrectionService } from '../services/enhanced-error-corre
 import { storage } from '../storage';
 import { getConnectionStatus } from '../db';
 
-// Initialize Enhanced Error Correction Service
-const errorCorrectionService = new EnhancedErrorCorrectionService();
+// Initialize Enhanced Error Correction Service using singleton pattern
+const errorCorrectionService = EnhancedErrorCorrectionService.getInstance();
 
 interface ErrorDetails {
   message: string;

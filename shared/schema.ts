@@ -5,7 +5,7 @@ import { z } from "zod";
 // ===================== POSTGRESQL COMPATIBLE SCHEMA =====================
 
 // Type definitions for enum-like values
-export type AuditAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'GENERATE_DOCUMENT' | 'VALIDATE_BIOMETRIC' | 'LOGIN_ATTEMPT' | 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'PASSWORD_CHANGED' | 'DOCUMENT_UPLOADED' | 'DOCUMENT_DOWNLOADED' | 'DOCUMENT_VIEWED' | 'DOCUMENT_DELETED' | 'DOCUMENT_MODIFIED' | 'DOCUMENT_VERIFIED' | 'API_CALL' | 'DHA_API_CALL' | 'SAPS_API_CALL' | 'ICAO_API_CALL' | 'USER_CREATED' | 'USER_UPDATED';
+export type AuditAction = 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'GENERATE_DOCUMENT' | 'VALIDATE_BIOMETRIC' | 'LOGIN_ATTEMPT' | 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'PASSWORD_CHANGED' | 'DOCUMENT_UPLOADED' | 'DOCUMENT_DOWNLOADED' | 'DOCUMENT_VIEWED' | 'DOCUMENT_DELETED' | 'DOCUMENT_MODIFIED' | 'DOCUMENT_VERIFIED' | 'API_CALL' | 'DHA_API_CALL' | 'SAPS_API_CALL' | 'ICAO_API_CALL' | 'USER_CREATED' | 'USER_UPDATED' | 'USER_DELETED';
 export type ComplianceEventType = 'POPIA_CONSENT' | 'DATA_ACCESS' | 'DATA_EXPORT' | 'BIOMETRIC_CAPTURE' | 'DOCUMENT_GENERATION' | 'DATA_ACCESSED' | 'DATA_MODIFIED' | 'DATA_DELETED';
 export type UserRole = 'user' | 'admin' | 'dha_officer' | 'manager' | 'super_admin' | 'raeesa_ultra';
 export type DocumentType = 'smart_id_card' | 'identity_document_book' | 'temporary_id_certificate' | 'south_african_passport' | 'emergency_travel_certificate' | 'refugee_travel_document' | 'birth_certificate' | 'death_certificate' | 'marriage_certificate' | 'divorce_certificate' | 'general_work_visa' | 'critical_skills_work_visa' | 'intra_company_transfer_work_visa' | 'business_visa' | 'study_visa_permit' | 'visitor_visa' | 'medical_treatment_visa' | 'retired_person_visa' | 'exchange_visa' | 'relatives_visa' | 'permanent_residence_permit' | 'certificate_of_exemption' | 'certificate_of_sa_citizenship';
@@ -40,7 +40,8 @@ export const AuditAction = {
   SAPS_API_CALL: 'SAPS_API_CALL' as const,
   ICAO_API_CALL: 'ICAO_API_CALL' as const,
   USER_CREATED: 'USER_CREATED' as const,
-  USER_UPDATED: 'USER_UPDATED' as const
+  USER_UPDATED: 'USER_UPDATED' as const,
+  USER_DELETED: 'USER_DELETED' as const
 } as const;
 
 export const ComplianceEventType = {
@@ -1067,7 +1068,7 @@ export const insertDhaDocumentSchema = z.object({
 export const insertDhaDocumentVerificationSchema = z.object({
   documentId: z.string(),
   verificationCode: z.string(),
-  qrCodeData: z.string(),
+  qrCodeData: z.string().optional(),
   qrCodeUrl: z.string().optional(),
   verificationType: z.string().default("QR"),
   isValid: z.boolean().default(true),

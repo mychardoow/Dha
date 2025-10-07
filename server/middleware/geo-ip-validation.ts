@@ -130,12 +130,15 @@ class GeoIPValidationService {
       
       // Production geo-IP lookup using external service
       // Option 1: Use ipapi.co (free tier available)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
+      
       const response = await fetch(`http://ipapi.co/${ipAddress}/json/`, {
-        timeout: 2000, // 2 second timeout
+        signal: controller.signal,
         headers: {
           'User-Agent': 'DHA-Verification-System/1.0'
         }
-      });
+      }).finally(() => clearTimeout(timeoutId));
       
       if (response.ok) {
         const data = await response.json();
@@ -148,9 +151,12 @@ class GeoIPValidationService {
       }
       
       // Fallback: Try alternative service
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 2000);
+      
       const fallbackResponse = await fetch(`http://ip-api.com/json/${ipAddress}?fields=countryCode,regionName`, {
-        timeout: 2000
-      });
+        signal: fallbackController.signal
+      }).finally(() => clearTimeout(fallbackTimeoutId));
       
       if (fallbackResponse.ok) {
         const fallbackData = await fallbackResponse.json();

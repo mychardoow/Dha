@@ -26,7 +26,7 @@ try {
 // Build client
 console.log('🎨 Building client...');
 try {
-  execSync('cd client && npm install --legacy-peer-deps && npm run build', { 
+  execSync('cd client && npm install --include=dev --legacy-peer-deps && npm run build', { 
     stdio: 'inherit',
     env: { ...process.env, NODE_ENV: 'production' }
   });

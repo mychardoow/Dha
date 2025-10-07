@@ -4,7 +4,7 @@
  * with dynamic forms, preview mode, and exact design specifications
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, ComponentType, ChangeEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,9 +32,6 @@ import {
   ExternalLink, Zap, Target, Settings, HelpCircle
 } from "lucide-react";
 
-// Ensure proper imports for shadcn/ui components
-import * as React from "react";
-
 import {
   documentGenerationRequestSchema,
   documentTypeSchemas,
@@ -51,13 +48,13 @@ interface DocumentTypeInfo {
   description: string;
   category: string;
   formNumber: string;
-  icon: React.ComponentType<any>;
+  icon: ComponentType<any>;
   color: string;
   isImplemented: boolean;
 }
 
 // Icon mapping for document types from API
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, ComponentType<any>> = {
   CreditCard,
   BookOpen,
   FileCheck,
@@ -80,7 +77,7 @@ const ICON_MAP: Record<string, React.ComponentType<any>> = {
 };
 
 // Category icon mapping from API
-const CATEGORY_ICON_MAP: Record<string, React.ComponentType<any>> = {
+const CATEGORY_ICON_MAP: Record<string, ComponentType<any>> = {
   UserCheck,
   Plane,
   FileText,

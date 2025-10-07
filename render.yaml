@@ -86,6 +86,6 @@ projects:
       - key: NODE_ENV
         sync: false
       region: oregon
-      buildCommand: npm install
-      startCommand: 'npm start '
+      buildCommand: npm install --include=dev --legacy-peer-deps && npm run build
+      startCommand: npm start
       autoDeployTrigger: "off"

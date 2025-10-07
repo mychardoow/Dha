@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import authRoutes from './routes/auth.js';
 import aiAssistantRoutes from './routes/ai-assistant.js';
-import healthRoutes from './routes/health.js';
-import documentRoutes from './routes/complete-pdf-routes.js';
+import { healthRouter as healthRoutes } from './routes/health.js';
+import { completePDFRoutes as documentRoutes } from './routes/complete-pdf-routes.js';
 
 export function registerRoutes(app: Express) {
   console.log('🔧 Registering API routes...');
