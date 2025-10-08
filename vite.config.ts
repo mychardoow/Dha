@@ -8,14 +8,14 @@ export default defineConfig(async () => {
 
   try {
     const cartographer = await import("@replit/vite-plugin-cartographer");
-    vitePluginCartographer = cartographer.vitePluginCartographer;
+    vitePluginCartographer = cartographer.default;
   } catch (e) {
     console.log("Cartographer plugin not available");
   }
 
   try {
     const errorModal = await import("@replit/vite-plugin-runtime-error-modal");
-    vitePluginRuntimeErrorModal = errorModal.vitePluginRuntimeErrorModal;
+    vitePluginRuntimeErrorModal = errorModal.default;
   } catch (e) {
     console.log("Runtime error modal plugin not available");
   }

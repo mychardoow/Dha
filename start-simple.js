@@ -1,64 +1,67 @@
-#!/usr/bin/env node
 
-const { spawn } = require('child_process');
-const path = require('path');
+import { execSync, spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
-console.log('🇿🇦 DHA Digital Services Platform - Replit Startup');
-console.log('==================================================');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-// Set environment variables for Replit
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-process.env.PORT = process.env.PORT || '5000';
-process.env.HOST = '0.0.0.0';
+console.log('🚀 DHA PRODUCTION STARTUP');
+console.log('=========================\n');
 
-// Start the TypeScript server directly
-const serverPath = path.join(__dirname, 'server', 'index.ts');
+// Kill any existing processes
+try {
+  console.log('🧹 Cleaning up stale processes...');
+  execSync('pkill -f "node.*server" || true', { stdio: 'ignore' });
+  execSync('pkill -f tsx || true', { stdio: 'ignore' });
+} catch (e) {
+  // Ignore cleanup errors
+}
 
-console.log('🚀 Starting DHA server with tsx...');
+// Ensure tsx is installed
+try {
+  console.log('📦 Verifying tsx installation...');
+  execSync('npm list tsx || npm install --no-save tsx', { stdio: 'inherit' });
+} catch (e) {
+  console.warn('⚠️ Could not verify tsx, continuing anyway...');
+}
 
-const server = spawn('npx', ['tsx', serverPath], {
+console.log('✅ Starting DHA Server with tsx...\n');
+
+const server = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'server/index.ts'], {
   stdio: 'inherit',
   env: {
     ...process.env,
-    NODE_ENV: 'production',
-    PORT: '5000',
-    HOST: '0.0.0.0'
+    NODE_ENV: process.env.NODE_ENV || 'production',
+    PORT: process.env.PORT || '5000',
+    HOST: '0.0.0.0',
+    TS_NODE_TRANSPILE_ONLY: 'true',
+    TS_NODE_IGNORE_DIAGNOSTICS: 'true'
+  },
+  cwd: process.cwd()
+});
+
+server.on('error', (err) => {
+  console.error('❌ Server failed to start:', err.message);
+  console.error('\n💡 Try running: npm install --force');
+  process.exit(1);
+});
+
+server.on('exit', (code) => {
+  if (code !== 0 && code !== null) {
+    console.error(`❌ Server exited with code ${code}`);
+    process.exit(code);
   }
-});
-
-server.on('error', (error) => {
-  console.error('❌ Server startup error:', error);
-  console.log('🔄 Attempting to restart...');
-  setTimeout(() => {
-    const retryServer = spawn('npx', ['tsx', serverPath], {
-      stdio: 'inherit',
-      env: process.env
-    });
-    retryServer.on('close', (code) => {
-      if (code !== 0) {
-        process.exit(code);
-      }
-    });
-  }, 3000);
-});
-
-server.on('close', (code) => {
-  console.log(`🔄 Server process exited with code ${code}`);
-  if (code !== 0) {
-    console.log('🔄 Restarting server...');
-    setTimeout(() => {
-      require(serverPath);
-    }, 2000);
-  }
-});
-
-// Handle process termination
-process.on('SIGTERM', () => {
-  console.log('🛑 Received SIGTERM, shutting down gracefully');
-  server.kill('SIGTERM');
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 Received SIGINT, shutting down gracefully');
-  server.kill('SIGINT');
+  console.log('\n🛑 Shutting down gracefully...');
+  server.kill('SIGTERM');
+  setTimeout(() => process.exit(0), 1000);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Shutting down gracefully...');
+  server.kill('SIGTERM');
+  setTimeout(() => process.exit(0), 1000);
 });

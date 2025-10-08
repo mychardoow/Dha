@@ -5,14 +5,26 @@ import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";
-// import sharp from "sharp"; // Temporarily disabled for deployment  
+
+// Dynamic imports for better compatibility
 let sharp: any = null;
+let createWorker: any = null;
+
 try {
   sharp = require("sharp");
 } catch (error) {
   console.warn("[DocumentProcessor] Sharp not available - image processing disabled");
 }
-import { createWorker } from "tesseract.js";
+
+// Lazy load tesseract
+const getTesseractWorker = async () => {
+  if (!createWorker) {
+    const tesseract = await import("tesseract.js");
+    createWorker = tesseract.createWorker;
+  }
+  return createWorker;
+};
+
 import { privacyProtectionService } from "./privacy-protection";
 import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
 import { saPermitValidator, type PermitValidationRequest, type PermitValidationResult } from "./sa-permit-validator";
@@ -152,7 +164,8 @@ export class DocumentProcessorService {
       });
 
       const healthCheckPromise = (async () => {
-        const worker = await createWorker();
+        const workerFactory = await getTesseractWorker();
+        const worker = await workerFactory();
         await worker.load();
         await worker.reinitialize('eng');
         await worker.terminate();
@@ -475,13 +488,16 @@ export class DocumentProcessorService {
         };
       }
 
+      // Get tesseract worker
+      const workerFactory = await getTesseractWorker();
+
       // Add timeout protection for OCR operations
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('OCR operation timeout after 30 seconds')), 30000);
       });
 
       const ocrPromise = (async () => {
-        const worker = await createWorker();
+        const worker = await workerFactory();
         
         try {
           await worker.load();

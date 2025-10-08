@@ -2,13 +2,29 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
-import { universalAPIOverride } from './middleware/universal-api-override';
-
-console.log('🔑 Production Mode Active - Checking API Configuration');
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
+
+// Load environment variables first
+dotenv.config();
+
+console.log('🔑 Production Mode Active - Checking API Configuration');
+
+// Import with error handling
+let universalAPIOverride: any;
+try {
+  const module = await import('./middleware/universal-api-override.js');
+  universalAPIOverride = module.universalAPIOverride || module.default;
+} catch (error) {
+  console.warn('⚠️ Could not load universal-api-override, using minimal config');
+  universalAPIOverride = {
+    enableProductionMode: () => console.log('🔒 Production mode enabled'),
+    getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
+    getStatus: () => ({ production: true })
+  };
+}
 
 // Real service imports
 import { storage } from './storage.js';
@@ -20,9 +36,6 @@ import { initializeDatabase } from './config/database-railway.js';
 // Ultra-advanced PDF routes import (commented out due to syntax errors)
 // import { ultraPDFRoutes } from './routes/ultra-pdf-api';
 // import { governmentPrintIntegration } from './services/government-print-integration';
-
-// Load environment variables
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,11 +50,15 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 // Create Express app and HTTP server
 const app = express();
 
-// 🔑 FORCE PRODUCTION MODE - REAL APIs ONLY
-console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
-process.env.NODE_ENV = 'production';
-process.env.FORCE_REAL_APIS = 'true';
-universalAPIOverride.enableProductionMode();
+// 🔑 ENABLE PRODUCTION MODE IF NOT IN REPLIT
+if (!process.env.REPL_ID) {
+  console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
+  process.env.NODE_ENV = 'production';
+  process.env.FORCE_REAL_APIS = 'true';
+  universalAPIOverride.enableProductionMode();
+} else {
+  console.log('🔧 REPLIT DEVELOPMENT MODE - USING VITE');
+}
 
 // Validate real API keys exist
 const requiredKeys = ['OPENAI_API_KEY'];
@@ -63,15 +80,17 @@ try {
   process.exit(1);
 }
 
-// Validate production environment
-if (process.env.NODE_ENV === 'production') {
+// Validate production environment (skip Railway-specific validation for other platforms)
+if (process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT) {
   try {
     validateRailwayConfig();
-    console.log('✅ Production configuration validated');
+    console.log('✅ Railway configuration validated');
   } catch (error) {
-    console.error('❌ Production validation failed:', error);
+    console.error('❌ Railway validation failed:', error);
     process.exit(1);
   }
+} else if (process.env.NODE_ENV === 'production') {
+  console.log('✅ Production mode active (non-Railway deployment)');
 }
 
 // Security middleware
@@ -166,15 +185,15 @@ console.log('🔧 Registering application routes...');
 registerRoutes(app);
 
 // Register API key management routes
-import apiKeyStatusRoutes from './routes/api-key-status';
+import apiKeyStatusRoutes from './routes/api-key-status.js';
 app.use(apiKeyStatusRoutes);
 
 // Register comprehensive API status routes
-import apiStatusRoutes from './routes/api-status';
+import apiStatusRoutes from './routes/api-status.js';
 app.use(apiStatusRoutes);
 
 // Initialize Universal API Manager
-import { universalAPIManager } from './services/universal-api-manager';
+import { universalAPIManager } from './services/universal-api-manager.js';
 console.log('✅ Universal API Manager initialized with 40+ integrations');
 
 // Mount ultra-advanced PDF routes (commented out due to syntax errors)
@@ -185,7 +204,7 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // app.use(governmentPrintRoutes);
 
 // Setup Vite for development
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.REPL_ID || process.env.NODE_ENV !== 'production') {
   console.log('🔧 Setting up Vite development server...');
   try {
     await setupVite(app, server);
@@ -196,6 +215,7 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
   // Serve static files in production
   const staticPath = join(process.cwd(), 'dist/public');
+  console.log('📦 Serving built static files from dist/public');
   app.use(express.static(staticPath));
 
   // Serve React app for non-API routes

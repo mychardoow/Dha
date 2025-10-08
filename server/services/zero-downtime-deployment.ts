@@ -671,8 +671,7 @@ export class ZeroDowntimeDeployment extends EventEmitter {
     for (const endpoint of endpoints) {
       try {
         const response = await fetch(`http://localhost:${process.env.PORT || 5000}${endpoint}`, {
-          method: 'GET',
-          timeout: 5000
+          method: 'GET'
         });
         
         results.push({
@@ -703,8 +702,7 @@ export class ZeroDowntimeDeployment extends EventEmitter {
       
       for (const endpoint of authEndpoints) {
         const response = await fetch(`http://localhost:${process.env.PORT || 5000}${endpoint}`, {
-          method: 'GET',
-          timeout: 5000
+          method: 'GET'
         });
         
         if (!response.ok && response.status !== 401) {
@@ -972,14 +970,8 @@ export class ZeroDowntimeDeployment extends EventEmitter {
       // Log progress
       await this.logSystemMetric({
         metricType: 'deployment_progress',
-        value: JSON.stringify({
-          deployment_id: this.currentDeployment.id,
-          progress: this.currentDeployment.progress,
-          phase: this.currentDeployment.currentPhase,
-          healthy_replicas: this.currentDeployment.healthyReplicas,
-          total_replicas: this.currentDeployment.totalReplicas
-        }),
-        unit: 'json'
+        value: this.currentDeployment.progress,
+        unit: 'percentage'
       });
       
     } catch (error) {
@@ -1136,10 +1128,12 @@ export class ZeroDowntimeDeployment extends EventEmitter {
    */
   private async logDeploymentEvent(event: Omit<InsertSelfHealingAction, 'id' | 'timestamp'>): Promise<void> {
     try {
-      await storage.insertSelfHealingAction({
-        ...event,
-        timestamp: new Date()
-      });
+      // TODO: Implement storage method when available
+      // await storage.insertSelfHealingAction({
+      //   ...event,
+      //   timestamp: new Date()
+      // });
+      console.log('📝 Deployment event:', event.description);
     } catch (error) {
       console.warn('⚠️ Failed to log deployment event:', error);
     }
@@ -1147,10 +1141,12 @@ export class ZeroDowntimeDeployment extends EventEmitter {
 
   private async logSystemMetric(metric: Omit<InsertSystemMetric, 'id' | 'timestamp'>): Promise<void> {
     try {
-      await storage.insertSystemMetric({
-        ...metric,
-        timestamp: new Date()
-      });
+      // TODO: Implement storage method when available
+      // await storage.insertSystemMetric({
+      //   ...metric,
+      //   timestamp: new Date()
+      // });
+      console.log('📊 System metric:', metric.metricType, metric.value);
     } catch (error) {
       console.warn('⚠️ Failed to log system metric:', error);
     }

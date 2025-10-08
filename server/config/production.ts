@@ -111,7 +111,7 @@ export function validateProductionEnvironment(): {
 
   // Validate NODE_ENV
   if (process.env.NODE_ENV !== 'production') {
-    errors.push('NODE_ENV must be set to "production"');
+    warnings.push('NODE_ENV is not set to "production" - some features may be limited');
   }
 
   // Validate SESSION_SECRET

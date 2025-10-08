@@ -15,7 +15,7 @@ const __dirname = dirname(__filename);
 console.log('\n🚀 DHA Digital Services - Simplified Server Starting...');
 console.log('🇿🇦 Department of Home Affairs Digital Platform');
 
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT || '5000', 10);
 const HOST = '0.0.0.0';
 
 console.log(`🔧 Server configuration: PORT=${PORT}, HOST=${HOST}`);

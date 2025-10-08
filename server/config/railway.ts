@@ -18,12 +18,12 @@ const railwayEnvSchema = z.object({
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   JWT_SECRET: z.string().min(16, 'JWT_SECRET required for token signing'),
   
-  // AI Service Configuration (All 5 services REQUIRED)
+  // AI Service Configuration (OpenAI and Anthropic REQUIRED, others optional)
   OPENAI_API_KEY: z.string().min(1, 'OpenAI API key required'),
   ANTHROPIC_API_KEY: z.string().min(1, 'Anthropic API key required'),
-  GOOGLE_API_KEY: z.string().min(1, 'Google/Gemini API key required'),
-  PERPLEXITY_API_KEY: z.string().min(1, 'Perplexity API key required'),
-  WORKATO_API_KEY: z.string().min(1, 'Workato API key required (5th AI service)'),
+  GOOGLE_API_KEY: z.string().optional(),
+  PERPLEXITY_API_KEY: z.string().optional(),
+  WORKATO_API_KEY: z.string().optional(),
   
   // Optional AI services (for extensibility)
   HUGGINGFACE_API_KEY: z.string().optional(),

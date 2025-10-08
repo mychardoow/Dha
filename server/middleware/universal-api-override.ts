@@ -144,3 +144,4 @@ export class UniversalAPIOverride {
 }
 
 export const universalAPIOverride = UniversalAPIOverride.getInstance();
+export default universalAPIOverride;
