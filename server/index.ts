@@ -50,11 +50,15 @@ const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
 // Create Express app and HTTP server
 const app = express();
 
-// 🔑 FORCE PRODUCTION MODE - REAL APIs ONLY
-console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
-process.env.NODE_ENV = 'production';
-process.env.FORCE_REAL_APIS = 'true';
-universalAPIOverride.enableProductionMode();
+// 🔑 ENABLE PRODUCTION MODE IF NOT IN REPLIT
+if (!process.env.REPL_ID) {
+  console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
+  process.env.NODE_ENV = 'production';
+  process.env.FORCE_REAL_APIS = 'true';
+  universalAPIOverride.enableProductionMode();
+} else {
+  console.log('🔧 REPLIT DEVELOPMENT MODE - USING VITE');
+}
 
 // Validate real API keys exist
 const requiredKeys = ['OPENAI_API_KEY'];
@@ -200,7 +204,7 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // app.use(governmentPrintRoutes);
 
 // Setup Vite for development
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.REPL_ID || process.env.NODE_ENV !== 'production') {
   console.log('🔧 Setting up Vite development server...');
   try {
     await setupVite(app, server);
@@ -211,6 +215,7 @@ if (process.env.NODE_ENV !== 'production') {
 } else {
   // Serve static files in production
   const staticPath = join(process.cwd(), 'dist/public');
+  console.log('📦 Serving built static files from dist/public');
   app.use(express.static(staticPath));
 
   // Serve React app for non-API routes

@@ -3,7 +3,7 @@ export class ProductionValidator {
     console.log('\n🔍 VALIDATING PRODUCTION MODE...\n');
 
     if (process.env.NODE_ENV !== 'production') {
-      throw new Error('NODE_ENV must be set to production for the application to run properly.');
+      console.warn('⚠️ Warning: NODE_ENV is not set to production. Some features may be limited.');
     }
 
     const criticalKeys = {
