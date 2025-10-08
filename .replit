@@ -732,3 +732,92 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Run Pre-Deployment Tests"
+author = 48426842
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🧪 Running Comprehensive Pre-Deployment Tests\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"==============================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting test server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev:start &"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SERVER_PID=$!"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"⏳ Waiting for server to be ready...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 5"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔍 Running all tests...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx comprehensive-pre-deployment-test.ts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "TEST_EXIT=$?"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🛑 Stopping test server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "kill $SERVER_PID 2>/dev/null || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Tests complete!\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "exit $TEST_EXIT"
