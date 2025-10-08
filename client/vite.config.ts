@@ -7,42 +7,37 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@db": path.resolve(__dirname, "../db"),
-    },
-  },
-  server: {
-    host: "::",
-    port: 5173,
-    strictPort: false,
-    hmr: {
-      clientPort: 443,
-      protocol: 'wss'
-    },
-    proxy: {
-      "/api": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-      },
-    },
+      "@shared": path.resolve(__dirname, "../shared")
+    }
   },
   build: {
-    outDir: '../dist/public',
-    emptyOutDir: true,
-    sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
+    outDir: "dist",
+    sourcemap: true,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
     },
     rollupOptions: {
+      external: [],
       output: {
+        format: "es",
+        chunkFileNames: "chunks/[name]-[hash].js",
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu'],
-        },
-      },
+          'pdf-lib': ['pdf-lib'],
+          'pdfjs': ['pdfjs-dist'],
+          'vendor': [
+            'react',
+            'react-dom',
+            'recharts',
+            'highlight.js',
+            'socket.io-client',
+            'date-fns'
+          ]
+        }
+      }
     },
-  },
+    optimizeDeps: {
+      include: ['pdf-lib', 'pdfjs-dist']
+    }
+  }
 });
