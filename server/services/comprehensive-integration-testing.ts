@@ -1139,7 +1139,7 @@ export class ComprehensiveIntegrationTesting extends EventEmitter {
     let maxFrequency = 0;
     let minLatency = Infinity;
     let maxCpuOverhead = 0;
-    let stabilityScores: number[] = [];
+    const stabilityScores: number[] = [];
     
     for (const result of suiteResults) {
       for (const outcome of result.measuredOutcomes) {

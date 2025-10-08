@@ -737,7 +737,7 @@ export class CyberDefenseSystem {
     confidence: number;
   }> {
     const indicators: string[] = [];
-    let confidence = 0;
+    const confidence = 0;
     
     // Analyze for suspicious patterns
     // Simplified implementation

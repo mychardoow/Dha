@@ -401,7 +401,7 @@ export class DocumentProcessorService {
       if (saOCRResult && saOCRResult.success) {
         result.documentType = saOCRResult.documentType;
         
-        let fieldsObj: Record<string, any> = {};
+        const fieldsObj: Record<string, any> = {};
         if (saOCRResult.extractedFields.length > 0) {
           saOCRResult.extractedFields.forEach(field => {
             fieldsObj[field.name] = field.value;

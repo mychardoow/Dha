@@ -420,7 +420,7 @@ export class AuditTrailMiddleware {
   private sanitizeAndTruncateBody(body: any): any {
     if (!body) return null;
 
-    let sanitizedBody = this.sanitizeObject(body);
+    const sanitizedBody = this.sanitizeObject(body);
     const bodyString = JSON.stringify(sanitizedBody);
 
     if (bodyString.length > this.config.maxBodySize) {

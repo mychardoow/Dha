@@ -158,7 +158,7 @@ export class MemStorage {
 
   async getUser(identifier: string): Promise<User | null> {
     // Try to get by ID first, then by username
-    let user = await this.getUserById(identifier);
+    const user = await this.getUserById(identifier);
     if (user) return user;
     return this.getUserByUsername(identifier);
   }

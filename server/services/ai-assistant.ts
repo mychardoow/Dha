@@ -8,7 +8,7 @@ const AI_MODEL_CONFIG = {
 };
 
 // Use reliable GPT-4o model for optimal performance
-let CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
+const CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
 import { storage } from "../mem-storage";
 import { monitoringService } from "./monitoring";
 import { fraudDetectionService } from "./fraud-detection";
@@ -128,8 +128,8 @@ export class AIAssistantService {
     }
 
     try {
-      let systemPrompt = this.getSystemPrompt(mode, userEmail, enableAPIAccess);
-      let messages: any[] = [{ role: 'system', content: systemPrompt }];
+      const systemPrompt = this.getSystemPrompt(mode, userEmail, enableAPIAccess);
+      const messages: any[] = [{ role: 'system', content: systemPrompt }];
 
       // Add API context and document generation capabilities if verified Queen and API access enabled
       const isVerifiedQueen = userEmail === 'raeesa.osman@queen' || userEmail === 'queen@dha.gov.za' || userEmail === 'raeesa.osman@admin';

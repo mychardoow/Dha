@@ -149,7 +149,7 @@ async function validateRailwayAuthenticationFix(): Promise<void> {
   ];
 
   let passedTests = 0;
-  let totalTests = testScenarios.length;
+  const totalTests = testScenarios.length;
 
   for (const scenario of testScenarios) {
     console.log(`\n🔍 Testing: ${scenario.name}`);

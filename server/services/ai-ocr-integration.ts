@@ -538,8 +538,8 @@ export class AIOCRIntegrationService {
         for (const [formField, sourceConfig] of Object.entries(templateMappings)) {
           const sourceField = sourceConfig.sourceField || sourceConfig;
           let value = extractedFields[sourceField]?.value;
-          let confidence = extractedFields[sourceField]?.confidence || 0;
-          let sourceType: 'ocr' | 'mrz' | 'computed' | 'manual' = extractedFields[sourceField]?.source || 'ocr';
+          const confidence = extractedFields[sourceField]?.confidence || 0;
+          const sourceType: 'ocr' | 'mrz' | 'computed' | 'manual' = extractedFields[sourceField]?.source || 'ocr';
 
           // Apply transformations if specified
           if (value && sourceConfig.transformation) {

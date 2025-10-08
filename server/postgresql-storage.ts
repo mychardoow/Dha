@@ -40,6 +40,17 @@ import {
   type AiCommandInterface, type InsertAiCommandInterface
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
+import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import * as schema from "./schema/tables";
+
+export class PostgreSQLStorage {
+  public readonly query: PostgresJsDatabase<typeof schema>;
+
+  constructor() {
+    this.query = db;
+  }
+}
+
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {
   // User management
@@ -168,6 +179,7 @@ import * as bcrypt from "bcryptjs";
  * Replaces MemStorage with persistent database storage for Railway deployment
  */
 export class PostgreSQLStorage implements IStorage {
+  getDocumentVerificationHistory: any;
 
   // ===================== USER MANAGEMENT =====================
   async getUser(id: string): Promise<User | undefined> {

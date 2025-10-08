@@ -411,7 +411,7 @@ export class OCRAutoFillService {
 
     for (const mapping of mappings) {
       let sourceValue: any = null;
-      let actualConfidence = mapping.confidence;
+      const actualConfidence = mapping.confidence;
 
       // Get value based on source type
       switch (mapping.sourceType) {
