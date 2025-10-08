@@ -20,9 +20,15 @@ export function registerRoutes(app: Express) {
   console.log('✅ Health check routes registered');
 
   // Document generation routes
-  // app.use('/api/documents', documentRoutes); // Temporarily disabled
-  // app.use('/api/pdf', documentRoutes); // Temporarily disabled
-  console.log('✅ Document generation routes registered');
+  try {
+    const { completePDFRoutes } = await import('./routes/complete-pdf-routes.js');
+    app.use('/api/documents', completePDFRoutes);
+    app.use('/api/pdf', completePDFRoutes);
+    console.log('✅ Document generation routes registered');
+  } catch (error) {
+    console.warn('⚠️ Document routes failed to load:', error.message);
+    console.warn('⚠️ Document generation endpoints will not be available');
+  }
 
   console.log('🎯 All routes registered successfully');
 }

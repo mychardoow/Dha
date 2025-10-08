@@ -29,6 +29,13 @@ export interface HealthCheckResult {
   details?: any;
 }
 
+// PAdES compliance levels
+export enum PAdESLevel {
+  BASIC = 'PAdES-B',
+  TIMESTAMP = 'PAdES-T',
+  LONG_TERM = 'PAdES-LTV'
+}
+
 /**
  * Cryptographic Signature Service Class
  */
