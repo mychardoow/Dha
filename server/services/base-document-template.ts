@@ -19,7 +19,7 @@ import {
   DataMatrixConfig
 } from "./security-features-v2";
 import { ICAOMRZGenerator, MRZGenerationOptions } from "./icao-mrz-generator";
-import { cryptographicSignatureService } from "./cryptographic-signature-service";
+import cryptographicSignatureService from "./cryptographic-signature-service";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 
