@@ -494,7 +494,7 @@ export class CryptographicSignatureService {
           'Content-Type': 'application/timestamp-query',
           'User-Agent': 'DHA-DocumentSigner/1.0'
         },
-        body: tsRequest
+        body: new Uint8Array(tsRequest)
       });
 
       if (!response.ok) {

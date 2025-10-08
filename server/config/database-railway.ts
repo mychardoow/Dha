@@ -49,9 +49,9 @@ async function initializePostgreSQL(databaseUrl: string): Promise<DatabaseConfig
   try {
     console.log('🐘 Connecting to PostgreSQL (Railway)...');
     
-    // Create PostgreSQL connection
+    // Create PostgreSQL connection with proper SSL configuration
     const client = postgres(databaseUrl, {
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: 'prefer',
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
