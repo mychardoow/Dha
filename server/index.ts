@@ -76,15 +76,17 @@ try {
   process.exit(1);
 }
 
-// Validate production environment
-if (process.env.NODE_ENV === 'production') {
+// Validate production environment (skip Railway-specific validation for other platforms)
+if (process.env.NODE_ENV === 'production' && process.env.RAILWAY_ENVIRONMENT) {
   try {
     validateRailwayConfig();
-    console.log('✅ Production configuration validated');
+    console.log('✅ Railway configuration validated');
   } catch (error) {
-    console.error('❌ Production validation failed:', error);
+    console.error('❌ Railway validation failed:', error);
     process.exit(1);
   }
+} else if (process.env.NODE_ENV === 'production') {
+  console.log('✅ Production mode active (non-Railway deployment)');
 }
 
 // Security middleware

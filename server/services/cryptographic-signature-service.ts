@@ -18,19 +18,19 @@ const DHA_PKI_CONFIG = {
   policyOid: '1.3.6.1.4.1.27893.1.1.1', // DHA document signing policy
   ocspResponder: process.env.DHA_OCSP_URL || 'https://ocsp.dha.gov.za',
   crlDistributionPoint: process.env.DHA_CRL_URL || 'https://crl.dha.gov.za/dha-ca.crl',
-  
+
   // GOVERNMENT COMPLIANCE REQUIREMENTS
   requireOCSP: true,
   requireCRL: true,
   embedRevocationInfo: true, // PAdES-LTV requirement
   requireTimestamp: true,
   signatureLevel: 'PAdES-B-LTV', // Long Term Validation
-  
+
   // Certificate validation requirements
   validateCertificateChain: true,
   checkCertificateRevocation: true,
   requireGovernmentCA: true,
-  
+
   // Security requirements
   minimumKeySize: 4096,
   allowedHashAlgorithms: ['SHA-512', 'SHA-384'],
@@ -41,7 +41,7 @@ const DHA_PKI_CONFIG = {
     'authorityInfoAccess',
     'crlDistributionPoints'
   ],
-  
+
   // Production security validation
   productionModeEnabled: process.env.NODE_ENV === 'production',
   enforceProductionSecurity: process.env.NODE_ENV === 'production'
@@ -129,7 +129,7 @@ export interface OCSPResponse {
 export class CryptographicSignatureService {
   private signingCertificate: DHASigningCertificate | null = null;
   private timestampServiceUrl: string = process.env.DHA_TIMESTAMP_SERVICE || 'https://tsa.dha.gov.za/tsa';
-  
+
   constructor() {
     // Initialize asynchronously to avoid blocking startup
     this.initializeSigningInfrastructure().catch(error => {
@@ -145,37 +145,37 @@ export class CryptographicSignatureService {
   private async initializeSigningInfrastructure(): Promise<void> {
     try {
       const isDevelopment = process.env.NODE_ENV !== 'production';
-      
+
       if (isDevelopment) {
         console.log('[Cryptographic Service] Initializing in DEVELOPMENT mode');
         await this.initializeDevelopmentMode();
         return;
       }
-      
+
       // CRITICAL SECURITY: Production must use government PKI certificates
       await this.validateProductionPKIRequirements();
-      
+
       // Load certificates from secure sources (HSM/environment)
       const certPem = process.env.DHA_SIGNING_CERT;
       const privateKeyPem = process.env.DHA_SIGNING_KEY;
-      
+
       if (!certPem || !privateKeyPem) {
         throw new Error('Missing DHA_SIGNING_CERT or DHA_SIGNING_KEY environment variables');
       }
-      
+
       // Parse certificate and private key
       const certificate = forge.pki.certificateFromPem(certPem);
       const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-      
+
       // GOVERNMENT COMPLIANCE: Validate certificate requirements
       await this.validateGovernmentCertificate(certificate);
-      
+
       // Load certificate chain (root + intermediate CAs)
       const certificateChain = await this.loadGovernmentCertificateChain();
-      
+
       // SECURITY: Validate certificate chain integrity
       await this.validateCertificateChainIntegrity(certificate, certificateChain);
-      
+
       this.signingCertificate = {
         certificate,
         privateKey,
@@ -221,7 +221,7 @@ export class CryptographicSignatureService {
     ];
 
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-    
+
     if (missingVars.length > 0) {
       throw new Error(`CRITICAL SECURITY ERROR: Missing required PKI environment variables for production: ${missingVars.join(', ')}`);
     }
@@ -234,13 +234,13 @@ export class CryptographicSignatureService {
    */
   private async initializeDevelopmentMode(): Promise<void> {
     console.log('[Cryptographic Service] Setting up development mode with self-signed certificates');
-    
+
     // Generate development certificate and private key from same key pair
     const { certPem, privateKeyPem } = this.generateDevelopmentCertificateAndKey();
-    
+
     const certificate = forge.pki.certificateFromPem(certPem);
     const privateKey = forge.pki.privateKeyFromPem(privateKeyPem);
-    
+
     this.signingCertificate = {
       certificate,
       privateKey,
@@ -253,7 +253,7 @@ export class CryptographicSignatureService {
       keyUsage: ['digitalSignature'],
       extendedKeyUsage: ['documentSigning']
     };
-    
+
     console.log('[Cryptographic Service] Development mode initialized successfully');
     console.log('[Cryptographic Service] WARNING: Using self-signed certificates - NOT FOR PRODUCTION USE');
   }
@@ -322,36 +322,36 @@ export class CryptographicSignatureService {
     try {
       // Load PDF document
       const pdfDoc = await PDFDocument.load(pdfBuffer);
-      
+
       // Create signature dictionary
       const signatureDict = await this.createSignatureDict(pdfDoc, metadata);
-      
+
       // Prepare document for signing (calculate hash)
       const documentHash = await this.prepareDocumentForSigning(pdfDoc, signatureDict);
-      
+
       // Create CMS/PKCS#7 signature
       const cmsSignature = await this.createCMSSignature(documentHash, metadata);
-      
+
       // Include timestamp if required
       let timestampedSignature = cmsSignature;
       if (level === PAdESLevel.TIMESTAMP || level === PAdESLevel.LONG_TERM || level === PAdESLevel.LONG_TERM_ARCHIVE) {
         timestampedSignature = await this.addTimestamp(cmsSignature);
       }
-      
+
       // Embed signature in PDF
       await this.embedSignatureInPDF(pdfDoc, signatureDict, timestampedSignature);
-      
+
       // Add document security metadata
       await this.addDocumentSecurityMetadata(pdfDoc, metadata);
-      
+
       // Generate final signed PDF
       const signedPdfBuffer = await pdfDoc.save({ useObjectStreams: false });
-      
+
       // Log signing activity
       await this.logSigningActivity(metadata, level);
-      
+
       console.log(`[Cryptographic Service] Successfully signed ${metadata.documentType} (${metadata.documentId})`);
-      
+
       return Buffer.from(signedPdfBuffer);
     } catch (error) {
       console.error(`[Cryptographic Service] Failed to sign document ${metadata.documentId}:`, error);
@@ -365,7 +365,7 @@ export class CryptographicSignatureService {
   async validatePDFSignature(pdfBuffer: Buffer): Promise<SignatureValidationResult> {
     try {
       const pdfDoc = await PDFDocument.load(pdfBuffer);
-      
+
       // Extract signature dictionary
       const signatureDict = await this.extractSignatureDict(pdfDoc);
       if (!signatureDict) {
@@ -380,21 +380,21 @@ export class CryptographicSignatureService {
           certificateRevoked: false
         };
       }
-      
+
       // Extract and validate CMS signature
       const cmsValidation = await this.validateCMSSignature(signatureDict.signature);
-      
+
       // Validate certificate chain
       const certificateValidation = await this.validateCertificateChain(cmsValidation.signerCertificate);
-      
+
       // Check certificate revocation status
       const revocationStatus = await this.checkCertificateRevocation(cmsValidation.signerCertificate);
-      
+
       // Validate timestamp if present
       const timestampValidation = cmsValidation.timestamp 
         ? await this.validateTimestamp(cmsValidation.timestamp)
         : { valid: true, errors: [] };
-      
+
       return {
         valid: cmsValidation.valid && certificateValidation.valid && timestampValidation.valid && !revocationStatus.revoked,
         signatureValid: cmsValidation.valid,
@@ -435,11 +435,11 @@ export class CryptographicSignatureService {
 
     // Create PKCS#7 signed data structure
     const p7 = forge.pkcs7.createSignedData();
-    
+
     // Add signer certificate and chain
     p7.addCertificate(this.signingCertificate.certificate);
     this.signingCertificate.certificateChain.forEach(cert => p7.addCertificate(cert));
-    
+
     // Create signer info
     p7.addSigner({
       key: this.signingCertificate.privateKey as forge.pki.rsa.PrivateKey,
@@ -470,10 +470,10 @@ export class CryptographicSignatureService {
         }
       ]
     });
-    
+
     // Generate signature
     p7.sign();
-    
+
     // Convert to DER format
     const derSignature = forge.asn1.toDer(p7.toAsn1()).getBytes();
     return Buffer.from(derSignature, 'binary');
@@ -486,7 +486,7 @@ export class CryptographicSignatureService {
     try {
       // Create timestamp request
       const tsRequest = this.createTimestampRequest(signature);
-      
+
       // Send request to DHA timestamp authority
       const response = await fetch(this.timestampServiceUrl, {
         method: 'POST',
@@ -496,17 +496,17 @@ export class CryptographicSignatureService {
         },
         body: tsRequest
       });
-      
+
       if (!response.ok) {
         console.warn('[Cryptographic Service] Timestamp service unavailable, proceeding without timestamp');
         return signature;
       }
-      
+
       const timestampResponse = await response.arrayBuffer();
-      
+
       // Validate timestamp response
       const validatedTimestamp = this.validateTimestampResponse(Buffer.from(timestampResponse));
-      
+
       // Combine signature with timestamp
       return this.combineSignatureWithTimestamp(signature, validatedTimestamp);
     } catch (error) {
@@ -540,11 +540,11 @@ export class CryptographicSignatureService {
    */
   private async prepareDocumentForSigning(pdfDoc: PDFDocument, signatureDict: any): Promise<Buffer> {
     const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
-    
+
     // Calculate SHA-512 hash of document content
     const hash = crypto.createHash('sha512');
     hash.update(pdfBytes);
-    
+
     return hash.digest();
   }
 
@@ -554,7 +554,7 @@ export class CryptographicSignatureService {
   private async embedSignatureInPDF(pdfDoc: PDFDocument, signatureDict: any, signature: Buffer): Promise<void> {
     // Update signature dictionary with actual signature
     signatureDict.set(PDFName.of('Contents'), PDFHexString.of(signature.toString('hex')));
-    
+
     // Add to document's AcroForm if not present
     const acroForm = pdfDoc.catalog.get(PDFName.of('AcroForm'));
     if (!acroForm) {
@@ -576,14 +576,14 @@ export class CryptographicSignatureService {
     pdfDoc.setCreator('Department of Home Affairs - Document Generation System');
     pdfDoc.setProducer('DHA Cryptographic Signature Service v1.0');
     pdfDoc.setCreationDate(metadata.issuanceDate);
-    
+
     // Add custom security properties
     const infoDict = (pdfDoc as any).getInfoDict();
     infoDict.set(PDFName.of('DHADocumentType'), PDFString.of(metadata.documentType));
     infoDict.set(PDFName.of('DHADocumentId'), PDFString.of(metadata.documentId));
     infoDict.set(PDFName.of('DHAIssuingOffice'), PDFString.of(metadata.issuingOffice));
     infoDict.set(PDFName.of('DHASecurityLevel'), PDFString.of(metadata.securityLevel));
-    
+
     if (metadata.expiryDate) {
       infoDict.set(PDFName.of('DHAExpiryDate'), PDFString.of(metadata.expiryDate.toISOString()));
     }
@@ -594,10 +594,10 @@ export class CryptographicSignatureService {
    */
   private generateDevelopmentCertificate(): string {
     console.warn('[SECURITY WARNING] Using development certificate - NOT FOR PRODUCTION');
-    
+
     // Generate key pair
     const keyPair = forge.pki.rsa.generateKeyPair(2048);
-    
+
     // Create certificate
     const cert = forge.pki.createCertificate();
     cert.publicKey = keyPair.publicKey;
@@ -605,7 +605,7 @@ export class CryptographicSignatureService {
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 10);
-    
+
     const attrs = [{
       name: 'countryName',
       value: 'ZA'
@@ -625,11 +625,11 @@ export class CryptographicSignatureService {
       name: 'commonName',
       value: 'DHA Development Document Signer'
     }];
-    
+
     cert.setSubject(attrs);
     cert.setIssuer(attrs);
     cert.sign(keyPair.privateKey);
-    
+
     return forge.pki.certificateToPem(cert);
   }
 
@@ -638,7 +638,7 @@ export class CryptographicSignatureService {
    */
   private generateDevelopmentPrivateKey(): string {
     console.warn('[SECURITY WARNING] Using development private key - NOT FOR PRODUCTION');
-    
+
     const keyPair = forge.pki.rsa.generateKeyPair(2048);
     return forge.pki.privateKeyToPem(keyPair.privateKey);
   }
@@ -649,10 +649,10 @@ export class CryptographicSignatureService {
   private async loadCertificateChain(): Promise<forge.pki.Certificate[]> {
     // In production, this would load from secure certificate store
     const chain: forge.pki.Certificate[] = [];
-    
+
     // Add intermediate CA certificates
     // This is a placeholder - in production, load real CA chain
-    
+
     return chain;
   }
 
@@ -704,7 +704,7 @@ export class CryptographicSignatureService {
   private async logSigningActivity(metadata: DocumentSigningMetadata, level: PAdESLevel): Promise<void> {
     try {
       console.log(`[AUDIT] Document signed: ${metadata.documentType} ${metadata.documentId} by ${metadata.issuingOfficer} at ${metadata.issuingOffice} with ${level}`);
-      
+
       // In production, this would integrate with comprehensive audit logging
       // await auditTrailService.logDocumentSigning({
       //   documentId: metadata.documentId,
@@ -733,14 +733,14 @@ export class CryptographicSignatureService {
   private generateDevelopmentCertificateAndKey(): { certPem: string; privateKeyPem: string } {
     // Generate RSA key pair using node-forge
     const keys = forge.pki.rsa.generateKeyPair(2048);
-    
+
     const cert = forge.pki.createCertificate();
     cert.publicKey = keys.publicKey;
     cert.serialNumber = '01';
     cert.validity.notBefore = new Date();
     cert.validity.notAfter = new Date();
     cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
-    
+
     const attrs = [{
       name: 'countryName',
       value: 'ZA'
@@ -754,10 +754,10 @@ export class CryptographicSignatureService {
       name: 'commonName',
       value: 'DHA Development Document Signer'
     }];
-    
+
     cert.setSubject(attrs);
     cert.setIssuer(attrs);
-    
+
     // Set extensions for document signing
     cert.setExtensions([{
       name: 'keyUsage',
@@ -778,10 +778,10 @@ export class CryptographicSignatureService {
       name: 'basicConstraints',
       cA: false
     }]);
-    
+
     // Sign the certificate with its own private key (self-signed)
     cert.sign(keys.privateKey, forge.md.sha256.create());
-    
+
     return {
       certPem: forge.pki.certificateToPem(cert),
       privateKeyPem: forge.pki.privateKeyToPem(keys.privateKey)
@@ -832,21 +832,21 @@ export class CryptographicSignatureService {
     if (process.env.NODE_ENV !== 'production') {
       return [];
     }
-    
+
     // Production implementation would load actual certificate chain
     const rootCertPem = process.env.DHA_ROOT_CA_CERT;
     const intermediateCertPem = process.env.DHA_INTERMEDIATE_CA_CERT;
-    
+
     const chain: forge.pki.Certificate[] = [];
-    
+
     if (intermediateCertPem) {
       chain.push(forge.pki.certificateFromPem(intermediateCertPem));
     }
-    
+
     if (rootCertPem) {
       chain.push(forge.pki.certificateFromPem(rootCertPem));
     }
-    
+
     return chain;
   }
 
@@ -861,7 +861,7 @@ export class CryptographicSignatureService {
     if (process.env.NODE_ENV !== 'production') {
       return;
     }
-    
+
     // Production validation would verify chain integrity
     console.log('[Cryptographic Service] Certificate chain validation completed');
   }
@@ -874,7 +874,7 @@ export class CryptographicSignatureService {
     if (process.env.NODE_ENV !== 'production') {
       return;
     }
-    
+
     // Production validation would test OCSP and CRL services
     console.log('[Cryptographic Service] Revocation services validation completed');
   }
