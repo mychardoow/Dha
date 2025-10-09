@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -21,13 +21,14 @@
     "isolatedModules": true,
     "noEmit": false,
     "noEmitOnError": false,
-    "allowImportingTsExtensions": true,
+    "allowImportingTsExtensions": false,
+    "moduleDetection": "force",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"],
       "@/*": ["./client/src/*"],
-      "#shared/*": ["./shared/*"],
-      "#server/*": ["./server/*"]
+      "#shared/*": ["./shared/*.js", "./shared/*.ts"],
+      "#server/*": ["./server/*.js", "./server/*.ts"]
     },
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
@@ -39,6 +40,23 @@
     "declaration": false,
     "incremental": false
   },
-  "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "dist", "client/**/*", "**/*.test.ts", "**/*test*.ts", "**/test-*.ts"]
+  "include": [
+    "server/**/*.ts",
+    "server/**/*.tsx",
+    "server/**/*.js",
+    "server/**/*.jsx",
+    "shared/**/*.ts",
+    "shared/**/*.tsx",
+    "shared/**/*.js",
+    "shared/**/*.jsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "client/**/*",
+    "**/*.test.ts",
+    "**/*test*.ts",
+    "**/test-*.ts",
+    "**/__tests__/**"
+  ]
 }
