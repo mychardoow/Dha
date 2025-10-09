@@ -1,0 +1,28 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "noEmitOnError": false,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strict": false,
+    "removeComments": true,
+    "sourceMap": false,
+    "declaration": false,
+    "incremental": false
+  },
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "client/**/*",
+    "**/*.test.ts",
+    "**/*test*.ts",
+    "**/test-*.ts",
+    "**/__tests__/**"
+  ]
+}

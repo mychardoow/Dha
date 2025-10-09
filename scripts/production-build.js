@@ -54,7 +54,7 @@ try {
 // Build TypeScript (ignoring errors)
 console.log('🔨 Building TypeScript...');
 try {
-  execSync('npx tsc --project tsconfig.json --noEmitOnError false', { 
+  execSync('npx tsc --project tsconfig.production.json --noEmitOnError false', { 
     stdio: 'inherit',
     env: { ...process.env }
   });

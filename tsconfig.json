@@ -11,8 +11,6 @@
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "incremental": true,
-    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
@@ -20,19 +18,26 @@
     "types": ["node", "vite/client"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "resolveJsonModule": true,
-    "isolatedModules": false,
+    "isolatedModules": true,
     "noEmit": false,
     "noEmitOnError": false,
+    "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"],
-      "@/*": ["./client/src/*"]
+      "@/*": ["./client/src/*"],
+      "#shared/*": ["./shared/*"],
+      "#server/*": ["./server/*"]
     },
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
     "ignoreDeprecations": "5.0",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "removeComments": true,
+    "sourceMap": false,
+    "declaration": false,
+    "incremental": false
   },
   "include": ["server/**/*", "shared/**/*"],
   "exclude": ["node_modules", "dist", "client/**/*", "**/*.test.ts", "**/*test*.ts", "**/test-*.ts"]
