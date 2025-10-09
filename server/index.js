@@ -1,0 +1,131 @@
+const cluster = require('cluster');
+const numCPUs = require('os').cpus().length;
+const express = require('express');
+const compression = require('compression');
+const cors = require('cors');
+const helmet = require('helmet');
+const path = require('path');
+
+// Import routes
+const documentRoutes = require('./routes/documents');
+
+// Auto-recovery configuration
+const MAX_MEMORY_USAGE = 512 * 1024 * 1024; // 512MB
+const RESTART_DELAY = 1000; // 1 second
+let isShuttingDown = false;
+
+function startServer() {
+  const app = express();
+
+  // Essential middleware
+  app.use(compression());
+  app.use(cors());
+  app.use(helmet());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // Document storage directory
+  app.use('/documents', express.static(path.join(__dirname, '..', 'dist', 'documents')));
+
+  // Routes
+  app.use('/api/documents', documentRoutes);
+
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  });
+
+  // Health check
+  app.get('/health', (req, res) => {
+    const memoryUsage = process.memoryUsage();
+    res.json({
+      success: true,
+      status: 'healthy',
+      memory: memoryUsage,
+      uptime: process.uptime()
+    });
+  });
+
+  // Start server
+  const port = process.env.PORT || 3000;
+  const server = app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+
+  // Monitor memory usage
+  const memoryMonitor = setInterval(() => {
+    const memoryUsage = process.memoryUsage().heapUsed;
+    if (memoryUsage > MAX_MEMORY_USAGE && !isShuttingDown) {
+      console.log('Memory threshold exceeded, initiating graceful restart...');
+      gracefulShutdown(server);
+    }
+  }, 30000);
+
+  // Handle unexpected errors
+  process.on('uncaughtException', (err) => {
+    console.error('Uncaught Exception:', err);
+    gracefulShutdown(server);
+  });
+
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Rejection:', err);
+    gracefulShutdown(server);
+  });
+
+  return server;
+}
+
+function gracefulShutdown(server) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log('Initiating graceful shutdown...');
+
+  // Close server
+  server.close(() => {
+    console.log('Server closed');
+    
+    // Clean up resources
+    if (cluster.isWorker) {
+      cluster.worker.disconnect();
+    }
+
+    // Restart after delay
+    setTimeout(() => {
+      console.log('Restarting server...');
+      isShuttingDown = false;
+      startServer();
+    }, RESTART_DELAY);
+  });
+
+  // Force shutdown if graceful shutdown fails
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 30000);
+}
+
+// Start the server in cluster mode if master
+if (cluster.isMaster) {
+  console.log(`Master ${process.pid} is running`);
+
+  // Fork workers
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`Worker ${worker.process.pid} died. Starting a new worker...`);
+    cluster.fork();
+  });
+} else {
+  // Workers run the server
+  startServer();
+}
+
+module.exports = { startServer, gracefulShutdown };

@@ -52,6 +52,9 @@ function triggerEmergencyRecovery() {
     logStatus('🛟 Emergency recovery measures applied');
 }
 
+// Start TypeScript monitor
+require('./typescript-monitor');
+
 // Start monitoring
 logStatus('🔍 Build monitor starting...');
 checkServiceStatus();
