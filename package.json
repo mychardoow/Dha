@@ -9,7 +9,7 @@
     "monitor": "node server/monitor.js",
     "dev:start": "node start-simple.js",
     "build": "node scripts/build-production-v2.js",
-    "build:render": "npm install --legacy-peer-deps --no-optional && npm run build",
+    "build:render": "node scripts/production-build.js",
     "build:quick": "npx tsc --project tsconfig.json --noEmitOnError false",
     "validate:ts": "node scripts/typescript-validator.js",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",
