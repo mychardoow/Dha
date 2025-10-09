@@ -1,0 +1,49 @@
+{
+  "status": "unhealthy",
+  "timestamp": "2025-10-08T21:12:36.857Z",
+  "services": {},
+  "apis": {
+    "/api/health": {
+      "status": "down",
+      "latency": 6,
+      "lastChecked": "2025-10-08T21:12:36.290Z",
+      "error": "Error"
+    },
+    "/api/ultra-queen-ai/status": {
+      "status": "down",
+      "latency": 6,
+      "lastChecked": "2025-10-08T21:12:36.291Z",
+      "error": "Error"
+    },
+    "/api/ai/document/process": {
+      "status": "down",
+      "latency": 4,
+      "lastChecked": "2025-10-08T21:12:36.291Z",
+      "error": "Error"
+    },
+    "/api/ai/chat": {
+      "status": "down",
+      "latency": 5,
+      "lastChecked": "2025-10-08T21:12:36.291Z",
+      "error": "Error"
+    },
+    "/api/ai/validate": {
+      "status": "down",
+      "latency": 3,
+      "lastChecked": "2025-10-08T21:12:36.291Z",
+      "error": "Error"
+    }
+  },
+  "database": {
+    "status": "down",
+    "connections": 0,
+    "queryLatency": 0,
+    "lastChecked": "2025-10-08T21:12:36.857Z",
+    "error": "getaddrinfo ENOTFOUND railway.prod.dha.gov.za"
+  },
+  "memory": {
+    "used": 10.0618896484375,
+    "total": 11.2109375,
+    "percentage": 89.75065331010454
+  }
+}

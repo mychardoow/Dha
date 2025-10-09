@@ -6,8 +6,10 @@
   "main": "dist/server/index.js",
   "scripts": {
     "start": "node dist/server/index.js",
+    "monitor": "node server/monitor.js",
     "dev:start": "node start-simple.js",
-    "build": "node scripts/typescript-validator.js && node build-production.js",
+    "build": "node scripts/build-production.js",
+    "build:validate": "node scripts/typescript-validator.js && npm run build",
     "build:quick": "npx tsc --project tsconfig.json --noEmitOnError false",
     "validate:ts": "node scripts/typescript-validator.js",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:client\"",

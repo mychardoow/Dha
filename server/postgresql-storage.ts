@@ -1,13 +1,5 @@
 import { db } from "./db";
-import { 
-  users, conversations, messages, documents, securityEvents, fraudAlerts, 
-  systemMetrics, auditLogs, complianceEvents, userBehaviorProfiles,
-  selfHealingActions, securityIncidents, systemHealthSnapshots, errorCorrections,
-  healthCheckResults, failoverEvents, performanceBaselines, alertRules,
-  circuitBreakerStates, uptimeIncidents, autonomousOperations, maintenanceTasks,
-  governmentComplianceAudits, securityMetrics, biometricProfiles,
-  dhaApplicants, dhaDocuments, dhaDocumentVerifications,
-  aiBotSessions, aiCommandInterfaces,
+import {
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
@@ -42,14 +34,6 @@ import {
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema/tables";
-
-export class PostgreSQLStorage {
-  public readonly query: PostgresJsDatabase<typeof schema>;
-
-  constructor() {
-    this.query = db;
-  }
-}
 
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {
