@@ -5,8 +5,10 @@ services:
     runtime: node
     plan: standard # Production-grade plan
     buildCommand: |
-      npm ci --legacy-peer-deps
+      export NODE_OPTIONS="--max_old_space_size=4096"
+      npm install --legacy-peer-deps --no-optional
       npm run build
+      cp -r shared dist/shared/
     startCommand: npm start
     autoscaling:
       min: 1
