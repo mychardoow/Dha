@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
-import { storage } from "../storage";
-import { auditTrailService } from "../services/audit-trail-service";
+import { storage } from "../storage.js";
+import { auditTrailService } from "../services/audit-trail-service.js";
 
 export interface ConsentRequirement {
   aiProcessing: boolean;

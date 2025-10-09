@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertSystemMetric } from "@shared/schema";
 import os from "os";
 import { EventEmitter } from "events";

@@ -3,12 +3,12 @@
  * Tests real threat/error scenarios end-to-end to verify functionality
  */
 
-import { EnhancedSecurityResponseService } from './services/enhanced-security-response';
-import { EnhancedErrorCorrectionService } from './services/enhanced-error-correction';
-import { databaseFallbackService } from './services/database-fallback-service';
-import { monitoringHooksService } from './services/monitoring-hooks';
-import { ipBlockingMiddleware } from './middleware/ip-blocking-middleware';
-import { enhancedErrorHandler } from './middleware/error-handler';
+import { EnhancedSecurityResponseService } from './services/enhanced-security-response.js';
+import { EnhancedErrorCorrectionService } from './services/enhanced-error-correction.js';
+import { databaseFallbackService } from './services/database-fallback-service.js';
+import { monitoringHooksService } from './services/monitoring-hooks.js';
+import { ipBlockingMiddleware } from './middleware/ip-blocking-middleware.js';
+import { enhancedErrorHandler } from './middleware/error-handler.js';
 
 interface TestResult {
   testName: string;

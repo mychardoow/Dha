@@ -15,9 +15,9 @@ import * as QRCode from 'qrcode';
 import * as crypto from 'crypto';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 import { AuditAction } from '@shared/schema';
-import { OfficialDHAAPIClient } from './official-dha-api';
+import { OfficialDHAAPIClient } from './official-dha-api.js';
 import type {
   IdentityVerificationResponse,
   BiometricValidationResponse,
@@ -25,7 +25,7 @@ import type {
   DocumentRegistrationResponse,
   DocumentNumberGenerationResponse,
   BiometricValidationRequest
-} from './official-dha-api';
+} from './official-dha-api.js';
 
 // ==================== TYPE DEFINITIONS ====================
 

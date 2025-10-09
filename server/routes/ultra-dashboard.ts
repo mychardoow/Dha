@@ -1,10 +1,10 @@
 // Ultra Queen Dashboard Backend API - REAL IMPLEMENTATIONS
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { openAIService } from '../services/openai-service';
-import { blockchainService } from '../services/blockchain-service';
-import { web3AuthService } from '../services/web3auth-service';
-import { pdfGeneratorService } from '../services/pdf-generator-service';
+import { openAIService } from '../services/openai-service.js';
+import { blockchainService } from '../services/blockchain-service.js';
+import { web3AuthService } from '../services/web3auth-service.js';
+import { pdfGeneratorService } from '../services/pdf-generator-service.js';
 
 const router = Router();
 

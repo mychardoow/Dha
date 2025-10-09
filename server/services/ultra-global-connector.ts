@@ -12,13 +12,13 @@
  * - International systems with diplomatic access
  */
 
-import { dhaABISAdapter } from "./dha-abis-adapter";
-import { dhaSAPSAdapter } from "./dha-saps-adapter";
-import { icaoPkdIntegration } from "./icao-pkd-integration";
-import { web3Integration } from "./web3-integration";
-import { sapsIntegration } from "./saps-integration";
-import { productionGovernmentAPI } from "./production-government-api";
-import { storage } from "../storage";
+import { dhaABISAdapter } from "./dha-abis-adapter.js";
+import { dhaSAPSAdapter } from "./dha-saps-adapter.js";
+import { icaoPkdIntegration } from "./icao-pkd-integration.js";
+import { web3Integration } from "./web3-integration.js";
+import { sapsIntegration } from "./saps-integration.js";
+import { productionGovernmentAPI } from "./production-government-api.js";
+import { storage } from "../storage.js";
 import crypto from "crypto";
 
 export interface GlobalConnectivityRequest {

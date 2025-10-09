@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { storage } from "../storage";
-import { privacyProtectionService } from "../services/privacy-protection";
+import { storage } from "../storage.js";
+import { privacyProtectionService } from "../services/privacy-protection.js";
 
 // Rate limiting configurations
 export const authLimiter = rateLimit({

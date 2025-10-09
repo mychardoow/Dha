@@ -1,6 +1,6 @@
 import express from 'express';
-import { ultraAdvancedPDFService } from '../services/ultra-advanced-pdf-features';
-import { requireAuth } from '../middleware/auth';
+import { ultraAdvancedPDFService } from '../services/ultra-advanced-pdf-features.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 

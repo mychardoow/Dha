@@ -11,11 +11,11 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { enhancedNanosecondMonitoringService } from '../services/enhanced-nanosecond-monitoring-service';
-import { enhancedSecurityResponseService } from '../services/enhanced-security-response';
-import { monitoringHooksService } from '../services/monitoring-hooks';
-import { authenticate } from '../middleware/auth';
-import { storage } from '../storage';
+import { enhancedNanosecondMonitoringService } from '../services/enhanced-nanosecond-monitoring-service.js';
+import { enhancedSecurityResponseService } from '../services/enhanced-security-response.js';
+import { monitoringHooksService } from '../services/monitoring-hooks.js';
+import { authenticate } from '../middleware/auth.js';
+import { storage } from '../storage.js';
 
 const router = Router();
 

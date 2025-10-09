@@ -1,8 +1,8 @@
 // Military and Government Portal API Routes
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { militaryGovernmentPortals, PORTAL_TYPE, AUTH_METHOD, ACCESS_LEVEL } from '../services/military-government-portals';
-import { authenticate, requireRole } from '../middleware/auth';
+import { militaryGovernmentPortals, PORTAL_TYPE, AUTH_METHOD, ACCESS_LEVEL } from '../services/military-government-portals.js';
+import { authenticate, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 

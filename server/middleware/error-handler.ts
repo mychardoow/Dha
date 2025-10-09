@@ -5,9 +5,9 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { EnhancedErrorCorrectionService } from '../services/enhanced-error-correction';
-import { storage } from '../storage';
-import { getConnectionStatus } from '../db';
+import { EnhancedErrorCorrectionService } from '../services/enhanced-error-correction.js';
+import { storage } from '../storage.js';
+import { getConnectionStatus } from '../db.js';
 
 // Initialize Enhanced Error Correction Service using singleton pattern
 const errorCorrectionService = EnhancedErrorCorrectionService.getInstance();

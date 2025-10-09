@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { autoRecoveryService } from '../services/auto-recovery';
-import { optimizedCacheService } from '../services/optimized-cache';
-import { errorTrackingService } from '../services/error-tracking';
+import { autoRecoveryService } from '../services/auto-recovery.js';
+import { optimizedCacheService } from '../services/optimized-cache.js';
+import { errorTrackingService } from '../services/error-tracking.js';
 
 /**
  * Resilience Middleware

@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import { storage } from '../storage';
-import { privacyProtectionService } from '../services/privacy-protection';
+import { storage } from '../storage.js';
+import { privacyProtectionService } from '../services/privacy-protection.js';
 
 /**
  * Tamper-Evident Audit Trail Service

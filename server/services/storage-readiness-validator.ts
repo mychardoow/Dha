@@ -1,6 +1,6 @@
 
-import { db } from "../db";
-import { storage } from "../storage";
+import { db } from "../db.js";
+import { storage } from "../storage.js";
 
 export interface StorageReadinessReport {
   ready: boolean;

@@ -46,6 +46,62 @@ services:
         sync: false
       - key: WORKATO_API_KEY
         sync: false
+      - key: DHA_API_KEY
+        sync: false
+      - key: DHA_SECRET_KEY
+        sync: false
+      - key: NPR_API_KEY
+        sync: false
+      - key: SAPS_API_KEY
+        sync: false
+      - key: ABIS_API_KEY
+        sync: false
+      - key: HANIS_API_KEY
+        sync: false
+      - key: ICAO_PKD_KEY
+        sync: false
+      - key: SITA_API_KEY
+        sync: false
+      - key: CIPC_API_KEY
+        sync: false
+      - key: DEL_API_KEY
+        sync: false
+      - key: AUTH_SECRET
+        sync: false
+      - key: MFA_SECRET
+        sync: false
+      - key: PKI_PRIVATE_KEY
+        sync: false
+      - key: PKI_PUBLIC_KEY
+        sync: false
+      - key: HSM_ACCESS_KEY
+        sync: false
+      - key: SMS_API_KEY
+        sync: false
+      - key: EMAIL_API_KEY
+        sync: false
+      - key: PAYMENT_GATEWAY_KEY
+        sync: false
+      - key: VERIFICATION_SERVICE_KEY
+        sync: false
+      - key: BIOMETRIC_SERVICE_KEY
+        sync: false
+      - key: MONITORING_API_KEY
+        sync: false
+      - key: ANALYTICS_KEY
+        sync: false
+      - key: ERROR_TRACKING_KEY
+        sync: false
+      - key: LOGGING_SERVICE_KEY
+        sync: false
+      - key: AUDIT_SERVICE_KEY
+        sync: false
+      - key: COMPLIANCE_API_KEY
+        sync: false
+      - key: POPIA_COMPLIANCE_KEY
+        sync: false
+      - key: PFMA_COMPLIANCE_KEY
+        sync: false
     healthCheckPath: /api/health
     autoDeploy: false
 

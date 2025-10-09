@@ -1,6 +1,6 @@
 
 import { Router, Request, Response } from 'express';
-import { universalAPIOverride } from '../middleware/universal-api-override';
+import { universalAPIOverride } from '../middleware/universal-api-override.js';
 
 const router = Router();
 

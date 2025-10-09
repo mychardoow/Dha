@@ -1,12 +1,12 @@
 import { EventEmitter } from 'events';
-import { selfHealingMonitor } from './self-healing-monitor';
-import { instantSecurityResponse } from './instant-security-response';
-import { autoErrorCorrection } from './auto-error-correction';
-import { healthCheckSystem } from './health-check-system';
-import { zeroDowntimeManager } from './zero-downtime-manager';
-import { queenUltraAiService } from './queen-ultra-ai';
-import { auditTrailService } from './audit-trail-service';
-import { storage } from '../storage';
+import { selfHealingMonitor } from './self-healing-monitor.js';
+import { instantSecurityResponse } from './instant-security-response.js';
+import { autoErrorCorrection } from './auto-error-correction.js';
+import { healthCheckSystem } from './health-check-system.js';
+import { zeroDowntimeManager } from './zero-downtime-manager.js';
+import { queenUltraAiService } from './queen-ultra-ai.js';
+import { auditTrailService } from './audit-trail-service.js';
+import { storage } from '../storage.js';
 import { type InsertAuditLog, type InsertSystemMetric } from '@shared/schema';
 
 export interface SelfHealingStatus {

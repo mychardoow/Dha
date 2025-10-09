@@ -16,7 +16,7 @@
  */
 
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export interface NprCredentials {
   apiKey: string;

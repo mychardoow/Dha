@@ -5,7 +5,7 @@
  */
 
 import { performance } from 'perf_hooks';
-import { storage } from './storage';
+import { storage } from './storage.js';
 
 // Import all self-healing services
 let selfHealingIntegration: any;

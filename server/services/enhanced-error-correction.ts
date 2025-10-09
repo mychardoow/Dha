@@ -5,9 +5,9 @@
  */
 
 import { EventEmitter } from 'events';
-// import { storage } from '../storage'; // Replaced with database fallback service
-import { databaseFallbackService } from './database-fallback-service';
-import { db, getConnectionStatus } from '../db';
+// import { storage } from '../storage.js'; // Replaced with database fallback service
+import { databaseFallbackService } from './database-fallback-service.js';
+import { db, getConnectionStatus } from '../db.js';
 import { type InsertErrorCorrection, type InsertSelfHealingAction } from '@shared/schema';
 import * as fs from 'fs/promises';
 import * as path from 'path';

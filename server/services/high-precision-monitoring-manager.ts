@@ -18,7 +18,7 @@ import { Worker } from 'worker_threads';
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import path from 'path';
-import { SHARED_BUFFER_INDICES, WorkerConfig, MetricsSample } from '../workers/high-frequency-metrics-worker';
+import { SHARED_BUFFER_INDICES, WorkerConfig, MetricsSample } from '../workers/high-frequency-metrics-worker.js';
 
 interface WorkerInstance {
   id: string;

@@ -2,8 +2,8 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { aiVisionProcessor, VISION_COMMAND } from '../services/ai-vision-processor';
-import { authenticate } from '../middleware/auth';
+import { aiVisionProcessor, VISION_COMMAND } from '../services/ai-vision-processor.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });

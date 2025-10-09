@@ -1,7 +1,7 @@
 // PostgreSQL Storage Implementation for Railway Deployment
 // This replaces the volatile MemStorage with persistent PostgreSQL database
 
-import { PostgreSQLStorage } from "./postgresql-storage";
+import { PostgreSQLStorage } from "./postgresql-storage.js";
 
 // Export the storage interface for backward compatibility
 export interface IStorage {

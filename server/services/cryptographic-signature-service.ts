@@ -4,7 +4,7 @@ import * as crypto from 'crypto';
 import * as asn1js from 'asn1js';
 import { Certificate, CertificateSet, PrivateKeyInfo } from 'pkijs';
 import { X509Certificate } from '@peculiar/x509';
-import { verificationService } from './verification-service';
+import { verificationService } from './verification-service.js';
 
 // DHA Government PKI Configuration - PRODUCTION COMPLIANT
 const DHA_PKI_CONFIG = {

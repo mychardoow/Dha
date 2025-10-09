@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
-import { storage } from "../storage";
-import { errorTrackingService } from "./error-tracking";
-import { auditTrailService } from "./audit-trail-service";
+import { storage } from "../storage.js";
+import { errorTrackingService } from "./error-tracking.js";
+import { auditTrailService } from "./audit-trail-service.js";
 import { type InsertErrorLog, type InsertSecurityEvent, type InsertIncident } from "@shared/schema";
 
 // Import fraud detection with fallback

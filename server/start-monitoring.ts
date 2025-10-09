@@ -1,5 +1,5 @@
-import HealthMonitor from './monitoring/health-check';
-import AlertSystem from './monitoring/alert-system';
+import HealthMonitor from './monitoring/health-check.js';
+import AlertSystem from './monitoring/alert-system.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

@@ -22,8 +22,8 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { LightweightSamplingEngine } from './lightweight-sampling-engine';
-import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager';
+import { LightweightSamplingEngine } from './lightweight-sampling-engine.js';
+import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager.js';
 
 interface ValidationTest {
   name: string;

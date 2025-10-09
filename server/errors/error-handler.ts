@@ -1,7 +1,7 @@
-import { VerificationError, SecurityError, ValidationError, RateLimitError, ErrorCodes } from './verification-errors';
-// import { Logger } from '../utils/logger';
+import { VerificationError, SecurityError, ValidationError, RateLimitError, ErrorCodes } from './verification-errors.js';
+// import { Logger } from '../utils/logger.js';
 
-import { Logger } from '../utils/logger';
+import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('error-handler');
 

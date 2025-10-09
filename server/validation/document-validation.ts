@@ -1,4 +1,4 @@
-import { ErrorCodes, VerificationError } from '../errors/verification-errors';
+import { ErrorCodes, VerificationError } from '../errors/verification-errors.js';
 
 export function validateDocument(document: any) {
   // Validate required fields

@@ -3,7 +3,7 @@ import crppto from 'crypto';
 import type { 
   DhaDocumentVerification, 
   InsertDhaDocumentVerification 
-} from '../../shared/schema';
+} from '../../shared/schema.js';
 import type {
   VerificationSession,
   InsertVerificationSession,
@@ -13,10 +13,10 @@ import type {
   InsertVerificationHistory,
   Location,
   Coordinates
-} from '../../shared/verification-schema';
-import { storage } from '../storage';
-import { fraudDetectionService } from '../services/fraud-detection-service';
-import { Logger } from '../utils/logger';
+} from '../../shared/verification-schema.js';
+import { storage } from '../storage.js';
+import { fraudDetectionService } from '../services/fraud-detection-service.js';
+import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('verification-service');
 

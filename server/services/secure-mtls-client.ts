@@ -17,7 +17,7 @@ import https from 'https';
 import tls from 'tls';
 import crypto from 'crypto';
 import fs from 'fs/promises';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 export interface SecureMTLSConfig {
   serviceName: string;

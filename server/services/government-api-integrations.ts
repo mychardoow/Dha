@@ -4,7 +4,7 @@
  * Uses provided API keys for authentic document generation and verification
  */
 
-import { storage } from "../mem-storage";
+import { storage } from "../mem-storage.js";
 
 export interface DHAApiConfig {
   governmentApiKey: string;

@@ -5,7 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import { getConnectionStatus } from '../db';
+import { getConnectionStatus } from '../db.js';
 
 interface BufferedAction {
   id: string;

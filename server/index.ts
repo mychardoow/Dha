@@ -34,8 +34,8 @@ import { validateRailwayConfig } from './config/railway.js';
 import { initializeDatabase } from './config/database-railway.js';
 
 // Ultra-advanced PDF routes import (commented out due to syntax errors)
-// import { ultraPDFRoutes } from './routes/ultra-pdf-api';
-// import { governmentPrintIntegration } from './services/government-print-integration';
+// import { ultraPDFRoutes } from './routes/ultra-pdf-api.js';
+// import { governmentPrintIntegration } from './services/government-print-integration.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -200,7 +200,7 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // app.use(ultraPDFRoutes);
 
 // Government Printing & Work Permits (commented out due to syntax errors)
-// import { governmentPrintRoutes } from './routes/government-print-routes';
+// import { governmentPrintRoutes } from './routes/government-print-routes.js';
 // app.use(governmentPrintRoutes);
 
 // Setup Vite for development

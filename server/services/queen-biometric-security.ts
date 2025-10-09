@@ -5,7 +5,7 @@
  */
 
 import * as crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export interface BiometricScanResult {
   faceMatch: boolean;

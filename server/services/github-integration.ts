@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { configService, config } from '../middleware/provider-config';
+import { configService, config } from '../middleware/provider-config.js';
 
 let connectionSettings: any;
 

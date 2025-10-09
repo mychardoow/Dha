@@ -4,11 +4,11 @@
  */
 
 import { EventEmitter } from 'events';
-import { db, getConnectionStatus } from '../db';
-import { storage } from '../storage';
+import { db, getConnectionStatus } from '../db.js';
+import { storage } from '../storage.js';
 import { type InsertSystemMetric, type InsertSecurityEvent, type InsertAuditLog, type InsertSelfHealingAction } from '@shared/schema';
-import { enhancedSecurityResponseService } from './enhanced-security-response';
-import { enhancedErrorCorrectionService } from './enhanced-error-correction';
+import { enhancedSecurityResponseService } from './enhanced-security-response.js';
+import { enhancedErrorCorrectionService } from './enhanced-error-correction.js';
 
 // Core Self-Healing Service
 class CoreSelfHealingService extends EventEmitter {

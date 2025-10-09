@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { createHash, randomBytes } from 'crypto';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 interface ComplianceRequirement {
   id: string;

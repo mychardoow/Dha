@@ -6,8 +6,8 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { productionHealthCheck } from '../services/production-health-check';
-import { authenticate } from '../middleware/auth';
+import { productionHealthCheck } from '../services/production-health-check.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 

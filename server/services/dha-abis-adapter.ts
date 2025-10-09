@@ -1,8 +1,8 @@
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertDhaVerification, InsertDhaAuditEvent } from "@shared/schema";
-import { privacyProtectionService } from "./privacy-protection";
-import { createSecureGovernmentClient } from "./secure-mtls-client";
+import { privacyProtectionService } from "./privacy-protection.js";
+import { createSecureGovernmentClient } from "./secure-mtls-client.js";
 
 /**
  * DHA ABIS (Automated Biometric Identification System) Adapter

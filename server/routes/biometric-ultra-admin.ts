@@ -1,9 +1,9 @@
 
 import { Router, Request, Response } from "express";
-import { authenticate } from "../middleware/auth";
-import { biometricService } from "../services/biometric";
-import { storage } from "../storage";
-import { enhancedRateLimit } from "../middleware/enhanced-rate-limit";
+import { authenticate } from "../middleware/auth.js";
+import { biometricService } from "../services/biometric.js";
+import { storage } from "../storage.js";
+import { enhancedRateLimit } from "../middleware/enhanced-rate-limit.js";
 import CryptoJS from "crypto-js";
 
 const router = Router();

@@ -16,9 +16,9 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { LatencyBudgetEnforcer } from './latency-budget-enforcer';
-import { LightweightSamplingEngine } from './lightweight-sampling-engine';
-import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager';
+import { LatencyBudgetEnforcer } from './latency-budget-enforcer.js';
+import { LightweightSamplingEngine } from './lightweight-sampling-engine.js';
+import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager.js';
 
 interface DegradationLevel {
   level: number;                    // 0 = normal, 5 = maximum degradation

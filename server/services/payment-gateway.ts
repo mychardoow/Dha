@@ -19,7 +19,7 @@
  */
 
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export interface PaymentProvider {
   id: string;

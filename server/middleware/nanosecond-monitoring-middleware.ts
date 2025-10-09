@@ -17,8 +17,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { enhancedHighPrecisionMonitoringService } from '../services/enhanced-high-precision-monitoring-service';
-import { enhancedSecurityResponseService } from '../services/enhanced-security-response';
+import { enhancedHighPrecisionMonitoringService } from '../services/enhanced-high-precision-monitoring-service.js';
+import { enhancedSecurityResponseService } from '../services/enhanced-security-response.js';
 
 // Extend Express Request interface to include high-precision monitoring data
 declare global {

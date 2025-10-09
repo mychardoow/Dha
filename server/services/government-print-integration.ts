@@ -4,7 +4,7 @@
  * Handles official document printing and work permit processing
  */
 
-import { storage } from '../mem-storage';
+import { storage } from '../mem-storage.js';
 
 export interface PrintJobRequest {
   documentId: string;

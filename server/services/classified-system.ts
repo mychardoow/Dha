@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'crypto';
-import { storage } from '../storage';
-import { militarySecurityService } from './military-security';
+import { storage } from '../storage.js';
+import { militarySecurityService } from './military-security.js';
 
 /**
  * Classified Information System

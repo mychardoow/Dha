@@ -4,9 +4,9 @@
  */
 
 import { Router } from 'express';
-import { queenBiometricSecurity } from '../services/queen-biometric-security';
-import { aiAssistantService } from '../services/ai-assistant';
-import { storage } from '../storage';
+import { queenBiometricSecurity } from '../services/queen-biometric-security.js';
+import { aiAssistantService } from '../services/ai-assistant.js';
+import { storage } from '../storage.js';
 
 const router = Router();
 

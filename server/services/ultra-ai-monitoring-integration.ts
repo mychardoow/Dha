@@ -13,8 +13,8 @@
  */
 
 import { EventEmitter } from 'events';
-import { enhancedNanosecondMonitoringService } from './enhanced-nanosecond-monitoring-service';
-import { storage } from '../storage';
+import { enhancedNanosecondMonitoringService } from './enhanced-nanosecond-monitoring-service.js';
+import { storage } from '../storage.js';
 
 interface AIRequestMetrics {
   requestId: string;

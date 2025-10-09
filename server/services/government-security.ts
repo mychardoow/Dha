@@ -1,13 +1,13 @@
 import { createHash, randomBytes, createCipheriv, createDecipheriv, createHmac, pbkdf2Sync } from 'crypto';
 import { Request } from 'express';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 import { insertSecurityEventSchema, insertSecurityIncidentSchema } from '@shared/schema';
 // Lazy load military services to prevent circular dependencies and initialization issues
 // These will be imported when actually needed
-// import { militarySecurityService } from './military-security';
-// import { classifiedInformationSystem } from './classified-system';
-// import { militaryAccessControl } from './military-access-control';
-// import { cyberDefenseSystem } from './cyber-defense';
+// import { militarySecurityService } from './military-security.js';
+// import { classifiedInformationSystem } from './classified-system.js';
+// import { militaryAccessControl } from './military-access-control.js';
+// import { cyberDefenseSystem } from './cyber-defense.js';
 
 /**
  * Government-Grade Security Service

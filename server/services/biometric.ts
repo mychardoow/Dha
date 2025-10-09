@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertBiometricProfile } from "@shared/schema";
 import CryptoJS from "crypto-js";
 

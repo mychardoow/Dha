@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
-import { storage } from "../mem-storage";
-import type { User } from "../mem-storage";
-import { privacyProtectionService } from "../services/privacy-protection";
-import { getConfig } from "./provider-config";
+import { storage } from "../mem-storage.js";
+import type { User } from "../mem-storage.js";
+import { privacyProtectionService } from "../services/privacy-protection.js";
+import { getConfig } from "./provider-config.js";
 
 // SECURITY: JWT_SECRET now comes from centralized configuration service
 // No hardcoded fallbacks - production will fail fast if not properly configured

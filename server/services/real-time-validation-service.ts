@@ -14,10 +14,10 @@
  */
 
 import { EventEmitter } from 'events';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 import { productionGovernmentAPI as productionGovernmentApi } from './production-government-api.js';
-import { dhaWorkflowEngine } from './dha-workflow-engine';
-import { fraudDetectionService } from './fraud-detection';
+import { dhaWorkflowEngine } from './dha-workflow-engine.js';
+import { fraudDetectionService } from './fraud-detection.js';
 
 export interface ValidationRule {
   field: string;

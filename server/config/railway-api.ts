@@ -5,7 +5,7 @@
  * Based on Railway's actual GraphQL API at backboard.railway.com/graphql/v2
  */
 
-import { railwayConfig } from './railway';
+import { railwayConfig } from './railway.js';
 
 interface RailwayService {
   id: string;

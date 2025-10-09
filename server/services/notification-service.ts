@@ -1,5 +1,5 @@
-import { storage } from "../storage";
-import { getWebSocketService } from "../websocket";
+import { storage } from "../storage.js";
+import { getWebSocketService } from "../websocket.js";
 import { NotificationCategory, NotificationPriority, EventType } from "@shared/schema";
 import type { 
   NotificationEvent, 

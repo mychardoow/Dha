@@ -12,9 +12,9 @@
 
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
-import { perplexityService } from "./perplexity-integration";
-import { anthropicService } from "./anthropic-integration";
-import { storage } from "../storage";
+import { perplexityService } from "./perplexity-integration.js";
+import { anthropicService } from "./anthropic-integration.js";
+import { storage } from "../storage.js";
 
 // Provider selection types
 export type AIProvider = 'auto' | 'openai' | 'anthropic' | 'perplexity' | 'mistral' | 'quantum';

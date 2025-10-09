@@ -18,8 +18,8 @@ import crypto from "crypto";
 // import https from "https"; // Not used in the new implementation
 // import fs from "fs/promises"; // Not used in the new implementation
 // SECURITY: Updated to use centralized configuration service
-// import { configService, config } from "../middleware/provider-config"; // Not used in the new implementation
-// import { storage } from "../storage"; // Not used in the new implementation
+// import { configService, config } from "../middleware/provider-config.js"; // Not used in the new implementation
+// import { storage } from "../storage.js"; // Not used in the new implementation
 
 // Removed original GovernmentApiCredentials, ApiRequest, ApiResponse interfaces as they are not used in the new implementation.
 // Removed original ProductionGovernmentApi class.

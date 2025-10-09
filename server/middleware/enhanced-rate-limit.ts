@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { RateLimiterMemory, RateLimiterRedis, RateLimiterAbstract } from 'rate-limiter-flexible';
 import { createHash } from 'crypto';
-import { storage } from '../storage';
-import { enhancedSecurityResponseService } from '../services/enhanced-security-response';
+import { storage } from '../storage.js';
+import { enhancedSecurityResponseService } from '../services/enhanced-security-response.js';
 
 // Use singleton Enhanced Security Response Service for threat handling
 const securityResponseService = enhancedSecurityResponseService;

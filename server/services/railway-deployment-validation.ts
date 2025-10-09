@@ -11,14 +11,14 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { storage } from '../storage';
-import { railwayHealthCheckSystem } from './railway-health-check-system';
-import { railwayAutoScalingService } from './railway-auto-scaling-service';
-import { circuitBreakerSystem } from './circuit-breaker-system';
-import { enhancedDatabasePooling } from './enhanced-database-pooling';
-import { zeroDowntimeDeployment } from './zero-downtime-deployment';
-import { railwayMonitoringIntegration } from './railway-monitoring-integration';
-import { queenUltraAI } from './queen-ultra-ai';
+import { storage } from '../storage.js';
+import { railwayHealthCheckSystem } from './railway-health-check-system.js';
+import { railwayAutoScalingService } from './railway-auto-scaling-service.js';
+import { circuitBreakerSystem } from './circuit-breaker-system.js';
+import { enhancedDatabasePooling } from './enhanced-database-pooling.js';
+import { zeroDowntimeDeployment } from './zero-downtime-deployment.js';
+import { railwayMonitoringIntegration } from './railway-monitoring-integration.js';
+import { queenUltraAI } from './queen-ultra-ai.js';
 import { type InsertSystemMetric, type InsertSelfHealingAction } from '@shared/schema';
 
 interface ValidationResult {

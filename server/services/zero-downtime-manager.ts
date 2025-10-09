@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events';
-import { storage } from '../storage';
-import { healthCheckSystem } from './health-check-system';
-import { selfHealingMonitor } from './self-healing-monitor';
-import { autoErrorCorrection } from './auto-error-correction';
-import { instantSecurityResponse } from './instant-security-response';
-import { auditTrailService } from './audit-trail-service';
-import { queenUltraAiService } from './queen-ultra-ai';
+import { storage } from '../storage.js';
+import { healthCheckSystem } from './health-check-system.js';
+import { selfHealingMonitor } from './self-healing-monitor.js';
+import { autoErrorCorrection } from './auto-error-correction.js';
+import { instantSecurityResponse } from './instant-security-response.js';
+import { auditTrailService } from './audit-trail-service.js';
+import { queenUltraAiService } from './queen-ultra-ai.js';
 import { type InsertAuditLog, type InsertSystemMetric, type InsertSecurityEvent } from '@shared/schema';
 import { performance } from 'perf_hooks';
 import os from 'os';

@@ -5,9 +5,9 @@ import compression from 'compression';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createServer } from 'http';
-import { storage } from "./storage";
-import { registerRoutes } from "./routes";
-import { setupVite } from "./vite";
+import { storage } from "./storage.js";
+import { registerRoutes } from "./routes.js";
+import { setupVite } from "./vite.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

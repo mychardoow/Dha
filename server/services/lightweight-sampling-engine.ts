@@ -16,7 +16,7 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager';
+import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager.js';
 
 interface SamplingStrategy {
   name: string;

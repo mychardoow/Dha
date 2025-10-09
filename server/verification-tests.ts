@@ -1,7 +1,7 @@
 // VERIFICATION INTEGRATION TESTS FOR ARCHITECT APPROVAL
 // These tests provide concrete evidence of system security and constraint validation
 
-import { storage } from './storage';
+import { storage } from './storage.js';
 import type { InsertBiometricProfile, InsertDocumentDelivery } from '@shared/schema';
 
 /**

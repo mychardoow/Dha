@@ -1,7 +1,7 @@
 
 import express from 'express';
-import { requireAuth } from '../middleware/auth';
-import { governmentPrintIntegration } from '../services/government-print-integration';
+import { requireAuth } from '../middleware/auth.js';
+import { governmentPrintIntegration } from '../services/government-print-integration.js';
 
 const router = express.Router();
 

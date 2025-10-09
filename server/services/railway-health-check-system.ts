@@ -11,12 +11,12 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { storage } from '../storage';
-import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service';
-import { selfHealingService } from './self-healing-service';
-import { queenUltraAI } from './queen-ultra-ai';
-import { productionHealthCheck } from './production-health-check';
-import { railwayAutoScalingService } from './railway-auto-scaling-service';
+import { storage } from '../storage.js';
+import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service.js';
+import { selfHealingService } from './self-healing-service.js';
+import { queenUltraAI } from './queen-ultra-ai.js';
+import { productionHealthCheck } from './production-health-check.js';
+import { railwayAutoScalingService } from './railway-auto-scaling-service.js';
 import { type InsertSystemMetric, type InsertSecurityEvent, type InsertSelfHealingAction } from '@shared/schema';
 
 interface HealthCheckResult {

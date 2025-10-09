@@ -11,11 +11,11 @@ import * as QRCode from "qrcode";
 import bwipjs from "bwip-js";
 
 // Import existing generators
-import { enhancedPdfGenerationService, EnhancedPDFGenerationService, DocumentType } from "./enhanced-pdf-generation-service";
-import { documentGenerator, DocumentGeneratorService } from "./document-generator";
-import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service";
-import { verificationService } from "./verification-service";
-import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template";
+import { enhancedPdfGenerationService, EnhancedPDFGenerationService, DocumentType } from "./enhanced-pdf-generation-service.js";
+import { documentGenerator, DocumentGeneratorService } from "./document-generator.js";
+import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service.js";
+import { verificationService } from "./verification-service.js";
+import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template.js";
 
 // Import new document generators
 import {
@@ -42,7 +42,7 @@ import {
   PermanentResidencePermitGenerator,
   CertificateOfExemptionGenerator,
   CertificateOfSouthAfricanCitizenshipGenerator
-} from "./document-generators";
+} from "./document-generators.js";
 
 // Import schema types
 import type {

@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import {
   type DhaDocumentVerification,
   type InsertDhaDocumentVerification,
@@ -12,7 +12,7 @@ import {
   verificationSessions,
   apiAccess,
   verificationHistory
-} from "../shared/schema";
+} from "../shared/schema.js";
 import { eq, desc, and, gte, sql, or, isNull } from "drizzle-orm";
 
 export class PostgreSQLStorage {

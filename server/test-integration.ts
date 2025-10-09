@@ -1,8 +1,8 @@
 // Integration Test - Verify All Services Work Together
-import { openAIService } from './services/openai-service';
-import { blockchainService } from './services/blockchain-service';
-import { web3AuthService } from './services/web3auth-service';
-import { pdfGeneratorService } from './services/pdf-generator-service';
+import { openAIService } from './services/openai-service.js';
+import { blockchainService } from './services/blockchain-service.js';
+import { web3AuthService } from './services/web3auth-service.js';
+import { pdfGeneratorService } from './services/pdf-generator-service.js';
 
 console.log('🔍 Ultra Queen AI Raeesa - Integration Test');
 console.log('============================================');

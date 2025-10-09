@@ -24,9 +24,9 @@ import * as crypto from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
 import QRCode from "qrcode";
-import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service";
-import { verificationService } from "./verification-service";
-import { enhancedVerificationUtilities, type VerificationData } from "./enhanced-verification-utilities";
+import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from "./cryptographic-signature-service.js";
+import { verificationService } from "./verification-service.js";
+import { enhancedVerificationUtilities, type VerificationData } from "./enhanced-verification-utilities.js";
 
 // Type alias for PDFDocument
 type PDFKit = InstanceType<typeof PDFDocument>;

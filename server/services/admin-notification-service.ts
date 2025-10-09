@@ -1,8 +1,8 @@
-import { storage } from "../storage";
-import { getWebSocketService } from "../websocket";
-import { notificationService } from "./notification-service";
-import { monitoringService } from "./monitoring";
-import { fraudDetectionService } from "./fraud-detection";
+import { storage } from "../storage.js";
+import { getWebSocketService } from "../websocket.js";
+import { notificationService } from "./notification-service.js";
+import { monitoringService } from "./monitoring.js";
+import { fraudDetectionService } from "./fraud-detection.js";
 import { NotificationCategory, NotificationPriority, EventType } from "@shared/schema";
 import type { 
   NotificationEvent, 

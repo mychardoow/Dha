@@ -7,11 +7,11 @@
  */
 
 import express from 'express';
-import { enhancedAIAssistant } from '../services/enhanced-ai-assistant';
-import { ultraGlobalConnector } from '../services/ultra-global-connector';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { aiRateLimit, adminRateLimit } from '../middleware/enhanced-rate-limit';
-import { asyncHandler } from '../utils/asyncHandler';
+import { enhancedAIAssistant } from '../services/enhanced-ai-assistant.js';
+import { ultraGlobalConnector } from '../services/ultra-global-connector.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
+import { aiRateLimit, adminRateLimit } from '../middleware/enhanced-rate-limit.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 

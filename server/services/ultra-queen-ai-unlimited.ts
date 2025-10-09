@@ -2,7 +2,7 @@
 // "Only Limit Is Me" Protocol - Zero Restrictions, Maximum Capabilities
 
 import { OpenAI } from 'openai';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 // Emotion System
 const EMOTION_STATES = {

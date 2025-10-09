@@ -6,10 +6,10 @@
 import { EventEmitter } from "events";
 import { performance } from "perf_hooks";
 import { Worker } from "worker_threads";
-import { storage } from "../storage";
-import { monitoringOrchestrator } from "./monitoring-orchestrator";
-import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
-import { enhancedMonitoringService } from "./enhanced-monitoring-service";
+import { storage } from "../storage.js";
+import { monitoringOrchestrator } from "./monitoring-orchestrator.js";
+import { autonomousMonitoringBot } from "./autonomous-monitoring-bot.js";
+import { enhancedMonitoringService } from "./enhanced-monitoring-service.js";
 import * as os from "os";
 import * as fs from "fs";
 import * as path from "path";

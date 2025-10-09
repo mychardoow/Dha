@@ -1,11 +1,11 @@
-import { selfHealingIntegration } from './services/self-healing-integration';
-import { selfHealingMonitor } from './services/self-healing-monitor';
-import { instantSecurityResponse } from './services/instant-security-response';
-import { autoErrorCorrection } from './services/auto-error-correction';
-import { healthCheckSystem } from './services/health-check-system';
-import { zeroDowntimeManager } from './services/zero-downtime-manager';
-import { auditTrailService } from './services/audit-trail-service';
-import { storage } from './storage';
+import { selfHealingIntegration } from './services/self-healing-integration.js';
+import { selfHealingMonitor } from './services/self-healing-monitor.js';
+import { instantSecurityResponse } from './services/instant-security-response.js';
+import { autoErrorCorrection } from './services/auto-error-correction.js';
+import { healthCheckSystem } from './services/health-check-system.js';
+import { zeroDowntimeManager } from './services/zero-downtime-manager.js';
+import { auditTrailService } from './services/audit-trail-service.js';
+import { storage } from './storage.js';
 
 /**
  * Comprehensive Test Suite for Zero-Defect Self-Healing Architecture

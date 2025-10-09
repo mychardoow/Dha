@@ -1,7 +1,7 @@
-import { storage } from "../storage";
-import { auditTrailService } from "./audit-trail-service";
-import { securityCorrelationEngine } from "./security-correlation-engine";
-import { fraudDetectionService } from "./fraud-detection";
+import { storage } from "../storage.js";
+import { auditTrailService } from "./audit-trail-service.js";
+import { securityCorrelationEngine } from "./security-correlation-engine.js";
+import { fraudDetectionService } from "./fraud-detection.js";
 import { type InsertSecurityMetric } from "@shared/schema";
 import { EventEmitter } from "events";
 

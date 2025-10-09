@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertQuantumKey } from "@shared/schema";
 import crypto from "crypto";
 import CryptoJS from "crypto-js";

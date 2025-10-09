@@ -1,4 +1,4 @@
-import { governmentAPIs } from './government-api-integrations';
+import { governmentAPIs } from './government-api-integrations.js';
 
 /**
  * 🏛️ DHA ULTRA DOCUMENT GENERATOR - ALL 21+ AUTHENTIC TYPES

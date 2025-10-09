@@ -17,11 +17,11 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import { createHash, createSign } from 'crypto';
-import { MicroBenchmarkingEngine } from './micro-benchmarking-engine';
-import { WallClockValidator } from './wall-clock-validator';
-import { LatencyBudgetEnforcer } from './latency-budget-enforcer';
-import { GracefulDegradationManager } from './graceful-degradation-manager';
-import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service';
+import { MicroBenchmarkingEngine } from './micro-benchmarking-engine.js';
+import { WallClockValidator } from './wall-clock-validator.js';
+import { LatencyBudgetEnforcer } from './latency-budget-enforcer.js';
+import { GracefulDegradationManager } from './graceful-degradation-manager.js';
+import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service.js';
 
 interface PerformanceCapability {
   feature: string;

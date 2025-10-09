@@ -6,7 +6,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { sql } from 'drizzle-orm';
-import { checkDatabaseConnection } from './db';
+import { checkDatabaseConnection } from './db.js';
 
 const execAsync = promisify(exec);
 

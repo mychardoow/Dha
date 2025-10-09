@@ -14,10 +14,10 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { enhancedNanosecondMonitoringService } from './enhanced-nanosecond-monitoring-service';
-import { nanosecondMonitoringService } from './nanosecond-monitoring-service';
-import { ultraAIMonitoringIntegration } from './ultra-ai-monitoring-integration';
-import { storage } from '../storage';
+import { enhancedNanosecondMonitoringService } from './enhanced-nanosecond-monitoring-service.js';
+import { nanosecondMonitoringService } from './nanosecond-monitoring-service.js';
+import { ultraAIMonitoringIntegration } from './ultra-ai-monitoring-integration.js';
+import { storage } from '../storage.js';
 
 interface ValidationResult {
   testName: string;

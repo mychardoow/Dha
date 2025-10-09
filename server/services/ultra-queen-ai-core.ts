@@ -1,8 +1,8 @@
 // Ultra Queen AI - PRODUCTION REAL APIs ONLY
 
 import { OpenAI } from 'openai';
-import { storage } from '../storage';
-import { universalAPIOverride } from '../middleware/universal-api-override';
+import { storage } from '../storage.js';
+import { universalAPIOverride } from '../middleware/universal-api-override.js';
 
 export class UltraQueenAICore {
   private openai: OpenAI | null = null;

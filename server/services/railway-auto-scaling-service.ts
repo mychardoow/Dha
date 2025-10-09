@@ -13,10 +13,10 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import os from 'os';
-import { storage } from '../storage';
-import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service';
-import { queenUltraAI } from './queen-ultra-ai';
-import { railwayAPI, RAILWAY_SERVICE_CONFIG } from '../config/railway-api';
+import { storage } from '../storage.js';
+import { enhancedHighPrecisionMonitoringService } from './enhanced-high-precision-monitoring-service.js';
+import { queenUltraAI } from './queen-ultra-ai.js';
+import { railwayAPI, RAILWAY_SERVICE_CONFIG } from '../config/railway-api.js';
 import { type InsertSystemMetric, type InsertSelfHealingAction } from '@shared/schema';
 
 interface ScalingMetrics {

@@ -1,8 +1,8 @@
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { type InsertErrorLog, type ErrorLog } from "@shared/schema";
 import os from "os";
 import { EventEmitter } from "events";
-import { privacyProtectionService } from "./privacy-protection";
+import { privacyProtectionService } from "./privacy-protection.js";
 
 interface ErrorContext {
   userId?: string;

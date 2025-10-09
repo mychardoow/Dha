@@ -1,6 +1,6 @@
 
 import { Router } from 'express';
-import { getConfigService } from '../middleware/provider-config';
+import { getConfigService } from '../middleware/provider-config.js';
 
 const router = Router();
 

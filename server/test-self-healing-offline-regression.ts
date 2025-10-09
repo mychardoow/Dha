@@ -8,13 +8,13 @@
  * of database availability.
  */
 
-import { enhancedSecurityResponseService } from './services/enhanced-security-response';
-import { enhancedErrorCorrectionService } from './services/enhanced-error-correction';
-import { databaseFallbackService } from './services/database-fallback-service';
-import { MonitoringHooksService } from './services/monitoring-hooks';
-import { storage } from './storage';
+import { enhancedSecurityResponseService } from './services/enhanced-security-response.js';
+import { enhancedErrorCorrectionService } from './services/enhanced-error-correction.js';
+import { databaseFallbackService } from './services/database-fallback-service.js';
+import { MonitoringHooksService } from './services/monitoring-hooks.js';
+import { storage } from './storage.js';
 import express, { Express } from 'express';
-import { ipBlockingMiddleware } from './middleware/ip-blocking-middleware';
+import { ipBlockingMiddleware } from './middleware/ip-blocking-middleware.js';
 import * as http from 'http';
 
 interface TestResult {

@@ -1,11 +1,11 @@
 import OpenAI from "openai";
-import { storage } from "../mem-storage";
-import { dhaDocumentGenerator } from "./dha-document-generator";
-import { governmentAPIs } from "./government-api-integrations";
-import { perplexityService } from './perplexity-integration';
-import { geminiService } from './gemini-integration';
-import { anthropicService } from './anthropic-integration';
-import { workatoService } from './workato-integration';
+import { storage } from "../mem-storage.js";
+import { dhaDocumentGenerator } from "./dha-document-generator.js";
+import { governmentAPIs } from "./government-api-integrations.js";
+import { perplexityService } from './perplexity-integration.js';
+import { geminiService } from './gemini-integration.js';
+import { anthropicService } from './anthropic-integration.js';
+import { workatoService } from './workato-integration.js';
 
 /**
  * 🔱 QUEEN RAEESA ULTRA AI SERVICE - MAXIMUM CAPABILITIES

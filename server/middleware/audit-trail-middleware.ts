@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { auditTrailService } from '../services/audit-trail-service';
+import { auditTrailService } from '../services/audit-trail-service.js';
 import { AuditAction } from '@shared/schema';
 
 declare module 'express-serve-static-core' {

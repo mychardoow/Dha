@@ -12,8 +12,8 @@
  * These tests prevent silent reversion to simulation mode when authentication should work.
  */
 
-import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api';
-import { railwayAutoScalingService } from './services/railway-auto-scaling-service';
+import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api.js';
+import { railwayAutoScalingService } from './services/railway-auto-scaling-service.js';
 
 interface TestResult {
   testName: string;

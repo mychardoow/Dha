@@ -8,7 +8,7 @@
 import PDFKit from 'pdfkit'; // Changed import name to avoid conflict
 import QRCode from 'qrcode';
 import crypto from 'crypto';
-import { storage } from '../mem-storage';
+import { storage } from '../mem-storage.js';
 
 // All DHA Document Types - Complete Implementation
 export enum DHADocumentType {

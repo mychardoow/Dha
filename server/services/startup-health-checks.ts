@@ -11,9 +11,9 @@
  * - Production readiness verification
  */
 
-import { securityConfigurationService } from './security-configuration-service';
-import { cryptographicSignatureService } from './cryptographic-signature-service';
-import { autonomousMonitoringBot } from './autonomous-monitoring-bot';
+import { securityConfigurationService } from './security-configuration-service.js';
+import { cryptographicSignatureService } from './cryptographic-signature-service.js';
+import { autonomousMonitoringBot } from './autonomous-monitoring-bot.js';
 
 // Health check result interface
 interface HealthCheckResult {

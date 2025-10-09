@@ -15,7 +15,7 @@
  */
 
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 export interface EnvironmentConfig {
   environment: 'development' | 'staging' | 'production';

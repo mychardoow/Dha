@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { autonomousMonitoringBot } from "../services/autonomous-monitoring-bot";
-import { selfHealingService } from "../services/self-healing-service";
-import { enhancedErrorDetectionService } from "../services/enhanced-error-detection";
-import { proactiveMaintenanceService } from "../services/proactive-maintenance-service";
-import { intelligentAlertingService } from "../services/intelligent-alerting-service";
-import { webSocketMonitoringService } from "../services/websocket-monitoring";
-import { storage } from "../storage";
+import { autonomousMonitoringBot } from "../services/autonomous-monitoring-bot.js";
+import { selfHealingService } from "../services/self-healing-service.js";
+import { enhancedErrorDetectionService } from "../services/enhanced-error-detection.js";
+import { proactiveMaintenanceService } from "../services/proactive-maintenance-service.js";
+import { intelligentAlertingService } from "../services/intelligent-alerting-service.js";
+import { webSocketMonitoringService } from "../services/websocket-monitoring.js";
+import { storage } from "../storage.js";
 
 const router = Router();
 

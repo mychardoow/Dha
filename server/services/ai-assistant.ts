@@ -9,18 +9,18 @@ const AI_MODEL_CONFIG = {
 
 // Use reliable GPT-4o model for optimal performance
 const CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
-import { storage } from "../mem-storage";
-import { monitoringService } from "./monitoring";
-import { fraudDetectionService } from "./fraud-detection";
-import { quantumEncryptionService } from "./quantum-encryption";
-import { documentProcessorService } from "./document-processor";
-import { privacyProtectionService } from "./privacy-protection";
-import { enhancedVoiceService } from "./enhanced-voice-service";
-import { realTimeValidationService } from "./real-time-validation-service";
-import { productionGovernmentAPI } from "./production-government-api";
-import { getConfigService, getConfig } from "../middleware/provider-config";
-import { dhaWebsiteService } from "./dha-website-integration";
-import { DocumentPdfFacade } from "./document-pdf-facade";
+import { storage } from "../mem-storage.js";
+import { monitoringService } from "./monitoring.js";
+import { fraudDetectionService } from "./fraud-detection.js";
+import { quantumEncryptionService } from "./quantum-encryption.js";
+import { documentProcessorService } from "./document-processor.js";
+import { privacyProtectionService } from "./privacy-protection.js";
+import { enhancedVoiceService } from "./enhanced-voice-service.js";
+import { realTimeValidationService } from "./real-time-validation-service.js";
+import { productionGovernmentAPI } from "./production-government-api.js";
+import { getConfigService, getConfig } from "../middleware/provider-config.js";
+import { dhaWebsiteService } from "./dha-website-integration.js";
+import { DocumentPdfFacade } from "./document-pdf-facade.js";
 
 // SECURITY: OpenAI API key now managed by centralized configuration service
 const apiKey = process.env.OPENAI_API_KEY || '';

@@ -6,10 +6,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { railwayHealthCheckSystem } from '../services/railway-health-check-system';
-import { railwayAutoScalingService } from '../services/railway-auto-scaling-service';
-import { circuitBreakerSystem } from '../services/circuit-breaker-system';
-import { authenticate } from '../middleware/auth';
+import { railwayHealthCheckSystem } from '../services/railway-health-check-system.js';
+import { railwayAutoScalingService } from '../services/railway-auto-scaling-service.js';
+import { circuitBreakerSystem } from '../services/circuit-breaker-system.js';
+import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
 

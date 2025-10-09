@@ -1,5 +1,5 @@
-import { storage } from "../storage";
-import { auditTrailService } from "./audit-trail-service";
+import { storage } from "../storage.js";
+import { auditTrailService } from "./audit-trail-service.js";
 import { type InsertSecurityIncident, type InsertSecurityRule } from "@shared/schema";
 import { EventEmitter } from "events";
 

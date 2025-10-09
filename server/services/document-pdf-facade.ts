@@ -14,12 +14,12 @@ import PDFDocument from 'pdfkit';
 import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { storage } from '../storage';
-import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from './cryptographic-signature-service';
-import { SecurityFeaturesV2, MRZData, SecurityFeatureConfiguration } from './security-features-v2';
-import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from './base-document-template';
-import { verificationService } from './verification-service';
-import { enhancedVerificationUtilities, VerificationData } from './enhanced-verification-utilities';
+import { storage } from '../storage.js';
+import { cryptographicSignatureService, DocumentSigningMetadata, PAdESLevel } from './cryptographic-signature-service.js';
+import { SecurityFeaturesV2, MRZData, SecurityFeatureConfiguration } from './security-features-v2.js';
+import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from './base-document-template.js';
+import { verificationService } from './verification-service.js';
+import { enhancedVerificationUtilities, VerificationData } from './enhanced-verification-utilities.js';
 import { 
   IdentityDocumentBookGenerator,
   TemporaryIdCertificateGenerator,
@@ -43,7 +43,7 @@ import {
   PermanentResidencePermitGenerator,
   CertificateOfExemptionGenerator,
   CertificateOfSouthAfricanCitizenshipGenerator
-} from './document-generators';
+} from './document-generators.js';
 
 // Import enhanced authentic generators
 import {
@@ -51,7 +51,7 @@ import {
   EnhancedUnabridgedBirthCertificateGenerator,
   EnhancedCitizenshipCertificateGenerator,
   EnhancedSouthAfricanPassportGenerator
-} from './enhanced-authentic-generators';
+} from './enhanced-authentic-generators.js';
 
 import type {
   IdentityDocumentBookData,
@@ -76,7 +76,7 @@ import type {
   PermanentResidencePermitData,
   CertificateOfExemptionData,
   CertificateOfSouthAfricanCitizenshipData
-} from '../../shared/schema';
+} from '../../shared/schema.js';
 
 // Re-export all document types for convenience
 export { 

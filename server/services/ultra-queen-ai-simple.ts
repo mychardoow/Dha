@@ -2,7 +2,7 @@
 // Works with available AI providers and mock government APIs
 
 import { OpenAI } from 'openai';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 // System configuration
 const SYSTEM_CONFIG = {

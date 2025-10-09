@@ -18,7 +18,7 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import { Worker } from 'worker_threads';
-import { HighPrecisionMonitoringIntegration } from './high-precision-monitoring-integration';
+import { HighPrecisionMonitoringIntegration } from './high-precision-monitoring-integration.js';
 
 interface IntegrationTestSuite {
   name: string;

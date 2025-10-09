@@ -20,8 +20,8 @@ import QRCode from 'qrcode';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
-import { storage } from '../storage';
-import { quantumEncryptionService } from './quantum-encryption';
+import { storage } from '../storage.js';
+import { quantumEncryptionService } from './quantum-encryption.js';
 
 // DHA Official Colors (from brand guidelines)
 export const DHA_COLORS = {

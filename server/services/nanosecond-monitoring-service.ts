@@ -22,8 +22,8 @@ import path from "path";
 import os from "os";
 import crypto from "crypto";
 import { performance } from "perf_hooks";
-import { storage } from "../storage";
-import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
+import { storage } from "../storage.js";
+import { autonomousMonitoringBot } from "./autonomous-monitoring-bot.js";
 
 // High-resolution timer for nanosecond precision
 const hrtime = process.hrtime;

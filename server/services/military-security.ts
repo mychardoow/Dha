@@ -1,6 +1,6 @@
 import { createHash, randomBytes, createCipheriv, createDecipheriv, createHmac, generateKeyPairSync, createSign, createVerify, publicEncrypt, privateDecrypt } from 'crypto';
 import { Request } from 'express';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 /**
  * Military-Grade Security Service

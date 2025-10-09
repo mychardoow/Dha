@@ -1,7 +1,7 @@
 import { performance } from 'perf_hooks';
 import { EventEmitter } from 'events';
 import { Request, Response } from 'express';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 interface Metric {
   name: string;

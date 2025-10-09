@@ -5,7 +5,7 @@
  * for the DHA Digital Services platform.
  */
 
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 // Import services with error handling
 let militarySecurityService: any;

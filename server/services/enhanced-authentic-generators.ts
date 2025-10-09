@@ -9,8 +9,8 @@ import * as crypto from "crypto";
 import QRCode from "qrcode";
 import JsBarcode from "jsbarcode";
 // import { createCanvas } from "canvas"; // Temporarily disabled due to compilation issues
-import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template";
-import { SecurityFeaturesV2, MRZData } from "./security-features-v2";
+import { BaseDocumentTemplate, SA_GOVERNMENT_DESIGN } from "./base-document-template.js";
+import { SecurityFeaturesV2, MRZData } from "./security-features-v2.js";
 
 // Import schema types
 import type {
@@ -18,7 +18,7 @@ import type {
   CertificateOfSouthAfricanCitizenshipData,
   SouthAfricanPassportData,
   RefugeeTravelDocumentData
-} from "../../shared/schema";
+} from "../../shared/schema.js";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 

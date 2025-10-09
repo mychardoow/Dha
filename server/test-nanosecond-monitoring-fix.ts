@@ -5,10 +5,10 @@
  * and now deliver ACTUAL nanosecond precision monitoring instead of 5-second intervals.
  */
 
-import { enhancedNanosecondMonitoringService } from './services/enhanced-nanosecond-monitoring-service';
-import { nanosecondMonitoringService } from './services/nanosecond-monitoring-service';
-import { ultraAIMonitoringIntegration } from './services/ultra-ai-monitoring-integration';
-import { nanosecondMonitoringValidator } from './services/nanosecond-monitoring-validator';
+import { enhancedNanosecondMonitoringService } from './services/enhanced-nanosecond-monitoring-service.js';
+import { nanosecondMonitoringService } from './services/nanosecond-monitoring-service.js';
+import { ultraAIMonitoringIntegration } from './services/ultra-ai-monitoring-integration.js';
+import { nanosecondMonitoringValidator } from './services/nanosecond-monitoring-validator.js';
 
 async function demonstrateNanosecondMonitoringFix() {
   console.log('🔧 NANOSECOND MONITORING SYSTEM FIX DEMONSTRATION');

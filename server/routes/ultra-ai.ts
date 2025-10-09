@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { Send } from "express-serve-static-core";
-import { auth } from "../middleware/auth";
-import { biometricService } from "../services/biometric";
-import { enhancedAIAssistant } from "../services/enhanced-ai-assistant";
-import { autonomousMonitoringBot } from "../services/autonomous-monitoring-bot";
-import { militaryGradeAIAssistant } from "../services/military-grade-ai-assistant";
-import { ultraQueenAI, type UltraQueenAIRequest } from "../services/ultra-queen-ai";
-import { storage } from "../storage";
+import { auth } from "../middleware/auth.js";
+import { biometricService } from "../services/biometric.js";
+import { enhancedAIAssistant } from "../services/enhanced-ai-assistant.js";
+import { autonomousMonitoringBot } from "../services/autonomous-monitoring-bot.js";
+import { militaryGradeAIAssistant } from "../services/military-grade-ai-assistant.js";
+import { ultraQueenAI, type UltraQueenAIRequest } from "../services/ultra-queen-ai.js";
+import { storage } from "../storage.js";
 import multer from "multer";
 
 const router = Router();

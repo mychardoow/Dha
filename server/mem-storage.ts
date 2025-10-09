@@ -6,7 +6,7 @@ import {
   type SecurityEvent,
   type FraudAlert,
   type SystemMetric
-} from '../shared/schema';
+} from '../shared/schema.js';
 
 // Export types for use in other files
 export type {
@@ -17,7 +17,7 @@ export type {
   SecurityEvent,
   FraudAlert,
   SystemMetric
-} from '../shared/schema';
+} from '../shared/schema.js';
 import bcryptjs from 'bcryptjs';
 
 /**

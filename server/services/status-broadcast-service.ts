@@ -1,6 +1,6 @@
-import { getWebSocketService } from "../websocket";
-import { storage } from "../storage";
-import { notificationService } from "./notification-service";
+import { getWebSocketService } from "../websocket.js";
+import { storage } from "../storage.js";
+import { notificationService } from "./notification-service.js";
 import { EventType, NotificationCategory, NotificationPriority } from "@shared/schema";
 import type { StatusUpdate, Document, DhaApplication } from "@shared/schema";
 

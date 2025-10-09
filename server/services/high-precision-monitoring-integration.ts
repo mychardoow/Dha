@@ -17,13 +17,13 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager';
-import { LightweightSamplingEngine } from './lightweight-sampling-engine';
-import { WallClockValidator } from './wall-clock-validator';
-import { LatencyBudgetEnforcer } from './latency-budget-enforcer';
-import { GracefulDegradationManager } from './graceful-degradation-manager';
-import { MicroBenchmarkingEngine } from './micro-benchmarking-engine';
-import { PerformanceDocumentationService } from './performance-documentation';
+import { HighPrecisionMonitoringManager } from './high-precision-monitoring-manager.js';
+import { LightweightSamplingEngine } from './lightweight-sampling-engine.js';
+import { WallClockValidator } from './wall-clock-validator.js';
+import { LatencyBudgetEnforcer } from './latency-budget-enforcer.js';
+import { GracefulDegradationManager } from './graceful-degradation-manager.js';
+import { MicroBenchmarkingEngine } from './micro-benchmarking-engine.js';
+import { PerformanceDocumentationService } from './performance-documentation.js';
 
 interface MonitoringConfiguration {
   // Performance targets

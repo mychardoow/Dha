@@ -4,8 +4,8 @@
  */
 
 import { Router } from 'express';
-import { dhaPublicAI } from '../services/dha-public-ai';
-import { storage } from '../storage';
+import { dhaPublicAI } from '../services/dha-public-ai.js';
+import { storage } from '../storage.js';
 
 const router = Router();
 

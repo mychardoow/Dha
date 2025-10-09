@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ultraAIService } from '../services/ultra-ai-system';
+import { ultraAIService } from '../services/ultra-ai-system.js';
 import { z } from 'zod';
 
 const router = Router();

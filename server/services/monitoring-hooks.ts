@@ -5,11 +5,11 @@
  */
 
 import { EventEmitter } from 'events';
-import { enhancedSecurityResponseService } from './enhanced-security-response';
-import { enhancedErrorCorrectionService } from './enhanced-error-correction';
-import { databaseFallbackService } from './database-fallback-service';
-import { getConnectionStatus } from '../db';
-import { storage } from '../storage';
+import { enhancedSecurityResponseService } from './enhanced-security-response.js';
+import { enhancedErrorCorrectionService } from './enhanced-error-correction.js';
+import { databaseFallbackService } from './database-fallback-service.js';
+import { getConnectionStatus } from '../db.js';
+import { storage } from '../storage.js';
 
 interface MonitoringMetrics {
   memoryUsage: NodeJS.MemoryUsage;

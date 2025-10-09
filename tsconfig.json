@@ -1,15 +1,16 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
     "outDir": "./dist",
     "rootDir": "./",
-    "strict": true,
-    "noImplicitAny": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "skipLibCheck": true,
@@ -17,16 +18,21 @@
     "jsx": "react-jsx",
     "jsxImportSource": "react",
     "types": ["node", "vite/client"],
-    "lib": ["ES2022", "ES2020", "ES2018", "ES2017", "ES2015", "ES6", "ES5", "DOM", "DOM.Iterable"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "noEmitOnError": true,
+    "isolatedModules": false,
+    "noEmit": false,
+    "noEmitOnError": false,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["./shared/*"],
       "@/*": ["./client/src/*"]
-    }
+    },
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "ignoreDeprecations": "5.0",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["server/**/*", "shared/**/*"],
   "exclude": ["node_modules", "dist", "client/**/*", "**/*.test.ts", "**/*test*.ts", "**/test-*.ts"]

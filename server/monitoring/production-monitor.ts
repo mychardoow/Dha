@@ -3,9 +3,9 @@
  * Integrates with Render's monitoring system
  */
 
-import { HealthMonitor } from './monitoring/health-check';
-import { AlertSystem } from './monitoring/alert-system';
-import { ENV_CONFIG } from './config/environment';
+import { HealthMonitor } from './monitoring/health-check.js';
+import { AlertSystem } from './monitoring/alert-system.js';
+import { ENV_CONFIG } from './config/environment.js';
 
 // Initialize monitoring systems
 const healthMonitor = new HealthMonitor();

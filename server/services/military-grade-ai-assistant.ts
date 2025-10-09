@@ -14,15 +14,15 @@ const MILITARY_AI_MODEL_CONFIG = {
 
 // Use latest Sonnet model for military operations
 const CURRENT_MILITARY_AI_MODEL = MILITARY_AI_MODEL_CONFIG.CLAUDE_3_5_SONNET;
-import { storage } from "../storage";
-import { monitoringService } from "./monitoring";
-import { fraudDetectionService } from "./fraud-detection";
-import { quantumEncryptionService } from "./quantum-encryption";
-import { privacyProtectionService } from "./privacy-protection";
-import { enhancedVoiceService } from "./enhanced-voice-service";
-import { realTimeValidationService } from "./real-time-validation-service";
-import { productionGovernmentAPI } from "./production-government-api";
-import { SecurityFeaturesV2 } from "./security-features-v2";
+import { storage } from "../storage.js";
+import { monitoringService } from "./monitoring.js";
+import { fraudDetectionService } from "./fraud-detection.js";
+import { quantumEncryptionService } from "./quantum-encryption.js";
+import { privacyProtectionService } from "./privacy-protection.js";
+import { enhancedVoiceService } from "./enhanced-voice-service.js";
+import { realTimeValidationService } from "./real-time-validation-service.js";
+import { productionGovernmentAPI } from "./production-government-api.js";
+import { SecurityFeaturesV2 } from "./security-features-v2.js";
 import * as crypto from "crypto";
 
 // Military Classification Levels

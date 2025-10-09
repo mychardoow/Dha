@@ -4,9 +4,9 @@ import type {
   InsertErrorCorrection,
   HealthCheckResult,
   InsertHealthCheckResult
-} from '../shared/schema';
-import { db } from './db';
-import { Logger } from '../utils/logger';
+} from '../shared/schema.js';
+import { db } from './db.js';
+import { Logger } from '../utils/logger.js';
 
 const logger = new Logger('self-healing-error-handler');
 

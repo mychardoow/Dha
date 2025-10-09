@@ -11,8 +11,8 @@
 
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
-import { storage } from '../storage';
-import { railwayAutoScalingService } from './railway-auto-scaling-service';
+import { storage } from '../storage.js';
+import { railwayAutoScalingService } from './railway-auto-scaling-service.js';
 import { type InsertSystemMetric, type InsertSelfHealingAction } from '@shared/schema';
 
 interface ConnectionPoolConfig {

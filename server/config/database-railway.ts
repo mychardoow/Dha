@@ -9,7 +9,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import { drizzle as drizzleSQLite } from 'drizzle-orm/better-sqlite3';
 import Database from 'better-sqlite3';
 import postgres from 'postgres';
-import * as schema from '../../shared/schema';
+import * as schema from '../../shared/schema.js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import { migrate as migrateSQLite } from 'drizzle-orm/better-sqlite3/migrator';
 import { join } from 'path';

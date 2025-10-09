@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 
 /**
  * South African Permit Validation Engine

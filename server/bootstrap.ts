@@ -1,9 +1,9 @@
 
 import { Express } from 'express';
-import { healthRouter as healthRoutes } from './routes/health';
-import aiAssistantRoutes from './routes/ai-assistant';
-import monitoringRoutes from './routes/monitoring';
-import biometricUltraAdminRoutes from './routes/biometric-ultra-admin';
+import { healthRouter as healthRoutes } from './routes/health.js';
+import aiAssistantRoutes from './routes/ai-assistant.js';
+import monitoringRoutes from './routes/monitoring.js';
+import biometricUltraAdminRoutes from './routes/biometric-ultra-admin.js';
 
 export function bootstrap(app: Express): void {
   console.log('🔧 Bootstrapping DHA Digital Services...');

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getOfficialDHAAPI, DHA_DOCUMENT_TYPES } from '../services/official-dha-api';
+import { getOfficialDHAAPI, DHA_DOCUMENT_TYPES } from '../services/official-dha-api.js';
 
 const router = Router();
 

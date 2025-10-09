@@ -20,7 +20,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import { EventEmitter } from 'events';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 export interface VoiceProcessingOptions {
   language: string;

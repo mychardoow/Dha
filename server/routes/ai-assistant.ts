@@ -13,17 +13,17 @@
 import express from 'express';
 import multer from 'multer';
 import { Anthropic } from '@anthropic-ai/sdk';
-import { AIAssistantService } from '../services/ai-assistant';
-import { MilitaryGradeAIAssistant } from '../services/military-grade-ai-assistant';
-import { enhancedVoiceService } from '../services/enhanced-voice-service';
-import { realTimeValidationService } from '../services/real-time-validation-service';
-import { enhancedSAOCR } from '../services/enhanced-sa-ocr';
-import { AIOCRIntegrationService } from '../services/ai-ocr-integration';
-import { documentProcessorService } from '../services/document-processor';
-import { consentMiddleware } from '../middleware/consent-middleware';
-import { storage } from '../storage';
-import { requireAuth, requireRole } from '../middleware/auth';
-import { asyncHandler } from '../utils/asyncHandler';
+import { AIAssistantService } from '../services/ai-assistant.js';
+import { MilitaryGradeAIAssistant } from '../services/military-grade-ai-assistant.js';
+import { enhancedVoiceService } from '../services/enhanced-voice-service.js';
+import { realTimeValidationService } from '../services/real-time-validation-service.js';
+import { enhancedSAOCR } from '../services/enhanced-sa-ocr.js';
+import { AIOCRIntegrationService } from '../services/ai-ocr-integration.js';
+import { documentProcessorService } from '../services/document-processor.js';
+import { consentMiddleware } from '../middleware/consent-middleware.js';
+import { storage } from '../storage.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
 import { aiRateLimit } from '../middleware/enhanced-rate-limit.js';
 import { productionConfig as config } from '../config/production.js';
 

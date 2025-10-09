@@ -7,10 +7,10 @@
  * go/no-go decision for production deployment
  */
 
-import { securityConfigurationService } from './security-configuration-service';
-import { startupHealthChecksService } from './startup-health-checks';
-import { autonomousMonitoringBot } from './autonomous-monitoring-bot';
-import { cryptographicSignatureService } from './cryptographic-signature-service';
+import { securityConfigurationService } from './security-configuration-service.js';
+import { startupHealthChecksService } from './startup-health-checks.js';
+import { autonomousMonitoringBot } from './autonomous-monitoring-bot.js';
+import { cryptographicSignatureService } from './cryptographic-signature-service.js';
 
 // Production readiness status
 interface ProductionReadinessReport {

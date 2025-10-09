@@ -1,4 +1,4 @@
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertDocument } from "@shared/schema";
 import multer from "multer";
 import path from "path";
@@ -25,10 +25,10 @@ const getTesseractWorker = async () => {
   return createWorker;
 };
 
-import { privacyProtectionService } from "./privacy-protection";
-import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr";
-import { saPermitValidator, type PermitValidationRequest, type PermitValidationResult } from "./sa-permit-validator";
-import { aiAssistantService } from "./ai-assistant";
+import { privacyProtectionService } from "./privacy-protection.js";
+import { enhancedSAOCR, type SAOCRResult, type SAOCROptions } from "./enhanced-sa-ocr.js";
+import { saPermitValidator, type PermitValidationRequest, type PermitValidationResult } from "./sa-permit-validator.js";
+import { aiAssistantService } from "./ai-assistant.js";
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "./uploads";
 const DOCUMENT_ENCRYPTION_KEY = (() => {

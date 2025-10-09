@@ -5,8 +5,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { enhancedSecurityResponseService } from '../services/enhanced-security-response';
-import { databaseFallbackService } from '../services/database-fallback-service';
+import { enhancedSecurityResponseService } from '../services/enhanced-security-response.js';
+import { databaseFallbackService } from '../services/database-fallback-service.js';
 
 // Use singleton Enhanced Security Response Service
 function getSecurityResponseService() {

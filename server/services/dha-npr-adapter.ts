@@ -1,7 +1,7 @@
 import crypto from "crypto";
-import { storage } from "../storage";
+import { storage } from "../storage.js";
 import { InsertDhaVerification, InsertDhaAuditEvent } from "@shared/schema";
-import { privacyProtectionService } from "./privacy-protection";
+import { privacyProtectionService } from "./privacy-protection.js";
 
 /**
  * DHA NPR (National Population Register) Adapter

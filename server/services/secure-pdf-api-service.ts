@@ -10,11 +10,11 @@
 
 import type { Request, Response } from "express";
 import { z } from "zod";
-import { enhancedPdfGenerationService, DocumentType } from "./enhanced-pdf-generation-service";
-import { cryptographicSignatureService, SignatureValidationResult } from "./cryptographic-signature-service";
-import { auditTrailService } from "./audit-trail-service";
-import { fraudDetectionService } from "./fraud-detection";
-import { verificationService } from "./verification-service";
+import { enhancedPdfGenerationService, DocumentType } from "./enhanced-pdf-generation-service.js";
+import { cryptographicSignatureService, SignatureValidationResult } from "./cryptographic-signature-service.js";
+import { auditTrailService } from "./audit-trail-service.js";
+import { fraudDetectionService } from "./fraud-detection.js";
+import { verificationService } from "./verification-service.js";
 import * as crypto from "crypto";
 
 // Validation schemas for all 21 DHA document types

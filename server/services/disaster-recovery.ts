@@ -4,7 +4,7 @@ import { pipeline } from 'stream/promises';
 import { createGzip, createGunzip } from 'zlib';
 import { createHash, randomBytes } from 'crypto';
 import { EventEmitter } from 'events';
-import { storage } from '../storage';
+import { storage } from '../storage.js';
 
 interface BackupPolicy {
   name: string;

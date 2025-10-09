@@ -17,9 +17,9 @@ import {
   BiometricFeatures,
   SpecialInkEffects,
   DataMatrixConfig
-} from "./security-features-v2";
-import { ICAOMRZGenerator, MRZGenerationOptions } from "./icao-mrz-generator";
-import { cryptographicSignatureService } from "./cryptographic-signature-service";
+} from "./security-features-v2.js";
+import { ICAOMRZGenerator, MRZGenerationOptions } from "./icao-mrz-generator.js";
+import { cryptographicSignatureService } from "./cryptographic-signature-service.js";
 
 type PDFKit = InstanceType<typeof PDFDocument>;
 

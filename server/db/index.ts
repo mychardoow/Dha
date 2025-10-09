@@ -1,7 +1,7 @@
 // Database configuration and connection
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { ENV_CONFIG } from '../config/environment';
+import { ENV_CONFIG } from '../config/environment.js';
 
 const pool = new Pool({
   connectionString: ENV_CONFIG.DATABASE_URL,

@@ -7,9 +7,9 @@
  */
 
 import express from 'express';
-import { completePDFGenerationService, DHADocumentType, type DocumentData, type GenerationOptions } from '../services/complete-pdf-generation-service';
-import { storage } from '../mem-storage';
-import { requireAuth, requireRole, type AuthenticatedUser } from '../middleware/auth';
+import { completePDFGenerationService, DHADocumentType, type DocumentData, type GenerationOptions } from '../services/complete-pdf-generation-service.js';
+import { storage } from '../mem-storage.js';
+import { requireAuth, requireRole, type AuthenticatedUser } from '../middleware/auth.js';
 
 const router = express.Router();
 

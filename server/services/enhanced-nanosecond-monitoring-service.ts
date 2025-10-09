@@ -16,10 +16,10 @@
 import { EventEmitter } from 'events';
 import { performance } from 'perf_hooks';
 import os from 'os';
-import { storage } from '../storage';
-import { enhancedSecurityResponseService } from './enhanced-security-response';
-import { monitoringHooksService } from './monitoring-hooks';
-import { databaseFallbackService } from './database-fallback-service';
+import { storage } from '../storage.js';
+import { enhancedSecurityResponseService } from './enhanced-security-response.js';
+import { monitoringHooksService } from './monitoring-hooks.js';
+import { databaseFallbackService } from './database-fallback-service.js';
 import { type InsertSecurityEvent, type InsertSystemMetric, type InsertSelfHealingAction } from '@shared/schema';
 
 interface NanosecondRequestMetrics {

@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
-import { storage } from '../storage';
-import { auditTrailService } from './audit-trail-service';
+import { storage } from '../storage.js';
+import { auditTrailService } from './audit-trail-service.js';
 
 export interface DataRetentionPolicy {
   dataType: 'documents' | 'personal_data' | 'biometrics' | 'communications' | 'audit_logs';

@@ -1,7 +1,7 @@
-import { db } from '../db';
-import { storage } from '../storage';
-import { errorTrackingService } from './error-tracking';
-import { enhancedMonitoringService } from './enhanced-monitoring-service';
+import { db } from '../db.js';
+import { storage } from '../storage.js';
+import { errorTrackingService } from './error-tracking.js';
+import { enhancedMonitoringService } from './enhanced-monitoring-service.js';
 import { sql } from 'drizzle-orm';
 
 // Type definitions

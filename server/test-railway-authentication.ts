@@ -5,9 +5,9 @@
  * correctly enters real-API mode when credentials are available.
  */
 
-import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api';
-import { railwayAutoScalingService } from './services/railway-auto-scaling-service';
-import { railwayHealthCheckSystem } from './services/railway-health-check-system';
+import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api.js';
+import { railwayAutoScalingService } from './services/railway-auto-scaling-service.js';
+import { railwayHealthCheckSystem } from './services/railway-health-check-system.js';
 
 interface TestResult {
   testName: string;

@@ -1,8 +1,8 @@
 import { EventEmitter } from "events";
-import { storage } from "../storage";
-import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
-import { optimizedCacheService } from "./optimized-cache";
-import { getConnectionStatus, pool, db } from "../db";
+import { storage } from "../storage.js";
+import { autonomousMonitoringBot } from "./autonomous-monitoring-bot.js";
+import { optimizedCacheService } from "./optimized-cache.js";
+import { getConnectionStatus, pool, db } from "../db.js";
 import { type InsertAutonomousOperation, type InsertCircuitBreakerState } from "@shared/schema";
 import os from "os";
 

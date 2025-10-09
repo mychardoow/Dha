@@ -6,8 +6,8 @@
  * and South African government requirements.
  */
 
-import { storage } from "../storage";
-import { privacyProtectionService } from "../services/privacy-protection";
+import { storage } from "../storage.js";
+import { privacyProtectionService } from "../services/privacy-protection.js";
 import crypto from "crypto";
 
 export type AuditEventType = 

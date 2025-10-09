@@ -1,4 +1,4 @@
-import { db } from "./db";
+import { db } from "./db.js";
 import {
   type User, type InsertUser,
   type Conversation, type InsertConversation,
@@ -33,7 +33,7 @@ import {
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-import * as schema from "./schema/tables";
+import * as schema from "./schema/tables.js";
 
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {

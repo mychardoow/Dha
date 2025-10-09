@@ -3,7 +3,7 @@
  * Shows production-ready status and system information
  */
 
-import { queenBiometricSecurity } from "./queen-biometric-security";
+import { queenBiometricSecurity } from "./queen-biometric-security.js";
 
 export class ProductionConsoleDisplay {
   private static instance: ProductionConsoleDisplay;

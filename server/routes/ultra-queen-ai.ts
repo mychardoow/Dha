@@ -2,9 +2,9 @@
 // Multi-provider AI system with quantum simulation and self-upgrade capabilities
 
 import express, { Request, Response, Router } from 'express';
-import { ultraQueenAI } from '../services/ultra-queen-ai-simple';
-import { ultraQueenAIUnlimited } from '../services/ultra-queen-ai-unlimited';
-import { authenticate, requireRole } from '../middleware/auth';
+import { ultraQueenAI } from '../services/ultra-queen-ai-simple.js';
+import { ultraQueenAIUnlimited } from '../services/ultra-queen-ai-unlimited.js';
+import { authenticate, requireRole } from '../middleware/auth.js';
 import { z } from 'zod';
 
 const router = Router();

@@ -4,7 +4,7 @@
  * Validates that the authentication header fix works correctly
  */
 
-import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api';
+import { railwayAPI, RAILWAY_SERVICE_CONFIG } from './config/railway-api.js';
 
 async function testRailwayAuthenticationFix() {
   console.log('🧪 Testing Railway Authentication Fix...');

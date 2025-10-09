@@ -1,12 +1,12 @@
 import { EventEmitter } from "events";
-import { autonomousMonitoringBot } from "./autonomous-monitoring-bot";
-import { selfHealingService } from "./self-healing-service";
-import { enhancedErrorDetectionService } from "./enhanced-error-detection";
-import { proactiveMaintenanceService } from "./proactive-maintenance-service";
-import { intelligentAlertingService } from "./intelligent-alerting-service";
-import { webSocketMonitoringService } from "./websocket-monitoring";
-import { storage } from "../storage";
-import { db, pool, getConnectionStatus } from "../db";
+import { autonomousMonitoringBot } from "./autonomous-monitoring-bot.js";
+import { selfHealingService } from "./self-healing-service.js";
+import { enhancedErrorDetectionService } from "./enhanced-error-detection.js";
+import { proactiveMaintenanceService } from "./proactive-maintenance-service.js";
+import { intelligentAlertingService } from "./intelligent-alerting-service.js";
+import { webSocketMonitoringService } from "./websocket-monitoring.js";
+import { storage } from "../storage.js";
+import { db, pool, getConnectionStatus } from "../db.js";
 import { type InsertAutonomousOperation } from "@shared/schema";
 import { Server } from "http";
 

@@ -1,8 +1,8 @@
 import { eq, lt, gt, sql } from "drizzle-orm";
-import type { PostgreSQLStorage } from "../postgresql-storage";
-import { verificationSessions } from "../schema/tables";
-import type { VerificationSession, InsertVerificationSession } from "../schema/types";
-import { DatabaseError } from "../errors/database-error";
+import type { PostgreSQLStorage } from "../postgresql-storage.js";
+import { verificationSessions } from "../schema/tables.js";
+import type { VerificationSession, InsertVerificationSession } from "../schema/types.js";
+import { DatabaseError } from "../errors/database-error.js";
 
 export interface SessionStorageExtension {
   createVerificationSession(session: InsertVerificationSession): Promise<VerificationSession>;

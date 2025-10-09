@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { universalAPIManager } from '../services/universal-api-manager';
+import { universalAPIManager } from '../services/universal-api-manager.js';
 
 const router = Router();
 
