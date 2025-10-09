@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "node16",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -11,6 +11,8 @@
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
+    "noErrorTruncation": true,
+    "preserveWatchOutput": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "jsx": "react-jsx",
@@ -25,10 +27,10 @@
     "moduleDetection": "force",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./shared/*", "./shared/index"],
-      "@/*": ["./client/src/*", "./client/src/index"],
-      "#shared/*": ["./shared/*"],
-      "#server/*": ["./server/*"]
+      "@shared/*": ["./shared/*", "./shared/index.ts", "./shared/index.js"],
+      "@/*": ["./client/src/*", "./client/src/index.ts", "./client/src/index.js"],
+      "#shared/*": ["./shared/*.ts", "./shared/*.js", "./shared/index"],
+      "#server/*": ["./server/*.ts", "./server/*.js", "./server/index"]
     },
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,

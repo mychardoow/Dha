@@ -5,10 +5,10 @@
   "type": "module",
   "main": "dist/server/index.js",
   "scripts": {
-    "start": "node dist/server/index.js",
+    "start": "node start.js",
     "monitor": "node server/monitor.js",
     "dev:start": "node start-simple.js",
-    "build": "node scripts/build-production-v2.js",
+    "build": "node force-build.js",
     "build:render": "node scripts/production-build.js",
     "build:quick": "npx tsc --project tsconfig.json --noEmitOnError false",
     "validate:ts": "node scripts/typescript-validator.js",
