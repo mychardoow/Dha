@@ -46,7 +46,7 @@ const AI_MODEL_CONFIG = {
   GPT_3_5_TURBO: "gpt-3.5-turbo"
 };
 
-let CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
+const CURRENT_AI_MODEL = AI_MODEL_CONFIG.GPT_4O;
 
 export interface QueenUltraCapabilities {
   // Enhanced PDF Generation

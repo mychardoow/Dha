@@ -348,7 +348,7 @@ export function resourceOptimization(req: Request, res: Response, next: NextFunc
  * Graceful degradation middleware
  */
 let degradationMode = false;
-let degradationFeatures = new Set<string>();
+const degradationFeatures = new Set<string>();
 
 export function gracefulDegradation(feature: string) {
   return (req: Request, res: Response, next: NextFunction) => {

@@ -642,7 +642,7 @@ export class SelfHealingService extends EventEmitter {
       const circuitBreakerStates = await storage.getAllCircuitBreakerStates();
       
       let healthyServices = 0;
-      let totalServices = circuitBreakerStates.length;
+      const totalServices = circuitBreakerStates.length;
       
       const serviceStatuses = circuitBreakerStates.map(state => ({
         name: state.serviceName,

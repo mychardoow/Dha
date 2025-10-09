@@ -205,7 +205,7 @@ export function calculateWorkingDays(startDate: Date, numberOfDays: number): Dat
     '12-26', // Day of Goodwill
   ];
   
-  let currentDate = new Date(startDate);
+  const currentDate = new Date(startDate);
   let daysAdded = 0;
   
   while (daysAdded < numberOfDays) {

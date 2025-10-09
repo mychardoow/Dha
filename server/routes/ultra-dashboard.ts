@@ -46,7 +46,7 @@ router.get('/status', async (req: Request, res: Response) => {
     ]);
 
     // Check OpenAI API
-    let aiStatus = { connected: false, model: 'gpt-4-turbo' };
+    const aiStatus = { connected: false, model: 'gpt-4-turbo' };
     try {
       // Test OpenAI connection
       await openAIService.generateResponse('test', 'You are a test. Reply with "OK"');

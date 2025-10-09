@@ -1,13 +1,5 @@
 import { db } from "./db";
-import { 
-  users, conversations, messages, documents, securityEvents, fraudAlerts, 
-  systemMetrics, auditLogs, complianceEvents, userBehaviorProfiles,
-  selfHealingActions, securityIncidents, systemHealthSnapshots, errorCorrections,
-  healthCheckResults, failoverEvents, performanceBaselines, alertRules,
-  circuitBreakerStates, uptimeIncidents, autonomousOperations, maintenanceTasks,
-  governmentComplianceAudits, securityMetrics, biometricProfiles,
-  dhaApplicants, dhaDocuments, dhaDocumentVerifications,
-  aiBotSessions, aiCommandInterfaces,
+import {
   type User, type InsertUser,
   type Conversation, type InsertConversation,
   type Message, type InsertMessage,
@@ -40,6 +32,9 @@ import {
   type AiCommandInterface, type InsertAiCommandInterface
 } from "@shared/schema";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
+import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import * as schema from "./schema/tables";
+
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {
   // User management
@@ -168,6 +163,7 @@ import * as bcrypt from "bcryptjs";
  * Replaces MemStorage with persistent database storage for Railway deployment
  */
 export class PostgreSQLStorage implements IStorage {
+  getDocumentVerificationHistory: any;
 
   // ===================== USER MANAGEMENT =====================
   async getUser(id: string): Promise<User | undefined> {

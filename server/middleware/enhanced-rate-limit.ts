@@ -170,7 +170,7 @@ function calculateAdaptiveLimit(
  * Update user behavior score
  */
 function updateBehaviorScore(userId: string, violated: boolean): void {
-  let score = userBehaviorScores.get(userId) || {
+  const score = userBehaviorScores.get(userId) || {
     violations: 0,
     backoffMultiplier: 1,
     trustScore: 1

@@ -1,4 +1,7 @@
+import { OpenAI } from 'openai';
+import { Anthropic } from '@anthropic-ai/sdk';
 import { randomUUID } from 'crypto';
+
 // Ultra AI System Types (avoiding runtime drizzle imports)
 interface RaesaUltraProfile {
   id: string;
@@ -63,6 +66,21 @@ export class UltraAISystemService {
   private monitoringActive = false;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private lastBiometricScan: Date = new Date();
+  
+  // AI Service Integration
+  private openai: OpenAI | null = null;
+  private anthropic: Anthropic | null = null;
+
+  constructor() {
+    // Initialize AI services
+    if (process.env.OPENAI_API_KEY) {
+      this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    }
+    
+    if (process.env.ANTHROPIC_API_KEY) {
+      this.anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    }
+  }
 
   // ===================== RAEESA-ONLY BIOMETRIC AUTHENTICATION =====================
 

@@ -7,16 +7,38 @@
   - `military-grade-ai-assistant.ts` (Claude 3.5 Sonnet) - Security clearance & government workflows 
   - `enhanced-ai-assistant.ts` (Claude-3) - Global connectivity features
   - `ultra-ai-system.ts` (Multi-AI) - Biometric auth & multi-bot system
-- **Service boundaries**: Each AI service is a separate module under `server/services/`. Cross-service orchestration handled at API layer.
+- **Service boundaries**: Each AI service is a separate module under `server/services/`. Cross-service orchestration via zero-downtime deployment and circuit breakers.
 - **Frontend**: Vite + TypeScript, see `client/` for UI, `DeploymentPackage.tsx` for deployment options.
-- **Database**: PostgreSQL (Railway), SQLite fallback. Configs in `server/config/`.
-- **APIs**: Integrates with NPR, SAPS, ABIS, ICAO PKD, SITA, CIPC, DEL for govt services.
+- **Database**: 
+  - Primary: PostgreSQL (Railway) with enhanced pooling
+  - Fallback: SQLite with auto-migration
+  - Configs in `server/config/database-railway.ts`
+- **Security Layer**:
+  - POPIA and PFMA compliance validation
+  - Government security framework integration
+  - Quantum-ready encryption for document storage
+- **APIs**: 
+  - Government: NPR, SAPS, ABIS, ICAO PKD, SITA, CIPC, DEL
+  - Services: Identity verification, background checks, biometrics, passport validation
 
 ## 🚀 Developer Workflows
-- **Build**: Use platform-native build (Railway, Render, Netlify, CircleCI). No custom scripts required for most deployments.
-- **Test**: Run `ai-validation-suite.cjs` for direct AI service validation. Reports: `AI_VALIDATION_REPORT.json`, `COMPREHENSIVE_AI_TESTING_REPORT.md`.
-- **Deploy**: Push to `main` triggers GitHub Actions, or use `railway up`/platform UI. See `deployment-platforms-guide.md` and `DEPLOYMENT_GUIDE.md`.
-- **Secrets**: Never commit `.env` files. Use platform dashboards for `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `JWT_SECRET`, etc.
+- **Build**: 
+  - Use platform-native build (Railway, Render, Netlify, CircleCI)
+  - Auto-scaling configuration in `railway-auto-scaling-service.ts`
+  - Health check system via `railway-health-check-system.ts`
+- **Test**: 
+  - Run `ai-validation-suite.cjs` for AI service validation
+  - Run `comprehensive-system-test.ts` for end-to-end testing
+  - Key reports: `AI_VALIDATION_REPORT.json`, `COMPREHENSIVE_AI_TESTING_REPORT.md`
+- **Deploy**: 
+  - Push to `main` triggers GitHub Actions
+  - Use `railway up` for Railway deployment
+  - Zero-downtime deployment with `zeroDowntimeDeployment.ts`
+  - Automated validation with `production-readiness-check.ts`
+- **Security**: 
+  - Never commit `.env` files or secrets
+  - Use platform dashboards for API keys
+  - Regular secret rotation via `SecurityConfigurationService`
 
 ## 📦 Project Conventions
 - **Environment variables**: Always accessed via `process.env`. Required: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `DATABASE_URL`, `JWT_SECRET`, `SESSION_SECRET`.
@@ -30,9 +52,20 @@
   - OpenAI (GPT-4o, GPT-4-turbo, GPT-3.5 fallback)
   - Anthropic (Claude 3.5 Sonnet, Claude-3-Opus, Claude-3-Haiku)
   - Others: Perplexity (PPLX-70B), Gemini, Mistral
-- **Voice, PDF, OCR**: Integrated via dedicated service modules with quantum security features.
-- **Government APIs**: NPR for identity verification, ABIS for biometrics, ICAO PKD for passports.
-- **Deployment**: `railway.json`, `Procfile`, `.env.railway` for Railway; `netlify.toml` for Netlify; `.github/workflows/deploy.yml` for GitHub Actions.
+- **Voice, PDF, OCR**: Integrated via dedicated service modules with quantum security features
+- **Government APIs**:
+  - NPR: Population register & identity verification
+  - SAPS: Background checks & criminal records
+  - ABIS: Biometric authentication
+  - ICAO PKD: Passport validation
+  - SITA: eServices & PKI integration
+  - CIPC: Business registration
+  - DEL: Employment verification
+- **Required Environment**:
+  - Government PKI certificates
+  - HSM integration for key storage
+  - POPIA-compliant data retention
+  - Quantum-safe encryption configs
 
 ## 📝 Examples
 - **Add new AI endpoint**: Create a new service in `server/services/`, register in API router, add validation in `ai-validation-suite.cjs`.
