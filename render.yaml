@@ -2,45 +2,19 @@ services:
   - type: web
     name: dha-digital-services
     env: node
-    region: frankfurt
-    plan: standard
-    buildCommand: |
-      export NODE_OPTIONS="--max_old_space_size=4096"
-      export NODE_ENV=production
-      export OVERRIDE_TYPESCRIPT_ERRORS=true
-      export SKIP_TYPE_CHECK=true
-      export FORCE_BYPASS_VALIDATION=true
-      rm -rf node_modules package-lock.json dist/
-      npm cache clean --force
-      npm install --legacy-peer-deps --no-optional
-      npx tsc --noEmit false --skipLibCheck || echo "Type check warnings ignored"
-      npm run build || echo "Build completed with warnings"
-      cp -r shared dist/shared/ || true
-      cp package.json dist/ || true
-      mkdir -p dist/server/services
-    startCommand: cd dist && NODE_ENV=production node server/index.jspeer-deps --no-optional
-      npm run build
-      cp -r shared dist/shared/
-      mkdir -p dist/server/services
-    startCommand: npm start
-    scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 75
-      targetCPUPercent: 75
+    region: oregon
+    plan: free
+    buildCommand: bash render-build-production.sh
+    startCommand: bash render-start-production.sh
     envVars:
-      - key: NODE_VERSION
-        value: 20.11.1
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 5000
-      - key: OVERRIDE_TYPESCRIPT_ERRORS
-        value: true
-      - key: SKIP_TYPE_CHECK
-        value: true
-      - key: FORCE_BYPASS_VALIDATION
-        value: true
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_OPTIONS
+        value: --max_old_space_size=512
       - key: DATABASE_URL
         sync: false
       - key: SESSION_SECRET
@@ -126,29 +100,4 @@ services:
       - key: PFMA_COMPLIANCE_KEY
         sync: false
     healthCheckPath: /api/health
-    autoDeploy: false
-
-  - type: worker
-    name: dha-monitoring-service
-    runtime: node
-    plan: starter
-    buildCommand: npm ci --legacy-peer-deps
-    startCommand: node server/monitor.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: RENDER_EXTERNAL_URL
-        fromService:
-          type: web
-          name: dha-digital-services
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: DATABASE_URL
-        fromService:
-          type: web
-          name: dha-digital-services
-          envVarKey: DATABASE_URL
-      - key: ALERT_WEBHOOK_URL
-        sync: false
-    autoscaling:
-      min: 1
-      max: 1
+    autoDeploy: true

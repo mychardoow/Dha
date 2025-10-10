@@ -7,9 +7,9 @@ channel = "stable-25_05"
 packages = ["libuuid", "cairo", "pango", "giflib", "jq", "python3", "gcc", "pkgconf", "pixman", "railway", "gnome-secrets"]
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["sh", "-c", "npm start"]
-build = ["sh", "-c", "npm run build"]
+deploymentTarget = "vm"
+run = ["bash", "render-start-production.sh"]
+build = ["bash", "render-build-production.sh"]
 
 [[ports]]
 localPort = 5000
