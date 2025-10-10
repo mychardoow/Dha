@@ -1,8 +1,4 @@
-BYPASS_MODE=true
-FORCE_SUCCESS=true
-OVERRIDE_ALL=true
-SKIP_CHECKS=true
-NODE_ENV=production
+{
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
@@ -18,7 +14,6 @@ NODE_ENV=production
     "noErrorTruncation": true,
     "composite": false,
     "noEmitOnError": false,
-    "importsNotUsedAsValues": "remove",
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -27,27 +22,30 @@ NODE_ENV=production
     "types": ["node", "vite/client"],
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "resolveJsonModule": true,
-    "isolatedModules": false,
-    "allowImportingTsExtensions": false,
+    "isolatedModules": true,
     "moduleDetection": "force",
     "baseUrl": ".",
     "importHelpers": true,
-    "verbatimModuleSyntax": true,
     "paths": {
-      "@shared/*": ["./shared/*", "./shared/index.ts", "./shared/index.js"],
-      "@/*": ["./client/src/*", "./client/src/index.ts", "./client/src/index.js"],
-      "#shared/*": ["./shared/*.ts", "./shared/*.js", "./shared/index"],
-      "#server/*": ["./server/*.ts", "./server/*.js", "./server/index"]
+      "@shared/*": ["./shared/*"],
+      "@/*": ["./client/src/*"],
+      "#shared/*": ["./shared/*"],
+      "#server/*": ["./server/*"]
     },
-    "allowUnreachableCode": true,
-    "allowUnusedLabels": true,
-    "ignoreDeprecations": "5.0",
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "removeComments": true,
-    "sourceMap": false,
+    "sourceMap": true,
     "declaration": false,
-    "incremental": false
+    "incremental": true
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
   },
   "include": [
     "server/**/*.ts",
