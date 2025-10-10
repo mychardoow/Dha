@@ -15,20 +15,33 @@ export GENERATE_SOURCEMAP=false
 echo "🧹 Cleaning previous builds..."
 rm -rf dist build .next node_modules/.cache client/node_modules/.cache
 
+# Clean install - remove node_modules for fresh install
+echo "🧹 Removing node_modules for clean install..."
+rm -rf node_modules client/node_modules
+
 # Install root dependencies
 echo "📦 Installing root dependencies..."
-npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline || {
+npm install --legacy-peer-deps --no-audit --no-fund || {
     echo "⚠️ Root install had issues, retrying..."
     npm install --legacy-peer-deps --force
 }
 
+# Rebuild esbuild for linux-x64 platform (root)
+echo "🔧 Rebuilding esbuild for linux-x64 (root)..."
+npm rebuild esbuild --platform=linux --arch=x64 || echo "⚠️ Root esbuild rebuild skipped"
+
 # Install client dependencies
 echo "📦 Installing client dependencies..."
 cd client
-npm install --legacy-peer-deps --no-audit --no-fund --prefer-offline || {
+npm install --legacy-peer-deps --no-audit --no-fund || {
     echo "⚠️ Client install had issues, retrying..."
     npm install --legacy-peer-deps --force
 }
+
+# Rebuild esbuild for linux-x64 platform (client)
+echo "🔧 Rebuilding esbuild for linux-x64 (client)..."
+npm rebuild esbuild --platform=linux --arch=x64 || echo "⚠️ Client esbuild rebuild skipped"
+
 cd ..
 
 # Build client (with error bypass)
