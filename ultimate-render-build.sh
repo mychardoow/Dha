@@ -107,7 +107,7 @@ cat > dist/process.json << EOF
         "instances": 1,
         "exec_mode": "cluster",
         "max_memory_restart": "450M",
-        "node_args": "--optimize_for_size --max_old_space_size=460 --gc_interval=100",
+        "node_args": "export NODE_OPTIONS="--max-old-space-size=460"",
         "env": {
             "NODE_ENV": "production"
         }

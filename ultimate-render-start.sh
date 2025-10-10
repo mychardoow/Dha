@@ -62,7 +62,7 @@ KEEPALIVE_PID=$!
 
 # Start main application with optimizations
 echo "✨ Starting main application with optimizations..."
-NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY} --optimize_for_size --gc_interval=100" \
+export NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY}"
 exec node server.js &
 APP_PID=$!
 
