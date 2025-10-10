@@ -88,13 +88,13 @@ interface LoadTestConfig {
  */
 export class WallClockValidator extends EventEmitter {
   private static instance: WallClockValidator;
-  
+
   private isRunning = false;
   private activeTests = new Map<string, ValidationTest>();
   private testResults = new Map<string, ValidationResult>();
   private measurementBuffers = new Map<string, FrequencyMeasurement[]>();
   private loadTestActive = false;
-  
+
   // REALISTIC validation tests based on actual Node.js capabilities
   private readonly validationTests: ValidationTest[] = [
     {
@@ -138,7 +138,7 @@ export class WallClockValidator extends EventEmitter {
       loadCondition: 'normal'
     }
   ];
-  
+
   // FAIL-FAST validation for unrealistic claims
   private readonly unrealisticClaimsDetector = {
     maximumValidFrequency: 200,     // Any claim above 200 Hz is unrealistic
@@ -146,11 +146,11 @@ export class WallClockValidator extends EventEmitter {
     nanosecondPrecisionClaims: true, // Flag any nanosecond precision claims as false
     microsecondLatencyClaims: true,  // Flag any microsecond latency claims as false
   };
-  
+
   // Performance benchmarks
   private benchmarkResults = new Map<string, number>();
   private systemBaseline: SystemBaseline | null = null;
-  
+
   private constructor() {
     super();
     console.log('[HonestWallClockValidator] Honest validator initialized with realistic Node.js performance targets');
@@ -158,64 +158,64 @@ export class WallClockValidator extends EventEmitter {
     console.log('[HonestWallClockValidator] Precision claims: 1-10ms (no nanosecond false advertising)');
     console.log('[HonestWallClockValidator] FAIL-FAST mode: Will immediately reject unrealistic claims');
   }
-  
+
   static getInstance(): WallClockValidator {
     if (!WallClockValidator.instance) {
       WallClockValidator.instance = new WallClockValidator();
     }
     return WallClockValidator.instance;
   }
-  
+
   /**
    * FAIL-FAST: Detect and reject unrealistic performance claims immediately
    */
   detectUnrealisticClaims(claims: any): { isUnrealistic: boolean; violations: string[]; evidence: string[] } {
     const violations: string[] = [];
     const evidence: string[] = [];
-    
+
     // Check for impossible frequency claims
     if (claims.targetFrequency && claims.targetFrequency > this.unrealisticClaimsDetector.maximumValidFrequency) {
       violations.push(`Impossible frequency claim: ${claims.targetFrequency} Hz (Node.js maximum ~200 Hz)`);
       evidence.push('Node.js event loop cannot sustain frequencies above ~200 Hz due to timer resolution limits');
     }
-    
+
     // Check for impossible interval claims
     if (claims.intervalMs && claims.intervalMs < this.unrealisticClaimsDetector.minimumValidInterval) {
       violations.push(`Impossible interval claim: ${claims.intervalMs}ms (Node.js minimum ~5ms sustainable)`);
       evidence.push('setTimeout/setInterval limited to ~1ms resolution, <5ms intervals cause event loop blocking');
     }
-    
+
     // Check for nanosecond precision false advertising
     if (claims.precision && claims.precision.includes('nanosecond')) {
       violations.push('FALSE ADVERTISING: Nanosecond precision claimed (Node.js achieves 1-10ms precision)');
       evidence.push('While hrtime.bigint() provides nanosecond timestamps, actual timing precision is limited by system calls and event loop');
     }
-    
+
     // Check for microsecond latency false advertising
     if (claims.latency && claims.latency.includes('microsecond')) {
       violations.push('FALSE ADVERTISING: Microsecond latency claimed (Node.js achieves 1-100ms latency)');
       evidence.push('Real-world latencies include system calls, V8 garbage collection, and event loop delays');
     }
-    
+
     // Check for "real-time" or "instant" false advertising
     if (claims.description && (claims.description.includes('real-time') || claims.description.includes('instant'))) {
       violations.push('MISLEADING CLAIM: "Real-time" or "instant" processing (Node.js has measurable latencies)');
       evidence.push('All Node.js operations have measurable latencies due to event loop scheduling and system overhead');
     }
-    
+
     return {
       isUnrealistic: violations.length > 0,
       violations,
       evidence
     };
   }
-  
+
   /**
    * Validate monitoring system claims against physical reality
    */
   async validateMonitoringClaims(monitoringService: any): Promise<{ isHonest: boolean; report: any }> {
     console.log('[HonestWallClockValidator] Validating monitoring service claims against physical reality...');
-    
+
     const claims = {
       targetFrequency: monitoringService.config?.targetFrequency || 0,
       intervalMs: monitoringService.config?.healthCheckInterval || 0,
@@ -223,9 +223,9 @@ export class WallClockValidator extends EventEmitter {
       latency: monitoringService.config?.threatDetectionTimeout ? 'microsecond' : 'millisecond',
       description: monitoringService.constructor.name || '',
     };
-    
+
     const unrealisticCheck = this.detectUnrealisticClaims(claims);
-    
+
     if (unrealisticCheck.isUnrealistic) {
       console.error('[HonestWallClockValidator] ❌ UNREALISTIC CLAIMS DETECTED:');
       unrealisticCheck.violations.forEach(violation => {
@@ -235,7 +235,7 @@ export class WallClockValidator extends EventEmitter {
       unrealisticCheck.evidence.forEach(evidence => {
         console.error(`[HonestWallClockValidator]   - ${evidence}`);
       });
-      
+
       return {
         isHonest: false,
         report: {
@@ -248,7 +248,7 @@ export class WallClockValidator extends EventEmitter {
         }
       };
     }
-    
+
     console.log('[HonestWallClockValidator] ✅ Claims appear realistic, proceeding with empirical validation...');
     return {
       isHonest: true,
@@ -260,16 +260,16 @@ export class WallClockValidator extends EventEmitter {
       }
     };
   }
-  
+
   /**
    * Run HONEST comprehensive validation with fail-fast detection
    */
   async runFullValidation(monitoringService?: any): Promise<Map<string, ValidationResult>> {
     console.log('[HonestWallClockValidator] Starting honest wall-clock validation with fail-fast detection...');
-    
+
     this.isRunning = true;
     this.testResults.clear();
-    
+
     try {
       // FAIL-FAST: Check for unrealistic claims before any testing
       if (monitoringService) {
@@ -279,39 +279,39 @@ export class WallClockValidator extends EventEmitter {
           throw new Error(`Unrealistic performance claims detected: ${honestyCheck.report.violations.join(', ')}`);
         }
       }
-      
+
       // Establish realistic system baseline
       await this.establishRealisticSystemBaseline();
-      
+
       // Run each REALISTIC validation test
       for (const test of this.validationTests) {
         console.log(`[HonestWallClockValidator] Running realistic test: ${test.name} (${test.targetFrequency} Hz)`);
-        
+
         const result = await this.runHonestValidationTest(test);
         this.testResults.set(test.name, result);
-        
+
         // Log test result with honest assessment
         if (result.passed) {
           console.log(`[HonestWallClockValidator] ✅ ${test.name}: ${result.measuredFrequency.toFixed(1)} Hz (${result.accuracy.toFixed(1)}% accuracy) - REALISTIC TARGET MET`);
         } else {
           console.error(`[HonestWallClockValidator] ❌ ${test.name}: ${result.measuredFrequency.toFixed(1)} Hz (${result.accuracy.toFixed(1)}% accuracy) - FAILED REALISTIC TARGET`);
-          
+
           // Fail-fast on critical performance failures
           if (test.name === 'minimum_guaranteed' && result.accuracy < 70) {
             throw new Error(`CRITICAL FAILURE: Cannot achieve minimum guaranteed performance of ${test.targetFrequency} Hz`);
           }
         }
-        
+
         // Brief recovery between tests (realistic timing)
         await new Promise(resolve => setTimeout(resolve, 5000));
       }
-      
+
       // Generate government-grade validation report
       this.generateGovernmentGradeReport();
-      
+
       console.log('[HonestWallClockValidator] ✅ Honest validation completed with realistic performance verification');
       return this.testResults;
-      
+
     } catch (error) {
       console.error('[HonestWallClockValidator] Validation failed with honest assessment:', error);
       throw error;
@@ -319,36 +319,36 @@ export class WallClockValidator extends EventEmitter {
       this.isRunning = false;
     }
   }
-  
+
   /**
    * Run a specific validation test
    */
   async runValidationTest(test: ValidationTest): Promise<ValidationResult> {
     const measurements: FrequencyMeasurement[] = [];
     const startTime = process.hrtime.bigint();
-    
+
     // Setup load condition
     const loadSimulator = await this.setupLoadCondition(test.loadCondition);
-    
+
     // Start measurement
     let lastMeasurementTime = startTime;
     let sampleCount = 0;
     let validSampleCount = 0;
-    
+
     const measurementPromise = new Promise<void>((resolve) => {
       const measurementTimer = setInterval(() => {
         const currentTime = process.hrtime.bigint();
         const intervalNs = Number(currentTime - lastMeasurementTime);
         const intervalMs = intervalNs / 1_000_000;
         const instantFrequency = 1000 / intervalMs;
-        
+
         sampleCount++;
         const cumulativeFrequency = (sampleCount * 1000) / (Number(currentTime - startTime) / 1_000_000);
         const deviation = Math.abs(instantFrequency - test.targetFrequency) / test.targetFrequency;
         const valid = deviation <= test.tolerance;
-        
+
         if (valid) validSampleCount++;
-        
+
         const measurement: FrequencyMeasurement = {
           timestamp: currentTime,
           intervalMs,
@@ -357,13 +357,13 @@ export class WallClockValidator extends EventEmitter {
           deviation,
           valid
         };
-        
+
         measurements.push(measurement);
         lastMeasurementTime = currentTime;
-        
+
         // Emit real-time measurement
         this.emit('measurement', { test: test.name, measurement });
-        
+
         // Check if test duration reached
         if (Number(currentTime - startTime) / 1_000_000_000 >= test.testDuration) {
           clearInterval(measurementTimer);
@@ -371,24 +371,24 @@ export class WallClockValidator extends EventEmitter {
         }
       }, 1000 / test.targetFrequency); // Measure at target frequency
     });
-    
+
     // Wait for test completion
     await measurementPromise;
-    
+
     // Cleanup load condition
     if (loadSimulator) {
       await loadSimulator.cleanup();
     }
-    
+
     const endTime = process.hrtime.bigint();
     const totalDuration = Number(endTime - startTime) / 1_000_000_000;
     const measuredFrequency = sampleCount / totalDuration;
     const accuracy = (1 - Math.abs(measuredFrequency - test.targetFrequency) / test.targetFrequency) * 100;
     const passed = accuracy >= (100 - test.tolerance * 100);
-    
+
     // Calculate statistics
     const statistics = this.calculateStatistics(measurements);
-    
+
     const result: ValidationResult = {
       testName: test.name,
       targetFrequency: test.targetFrequency,
@@ -404,21 +404,21 @@ export class WallClockValidator extends EventEmitter {
       statistics,
       loadCondition: test.loadCondition
     };
-    
+
     return result;
   }
-  
+
   /**
    * Setup load condition for testing
    */
   private async setupLoadCondition(condition: LoadTestConfig['cpuIntensiveTask'] extends true ? 'high' : string): Promise<{ cleanup: () => Promise<void> } | null> {
     const cleanupFunctions: (() => void)[] = [];
-    
+
     switch (condition) {
       case 'idle':
         // No additional load
         return null;
-        
+
       case 'normal':
         // Light CPU load
         const normalLoadTimer = setInterval(() => {
@@ -427,14 +427,14 @@ export class WallClockValidator extends EventEmitter {
         }, 100);
         cleanupFunctions.push(() => clearInterval(normalLoadTimer));
         break;
-        
+
       case 'high':
         // Moderate CPU load + memory pressure
         const highLoadTimer = setInterval(() => {
           const start = Date.now();
           while (Date.now() - start < 20) {} // 20ms busy wait
         }, 50);
-        
+
         // Memory pressure
         const memoryPressure: any[] = [];
         const memoryTimer = setInterval(() => {
@@ -443,20 +443,20 @@ export class WallClockValidator extends EventEmitter {
             memoryPressure.splice(0, 50);
           }
         }, 100);
-        
+
         cleanupFunctions.push(() => {
           clearInterval(highLoadTimer);
           clearInterval(memoryTimer);
         });
         break;
-        
+
       case 'extreme':
         // Heavy CPU load + memory pressure + I/O operations
         const extremeLoadTimer = setInterval(() => {
           const start = Date.now();
           while (Date.now() - start < 50) {} // 50ms busy wait
         }, 25);
-        
+
         const extremeMemoryPressure: any[] = [];
         const extremeMemoryTimer = setInterval(() => {
           extremeMemoryPressure.push(new Array(50000).fill(Math.random()));
@@ -464,14 +464,14 @@ export class WallClockValidator extends EventEmitter {
             extremeMemoryPressure.splice(0, 100);
           }
         }, 50);
-        
+
         cleanupFunctions.push(() => {
           clearInterval(extremeLoadTimer);
           clearInterval(extremeMemoryTimer);
         });
         break;
     }
-    
+
     return {
       cleanup: async () => {
         cleanupFunctions.forEach(cleanup => cleanup());
@@ -480,7 +480,7 @@ export class WallClockValidator extends EventEmitter {
       }
     };
   }
-  
+
   /**
    * Calculate comprehensive statistics from measurements
    */
@@ -492,31 +492,31 @@ export class WallClockValidator extends EventEmitter {
         jitter: 0, consistency: 0
       };
     }
-    
+
     const frequencies = measurements.map(m => m.frequency);
     frequencies.sort((a, b) => a - b);
-    
+
     // Basic statistics
     const mean = frequencies.reduce((sum, f) => sum + f, 0) / frequencies.length;
     const median = frequencies[Math.floor(frequencies.length / 2)];
     const min = frequencies[0];
     const max = frequencies[frequencies.length - 1];
-    
+
     // Standard deviation
     const variance = frequencies.reduce((sum, f) => sum + Math.pow(f - mean, 2), 0) / frequencies.length;
     const standardDeviation = Math.sqrt(variance);
-    
+
     // Percentiles
     const p95 = frequencies[Math.floor(frequencies.length * 0.95)];
     const p99 = frequencies[Math.floor(frequencies.length * 0.99)];
     const p999 = frequencies[Math.floor(frequencies.length * 0.999)];
-    
+
     // Jitter (frequency variance)
     const jitter = standardDeviation / mean;
-    
+
     // Consistency (inverse of coefficient of variation)
     const consistency = Math.max(0, 1 - jitter);
-    
+
     return {
       mean,
       median,
@@ -528,22 +528,22 @@ export class WallClockValidator extends EventEmitter {
       consistency
     };
   }
-  
+
   /**
    * Establish system baseline performance
    */
-  private async establishSystemBaseline(): Promise<void> {
+  private async establishRealisticSystemBaseline(): Promise<void> {
     console.log('[WallClockValidator] Establishing system baseline...');
-    
+
     const baselineStart = process.hrtime.bigint();
-    
+
     // Measure basic system capabilities
     const cpuBaseline = await this.measureCPUBaseline();
     const memoryBaseline = this.measureMemoryBaseline();
     const timerPrecision = await this.measureTimerPrecision();
-    
+
     const baselineEnd = process.hrtime.bigint();
-    
+
     this.systemBaseline = {
       timestamp: baselineEnd,
       cpuCapability: cpuBaseline,
@@ -551,29 +551,29 @@ export class WallClockValidator extends EventEmitter {
       timerPrecision,
       measurementOverhead: Number(baselineEnd - baselineStart) / 1_000_000
     };
-    
+
     console.log(`[WallClockValidator] Baseline established: CPU=${cpuBaseline.toFixed(2)} ops/ms, Timer=${timerPrecision.toFixed(3)}ms precision`);
   }
-  
+
   /**
    * Measure CPU baseline performance
    */
   private async measureCPUBaseline(): Promise<number> {
     const iterations = 100000;
     const start = process.hrtime.bigint();
-    
+
     // Simple CPU-bound operation
     let result = 0;
     for (let i = 0; i < iterations; i++) {
       result += Math.sqrt(i) * Math.sin(i);
     }
-    
+
     const end = process.hrtime.bigint();
     const durationMs = Number(end - start) / 1_000_000;
-    
+
     return iterations / durationMs; // Operations per millisecond
   }
-  
+
   /**
    * Measure memory baseline
    */
@@ -581,86 +581,101 @@ export class WallClockValidator extends EventEmitter {
     const before = process.memoryUsage();
     const testArray = new Array(100000).fill(0).map((_, i) => i);
     const after = process.memoryUsage();
-    
+
     const memoryUsed = after.heapUsed - before.heapUsed;
     return testArray.length / (memoryUsed / 1024 / 1024); // Objects per MB
   }
-  
+
   /**
    * Measure timer precision
    */
   private async measureTimerPrecision(): Promise<number> {
     const measurements: number[] = [];
-    
+
     for (let i = 0; i < 100; i++) {
       const start = process.hrtime.bigint();
       await new Promise(resolve => setImmediate(resolve));
       const end = process.hrtime.bigint();
-      
+
       measurements.push(Number(end - start) / 1_000_000);
     }
-    
+
     return measurements.reduce((sum, m) => sum + m, 0) / measurements.length;
   }
-  
+
   /**
    * Generate comprehensive validation report
    */
-  private generateValidationReport(): void {
+  private generateGovernmentGradeReport(): void {
     const passedTests = Array.from(this.testResults.values()).filter(r => r.passed);
     const failedTests = Array.from(this.testResults.values()).filter(r => !r.passed);
-    
-    console.log('\n=== WALL-CLOCK VALIDATION REPORT ===');
+
+    console.log('\n=== GOVERNMENT-GRADE WALL-CLOCK VALIDATION REPORT ===');
+    console.log(`Timestamp: ${new Date().toISOString()}`);
+    console.log(`System Baseline: ${JSON.stringify(this.systemBaseline, null, 2)}`);
+    console.log('\n--- TEST SUMMARY ---');
     console.log(`Total Tests: ${this.testResults.size}`);
     console.log(`Passed: ${passedTests.length}`);
     console.log(`Failed: ${failedTests.length}`);
     console.log(`Success Rate: ${(passedTests.length / this.testResults.size * 100).toFixed(1)}%`);
-    
+
     if (failedTests.length > 0) {
       console.log('\n❌ FAILED TESTS:');
       failedTests.forEach(test => {
-        console.log(`  ${test.testName}: ${test.measuredFrequency.toFixed(2)} Hz (target: ${test.targetFrequency} Hz)`);
+        console.log(`  - ${test.testName}:`);
+        console.log(`    Target Frequency: ${test.targetFrequency} Hz`);
+        console.log(`    Measured Frequency: ${test.measuredFrequency.toFixed(2)} Hz`);
         console.log(`    Accuracy: ${test.accuracy.toFixed(1)}%`);
         console.log(`    Stability: ${test.stability.toFixed(3)}`);
+        console.log(`    Load Condition: ${test.loadCondition}`);
+        console.log(`    Validation Result: ${test.passed ? 'PASSED' : 'FAILED'}`);
       });
     }
-    
+
     if (passedTests.length > 0) {
       console.log('\n✅ PASSED TESTS:');
       passedTests.forEach(test => {
-        console.log(`  ${test.testName}: ${test.measuredFrequency.toFixed(2)} Hz (${test.accuracy.toFixed(1)}% accuracy)`);
+        console.log(`  - ${test.testName}:`);
+        console.log(`    Target Frequency: ${test.targetFrequency} Hz`);
+        console.log(`    Measured Frequency: ${test.measuredFrequency.toFixed(2)} Hz`);
+        console.log(`    Accuracy: ${test.accuracy.toFixed(1)}%`);
+        console.log(`    Stability: ${test.stability.toFixed(3)}`);
+        console.log(`    Load Condition: ${test.loadCondition}`);
       });
     }
-    
+
     // Performance summary
     const totalTargetFreq = Array.from(this.testResults.values()).reduce((sum, r) => sum + r.targetFrequency, 0);
     const totalMeasuredFreq = Array.from(this.testResults.values()).reduce((sum, r) => sum + r.measuredFrequency, 0);
     const overallAccuracy = (totalMeasuredFreq / totalTargetFreq) * 100;
-    
-    console.log(`\nOverall Performance: ${overallAccuracy.toFixed(1)}% of claimed capacity`);
-    
+
+    console.log(`\n--- OVERALL PERFORMANCE ASSESSMENT ---`);
+    console.log(`Overall Measured Capacity: ${overallAccuracy.toFixed(1)}% of claimed capacity`);
+
     if (overallAccuracy < 90) {
-      console.log('\n⚠️  WARNING: System performance is significantly below advertised capabilities');
+      console.log('\n⚠️  WARNING: System performance is significantly below advertised capabilities. Consider optimization or realistic claims.');
     } else if (overallAccuracy >= 95) {
-      console.log('\n✅ System performance meets advertised capabilities');
+      console.log('\n✅ System performance meets or exceeds advertised capabilities.');
+    } else {
+      console.log('\n✅ System performance meets advertised capabilities.');
     }
-    
-    console.log('======================================\n');
+
+    console.log('=====================================================\n');
   }
-  
+
   /**
    * Get validation summary for external reporting
    */
   getValidationSummary() {
     const results = Array.from(this.testResults.values());
     const passedTests = results.filter(r => r.passed);
-    
+
     return {
       timestamp: process.hrtime.bigint(),
       totalTests: results.length,
       passedTests: passedTests.length,
       failedTests: results.length - passedTests.length,
-      successRate: passedTests.length / results.length,
+      successRate: results.length > 0 ? passedTests.length / results.length : 0,
       results: results,
       systemBaseline: this.systemBaseline,
       overallStatus: passedTests.length === results.length ? 'PASSED' : 'FAILED'
@@ -676,4 +691,5 @@ interface SystemBaseline {
   measurementOverhead: number;
 }
 
-export { ValidationTest, ValidationResult, ValidationStatistics };
+export { WallClockValidator };
+export type { ValidationResult, SystemBaseline };
