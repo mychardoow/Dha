@@ -4,9 +4,9 @@ services:
     env: node
     region: frankfurt
     plan: free
-    buildCommand: bash render-bulletproof-build.sh
-    startCommand: bash render-bulletproof-start.sh
-    healthCheckPath: /api/health
+    buildCommand: bash render-build-fixed.sh
+    startCommand: bash render-start-fixed.sh
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: NODE_ENV
