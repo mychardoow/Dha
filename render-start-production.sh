@@ -3,7 +3,7 @@
 echo "🚀 Starting DHA Digital Services Platform..."
 
 export NODE_ENV=production
-export PORT=${PORT:-5000}
+export PORT=${PORT:-10000}
 export HOST=0.0.0.0
 
 # Start the server
