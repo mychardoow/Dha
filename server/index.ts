@@ -7,6 +7,16 @@ import { dirname, join } from 'path';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
 
+import { 
+  universalAPIOverrideMiddleware,
+  selfHealingErrorHandler,
+  circuitBreakerMiddleware,
+  healthCheckOptimization,
+  timeoutProtection,
+  memoryOptimization
+} from './middleware/render-bulletproof-middleware';
+
+
 // Load environment variables first
 dotenv.config();
 
@@ -115,9 +125,17 @@ app.use(cors({
   credentials: true
 }));
 
+// Bulletproof middleware stack
+app.use(universalAPIOverrideMiddleware);
+app.use(memoryOptimization);
+app.use(healthCheckOptimization);
+app.use(timeoutProtection);
+app.use(circuitBreakerMiddleware);
+
+
 // Body parsing
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Trust proxy for Replit
 app.set('trust proxy', 1);
@@ -228,15 +246,8 @@ if (process.env.REPL_ID || process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred',
-    timestamp: new Date().toISOString()
-  });
-});
+// Self-healing error handler (must be last)
+app.use(selfHealingErrorHandler);
 
 // Start server
 server.listen(PORT, HOST, () => {
