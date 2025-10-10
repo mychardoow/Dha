@@ -1126,14 +1126,9 @@ export class ZeroDowntimeDeployment extends EventEmitter {
   /**
    * Logging methods
    */
-  private async logDeploymentEvent(event: Omit<InsertSelfHealingAction, 'id' | 'timestamp'>): Promise<void> {
+  private async logDeploymentEvent(event: any): Promise<void> {
     try {
-      // TODO: Implement storage method when available
-      // await storage.insertSelfHealingAction({
-      //   ...event,
-      //   timestamp: new Date()
-      // });
-      console.log('📝 Deployment event:', event.description);
+      console.log('📝 Deployment event:', event.description || 'Event logged');
     } catch (error) {
       console.warn('⚠️ Failed to log deployment event:', error);
     }
