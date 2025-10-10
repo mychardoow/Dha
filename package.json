@@ -6,7 +6,7 @@
   "main": "dist/server/index.js",
   "scripts": {
     "start": "bash ultra-robust-start.sh",
-    "build": "bash ultra-robust-build.sh",
+    "build": "npm run build:api && npm run build:client",
     "build:render": "bash ultra-robust-build.sh",
     "build:production": "bash render-build-production.sh",
     "build:quick": "npx tsc --project tsconfig.production.json --noEmitOnError false",

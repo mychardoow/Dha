@@ -15,4 +15,13 @@ echo "Environment: $NODE_ENV"
 echo ""
 
 # Start with auto-recovery
-node dist/server/index.js 2>&1 | tee -a server.log
+if [ -f dist/server/index.js ]; then
+	node dist/server/index.js 2>&1 | tee -a server.log
+elif [ -f dist/server.cjs ]; then
+	node dist/server.cjs 2>&1 | tee -a server.log
+elif [ -f dist/server.js ]; then
+	node dist/server.js 2>&1 | tee -a server.log
+else
+	echo "❌ No server entry found in dist/. Build may have failed."
+	exit 1
+fi
