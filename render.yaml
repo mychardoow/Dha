@@ -4,10 +4,19 @@ services:
     env: node
     region: frankfurt
     plan: free
-    buildCommand: bash render-build-fixed.sh
-    startCommand: bash render-start-fixed.sh
+    buildCommand: bash maximum-protection-build.sh
+    startCommand: bash maximum-protection-start.sh
     healthCheckPath: /health
     autoDeploy: true
+    healthCheckTimeout: 180
+    healthCheckInterval: 30
+    pullRequestPreviewsEnabled: true
+    numInstances: 1
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+      targetMemoryPercent: 90
+      targetCPUPercent: 90
     envVars:
       - key: NODE_ENV
         value: production
@@ -29,6 +38,15 @@ services:
         value: true
       - key: GRACEFUL_DEGRADATION
         value: true
+      # Monitoring Configuration
+      - key: ENABLE_MONITORING
+        value: true
+      - key: MONITOR_INTERVAL
+        value: 60000
+      - key: MAX_RETRY_ATTEMPTS
+        value: 3
+      - key: ALERT_THRESHOLD
+        value: 5
       # Secrets (sync from Render dashboard)
       - key: DATABASE_URL
         sync: false
@@ -42,12 +60,31 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+        # Extra failsafe environment variables
+        - key: MAXIMUM_PROTECTION_MODE
+          value: true
+        - key: ENABLE_SELF_HEALING
+          value: true
+        - key: ENABLE_AUTO_RECOVERY
+          value: true
+        - key: ENABLE_ULTRA_MONITORING
+          value: true
 
   - type: worker
     name: dha-monitoring-service
     runtime: node
     plan: starter
     buildCommand: npm ci --legacy-peer-deps
+    startCommand: node render-monitor.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENABLE_MONITORING
+        value: true
+      - key: MONITOR_INTERVAL
+        value: 60000
+      - key: TARGET_SERVICE
+        value: dha-digital-services
     startCommand: node server/monitor.js
     envVars:
       - key: NODE_ENV

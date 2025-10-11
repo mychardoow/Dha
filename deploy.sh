@@ -1,12 +1,30 @@
 #!/bin/bash
 
-# Automated Deployment Script
-echo "Starting automated deployment process..."
+# Enhanced Automated Deployment Script with Error Handling
+set -e  # Exit on error
+set -o pipefail  # Exit on pipe failure
 
-# 1. Clean Installation
-rm -rf node_modules package-lock.json
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# Error handler
+handle_error() {
+    echo -e "${RED}Error occurred in deploy.sh at line $1${NC}"
+    exit 1
+}
+trap 'handle_error $LINENO' ERR
+
+echo -e "${GREEN}Starting enhanced automated deployment process...${NC}"
+
+# 1. Clean Installation with Validation
+echo -e "${YELLOW}Cleaning previous installation...${NC}"
+rm -rf node_modules package-lock.json || true
 npm cache clean --force
-npm install --legacy-peer-deps
+echo -e "${YELLOW}Installing dependencies...${NC}"
+npm install --legacy-peer-deps --no-audit
 
 # 2. Environment Setup
 echo "NODE_ENV=production
