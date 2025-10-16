@@ -1,13 +1,12 @@
-import express from 'express';
-import { spawn } from 'child_process';
-import fs from 'fs';
-import path from 'path';
-import PDFDocument from 'pdfkit';
-import cluster from 'cluster';
-import { cpus } from 'os';
-import { fileURLToPath } from 'url';
+const express = require('express');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const PDFDocument = require('pdfkit');
+const cluster = require('cluster');
+const os = require('os');
 
-const __filename = fileURLToPath(import.meta.url);
+const numCPUs = os.cpus().length;
 const __dirname = path.dirname(__filename);
 const numCPUs = cpus().length;
 
@@ -161,4 +160,4 @@ router.get('/health', (req, res) => {
   });
 });
 
-export default router;
+module.exports = router;
