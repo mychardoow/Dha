@@ -223,6 +223,10 @@ if (cluster.isPrimary) {
     // Initialize server
     startServer();
     
+    try {
+    // Initialize server
+    startServer();
+    
     // Start listening on port with error handling
     const PORT = process.env.PORT || 3000;
     state.server = app.listen(PORT, () => {
