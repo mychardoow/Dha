@@ -1,7 +1,17 @@
 #!/bin/bash
 
-# Exit on error
-set -e
+# Exit on error and undefined variables
+set -euo pipefail
+IFS=$'\n\t'
+
+# Error handler
+handle_error() {
+  echo "❌ Error occurred in build script on line $1"
+  exit 1
+}
+
+# Set error handler
+trap 'handle_error $LINENO' ERR
 
 echo "🚀 Starting build..."
 
@@ -17,27 +27,46 @@ echo "📦 Installing dependencies..."
 npm install --production --legacy-peer-deps express
 mkdir -p dist
 
-echo "📋 Copying files..."
-# Ensure clean dist
+echo "📋 Setting up build..."
+
+# Ensure clean slate
 rm -rf dist
 mkdir -p dist
 
-# Copy with proper structure
+# Create all necessary directories
+echo "📁 Creating directory structure..."
+mkdir -p dist/temp
+mkdir -p dist/uploads
+mkdir -p dist/logs
+
+# Copy server files with structure preservation
+echo "📋 Copying server files..."
 cp -r server/* dist/
+
+# Copy essential files
+echo "📋 Copying config files..."
 cp package.json dist/
 cp package-lock.json dist/ 2>/dev/null || true
 
-# Create necessary directories
-mkdir -p dist/temp
-mkdir -p dist/uploads
+# Set proper permissions
+echo "🔒 Setting permissions..."
+find dist -type d -exec chmod 755 {} \;
+find dist -type f -exec chmod 644 {} \;
 
-# Set permissions
-chmod -R 755 dist
+# Verify deployment
+echo "� Verifying deployment files..."
+if [ ! -f "dist/index.js" ]; then
+    echo "❌ Error: index.js not found in dist"
+    exit 1
+fi
 
-# Verify deployment files
-echo "📦 Verifying deployment files..."
+echo "📦 Files in dist:"
 ls -la dist/
-echo "✅ Build files ready"
+
+# Final verification
+echo "✅ Build completed successfully"
+echo "📝 Node version: $(node -v)"
+echo "📝 NPM version: $(npm -v)"
 
 echo "🔍 Verifying files..."
 ls -la server/
