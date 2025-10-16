@@ -18,15 +18,26 @@ npm install --production --legacy-peer-deps express
 mkdir -p dist
 
 echo "📋 Copying files..."
-# Create dist directory and copy files
+# Ensure clean dist
+rm -rf dist
 mkdir -p dist
+
+# Copy with proper structure
 cp -r server/* dist/
 cp package.json dist/
 cp package-lock.json dist/ 2>/dev/null || true
 
-# Show what was copied
-echo "📦 Files in dist directory:"
+# Create necessary directories
+mkdir -p dist/temp
+mkdir -p dist/uploads
+
+# Set permissions
+chmod -R 755 dist
+
+# Verify deployment files
+echo "📦 Verifying deployment files..."
 ls -la dist/
+echo "✅ Build files ready"
 
 echo "🔍 Verifying files..."
 ls -la server/
