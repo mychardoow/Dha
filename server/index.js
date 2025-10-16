@@ -223,10 +223,6 @@ if (cluster.isPrimary) {
     // Initialize server
     startServer();
     
-    try {
-    // Initialize server
-    startServer();
-    
     // Start listening on port with error handling
     const PORT = process.env.PORT || 3000;
     state.server = app.listen(PORT, () => {
@@ -239,19 +235,26 @@ if (cluster.isPrimary) {
       process.exit(1);
     });
 
-      // Graceful shutdown
+    // Graceful shutdown
     process.on('SIGTERM', () => {
       console.log(`[Worker ${state.workerId}] Received SIGTERM. Performing graceful shutdown...`);
-      state.server.close(() => {
-        console.log(`[Worker ${state.workerId}] Server closed gracefully`);
+      if (state.server) {
+        state.server.close(() => {
+          console.log(`[Worker ${state.workerId}] Server closed gracefully`);
+          process.exit(0);
+        });
+      } else {
         process.exit(0);
-      });
+      }
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error(`[Worker ${state.workerId}] Failed to start server:`, error);
     process.exit(1);
   }
 }
+
+// Export app for testing
+module.exports = app;
 
 // Export app for testing
 module.exports = app;
