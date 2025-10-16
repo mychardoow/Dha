@@ -148,20 +148,20 @@ function startServer() {
 
   process.on('unhandledRejection', (err) => {
     console.error('Unhandled Rejection:', err);
-    gracefulShutdown(server);
+    gracefulShutdown(state.server);
   });
 
-  return server;
+  return state.server;
 }
 
-function gracefulShutdown(server) {
+function gracefulShutdown() {
   if (state.isShuttingDown) return;
   state.isShuttingDown = true;
 
   console.log(`[Worker ${state.workerId}] Initiating graceful shutdown...`);
 
   // Close server
-  server.close(() => {
+  state.server.close(() => {
     console.log(`[Worker ${state.workerId}] Server closed`);
     
     // Clean up resources
