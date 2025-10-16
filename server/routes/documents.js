@@ -6,10 +6,6 @@ const PDFDocument = require('pdfkit');
 const cluster = require('cluster');
 const os = require('os');
 
-const numCPUs = os.cpus().length;
-const __dirname = path.dirname(__filename);
-const numCPUs = cpus().length;
-
 // Create Express router
 const router = express.Router();
 
