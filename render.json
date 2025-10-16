@@ -1,0 +1,33 @@
+{
+  "build": {
+    "env": {
+      "NODE_ENV": "production",
+      "NODE_OPTIONS": "--max-old-space-size=4096"
+    },
+    "steps": [
+      {
+        "name": "Install Dependencies",
+        "command": "npm install --legacy-peer-deps"
+      },
+      {
+        "name": "Install Client Dependencies",
+        "command": "cd client && npm install --legacy-peer-deps"
+      },
+      {
+        "name": "Build API",
+        "command": "npm run build:api"
+      },
+      {
+        "name": "Build Client",
+        "command": "cd client && npm run build"
+      }
+    ],
+    "healthCheck": {
+      "port": 3001,
+      "path": "/health"
+    }
+  },
+  "start": {
+    "command": "node build-monitor.mjs"
+  }
+}

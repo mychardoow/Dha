@@ -1,6 +1,11 @@
 // Anti-Sleep System for Render Free Tier
-const http = require('http');
-const https = require('https');
+import http from 'http';
+import https from 'https';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class AntiSleepSystem {
     constructor() {

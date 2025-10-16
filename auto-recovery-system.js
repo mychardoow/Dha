@@ -1,6 +1,11 @@
-const http = require('http');
-const { exec } = require('child_process');
-const fs = require('fs').promises;
+import http from 'http';
+import { exec } from 'child_process';
+import { promises as fs } from 'fs';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const CHECK_INTERVAL = 30000; // 30 seconds
