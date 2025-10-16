@@ -3,30 +3,21 @@
 # Exit on error
 set -e
 
-# Set environment variables
+echo "🚀 Starting build..."
+
+# Basic settings
 export NODE_ENV=production
-export NODE_OPTIONS="--max-old-space-size=2048"
+export NODE_OPTIONS="--max-old-space-size=512"
 
-echo "🚀 Starting build process..."
+echo "🧹 Cleaning up..."
+rm -rf node_modules package-lock.json
+rm -rf dist
 
-# Clean install
-echo "🧹 Cleaning previous builds..."
-rm -rf node_modules dist build
-rm -rf client/node_modules client/dist
-
-# Install dependencies
 echo "📦 Installing dependencies..."
-npm install --legacy-peer-deps
+npm install --production --legacy-peer-deps express
+mkdir -p dist
 
-# Build API
-echo "🔨 Building API..."
-npm run build:api
+echo "📋 Copying files..."
+cp -r server dist/
 
-# Build client
-echo "🎨 Building client..."
-cd client
-npm install --legacy-peer-deps
-npm run build
-cd ..
-
-echo "✅ Build completed successfully!"
+echo "✅ Build complete!"
