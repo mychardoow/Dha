@@ -5,17 +5,39 @@ const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const config = require('./config');
 
-// Process handling
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
+let server;
+let isShuttingDown = false;
 
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err);
-  process.exit(1);
-});
+// Enhanced error handling
+const handleError = (type, err) => {
+  console.error(`${type}:`, err);
+  if (!isShuttingDown) {
+    isShuttingDown = true;
+    console.log('Initiating graceful shutdown...');
+    
+    if (server) {
+      server.close(() => {
+        console.log('Server closed');
+        process.exit(1);
+      });
+      
+      // Force close after timeout
+      setTimeout(() => {
+        console.error('Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, config.timeouts.shutdown);
+    } else {
+      process.exit(1);
+    }
+  }
+};
+
+process.on('uncaughtException', (err) => handleError('Uncaught Exception', err));
+process.on('unhandledRejection', (err) => handleError('Unhandled Rejection', err));
+process.on('SIGTERM', () => handleError('SIGTERM', new Error('SIGTERM received')));
+process.on('SIGINT', () => handleError('SIGINT', new Error('SIGINT received')));
 
 const numCPUs = 1; // Use single CPU for stability
 
@@ -31,10 +53,41 @@ let isShuttingDown = false;
 const app = express();
 
 function startServer() {
-  // Configure middleware
-  app.use(cors());
-  app.use(helmet());
-  app.use(compression());
+  // Configure middleware with error handling
+  app.use(cors({
+    maxAge: 86400 // 24 hours
+  }));
+  
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"]
+      }
+    }
+  }));
+  
+  app.use(compression({
+    level: 6,
+    threshold: 100 * 1024 // 100kb
+  }));
+  
+  // Add request timeout
+  app.use((req, res, next) => {
+    req.setTimeout(config.security.timeout, () => {
+      res.status(408).send('Request timeout');
+    });
+    next();
+  });
+  
+  // Add basic security headers
+  app.use((req, res, next) => {
+    res.set({
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+    });
+    next();
+  });
 
   // Document storage directory
   app.use('/documents', express.static(path.join(__dirname, '..', 'dist', 'documents')));
@@ -130,20 +183,32 @@ function gracefulShutdown(server) {
 
 // Start the server in cluster mode if master
 if (cluster.isPrimary) {
-  console.log(`Primary ${process.pid} is running`);
+  console.log(`Primary ${process.pid} is running in ${config.env} mode`);
 
-  // Fork single worker
-  cluster.fork();
-
+  // Fork single worker for stability
+  const worker = cluster.fork();
+  
+  // Track worker state
+  let isRespawning = false;
+  
   // Improved worker management
   cluster.on('exit', (worker, code, signal) => {
-    if (signal) {
-      console.log(`Worker ${worker.process.pid} was killed by signal: ${signal}`);
-    } else if (code !== 0) {
-      console.log(`Worker ${worker.process.pid} exited with error code: ${code}`);
+    if (isShuttingDown) return;
+    
+    console.log(`Worker ${worker.process.pid} died. Code: ${code}, Signal: ${signal}`);
+    
+    if (!isRespawning) {
+      isRespawning = true;
+      setTimeout(() => {
+        try {
+          cluster.fork();
+          isRespawning = false;
+        } catch (err) {
+          console.error('Failed to respawn worker:', err);
+          process.exit(1);
+        }
+      }, 5000); // 5 second delay before respawn
     }
-    // Don't respawn immediately to prevent rapid cycling
-    setTimeout(() => cluster.fork(), 1000);
   });
 
   // Handle cluster errors
