@@ -18,16 +18,15 @@ npm install --production --legacy-peer-deps express
 mkdir -p dist
 
 echo "📋 Copying files..."
-# Copy server files to the root directory where Render expects them
-cp -r server/* .
-cp package.json .
-cp package-lock.json . 2>/dev/null || true
-
-# Create a backup in dist just in case
+# Create dist directory and copy files
 mkdir -p dist
-cp -r server dist/
+cp -r server/* dist/
 cp package.json dist/
 cp package-lock.json dist/ 2>/dev/null || true
+
+# Show what was copied
+echo "📦 Files in dist directory:"
+ls -la dist/
 
 echo "🔍 Verifying files..."
 ls -la server/
