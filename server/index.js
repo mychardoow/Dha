@@ -7,25 +7,29 @@ const helmet = require('helmet');
 const path = require('path');
 const config = require('./config');
 
-let server;
-let isShuttingDown = false;
+// Global state management
+const state = {
+  server: null,
+  isShuttingDown: false,
+  workerId: process.pid
+};
 
 // Enhanced error handling
 const handleError = (type, err) => {
-  console.error(`${type}:`, err);
-  if (!isShuttingDown) {
-    isShuttingDown = true;
-    console.log('Initiating graceful shutdown...');
+  console.error(`[Worker ${state.workerId}] ${type}:`, err);
+  if (!state.isShuttingDown) {
+    state.isShuttingDown = true;
+    console.log(`[Worker ${state.workerId}] Initiating graceful shutdown...`);
     
-    if (server) {
-      server.close(() => {
-        console.log('Server closed');
+    if (state.server) {
+      state.server.close(() => {
+        console.log(`[Worker ${state.workerId}] Server closed`);
         process.exit(1);
       });
       
       // Force close after timeout
       setTimeout(() => {
-        console.error('Could not close connections in time, forcefully shutting down');
+        console.error(`[Worker ${state.workerId}] Could not close connections in time, forcefully shutting down`);
         process.exit(1);
       }, config.timeouts.shutdown);
     } else {
@@ -47,7 +51,6 @@ const documentRoutes = require('./routes/documents');
 // Auto-recovery configuration
 const MAX_MEMORY_USAGE = 512 * 1024 * 1024; // 512MB
 const RESTART_DELAY = 1000; // 1 second
-let isShuttingDown = false;
 
 // Create express app
 const app = express();
@@ -124,15 +127,15 @@ function startServer() {
 
   // Start server
   const port = process.env.PORT || 3000;
-  const server = app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  state.server = app.listen(port, () => {
+    console.log(`[Worker ${state.workerId}] Server running on port ${port}`);
   });
 
   // Monitor memory usage
   const memoryMonitor = setInterval(() => {
     const memoryUsage = process.memoryUsage().heapUsed;
-    if (memoryUsage > MAX_MEMORY_USAGE && !isShuttingDown) {
-      console.log('Memory threshold exceeded, initiating graceful restart...');
+    if (memoryUsage > MAX_MEMORY_USAGE && !state.isShuttingDown) {
+      console.log(`[Worker ${state.workerId}] Memory threshold exceeded, initiating graceful restart...`);
       gracefulShutdown(server);
     }
   }, 30000);
@@ -152,14 +155,14 @@ function startServer() {
 }
 
 function gracefulShutdown(server) {
-  if (isShuttingDown) return;
-  isShuttingDown = true;
+  if (state.isShuttingDown) return;
+  state.isShuttingDown = true;
 
-  console.log('Initiating graceful shutdown...');
+  console.log(`[Worker ${state.workerId}] Initiating graceful shutdown...`);
 
   // Close server
   server.close(() => {
-    console.log('Server closed');
+    console.log(`[Worker ${state.workerId}] Server closed`);
     
     // Clean up resources
     if (cluster.isWorker) {
@@ -168,8 +171,8 @@ function gracefulShutdown(server) {
 
     // Restart after delay
     setTimeout(() => {
-      console.log('Restarting server...');
-      isShuttingDown = false;
+      console.log(`[Worker ${state.workerId}] Restarting server...`);
+      state.isShuttingDown = false;
       startServer();
     }, RESTART_DELAY);
   });
@@ -193,7 +196,7 @@ if (cluster.isPrimary) {
   
   // Improved worker management
   cluster.on('exit', (worker, code, signal) => {
-    if (isShuttingDown) return;
+    if (state.isShuttingDown) return;
     
     console.log(`Worker ${worker.process.pid} died. Code: ${code}, Signal: ${signal}`);
     
@@ -222,21 +225,21 @@ if (cluster.isPrimary) {
     
     // Start listening on port with error handling
     const PORT = process.env.PORT || 3000;
-    const server = app.listen(PORT, () => {
-      console.log(`Worker ${process.pid} started on port ${PORT}`);
+    state.server = app.listen(PORT, () => {
+      console.log(`[Worker ${state.workerId}] started on port ${PORT}`);
     });
 
     // Handle server errors
-    server.on('error', (error) => {
-      console.error('Server error:', error);
+    state.server.on('error', (error) => {
+      console.error(`[Worker ${state.workerId}] Server error:`, error);
       process.exit(1);
     });
 
-    // Graceful shutdown
+      // Graceful shutdown
     process.on('SIGTERM', () => {
-      console.log('Received SIGTERM. Performing graceful shutdown...');
-      server.close(() => {
-        console.log('Server closed gracefully');
+      console.log(`[Worker ${state.workerId}] Received SIGTERM. Performing graceful shutdown...`);
+      state.server.close(() => {
+        console.log(`[Worker ${state.workerId}] Server closed gracefully`);
         process.exit(0);
       });
     });
