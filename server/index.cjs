@@ -8,7 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Import routes
-import documentRoutes from './routes/documents.js';
+const documentRoutes = require('./routes/documents.cjs');
 
 const numCPUs = cpus().length;
 const __filename = fileURLToPath(import.meta.url);
