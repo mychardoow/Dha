@@ -1,13 +1,18 @@
-const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
-const express = require('express');
-const compression = require('compression');
-const cors = require('cors');
-const helmet = require('helmet');
-const path = require('path');
+import cluster from 'cluster';
+import { cpus } from 'os';
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+import helmet from 'helmet';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Import routes
-const documentRoutes = require('./routes/documents');
+import documentRoutes from './routes/documents.js';
+
+const numCPUs = cpus().length;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Auto-recovery configuration
 const MAX_MEMORY_USAGE = 512 * 1024 * 1024; // 512MB
@@ -128,4 +133,4 @@ if (cluster.isMaster) {
   startServer();
 }
 
-module.exports = { startServer, gracefulShutdown };
+export default app;

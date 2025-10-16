@@ -1,10 +1,15 @@
-const express = require('express');
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const PDFDocument = require('pdfkit');
-const cluster = require('cluster');
-const numCPUs = require('os').cpus().length;
+import express from 'express';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import PDFDocument from 'pdfkit';
+import cluster from 'cluster';
+import { cpus } from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const numCPUs = cpus().length;
 
 // Create Express router
 const router = express.Router();
@@ -156,4 +161,4 @@ router.get('/health', (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;
