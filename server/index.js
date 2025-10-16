@@ -6,7 +6,18 @@ const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
 
-const numCPUs = os.cpus().length;
+// Process handling
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err);
+  process.exit(1);
+});
+
+const numCPUs = 1; // Use single CPU for stability
 
 // Import routes
 const documentRoutes = require('./routes/documents');
@@ -31,8 +42,14 @@ function startServer() {
   // Routes
   app.use('/api/documents', documentRoutes);
 
-  // Error handling middleware
+  // Improved error handling middleware
   app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    
+    // Prevent header errors
+    if (res.headersSent) {
+      return next(err);
+    }
     console.error('Error:', err);
     res.status(500).json({
       success: false,
@@ -115,24 +132,54 @@ function gracefulShutdown(server) {
 if (cluster.isPrimary) {
   console.log(`Primary ${process.pid} is running`);
 
-  // Fork workers
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
+  // Fork single worker
+  cluster.fork();
 
+  // Improved worker management
   cluster.on('exit', (worker, code, signal) => {
-    console.log(`Worker ${worker.process.pid} died. Starting a new worker...`);
-    cluster.fork();
+    if (signal) {
+      console.log(`Worker ${worker.process.pid} was killed by signal: ${signal}`);
+    } else if (code !== 0) {
+      console.log(`Worker ${worker.process.pid} exited with error code: ${code}`);
+    }
+    // Don't respawn immediately to prevent rapid cycling
+    setTimeout(() => cluster.fork(), 1000);
+  });
+
+  // Handle cluster errors
+  cluster.on('error', (error) => {
+    console.error('Cluster error:', error);
   });
 } else {
-  // Workers run the server
-  startServer();
-  
-  // Start listening on port
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Worker ${process.pid} started on port ${PORT}`);
-  });
+  try {
+    // Initialize server
+    startServer();
+    
+    // Start listening on port with error handling
+    const PORT = process.env.PORT || 3000;
+    const server = app.listen(PORT, () => {
+      console.log(`Worker ${process.pid} started on port ${PORT}`);
+    });
+
+    // Handle server errors
+    server.on('error', (error) => {
+      console.error('Server error:', error);
+      process.exit(1);
+    });
+
+    // Graceful shutdown
+    process.on('SIGTERM', () => {
+      console.log('Received SIGTERM. Performing graceful shutdown...');
+      server.close(() => {
+        console.log('Server closed gracefully');
+        process.exit(0);
+      });
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
 }
 
+// Export app for testing
 module.exports = app;
