@@ -1,11 +1,16 @@
-const cluster = require('cluster');
-const os = require('os');
-const express = require('express');
-const compression = require('compression');
-const cors = require('cors');
-const helmet = require('helmet');
-const path = require('path');
-const config = require('./config');
+import cluster from 'node:cluster';
+import os from 'node:os';
+import express from 'express';
+import compression from 'compression';
+import cors from 'cors';
+import helmet from 'helmet';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import config from './config.js';
+
+// Ensure proper path resolution in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Global state management
 const state = {
