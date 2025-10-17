@@ -77,12 +77,16 @@ process.on('SIGINT', () => handleError('SIGINT', new Error('SIGINT received')));
 // Create express app
 const app = express();
 
-// Serve static files
-app.use(express.static(path.join(__dirname, '..', 'client')));
-app.use('/dist', express.static(path.join(__dirname, '..', 'dist')));
+// Serve static files and HTML
+app.use(express.static(path.join(__dirname, '..')));
 
-// Serve the frontend app
+// Serve the main app
 app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
+});
+
+// Fallback route for SPA
+app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
 });
 
@@ -95,13 +99,19 @@ function startServer() {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "https://*"]
+        defaultSrc: ["'self'", "https:", "http:", "data:", "blob:"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "http:", "blob:", "cdnjs.cloudflare.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:", "fonts.googleapis.com"],
+        fontSrc: ["'self'", "https:", "http:", "fonts.gstatic.com", "data:"],
+        imgSrc: ["'self'", "https:", "http:", "data:", "blob:"],
+        connectSrc: ["'self'", "https:", "http:", "ws:", "wss:"],
+        frameSrc: ["'self'", "https:", "http:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", "https:", "http:", "data:", "blob:"]
       }
-    }
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" }
   }));
   
   app.use(compression({
