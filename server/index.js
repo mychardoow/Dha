@@ -77,13 +77,13 @@ process.on('SIGINT', () => handleError('SIGINT', new Error('SIGINT received')));
 // Create express app
 const app = express();
 
-// Root route
+// Serve static files
+app.use(express.static(path.join(__dirname, '..', 'client')));
+app.use('/dist', express.static(path.join(__dirname, '..', 'dist')));
+
+// Serve the frontend app
 app.get('/', (req, res) => {
-  res.json({
-    status: 'DHA Digital Services is running',
-    version: '2.0.0',
-    environment: process.env.NODE_ENV || 'development'
-  });
+  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
 });
 
 function startServer() {
@@ -95,7 +95,11 @@ function startServer() {
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"]
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'", "https://*"]
       }
     }
   }));
