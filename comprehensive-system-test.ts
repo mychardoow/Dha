@@ -1,6 +1,4 @@
 
-#!/usr/bin/env tsx
-
 /**
  * COMPREHENSIVE SYSTEM TEST
  * Tests all critical components and fixes
@@ -10,6 +8,18 @@ import fetch from 'node-fetch';
 
 const BASE_URL = 'http://0.0.0.0:5000';
 const TEST_RESULTS: any[] = [];
+
+interface HealthResponse {
+  status: string;
+  database?: {
+    connected: boolean;
+  };
+  services?: any[];
+  token?: string;
+  integrations?: Record<string, { status: string }>;
+  websocket?: boolean;
+  capabilities?: any;
+}
 
 interface TestResult {
   name: string;
@@ -48,14 +58,14 @@ async function runTest(name: string, testFn: () => Promise<void>): Promise<void>
 async function testHealthCheck() {
   const response = await fetch(`${BASE_URL}/api/health`);
   if (!response.ok) throw new Error(`Health check failed: ${response.status}`);
-  const data = await response.json();
+  const data = await response.json() as HealthResponse;
   if (data.status !== 'healthy') throw new Error('System not healthy');
 }
 
 // Test 2: Database Connection
 async function testDatabase() {
   const response = await fetch(`${BASE_URL}/api/health`);
-  const data = await response.json();
+  const data = await response.json() as HealthResponse;
   if (!data.database?.connected) throw new Error('Database not connected');
 }
 

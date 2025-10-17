@@ -1,0 +1,98 @@
+import * as cluster from 'node:cluster';
+import type { Worker } from 'node:cluster';
+import os from 'os';
+import { EventEmitter } from 'events';
+
+interface WorkerMessage {
+    type: string;
+    data: unknown;
+}
+
+const numCPUs = os.cpus().length;
+
+class BackgroundWorker extends EventEmitter {
+    private workers: Map<number, cluster.Worker>;
+    private isShuttingDown: boolean;
+
+    constructor() {
+        super();
+        this.workers = new Map<number, cluster.Worker>();
+        this.isShuttingDown = false;
+
+        // Handle graceful shutdown
+        process.on('SIGTERM', () => this.shutdown());
+        process.on('SIGINT', () => this.shutdown());
+    }
+
+    start() {
+        if (cluster.isPrimary) {
+            console.log(`Primary ${process.pid} is running`);
+
+            // Fork workers
+            for (let i = 0; i < numCPUs; i++) {
+                this.createWorker();
+            }
+
+            cluster.on('exit', (worker, code, signal) => {
+                if (!this.isShuttingDown) {
+                    console.log(`Worker ${worker.process.pid} died. Restarting...`);
+                    this.createWorker();
+                }
+            });
+        } else {
+            this.startWorker();
+        }
+    }
+
+    private createWorker() {
+        const worker = cluster.fork();
+        this.workers.set(worker.process.pid!, worker);
+        
+        worker.on('message', (msg) => {
+            if (msg.type === 'health') {
+                this.emit('health', { workerId: worker.process.pid, ...msg.data });
+            }
+        });
+    }
+
+    private startWorker() {
+        // Memory monitoring
+        setInterval(() => {
+            const memoryUsage = process.memoryUsage();
+            if (memoryUsage.heapUsed > 450 * 1024 * 1024) { // 450MB limit
+                console.log('Memory limit exceeded, restarting worker...');
+                process.exit(1);
+            }
+        }, 30000);
+
+        // Health check
+        setInterval(() => {
+            process.send?.({ 
+                type: 'health',
+                data: {
+                    memory: process.memoryUsage(),
+                    uptime: process.uptime(),
+                    timestamp: Date.now()
+                }
+            });
+        }, 10000);
+    }
+
+    private async shutdown() {
+        this.isShuttingDown = true;
+        console.log('Shutting down workers...');
+
+        for (const [pid, worker] of this.workers) {
+            worker.disconnect();
+            await new Promise<void>((resolve) => {
+                worker.on('disconnect', resolve);
+                setTimeout(resolve, 5000);
+            });
+            worker.kill();
+        }
+
+        process.exit(0);
+    }
+}
+
+export const backgroundWorker = new BackgroundWorker();

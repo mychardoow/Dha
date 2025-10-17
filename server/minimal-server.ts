@@ -14,6 +14,15 @@ const server = createServer(app);
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
+// Error handling
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err);
+  res.status(500).json({
+    error: err.message || 'Internal Server Error',
+    status: 'error'
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({
@@ -75,6 +84,23 @@ app.get('/', (req, res) => {
 });
 
 // Start server
+server.on('error', (error: any) => {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  switch (error.code) {
+    case 'EACCES':
+      console.error(`Port ${PORT} requires elevated privileges`);
+      process.exit(1);
+    case 'EADDRINUSE':
+      console.error(`Port ${PORT} is already in use`);
+      process.exit(1);
+    default:
+      throw error;
+  }
+});
+
 server.listen(PORT, HOST, () => {
   console.log('');
   console.log('='.repeat(50));

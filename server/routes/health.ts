@@ -8,15 +8,20 @@
 import { Router, Request, Response } from 'express';
 import { productionHealthCheck } from '../services/production-health-check.js';
 import { authenticate } from '../middleware/auth.js';
+import { integrationManager } from '../services/integration-manager.js';
 
 const router = Router();
 
 /**
- * GET /health - Basic health check endpoint
+ * GET /health - Comprehensive health check endpoint with integration status
  */
 router.get('/health', async (req: Request, res: Response) => {
   try {
     const healthResult = await productionHealthCheck.performFullHealthCheck();
+    const integrationStatus = await integrationManager.checkAllIntegrations();
+    
+    // Convert integration status from Map to object
+    const integrations = Object.fromEntries(integrationStatus);
     
     const response = {
       status: healthResult.overallHealth,
@@ -29,12 +34,14 @@ router.get('/health', async (req: Request, res: Response) => {
         nodeVersion: process.version,
         platform: process.platform,
         arch: process.arch
-      }
+      },
+      integrations
     };
 
-    // Set appropriate HTTP status code
-    const statusCode = healthResult.overallHealth === 'healthy' ? 200 :
-                      healthResult.overallHealth === 'degraded' ? 200 : 503;
+    // Set appropriate HTTP status code based on both health and integration status
+    const isAllIntegrationsActive = integrationManager.isAllIntegrationsActive();
+    const statusCode = healthResult.overallHealth === 'healthy' && isAllIntegrationsActive ? 200 :
+                      healthResult.overallHealth === 'degraded' || !isAllIntegrationsActive ? 200 : 503;
 
     res.status(statusCode).json(response);
   } catch (error) {
@@ -79,17 +86,34 @@ message: String(error)
 router.get('/health/readiness', authenticate, async (req: Request, res: Response) => {
   try {
     const readinessResult = await productionHealthCheck.checkDeploymentReadiness();
+    const integrationStatus = await integrationManager.checkAllIntegrations();
+    const isAllIntegrationsActive = integrationManager.isAllIntegrationsActive();
     
-    const statusCode = readinessResult.isReady ? 200 : 503;
+    // Check for specific integration issues
+    const integrationIssues = Array.from(integrationStatus.values())
+      .filter(status => status.status !== 'active')
+      .map(status => ({
+        integration: status.name,
+        status: status.status,
+        error: status.error
+      }));
+    
+    const statusCode = (readinessResult.isReady && isAllIntegrationsActive) ? 200 : 503;
     
     res.status(statusCode).json({
-      ready: readinessResult.isReady,
+      ready: readinessResult.isReady && isAllIntegrationsActive,
       readinessScore: readinessResult.readinessScore,
       timestamp: new Date().toISOString(),
-      criticalIssues: readinessResult.criticalIssues,
+      criticalIssues: [
+        ...readinessResult.criticalIssues,
+        ...integrationIssues.map(issue => `Integration ${issue.integration} is ${issue.status}${issue.error ? ': ' + issue.error : ''}`)
+      ],
       warnings: readinessResult.warnings,
       securityCompliance: readinessResult.securityCompliance,
-      apiConnectivity: readinessResult.apiConnectivity,
+      apiConnectivity: {
+        ...readinessResult.apiConnectivity,
+        integrations: Object.fromEntries(integrationStatus)
+      },
       performanceMetrics: readinessResult.performanceMetrics,
       environment: process.env.NODE_ENV || 'development'
     });
@@ -110,9 +134,39 @@ message: String(error)
 router.get('/health/security', authenticate, async (req: Request, res: Response) => {
   try {
     const readinessResult = await productionHealthCheck.checkDeploymentReadiness();
+    const integrationStatus = await integrationManager.checkAllIntegrations();
+    
+    // Check integration security by verifying if services have valid configurations
+    const serviceRequirements = {
+      'openai': 'OPENAI_API_KEY',
+      'anthropic': 'ANTHROPIC_API_KEY',
+      'google': 'GOOGLE_API_KEY',
+      'abis': 'DHA_ABIS_API_KEY',
+      'saps': 'SAPS_API_KEY',
+      'dha': 'DHA_API_KEY',
+      'npr': 'DHA_NPR_API_KEY',
+      'icao': 'ICAO_PKD_KEY'
+    };
+    
+    const secureIntegrations = Array.from(integrationStatus.values()).filter(status => 
+      status.status === 'active' && 
+      process.env[serviceRequirements[status.name as keyof typeof serviceRequirements]]
+    );
+    
+    const integrationSecurity = {
+      activeIntegrations: secureIntegrations.length,
+      totalIntegrations: integrationStatus.size,
+      securityScore: (secureIntegrations.length / integrationStatus.size) * 100,
+      unsecuredIntegrations: Array.from(integrationStatus.values())
+        .filter(status => !process.env[serviceRequirements[status.name as keyof typeof serviceRequirements]])
+        .map(status => status.name)
+    };
     
     res.json({
-      securityCompliance: readinessResult.securityCompliance,
+      securityCompliance: {
+        ...readinessResult.securityCompliance,
+        integrationSecurity
+      },
       timestamp: new Date().toISOString(),
       recommendations: {
         encryption: readinessResult.securityCompliance.encryptionEnabled ? 
@@ -126,7 +180,10 @@ router.get('/health/security', authenticate, async (req: Request, res: Response)
           'CRITICAL: Strengthen authentication configuration',
         certificates: readinessResult.securityCompliance.certificatesValid ? 
           'Government certificates valid' : 
-          'CRITICAL: Renew government certificates'
+          'CRITICAL: Renew government certificates',
+        integrations: integrationSecurity.securityScore === 100 ?
+          'All integrations properly secured' :
+          `CRITICAL: Secure the following integrations: ${integrationSecurity.unsecuredIntegrations.join(', ')}`
       }
     });
   } catch (error) {
