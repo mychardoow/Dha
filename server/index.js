@@ -50,10 +50,16 @@ const documentRoutes = require('./routes/documents');
 
 // Auto-recovery configuration
 const MAX_MEMORY_USAGE = 512 * 1024 * 1024; // 512MB
-const RESTART_DELAY = 1000; // 1 second
+const RESTART_DELAY = 5000; // 5 seconds
 
 // Create express app
 const app = express();
+
+// Enhanced error handling middleware
+app.use((err, req, res, next) => {
+  console.error(`[Worker ${state.workerId}] Error:`, err);
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 function startServer() {
   // Configure middleware with error handling
@@ -97,6 +103,14 @@ function startServer() {
 
   // Routes
   app.use('/api/documents', documentRoutes);
+  
+  // Root route handler
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'ok',
+      message: 'DHA API server is running'
+    });
+  });
 
   // Improved error handling middleware
   app.use((err, req, res, next) => {
@@ -186,54 +200,24 @@ function gracefulShutdown() {
 
 // Start the server in cluster mode if master
 if (cluster.isPrimary) {
-  console.log(`Primary ${process.pid} is running in ${config.env} mode`);
-
-  // Fork single worker for stability
+  console.log(`Primary ${process.pid} is running`);
+  
+  // Fork only one worker
   const worker = cluster.fork();
   
-  // Track worker state
-  let isRespawning = false;
-  
-  // Improved worker management
-  cluster.on('exit', (worker, code, signal) => {
-    if (state.isShuttingDown) return;
-    
-    console.log(`Worker ${worker.process.pid} died. Code: ${code}, Signal: ${signal}`);
-    
-    if (!isRespawning) {
-      isRespawning = true;
-      setTimeout(() => {
-        try {
-          cluster.fork();
-          isRespawning = false;
-        } catch (err) {
-          console.error('Failed to respawn worker:', err);
-          process.exit(1);
-        }
-      }, 5000); // 5 second delay before respawn
+  worker.on('exit', (code, signal) => {
+    if (code !== 0) {
+      console.log(`Worker died. Starting a new one...`);
+      cluster.fork();
     }
   });
 
-  // Handle cluster errors
   cluster.on('error', (error) => {
     console.error('Cluster error:', error);
   });
 } else {
   try {
-    // Initialize server
-    startServer();
-    
-    // Start listening on port with error handling
-    const PORT = process.env.PORT || 3000;
-    state.server = app.listen(PORT, () => {
-      console.log(`[Worker ${state.workerId}] started on port ${PORT}`);
-    });
-
-    // Handle server errors
-    state.server.on('error', (error) => {
-      console.error(`[Worker ${state.workerId}] Server error:`, error);
-      process.exit(1);
-    });
+    startServer(); // Use the existing startServer function
 
     // Graceful shutdown
     process.on('SIGTERM', () => {
@@ -252,9 +236,6 @@ if (cluster.isPrimary) {
     process.exit(1);
   }
 }
-
-// Export app for testing
-module.exports = app;
 
 // Export app for testing
 module.exports = app;

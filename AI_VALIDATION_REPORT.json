@@ -1,9 +1,9 @@
 {
-  "timestamp": "2025-10-09T07:05:05.728Z",
-  "overallScore": 80,
+  "timestamp": "2025-10-17T01:04:23.169Z",
+  "overallScore": 75,
   "summary": {
-    "pass": 8,
-    "partial": 0,
+    "pass": 7,
+    "partial": 1,
     "fail": 2
   },
   "categories": [
@@ -326,13 +326,14 @@
     },
     {
       "name": "Deployment Readiness",
-      "status": "PASS",
+      "status": "PARTIAL",
       "details": [
         {
           "test": "Deployment Readiness Assessment",
-          "status": "PASS",
-          "message": "Deployment score: 5/6",
+          "status": "PARTIAL",
+          "message": "Deployment score: 3/6",
           "issues": [
+            "Missing essential dependencies: @anthropic-ai/sdk, openai",
             "Missing environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, DATABASE_URL"
           ]
         }
@@ -354,9 +355,9 @@
     ],
     "totalFound": 35
   },
-  "deploymentRecommendation": "READY",
+  "deploymentRecommendation": "MONITORING",
   "railwayReadiness": {
-    "score": 80,
+    "score": 75,
     "apiKeysConfigured": false,
     "servicesOperational": true,
     "securityEnabled": true,
