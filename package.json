@@ -9,7 +9,9 @@
     "worker": "node ./server/workers/background-worker.js",
     "cron": "node ./server/workers/task-scheduler.js",
     "dev": "tsx watch server/index.ts",
-    "postinstall": "npm install --production --legacy-peer-deps"
+    "postinstall": "npm install --production --legacy-peer-deps",
+    "test": "NODE_ENV=test node --experimental-vm-modules node_modules/jest/bin/jest.js --detectOpenHandles",
+    "test:coverage": "NODE_ENV=test jest --coverage"
   },
   "dependencies": {
     "@types/node-cron": "^3.0.11",
@@ -24,10 +26,19 @@
     "pm2": "^5.3.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.4",
+    "@babel/plugin-transform-modules-commonjs": "^7.27.1",
+    "@babel/preset-env": "^7.28.3",
     "@types/compression": "^1.7.3",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.23",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.19.21",
+    "@types/supertest": "^6.0.3",
+    "babel-jest": "^30.2.0",
+    "cross-env": "^10.1.0",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4",
     "typescript": "^5.9.3",
     "vite": "^7.1.10"
   },
