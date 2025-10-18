@@ -33,7 +33,7 @@ console.log(`
 
 📊 API PROVIDERS STATUS:
   OpenAI:      ${process.env.OPENAI_API_KEY ? '✅ WORKING' : ' configured'} ${process.env.OPENAI_ORG_ID ? '(Org ID configured)' : ''}
-  Anthropic:   ${process.env.ANTHROPIC_API_KEY ? '✅ Configured' : '' configured'}
+  Anthropic:   ${process.env.ANTHROPIC_API_KEY ? '✅ Configured' : 'Not configured'}
   Mistral:     ${process.env.MISTRAL_API_KEY ? '✅ Configured' : ' configured'}
   Perplexity:  ${process.env.PERPLEXITY_API_KEY ? '✅ Configured' : ' Not configured'} 
 

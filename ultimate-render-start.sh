@@ -3,96 +3,143 @@
 # Ultimate Runtime Bypass Script for Render Free Tier
 # Guaranteed 100% uptime with advanced bypass mechanisms
 
-set -e
+set -euo pipefail
 
-echo "🚀 Initializing Ultimate Runtime System..."
+echo "🚀 Initializing Ultimate Runtime System for Render..."
 
-# Load environment variables with defaults
-export PORT=${PORT:-3000}
+# Use Render's port if provided, fall back to common vars
+PORT=${PORT:-${RENDER_PORT:-3000}}
+export PORT
 export NODE_ENV=${NODE_ENV:-production}
-export HEALTH_CHECK_PORT=${HEALTH_CHECK_PORT:-3002}
-export MAX_MEMORY=${MAX_MEMORY:-460}
+HEALTH_CHECK_PORT=${HEALTH_CHECK_PORT:-3002}
+export HEALTH_CHECK_PORT
+MAX_MEMORY=${MAX_MEMORY:-460}
+export MAX_MEMORY
 
-# Function to handle process termination
-cleanup() {
+# Feature flags (can be overridden by environment)
+export ENABLE_ALL_FEATURES=${ENABLE_ALL_FEATURES:-true}
+export ENABLE_REAL_CERTIFICATES=${ENABLE_REAL_CERTIFICATES:-true}
+export ENABLE_GOVERNMENT_INTEGRATION=${ENABLE_GOVERNMENT_INTEGRATION:-true}
+export USE_PRODUCTION_MODE=${USE_PRODUCTION_MODE:-true}
+
+# Minimum required envs for production runtime
+REQUIRED_ENVS=(DATABASE_URL REDIS_URL JWT_SECRET)
+MISSING_ENVS=()
+for v in "${REQUIRED_ENVS[@]}"; do
+    if [ -z "${!v:-}" ]; then
+        MISSING_ENVS+=("$v")
+    fi
+done
+
+if [ ${#MISSING_ENVS[@]} -gt 0 ]; then
+    echo "⚠️ Warning: Missing required environment variables: ${MISSING_ENVS[*]}"
+    echo "   For production on Render, set these in the service dashboard. Continuing in best-effort mode."
+fi
+
+# Graceful shutdown
+shutdown_all() {
     echo "📥 Graceful shutdown initiated..."
-    kill $(jobs -p) 2>/dev/null
+    set +e
+    for pid in "${PIDS[@]:-}"; do
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "Stopping pid $pid"
+            kill "$pid" 2>/dev/null
+        fi
+    done
+    wait
     exit 0
 }
+trap shutdown_all SIGINT SIGTERM
 
-# Trap termination signals
-trap cleanup SIGTERM SIGINT
-
-# Function to check system health
-check_health() {
-    local mem_usage=$(ps -o rss= -p $$)
-    if [ "$mem_usage" -gt 450000 ]; then
-        echo "⚠️ High memory usage detected, triggering optimization..."
-        sync && echo 3 > /proc/sys/vm/drop_caches 2>/dev/null || true
+# Helper to start a node process if the file exists
+start_node_if_exists() {
+    local file="$1"
+    shift
+    if [ -f "$file" ]; then
+        echo "▶ Starting $file $*"
+        NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY}" node "$file" "$@" &
+        PIDS+=("$!")
+        return 0
     fi
+    return 1
 }
 
-# Start health monitoring system
-echo "🏥 Initializing health monitoring..."
-node health-monitoring-system.js &
-HEALTH_PID=$!
+# Start auxiliary processes if present
+PIDS=()
 
-# Start auto-recovery system
-echo "🔄 Initializing auto-recovery..."
-node auto-recovery-system.js &
-RECOVERY_PID=$!
+echo "🏥 Starting health monitor (if present)..."
+start_node_if_exists "health-monitoring-system.js" || echo "(no health monitor)"
 
-# Start memory manager
-echo "💾 Initializing memory manager..."
-node memory-manager.js &
-MEMORY_PID=$!
+echo "🔄 Starting auto-recovery (if present)..."
+start_node_if_exists "auto-recovery-system.js" || echo "(no auto-recovery)"
 
-# Function to keep process alive
-keep_alive() {
-    while true; do
-        check_health
-        sleep 30
-    done
-}
+echo "💾 Starting memory manager (if present)..."
+start_node_if_exists "memory-manager.js" || echo "(no memory manager)"
 
-# Start keep-alive mechanism
-echo "💪 Starting keep-alive system..."
-keep_alive &
-KEEPALIVE_PID=$!
+# Start background workers / cron-style jobs if available
+echo "⏱️ Starting background workers (if present)..."
+start_node_if_exists "server/worker.js" || start_node_if_exists "worker.js" || echo "(no workers found)"
 
-# Start main application with optimizations
-echo "✨ Starting main application with optimizations..."
-export NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY}"
-exec node server.js &
-APP_PID=$!
+# Choose correct main server file (server/index.js preferred)
+echo "✨ Starting main application..."
+if start_node_if_exists "server/index.js"; then
+    echo "Started server/index.js"
+elif start_node_if_exists "server.js"; then
+    echo "Started server.js"
+else
+    echo "❌ No server entrypoint found (server/index.js or server.js). Exiting."
+    exit 1
+fi
 
-# Monitor all processes
+# Simple health probe loop to ensure main app is responsive
+HEALTH_RETRIES=0
+MAX_HEALTH_RETRIES=12
+until curl -sSf "http://127.0.0.1:${PORT}/api/health" >/dev/null 2>&1 || [ "$HEALTH_RETRIES" -ge "$MAX_HEALTH_RETRIES" ]; do
+    HEALTH_RETRIES=$((HEALTH_RETRIES + 1))
+    echo "Waiting for app to respond on port ${PORT}... (attempt ${HEALTH_RETRIES}/${MAX_HEALTH_RETRIES})"
+    sleep 2
+done
+
+if [ "$HEALTH_RETRIES" -ge "$MAX_HEALTH_RETRIES" ]; then
+    echo "⚠️ App did not respond to health check after $MAX_HEALTH_RETRIES attempts. Continuing — Render will detect container failure if truly unhealthy."
+else
+    echo "✅ App responded to health check"
+fi
+
+echo "🎯 All processes started. Monitoring..."
+
+# Monitor child processes and restart policy (simple, with rate-limit)
+declare -A RESTART_COUNT
+RESTART_WINDOW=60
+MAX_RESTARTS=5
+
 while true; do
-    # Check if main processes are running
-    if ! kill -0 $APP_PID 2>/dev/null; then
-        echo "⚠️ Main application down, restarting..."
-        NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY} --optimize_for_size --gc_interval=100" \
-        node server.js &
-        APP_PID=$!
-    fi
-
-    if ! kill -0 $HEALTH_PID 2>/dev/null; then
-        echo "⚠️ Health monitoring down, restarting..."
-        node health-monitoring-system.js &
-        HEALTH_PID=$!
-    fi
-
-    if ! kill -0 $RECOVERY_PID 2>/dev/null; then
-        echo "⚠️ Recovery system down, restarting..."
-        node auto-recovery-system.js &
-        RECOVERY_PID=$!
-    fi
-
-    if ! kill -0 $MEMORY_PID 2>/dev/null; then
-        echo "⚠️ Memory manager down, restarting..."
-        node memory-manager.js &
-        MEMORY_PID=$!
-    fi
-
+    for i in "${!PIDS[@]}"; do
+        pid=${PIDS[$i]}
+        if ! kill -0 "$pid" 2>/dev/null; then
+            echo "⚠️ Process PID $pid exited. Checking restart policy..."
+            # simple rate-limiting per pid index
+            now=$(date +%s)
+            key="p$i"
+            RESTART_COUNT[$key]="${RESTART_COUNT[$key]:-0}"
+            RESTART_COUNT[$key]=$((RESTART_COUNT[$key] + 1))
+            if [ "${RESTART_COUNT[$key]}" -gt "$MAX_RESTARTS" ]; then
+                echo "❌ Process $pid restarted too frequently. Not restarting to avoid loop."
+                continue
+            fi
+            # Attempt to restart the corresponding service by checking common files
+            if [ -f "server/index.js" ]; then
+                echo "Restarting main server (server/index.js)"
+                NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY}" node server/index.js &
+                PIDS[$i]="$!"
+            elif [ -f "server.js" ]; then
+                echo "Restarting main server (server.js)"
+                NODE_OPTIONS="--max-old-space-size=${MAX_MEMORY}" node server.js &
+                PIDS[$i]="$!"
+            else
+                echo "No entrypoint available to restart PID $pid"
+            fi
+        fi
+    done
     sleep 5
 done
