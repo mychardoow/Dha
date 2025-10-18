@@ -80,14 +80,24 @@ const app = express();
 // Serve static files and HTML
 app.use(express.static(path.join(__dirname, '..')));
 
+// Error handler for static files
+app.use((err, req, res, next) => {
+  if (err.code === 'ENOENT') {
+    console.warn(`[Static] File not found: ${req.path}`);
+    next();
+  } else {
+    next(err);
+  }
+});
+
 // Serve the main app
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
+  res.sendFile(path.join(__dirname, '..', 'dha-official-generator.html'));
 });
 
 // Fallback route for SPA
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
+  res.sendFile(path.join(__dirname, '..', 'dha-official-generator.html'));
 });
 
 function startServer() {

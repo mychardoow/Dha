@@ -83,7 +83,16 @@ start_node_if_exists "memory-manager.js" || echo "(no memory manager)"
 
 # Start background workers / cron-style jobs if available
 echo "⏱️ Starting background workers (if present)..."
-start_node_if_exists "server/worker.js" || start_node_if_exists "server/workers/background-worker.js" || start_node_if_exists "worker.js" || echo "(no workers found)"
+# Only try to start workers in production if we're sure they exist
+if [ "${NODE_ENV}" = "production" ]; then
+    for worker in "server/worker.js" "server/workers/background-worker.js" "worker.js"; do
+        if [ -f "$worker" ]; then
+            start_node_if_exists "$worker" && echo "Started $worker" || echo "Failed to start $worker"
+        fi
+    done
+else
+    echo "(no workers started - development mode)"
+fi
 
 # Choose correct main server file (server/index.js preferred)
 echo "✨ Starting main application..."
