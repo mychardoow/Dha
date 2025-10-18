@@ -20,10 +20,11 @@ const state = {
 };
 
 // Worker management
-const numCPUs = 1; // Use single CPU for stability
+const numCPUs = process.env.NODE_ENV === 'production' ? 1 : os.cpus().length; // Single worker in production for Render
 let workerRestarts = 0;
 const MAX_RESTARTS = 5;
 const RESTART_RESET_TIMEOUT = 60000; // 1 minute
+const PORT = process.env.PORT || 3000;
 
 // Import routes
 import { createRequire } from 'module';
@@ -184,12 +185,21 @@ function startServer() {
   const port = process.env.PORT || 3000;
   const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
   
-  state.server = app.listen(port, host, () => {
-    console.log(`[Worker ${state.workerId}] Server running on ${host}:${port} (${process.env.NODE_ENV})`);
-  }).on('error', (err) => {
-    console.error(`[Worker ${state.workerId}] Failed to start server:`, err);
-    process.exit(1);
-  });
+  // In production on Render, only the primary process binds to the port
+  if (process.env.NODE_ENV !== 'production' || cluster.isPrimary || !cluster.isWorker) {
+    state.server = app.listen(port, host, () => {
+      console.log(`[Worker ${state.workerId}] Server running on ${host}:${port} (${process.env.NODE_ENV})`);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`[Worker ${state.workerId}] Port ${port} in use, worker will remain idle`);
+      } else {
+        console.error(`[Worker ${state.workerId}] Failed to start server:`, err);
+        process.exit(1);
+      }
+    });
+  } else {
+    console.log(`[Worker ${state.workerId}] Worker ready (not binding to port in production)`);
+  }
 
   // Memory monitor
   setInterval(() => {
