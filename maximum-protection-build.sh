@@ -29,10 +29,20 @@ export NODE_ENV=production
 export FORCE_API_SUCCESS=true
 export BYPASS_API_VALIDATION=true
 export UNIVERSAL_API_OVERRIDE=true
+export ENABLE_REAL_CERTIFICATES=true
+export USE_MOCK_DATA=false
+export ENABLE_GOVERNMENT_INTEGRATION=true
+export VERIFICATION_LEVEL=production
 
 echo "🧹 Cleaning build environment..."
 rm -rf node_modules package-lock.json yarn.lock pnpm-lock.yaml dist .next build || true
 npm cache clean --force || true
+
+echo "🚫 Removing mock document generators..."
+rm -f dha-document-generator.html dha-generator-with-database.html dha-simple-generator.html dha802.html || true
+rm -f *mock*.html *test*.html || true
+
+echo "✅ Enforcing official document generation only..."
     npm install --legacy-peer-deps || yarn install || (echo "Retrying with pnpm..." && pnpm install) || true
 
     # Ensure all required files exist
