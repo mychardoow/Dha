@@ -21,7 +21,7 @@ const state = {
 
 // Worker management
 const numCPUs = process.env.NODE_ENV === 'production' ? 1 : os.cpus().length; // Single worker in production for Render
-let workerRestarts = 0;
+let fworkerRestarts = 0;
 const MAX_RESTARTS = 5;
 const RESTART_RESET_TIMEOUT = 60000; // 1 minute
 const PORT = process.env.PORT || 3000;
