@@ -3,20 +3,19 @@ services:
     name: dha-digital-services
     env: node
     region: frankfurt
-    plan: free
-    buildCommand: bash maximum-protection-build.sh
-    startCommand: bash maximum-protection-start.sh
-    healthCheckPath: /health
+    plan: pro
+    buildCommand: ./build-fix.sh
+    startCommand: npm start
+    healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
     healthCheckInterval: 30
     pullRequestPreviewsEnabled: true
-    numInstances: 1
     scaling:
       minInstances: 1
-      maxInstances: 1
-      targetMemoryPercent: 90
-      targetCPUPercent: 90
+      maxInstances: 3
+      targetMemoryPercent: 80
+      targetCPUPercent: 70
     envVars:
       - key: NODE_ENV
         value: production
