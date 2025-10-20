@@ -1,12 +1,20 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import * as path from "path";
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// dynamically import react plugin to avoid tsc module resolution problems in some environments
+const reactPlugin = async () => (await import('@vitejs/plugin-react')).default;
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    // plugin will be resolved at runtime by Vite
+    // when Vite evaluates the config it will handle async imports; keep simple here
+    // Note: Vite supports returning a Promise from defineConfig, but we keep this sync for simplicity
+    // The root config uses the dynamic import pattern already for safety
+    (await import('@vitejs/plugin-react')).default(),
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

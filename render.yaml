@@ -4,8 +4,8 @@ services:
     env: node
     region: frankfurt
     plan: pro
-    buildCommand: bash ./build-fix.sh
-    startCommand: NODE_OPTIONS='--max-old-space-size=512' npm start
+    buildCommand: npm install && npm run build
+    startCommand: NODE_ENV=production node dist/server/index.js
     healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
