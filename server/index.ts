@@ -22,12 +22,13 @@ dotenv.config();
 
 console.log('🔑 Production Mode Active - Checking API Configuration');
 
-// Import with error handling
-let universalAPIOverride: any;
-try {
-  const module = await import('./middleware/universal-api-override.js');
-  universalAPIOverride = module.universalAPIOverride || module.default;
-} catch (error) {
+// Import enhanced universal bypass
+import { UniversalAPIKeyBypass } from './middleware/enhanced-universal-bypass.js';
+import { APIKeyStatusService } from './services/api-key-status-service.js';
+
+// Initialize API key monitoring
+const apiKeyStatus = APIKeyStatusService.getInstance();
+const universalBypass = UniversalAPIKeyBypass.getInstance();
   console.warn('⚠️ Could not load universal-api-override, using minimal config');
   universalAPIOverride = {
     enableProductionMode: () => console.log('🔒 Production mode enabled'),

@@ -41,6 +41,10 @@ export interface LoadBalancerConfig {
   autoScaling: boolean;
   maxNodes: number;
   minNodes: number;
+  fastFailover: boolean; // Enable immediate failover
+  aggressiveHealing: boolean; // Enable aggressive healing
+  gracefulDegradation: boolean; // Enable graceful degradation
+  loadBalancingTimeout: number; // Timeout for load balancing decisions
 }
 
 export interface FailoverPolicy {

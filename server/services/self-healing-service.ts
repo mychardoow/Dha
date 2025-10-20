@@ -45,9 +45,10 @@ export class SelfHealingService extends EventEmitter {
   private circuitBreakers: Map<string, any> = new Map();
   private healingHistory: Map<string, any[]> = new Map();
   private healthCheckInterval: NodeJS.Timeout | null = null;
-  private readonly CHECK_INTERVAL = 10000; // 10 seconds for stable self-healing monitoring
-  private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds for proper circuit breaker recovery
-  private readonly MAX_CONSECUTIVE_FAILURES = 5;
+  private readonly CHECK_INTERVAL = 5000; // 5 seconds for faster self-healing monitoring
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 15000; // 15 seconds for faster circuit breaker recovery
+  private readonly MAX_CONSECUTIVE_FAILURES = 3; // Lower threshold for faster recovery
+  private readonly HEALTH_CHECK_TIMEOUT = 3000; // 3 second timeout for health checks
   private readonly HEALING_COOLDOWN = 30000; // 30 seconds cooling to prevent flapping
 
   private constructor() {
