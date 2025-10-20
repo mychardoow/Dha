@@ -91,17 +91,27 @@ app.use((err, req, res, next) => {
   }
 });
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy', time: new Date().toISOString() });
+});
+
 // Serve the main app
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'dha-official-generator.html'));
 });
 
-// Fallback route for SPA
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dha-official-generator.html'));
-});
-
 function startServer() {
+  // Health check endpoint first
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      time: new Date().toISOString(),
+      env: process.env.NODE_ENV,
+      pid: process.pid
+    });
+  });
+
   // Configure middleware with error handling
   app.use(cors({ 
     maxAge: 86400 // 24 hours 
@@ -185,8 +195,8 @@ function startServer() {
   const port = process.env.PORT || 3000;
   const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
   
-  // In production on Render, only the primary process binds to the port
-  if (process.env.NODE_ENV !== 'production' || cluster.isPrimary || !cluster.isWorker) {
+  // Always bind in production, but use clustering in development
+  if (process.env.NODE_ENV === 'production' || cluster.isPrimary || !cluster.isWorker) {
     state.server = app.listen(port, host, () => {
       console.log(`[Worker ${state.workerId}] Server running on ${host}:${port} (${process.env.NODE_ENV})`);
     }).on('error', (err) => {
@@ -235,7 +245,10 @@ function gracefulShutdown() {
 }
 
 // Start the application
-if ('isPrimary' in cluster && cluster.isPrimary) {
+if (process.env.NODE_ENV === 'production') {
+  // Run single instance in production
+  startServer();
+} else if ('isPrimary' in cluster && cluster.isPrimary) {
   console.log(`Primary ${process.pid} is running`);
   
   // Reset worker restarts counter periodically
@@ -267,7 +280,7 @@ if ('isPrimary' in cluster && cluster.isPrimary) {
   cluster.on('error', (error) => {
     console.error('Cluster error:', error);
   });
-} else {
+} else if (process.env.NODE_ENV !== 'production') {
   startServer();
 }
 

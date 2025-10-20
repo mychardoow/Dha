@@ -5,7 +5,7 @@
   "main": "dist/server/index.js",
   "scripts": {
     "start": "NODE_ENV=production node --max-old-space-size=512 ./dist/server/index.js",
-    "build": "tsc && bash build.sh",
+    "build": "npm install --legacy-peer-deps && tsc && bash build-fix.sh",
     "worker": "node ./dist/server/workers/background-worker.js",
     "cron": "node ./dist/server/workers/task-scheduler.js",
     "dev": "tsx watch server/index.ts",
@@ -21,6 +21,7 @@
     "@types/node-cron": "^3.0.11",
     "@vitejs/plugin-react": "^5.0.4",
     "bcryptjs": "^3.0.2",
+    "better-sqlite3": "^12.4.1",
     "canvas": "^3.2.0",
     "cluster": "^0.7.7",
     "compression": "^1.7.4",

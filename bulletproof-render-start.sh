@@ -16,7 +16,7 @@ is_running() {
 
 # Function to start server
 start_server() {
-    node server.js &
+    NODE_ENV=production node --loader ts-node/esm server/index.ts &
     echo $! > .pid
 }
 
