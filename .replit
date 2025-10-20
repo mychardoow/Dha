@@ -914,3 +914,100 @@ args = "fi"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "exit $TEST_EXIT"
+
+[[workflows.workflow]]
+name = "Test Production Functions"
+author = 48817273
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🧪 TESTING ALL PRODUCTION FUNCTIONS\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"====================================\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Starting server for testing...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev &"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SERVER_PID=$!"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"⏳ Waiting for server to be ready...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "sleep 8"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔍 Running comprehensive function tests...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx production-function-test.ts"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "TEST_EXIT=$?"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🛑 Stopping test server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "kill $SERVER_PID 2>/dev/null || true"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "if [ $TEST_EXIT -eq 0 ]; then"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  echo \"✅ ALL TESTS PASSED - READY FOR DEPLOYMENT!\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "else"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "  echo \"⚠️ SOME TESTS FAILED - REVIEW REPORT\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "fi"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "exit $TEST_EXIT"
