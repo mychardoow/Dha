@@ -36,7 +36,7 @@ function validateDeploymentConfig() {
 
   // Check frontend files
   results.frontend = fs.existsSync('client/index.html') && 
-                    fs.existsSync('client/vite.config.ts');
+                    fs.existsSync('client/vite.config.js');
 
   // Check middleware
   results.middleware = fs.existsSync('api/middleware/keyManagement.ts');

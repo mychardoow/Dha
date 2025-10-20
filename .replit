@@ -119,7 +119,7 @@ args = "cd client"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "vite build --config vite.config.ts"
+args = "vite build --config vite.config.js"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
