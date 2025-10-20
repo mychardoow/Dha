@@ -1,43 +1,43 @@
+
 import { defineConfig } from "vite";
-import * as path from "path";
-import { fileURLToPath } from 'url';
+import react from "@vitejs/plugin-react";
+import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
+import path, { dirname } from "path";
+import runtimeErrorModal from "@replit/vite-plugin-runtime-error-modal";
+import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// dynamically import react plugin to avoid tsc module resolution problems in some environments
-const reactPlugin = async () => (await import('@vitejs/plugin-react')).default;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
-  plugins: [
-    // plugin will be resolved at runtime by Vite
-    // when Vite evaluates the config it will handle async imports; keep simple here
-    // Note: Vite supports returning a Promise from defineConfig, but we keep this sync for simplicity
-    // The root config uses the dynamic import pattern already for safety
-    (await import('@vitejs/plugin-react')).default(),
-  ],
+  plugins: [react(), themePlugin(), runtimeErrorModal()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "src"),
+      "@/components": path.resolve(__dirname, "src/components"),
+      "@/lib": path.resolve(__dirname, "src/lib"),
+      "@/hooks": path.resolve(__dirname, "src/hooks"),
+      "@/contexts": path.resolve(__dirname, "src/contexts"),
+      "@/services": path.resolve(__dirname, "src/services"),
+      "@/pages": path.resolve(__dirname, "src/pages"),
+      "@/types": path.resolve(__dirname, "src/types"),
     },
   },
-  server: {
-    host: "0.0.0.0",
-    port: 5000,
-    strictPort: false,
-    hmr: {
-      clientPort: 443,
-      protocol: 'wss'
-    }
-  },
+  root: path.resolve(__dirname),
   build: {
-    outDir: "dist",
-    sourcemap: true,
+    outDir: path.resolve(__dirname, "../dist/public"),
+    emptyOutDir: true,
+    sourcemap: false,
     rollupOptions: {
       onwarn(warning, warn) {
-        // Suppress certain warnings
         if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
         warn(warning);
       }
     }
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: false,
   },
 });
