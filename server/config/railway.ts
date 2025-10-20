@@ -175,4 +175,5 @@ export function checkRailwayDeploymentReadiness(): {
 }
 
 // Export configuration for use throughout the application
-export const railwayConfig = validateRailwayConfig();
+// Only validate Railway config if we're actually on Railway
+export const railwayConfig = process.env.RAILWAY_ENVIRONMENT ? validateRailwayConfig() : null;
