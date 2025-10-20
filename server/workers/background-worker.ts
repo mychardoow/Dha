@@ -1,7 +1,14 @@
-import * as cluster from 'node:cluster';
+import cluster from 'node:cluster';
 import type { Worker } from 'node:cluster';
 import os from 'os';
 import { EventEmitter } from 'events';
+
+// Type assertion for cluster to handle TypeScript issues
+const typedCluster = cluster as unknown as {
+    fork: () => Worker;
+    on: (event: string, callback: (...args: any[]) => void) => void;
+    isPrimary?: boolean;
+};
 
 const numCPUs = os.cpus().length;
 
@@ -25,9 +32,14 @@ class BackgroundWorker extends EventEmitter {
     }
 
     startWorkers(): void {
-        const isPrimary = 'isPrimary' in cluster && cluster.isPrimary;
-        if (isPrimary) {
+        // Check if port binding is disabled
+        const disablePortBinding = process.env.DISABLE_PORT_BINDING === 'true';
+        
+        if (typedCluster.isPrimary) {
             console.log(`Primary process ${process.pid} is running`);
+            if (disablePortBinding) {
+                console.log('Port binding disabled for worker processes');
+            }
 
             // Fork workers
             for (let i = 0; i < numCPUs; i++) {
@@ -54,7 +66,7 @@ class BackgroundWorker extends EventEmitter {
             const worker = cluster.fork();
             if (worker.process.pid) {
                 this.workers.set(worker.process.pid, worker);
-    
+                
                 worker.on('message', (msg: WorkerMessage) => {
                     this.emit('workerMessage', msg);
                 });

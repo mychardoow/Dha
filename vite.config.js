@@ -44,14 +44,14 @@ exports.default = (0, vite_1.defineConfig)(async () => {
     let vitePluginRuntimeErrorModal = null;
     try {
         const cartographer = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-cartographer")));
-        vitePluginCartographer = cartographer.vitePluginCartographer;
+        vitePluginCartographer = cartographer.default;
     }
     catch (e) {
         console.log("Cartographer plugin not available");
     }
     try {
         const errorModal = await Promise.resolve().then(() => __importStar(require("@replit/vite-plugin-runtime-error-modal")));
-        vitePluginRuntimeErrorModal = errorModal.vitePluginRuntimeErrorModal;
+        vitePluginRuntimeErrorModal = errorModal.default;
     }
     catch (e) {
         console.log("Runtime error modal plugin not available");
@@ -104,3 +104,4 @@ exports.default = (0, vite_1.defineConfig)(async () => {
         }
     };
 });
+//# sourceMappingURL=vite.config.js.map

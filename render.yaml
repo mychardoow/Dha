@@ -4,8 +4,8 @@ services:
     env: node
     region: frankfurt
     plan: pro
-    buildCommand: ./build-fix.sh
-    startCommand: npm start
+    buildCommand: bash ./build-fix.sh
+    startCommand: NODE_OPTIONS='--max-old-space-size=512' npm start
     healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
@@ -59,22 +59,22 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
-        # Extra failsafe environment variables
-        - key: MAXIMUM_PROTECTION_MODE
-          value: true
-        - key: ENABLE_SELF_HEALING
-          value: true
-        - key: ENABLE_AUTO_RECOVERY
-          value: true
-        - key: ENABLE_ULTRA_MONITORING
-          value: true
+      # Extra failsafe environment variables
+      - key: MAXIMUM_PROTECTION_MODE
+        value: true
+      - key: ENABLE_SELF_HEALING
+        value: true
+      - key: ENABLE_AUTO_RECOVERY
+        value: true
+      - key: ENABLE_ULTRA_MONITORING
+        value: true
 
   - type: worker
     name: dha-monitoring-service
     runtime: node
     plan: starter
-    buildCommand: npm ci --legacy-peer-deps
-    startCommand: node render-monitor.js
+    buildCommand: ./build-fix.sh
+    startCommand: npm run worker
     envVars:
       - key: NODE_ENV
         value: production
@@ -84,10 +84,6 @@ services:
         value: 60000
       - key: TARGET_SERVICE
         value: dha-digital-services
-    startCommand: node server/monitor.js
-    envVars:
-      - key: NODE_ENV
-        value: production
       - key: RENDER_EXTERNAL_URL
         fromService:
           type: web
@@ -100,6 +96,8 @@ services:
           envVarKey: DATABASE_URL
       - key: ALERT_WEBHOOK_URL
         sync: false
+      - key: DISABLE_PORT_BINDING
+        value: true
     autoscaling:
       min: 1
       max: 1

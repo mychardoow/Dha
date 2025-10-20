@@ -8,14 +8,14 @@ export default defineConfig(async () => {
 
   try {
     const cartographer = await import("@replit/vite-plugin-cartographer");
-    vitePluginCartographer = cartographer.default;
+    vitePluginCartographer = cartographer;
   } catch (e) {
     console.log("Cartographer plugin not available");
   }
 
   try {
     const errorModal = await import("@replit/vite-plugin-runtime-error-modal");
-    vitePluginRuntimeErrorModal = errorModal.default;
+    vitePluginRuntimeErrorModal = errorModal;
   } catch (e) {
     console.log("Runtime error modal plugin not available");
   }
@@ -37,7 +37,8 @@ export default defineConfig(async () => {
       sourcemap: true,
       rollupOptions: {
         external: [
-          'fsevents',
+          'fsevents'
+        ],
           'chokidar',
           'esbuild',
           'rollup'
