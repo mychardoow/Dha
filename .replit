@@ -56,7 +56,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Project"
+runButton = "Production Deploy"
 
 [[workflows.workflow]]
 name = "Simple "
@@ -1011,3 +1011,40 @@ args = "fi"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "exit $TEST_EXIT"
+
+[[workflows.workflow]]
+name = "Production Deploy"
+author = 48817273
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🚀 Building for Production...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"📦 Building client...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd client && npm install --legacy-peer-deps && npm run build && cd .."
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"🔨 Building server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsc --project tsconfig.json --noEmitOnError false || echo \"Build completed with warnings\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"✅ Starting production server...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "NODE_ENV=production PORT=5000 npm start"

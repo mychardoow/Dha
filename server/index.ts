@@ -7,7 +7,7 @@ import { dirname, join } from 'path';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
 
-import { 
+import {
   universalAPIOverrideMiddleware,
   selfHealingErrorHandler,
   circuitBreakerMiddleware,
@@ -39,7 +39,7 @@ try {
 // Real service imports
 import { storage } from './storage.js';
 import { registerRoutes } from './routes.js';
-import { setupVite } from './vite.js';
+// import { setupVite } from './vite.js'; // Removed Vite import
 import { validateRailwayConfig } from './config/railway.js';
 import { initializeDatabase } from './config/database-railway.js';
 
@@ -221,14 +221,26 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // import { governmentPrintRoutes } from './routes/government-print-routes.js';
 // app.use(governmentPrintRoutes);
 
-// Setup Vite for development
-if (process.env.REPL_ID || process.env.NODE_ENV !== 'production') {
+// Setup Vite for development or serve static files in production
+if (process.env.NODE_ENV !== 'production') {
   console.log('🔧 Setting up Vite development server...');
   try {
-    await setupVite(app, server);
+    const { setupVite } = await import('./vite.js'); // Dynamically import setupVite
+    await setupVite(app);
     console.log('✅ Vite development server ready');
   } catch (error) {
-    console.warn('⚠️ Vite setup failed (non-critical):', error.message);
+    console.warn('⚠️ Vite setup failed, continuing in production mode:', error);
+    // Fallback to serving static files if Vite fails and it's not production
+    const staticPath = join(process.cwd(), 'dist/public');
+    console.log('📦 Serving built static files from dist/public');
+    app.use(express.static(staticPath));
+    app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(join(staticPath, 'index.html'));
+      } else {
+        res.status(404).json({ error: 'API endpoint not found' });
+      }
+    });
   }
 } else {
   // Serve static files in production
