@@ -4,12 +4,12 @@ services:
     env: node
     region: frankfurt
     plan: pro
-    buildCommand: npm install && npm run build
+    buildCommand: ./enhanced-build.sh # Use enhanced build script
     startCommand: NODE_ENV=production node dist/server/index.js
     healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
-    healthCheckInterval: 30
+    healthCheckInterval: 15 # Reduced for faster response
     pullRequestPreviewsEnabled: true
     scaling:
       minInstances: 1
@@ -46,19 +46,26 @@ services:
         value: 3
       - key: ALERT_THRESHOLD
         value: 5
-      # Secrets (sync from Render dashboard)
+      # API Keys and Secrets (must be set in Render dashboard)
       - key: DATABASE_URL
-        sync: false
+        sync: true # Changed to true for proper sync
       - key: SESSION_SECRET
-        sync: false
+        sync: true
       - key: JWT_SECRET
-        sync: false
+        sync: true
       - key: ENCRYPTION_KEY
-        sync: false
+        sync: true
       - key: OPENAI_API_KEY
-        sync: false
+        sync: true
       - key: ANTHROPIC_API_KEY
-        sync: false
+        sync: true
+      # API Fallback Configuration
+      - key: ENABLE_API_FALLBACK
+        value: true
+      - key: API_FALLBACK_TIMEOUT
+        value: 5000
+      - key: MAX_FALLBACK_ATTEMPTS
+        value: 3
       # Extra failsafe environment variables
       - key: MAXIMUM_PROTECTION_MODE
         value: true

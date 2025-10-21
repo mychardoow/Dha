@@ -1,58 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2020",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "./",
     "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
-    "noErrorTruncation": true,
-    "composite": false,
-    "noEmitOnError": false,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "preserveWatchOutput": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "express", "socket.io", "ws", "axios"],
-    "lib": ["ES2022", "DOM"],
     "resolveJsonModule": true,
+    "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "#server/*": ["./server/*"],
-      "@shared/*": ["./shared/*"],
-      "@/*": ["./src/*"],
-      "shared/*": ["./shared/*"]
+      "@shared/*": ["server/shared/*"]
     },
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
+    "noEmitOnError": false,
+    "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "removeComments": true,
-    "sourceMap": true,
-    "declaration": false,
-    "incremental": true
+    "isolatedModules": true
   },
-  "ts-node": {
-    "transpileOnly": true
-  },
-  "include": [
-    "server/**/*.ts",
-    "server/**/*.js",
-    "server/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "client/**/*",
-    "**/*.test.ts",
-    "**/*test*.ts",
-    "**/test-*.ts",
-    "**/__tests__/**"
-  ]
+  "include": ["server/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"]
 }
