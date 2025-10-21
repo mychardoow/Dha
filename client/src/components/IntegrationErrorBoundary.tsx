@@ -2,25 +2,35 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface Props {
   children: ReactNode;
+  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  fallback?: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  retryCount: number;
 }
 
 export class IntegrationErrorBoundary extends Component<Props, State> {
+  private maxRetries = 3;
+  private retryTimeout: NodeJS.Timeout | null = null;
   public state: State = {
     hasError: false,
     error: null,
-    errorInfo: null
+    errorInfo: null,
+    retryCount: 0
   };
 
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
-  }
-
+public static getDerivedStateFromError(error: Error): State {
+  return {
+    hasError: true,
+    error,
+    errorInfo: null,
+    retryCount: 0
+  };
+}
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({
       error,

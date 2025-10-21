@@ -1,5 +1,6 @@
 import { storage } from '../storage.js';
-import { type InsertSystemMetric } from '@shared/schema';
+import { type InsertSystemMetric } from '../shared/schema.js';
+import { EventEmitter } from 'events';
 
 class HealthCheckOptimizer {
   private static instance: HealthCheckOptimizer;
@@ -60,7 +61,7 @@ class HealthCheckOptimizer {
     const memory = process.memoryUsage();
     
     // Quick DB connection check
-    const dbHealthy = await storage.ping().catch(() => false);
+    const dbHealthy = await storage.query('SELECT 1').then(() => true).catch(() => false);
     
     return {
       healthy: dbHealthy,

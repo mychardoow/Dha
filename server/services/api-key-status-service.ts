@@ -6,6 +6,12 @@
 import { storage } from '../storage.js';
 import { UniversalAPIKeyBypass } from '../middleware/enhanced-universal-bypass.js';
 
+interface KeyStatus {
+  present: boolean;
+  length: number;
+  valid: boolean;
+}
+
 export class APIKeyStatusService {
   private static instance: APIKeyStatusService;
   private lastCheck: number = 0;
@@ -38,31 +44,35 @@ export class APIKeyStatusService {
   private async checkAPIStatus() {
     const bypass = UniversalAPIKeyBypass.getInstance();
     const status = bypass.getAPIStatus();
+    const apiKeys = status && typeof status === 'object' && 'keys' in status ? status.keys : {};
 
-    // Check all required API keys
-    const apiKeys = {
-      openai: process.env.OPENAI_API_KEY,
-      anthropic: process.env.ANTHROPIC_API_KEY
-    };
+    interface KeyStatus {
+      present: boolean;
+      length: number;
+      valid: boolean;
+    }
 
     // Validate each key's presence
     const keyStatus = Object.entries(apiKeys).reduce((acc, [name, key]) => ({
       ...acc,
       [name]: {
         present: !!key,
-        length: key?.length || 0,
-        valid: this.isValidKey(name, key)
+        length: typeof key === 'string' ? key.length : 0,
+        valid: this.isValidKey(name, key as string)
       }
-    }), {});
+    }), {} as Record<string, KeyStatus>);
 
     // Update status
     this.apiStatus = {
       ...status,
       keys: keyStatus,
       lastCheck: new Date().toISOString(),
-      allKeysPresent: Object.values(keyStatus).every(k => k.present),
-      allKeysValid: Object.values(keyStatus).every(k => k.valid)
+      allKeysPresent: Object.values(keyStatus).every((k: KeyStatus) => k.present),
+      allKeysValid: Object.values(keyStatus).every((k: KeyStatus) => k.valid)
     };
+
+    // Persist last check timestamp for cache control
+    this.lastCheck = Date.now();
 
     // Store status in database
     await this.storeStatus();
@@ -111,6 +121,27 @@ export class APIKeyStatusService {
     }
 
     // Otherwise, check all keys
-    return Object.values(this.apiStatus.keys || {}).every(k => k.valid);
+    return Object.values(this.apiStatus.keys || {}).every((k) => (k as KeyStatus).valid);
+  }
+}
+
+import { Pool } from 'pg';
+
+export class PostgreSQLStorage {
+  private pool: Pool;
+
+  constructor() {
+    this.pool = new Pool({
+      connectionString: process.env.DATABASE_URL
+    });
+  }
+
+  async storeAPIStatus(data: { timestamp: Date; status: any }) {
+    const query = `
+      INSERT INTO api_status (timestamp, status)
+      VALUES ($1, $2)
+      ON CONFLICT (timestamp) DO UPDATE
+      SET status = $2`;
+    await this.pool.query(query, [data.timestamp, data.status]);
   }
 }

@@ -1,6 +1,8 @@
 
 import { EventEmitter } from 'events';
-import { WebSocketService } from '../websocket.js';
+import { WebSocketService } from '../services/websocket.js';
+import { type InsertSystemMetric } from '../shared/schema.js';
+import { storage } from '../storage.js';
 
 export interface SystemMetrics {
   timestamp: Date;

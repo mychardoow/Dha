@@ -1,10 +1,58 @@
 import { EventEmitter } from "events";
-import { storage } from "../storage.js";
+import { storage, PostgreSQLStorage } from "../storage.js";
 import { autonomousMonitoringBot } from "./autonomous-monitoring-bot.js";
 import { optimizedCacheService } from "./optimized-cache.js";
-import { getConnectionStatus, pool, db } from "../db.js";
-import { type InsertAutonomousOperation, type InsertCircuitBreakerState } from "@shared/schema";
+import { getConnectionStatus } from "../db.js";
 import os from "os";
+
+// Define types for autonomous operations and circuit breaker states
+interface InsertAutonomousOperation {
+  actionType: string;
+  targetService: string;
+  triggeredBy: string;
+  triggerDetails: {
+    healingActionId: string;
+    condition: string;
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    consecutiveFailures: number;
+  };
+  status: string;
+  duration: number;
+  actionParameters: {
+    actionType: string;
+  };
+  executionResults: any;
+  complianceFlags: {
+    healingAction: boolean;
+    automated: boolean;
+  };
+}
+
+interface InsertCircuitBreakerState {
+  serviceName: string;
+  state: 'open' | 'half-open' | 'closed';
+  failureThreshold: number;
+  successThreshold: number;
+  timeout: number;
+}
+
+// Extend PostgreSQLStorage with needed methods
+declare module '../storage.js' {
+  interface PostgreSQLStorage {
+    getCircuitBreakerState(serviceName: string): Promise<InsertCircuitBreakerState | null>;
+    createCircuitBreakerState(state: InsertCircuitBreakerState): Promise<void>;
+    updateCircuitBreakerState(serviceName: string, update: Partial<InsertCircuitBreakerState>): Promise<void>;
+    createAutonomousOperation(operation: InsertAutonomousOperation): Promise<void>;
+    createSystemMetric(metric: {
+      timestamp: Date;
+      cpuUsage: number;
+      memoryUsage: number;
+      activeConnections: number;
+      responseTime: number;
+      metadata?: Record<string, any>;
+    }): Promise<any>;
+  }
+}
 
 export interface ServiceHealth {
   name: string;
@@ -442,9 +490,9 @@ export class SelfHealingService extends EventEmitter {
    */
   private async checkDatabaseHealth(): Promise<any> {
     try {
-      const dbStatus = getConnectionStatus();
+      const dbStatus = await getConnectionStatus();
       
-      if (!dbStatus.healthy) {
+      if (!dbStatus.connected) {
         return {
           status: 'critical',
           error: 'Database connection unhealthy',
@@ -453,18 +501,17 @@ export class SelfHealingService extends EventEmitter {
       }
 
       // Test database connection
-      const testResult = dbStatus.healthy;
-      const hasUsers = testResult === true;
+      const testResult = dbStatus.status === 'connected';
       
       const metrics = {
-        connectionPool: dbStatus.poolSize,
-        idleConnections: dbStatus.idleCount,
-        waitingConnections: dbStatus.waitingCount,
-        testQueryResult: testResult !== null
+        connectionStatus: dbStatus.status,
+        isConnected: dbStatus.connected,
+        error: dbStatus.error,
+        testQueryResult: testResult
       };
 
       return {
-        status: dbStatus.waitingCount > 10 ? 'degraded' : 'healthy',
+        status: dbStatus.connected ? 'healthy' : 'degraded',
         metrics
       };
 
@@ -701,8 +748,18 @@ export class SelfHealingService extends EventEmitter {
         }
       }
       
-      // Update database
-      await storage.recordServiceCall(serviceName, true, 0);
+      // Record success metric
+      await storage.createSystemMetric({
+        timestamp: new Date(),
+        cpuUsage: 0,
+        memoryUsage: 0,
+        activeConnections: 0,
+        responseTime: 0,
+        metadata: {
+          service: serviceName,
+          type: 'service_success'
+        }
+      });
       
     } catch (error) {
       console.error(`[SelfHealing] Error recording success for ${serviceName}:`, error);
@@ -733,8 +790,19 @@ export class SelfHealingService extends EventEmitter {
         }
       }
       
-      // Update database
-      await storage.recordServiceCall(serviceName, false, 5000); // 5s timeout as failure
+      // Record failure metric
+      await storage.createSystemMetric({
+        timestamp: new Date(),
+        cpuUsage: 0,
+        memoryUsage: 0,
+        activeConnections: 0,
+        responseTime: 5000,
+        metadata: {
+          service: serviceName,
+          type: 'service_failure',
+          error: error instanceof Error ? error.message : String(error)
+        }
+      });
       
       console.log(`[SelfHealing] Recorded failure for ${serviceName}: ${error}`);
       

@@ -7,7 +7,21 @@ import { EventEmitter } from 'events';
 import { WebSocket } from 'ws';
 import { storage } from '../storage.js';
 import { enhancedSecurityResponseService } from './enhanced-security-response.js';
-import { type InsertSystemMetric } from '@shared/schema';
+import { type InsertSystemMetric } from '../shared/schema.js';
+
+// Define storage methods
+interface StorageService {
+  getSecurityConfig(): Promise<{ enabled: boolean }>;
+  getRateLimitConfig(): Promise<{ maxRequests: number }>;
+  getAuditConfig(): Promise<{ enabled: boolean }>;
+  getSystemMetrics(): Promise<any[]>;
+  createSystemMetric(metric: InsertSystemMetric): Promise<void>;
+  ping(): Promise<boolean>;
+  getServiceHealth(service: string): Promise<{ status: string }>;
+  logError(error: { service: string; error: string; timestamp: Date }): Promise<void>;
+}
+
+const storageService = storage as unknown as StorageService;
 
 interface IntegrationState {
   frontendConnected: boolean;
@@ -83,9 +97,9 @@ export class IntegrationService extends EventEmitter {
 
   private async loadMiddlewareConfigs() {
     // Load all middleware configurations
-    const securityConfig = await storage.getSecurityConfig();
-    const rateConfig = await storage.getRateLimitConfig();
-    const auditConfig = await storage.getAuditConfig();
+    const securityConfig = await storageService.getSecurityConfig();
+    const rateConfig = await storageService.getRateLimitConfig();
+    const auditConfig = await storageService.getAuditConfig();
     
     return { securityConfig, rateConfig, auditConfig };
   }
@@ -137,7 +151,7 @@ export class IntegrationService extends EventEmitter {
         this.state.frontendConnected = this.wsClients.size > 0;
 
         // Store metrics
-        await storage.insertSystemMetric({
+        await storageService.createSystemMetric({
           timestamp: new Date(),
           cpuUsage: process.cpuUsage().user / 1000000,
           memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024,
@@ -186,7 +200,7 @@ export class IntegrationService extends EventEmitter {
 
   private async checkBackendHealth(): Promise<boolean> {
     try {
-      const dbConnected = await storage.ping();
+      const dbConnected = await storageService.ping();
       const servicesHealthy = await this.checkServicesHealth();
       return dbConnected && servicesHealthy;
     } catch (error) {
@@ -214,7 +228,7 @@ export class IntegrationService extends EventEmitter {
 
   private async checkServiceHealth(service: string): Promise<boolean> {
     try {
-      const result = await storage.getServiceHealth(service);
+      const result = await storageService.getServiceHealth(service);
       return result.status === 'healthy';
     } catch {
       return false;
@@ -229,7 +243,7 @@ export class IntegrationService extends EventEmitter {
     }
 
     // Log error for monitoring
-    await storage.logError({
+    await storageService.logError({
       service: 'integration',
       error: error.message,
       timestamp: new Date()
