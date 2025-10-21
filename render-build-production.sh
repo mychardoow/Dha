@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Delegate to the fixed build script
+bash render-build-production-fixed.sh
 set -e
 
 echo "🚀 RENDER PRODUCTION BUILD - BULLETPROOF VERSION"
