@@ -1,7 +1,67 @@
 #!/bin/bash
 
-# Delegate to the fixed build script
-bash render-build-production-fixed.sh
+echo "🚀 DHA Digital Services - Production Build"
+echo "========================================"
+
+# Force production mode
+export NODE_ENV=production
+export API_ENVIRONMENT=production
+export FORCE_REAL_APIS=true
+
+# Clean existing build
+echo "🧹 Cleaning previous build..."
+rm -rf dist
+
+# Install dependencies
+echo "📦 Installing dependencies..."
+npm install --production
+
+# Build client
+echo "🔨 Building client..."
+cd client
+npm install --production
+npm run build
+cd ..
+
+# Copy client build to dist
+echo "📂 Copying client build..."
+mkdir -p dist/public
+cp -r client/dist/* dist/public/
+
+# Build server
+echo "🔨 Building server..."
+npm run compile
+
+# Create production package.json
+echo "📄 Creating production package.json..."
+cat > dist/package.json << EOL
+{
+  "name": "dha-digital-services",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node --max-old-space-size=512 server/index.js"
+  }
+}
+EOL
+
+# Copy necessary files
+echo "📄 Copying configuration files..."
+cp .env.production dist/.env
+cp -r server/config dist/server/
+
+# Verify build
+echo "✅ Verifying build..."
+if [ -f "dist/server/index.js" ] && [ -d "dist/public" ]; then
+    echo "✅ Build successful!"
+    echo "✅ Ready for deployment"
+    exit 0
+else
+    echo "❌ Build verification failed!"
+    exit 1
+fi
 set -e
 
 echo "🚀 RENDER PRODUCTION BUILD - BULLETPROOF VERSION"
