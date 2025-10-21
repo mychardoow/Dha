@@ -5,8 +5,8 @@ import { selfHealingMonitor } from './self-healing-monitor.js';
 import { autoErrorCorrection } from './auto-error-correction.js';
 import { instantSecurityResponse } from './instant-security-response.js';
 import { auditTrailService } from './audit-trail-service.js';
-import { queenUltraAiService } from './queen-ultra-ai.js';
-import { type InsertAuditLog, type InsertSystemMetric, type InsertSecurityEvent } from '@shared/schema';
+import {  } from '../services/queen-ultra-ai.js';
+import { type InsertAuditLog, type InsertSystemMetric, type InsertSecurityEvent } from '../shared/schema.js';
 import { performance } from 'perf_hooks';
 import os from 'os';
 import cluster from 'cluster';
@@ -41,6 +41,10 @@ export interface LoadBalancerConfig {
   autoScaling: boolean;
   maxNodes: number;
   minNodes: number;
+  fastFailover: boolean; // Enable immediate failover
+  aggressiveHealing: boolean; // Enable aggressive healing
+  gracefulDegradation: boolean; // Enable graceful degradation
+  loadBalancingTimeout: number; // Timeout for load balancing decisions
 }
 
 export interface FailoverPolicy {

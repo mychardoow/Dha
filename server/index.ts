@@ -14,7 +14,7 @@ import {
   healthCheckOptimization,
   timeoutProtection,
   memoryOptimization
-} from './middleware/render-bulletproof-middleware';
+} from './middleware/render-bulletproof-middleware.js';
 
 
 // Load environment variables first
@@ -22,19 +22,19 @@ dotenv.config();
 
 console.log('🔑 Production Mode Active - Checking API Configuration');
 
-// Import with error handling
-let universalAPIOverride: any;
-try {
-  const module = await import('./middleware/universal-api-override.js');
-  universalAPIOverride = module.universalAPIOverride || module.default;
-} catch (error) {
-  console.warn('⚠️ Could not load universal-api-override, using minimal config');
-  universalAPIOverride = {
-    enableProductionMode: () => console.log('🔒 Production mode enabled'),
-    getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
-    getStatus: () => ({ production: true })
-  };
-}
+// Import enhanced universal bypass
+import { UniversalAPIKeyBypass } from './middleware/enhanced-universal-bypass.js';
+import { APIKeyStatusService } from './services/api-key-status-service.js';
+
+// Initialize API key monitoring
+const apiKeyStatus = APIKeyStatusService.getInstance();
+const universalBypass = UniversalAPIKeyBypass.getInstance();
+// Setup API override
+const apiOverride = {
+  enableProductionMode: () => console.log('🔒 Production mode enabled'),
+  getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
+  getStatus: () => ({ production: true })
+};
 
 // Real service imports
 import { storage } from './storage.js';
@@ -65,7 +65,7 @@ if (!process.env.REPL_ID) {
   console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
   process.env.NODE_ENV = 'production';
   process.env.FORCE_REAL_APIS = 'true';
-  universalAPIOverride.enableProductionMode();
+  apiOverride.enableProductionMode();
 } else {
   console.log('🔧 REPLIT DEVELOPMENT MODE - USING VITE');
 }
@@ -226,7 +226,7 @@ if (process.env.NODE_ENV !== 'production') {
   console.log('🔧 Setting up Vite development server...');
   try {
     const { setupVite } = await import('./vite.js'); // Dynamically import setupVite
-    await setupVite(app);
+    await setupVite(app, server);
     console.log('✅ Vite development server ready');
   } catch (error) {
     console.warn('⚠️ Vite setup failed, continuing in production mode:', error);
