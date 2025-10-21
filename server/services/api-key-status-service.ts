@@ -3,7 +3,6 @@
  * Monitors and validates API key configuration
  */
 
-import { storage } from '../storage.js';
 import { UniversalAPIKeyBypass } from '../middleware/enhanced-universal-bypass.js';
 
 interface KeyStatus {
@@ -73,9 +72,6 @@ export class APIKeyStatusService {
 
     // Persist last check timestamp for cache control
     this.lastCheck = Date.now();
-
-    // Store status in database
-    await this.storeStatus();
   }
 
   private isValidKey(provider: string, key?: string): boolean {
@@ -89,17 +85,6 @@ export class APIKeyStatusService {
         return key.startsWith('sk-ant-') && key.length > 20;
       default:
         return key.length > 20; // Basic length check
-    }
-  }
-
-  private async storeStatus() {
-    try {
-      await storage.storeAPIStatus({
-        timestamp: new Date(),
-        status: this.apiStatus
-      });
-    } catch (error) {
-      console.error('Failed to store API status:', error);
     }
   }
 
@@ -122,26 +107,5 @@ export class APIKeyStatusService {
 
     // Otherwise, check all keys
     return Object.values(this.apiStatus.keys || {}).every((k) => (k as KeyStatus).valid);
-  }
-}
-
-import { Pool } from 'pg';
-
-export class PostgreSQLStorage {
-  private pool: Pool;
-
-  constructor() {
-    this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL
-    });
-  }
-
-  async storeAPIStatus(data: { timestamp: Date; status: any }) {
-    const query = `
-      INSERT INTO api_status (timestamp, status)
-      VALUES ($1, $2)
-      ON CONFLICT (timestamp) DO UPDATE
-      SET status = $2`;
-    await this.pool.query(query, [data.timestamp, data.status]);
   }
 }

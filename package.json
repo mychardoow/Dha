@@ -42,7 +42,7 @@
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.6",
     "ethers": "^6.15.0",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "express-rate-limit": "^7.0.0",
     "express-session": "^1.18.2",
     "helmet": "^7.0.0",
@@ -75,8 +75,7 @@
     "tsx": "^4.20.6",
     "winston": "^3.11.0",
     "wouter": "^3.7.1",
-    "ws": "^8.16.0",
-    "zod": "^4.1.12"
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
@@ -89,7 +88,7 @@
     "@types/dotenv": "^8.2.3",
     "@types/express": "^4.17.23",
     "@types/jest": "^29.5.14",
-    "@types/node": "^20.19.22",
+    "@types/node": "^20.19.23",
     "@types/react": "^18.3.26",
     "@types/react-dom": "^18.2.0",
     "@types/socket.io": "^3.0.2",
@@ -109,6 +108,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "vite": "^7.1.10",
-    "vite-tsconfig-paths": "^4.3.0"
+    "vite-tsconfig-paths": "^4.3.0",
+    "zod": "^4.1.12"
   }
 }
