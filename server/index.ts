@@ -119,9 +119,7 @@ app.use(helmet({
 
 app.use(compression());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://*.replit.app', 'https://*.replit.dev']
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5000'],
+  origin: ['https://*.replit.app', 'https://*.replit.dev', 'https://*.onrender.com', 'https://*.railway.app'],
   credentials: true
 }));
 
@@ -221,28 +219,8 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // import { governmentPrintRoutes } from './routes/government-print-routes.js';
 // app.use(governmentPrintRoutes);
 
-// Setup Vite for development or serve static files in production
-if (process.env.NODE_ENV !== 'production') {
-  console.log('🔧 Setting up Vite development server...');
-  try {
-    const { setupVite } = await import('./vite.js'); // Dynamically import setupVite
-    await setupVite(app, server);
-    console.log('✅ Vite development server ready');
-  } catch (error) {
-    console.warn('⚠️ Vite setup failed, continuing in production mode:', error);
-    // Fallback to serving static files if Vite fails and it's not production
-    const staticPath = join(process.cwd(), 'dist/public');
-    console.log('📦 Serving built static files from dist/public');
-    app.use(express.static(staticPath));
-    app.get('*', (req, res) => {
-      if (!req.path.startsWith('/api')) {
-        res.sendFile(join(staticPath, 'index.html'));
-      } else {
-        res.status(404).json({ error: 'API endpoint not found' });
-      }
-    });
-  }
-} else {
+// Always serve static files in production mode
+{
   // Serve static files in production
   const staticPath = join(process.cwd(), 'dist/public');
   console.log('📦 Serving built static files from dist/public');

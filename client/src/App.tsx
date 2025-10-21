@@ -4,6 +4,7 @@ import { Suspense, lazy, useState, useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LoadingScreen, useHealthCheck } from "@/components/LoadingScreen";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Dashboard from "./pages/Dashboard";
 import AIAssistantPage from "./pages/ai-assistant";
@@ -60,13 +61,19 @@ function AdminLoadingFallback() {
 function App() {
   const [showAIChat, setShowAIChat] = useState(false);
   const isMobile = useIsMobile();
+  const { data: healthCheck, isLoading, error } = useHealthCheck();
+  
+  // Show main content only if health check passes
+  const showContent = healthCheck?.status === 'healthy' && !isLoading && !error;
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ErrorBoundary>
-          <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
-          <Switch>
+          <LoadingScreen />
+          {showContent && (
+            <div className="min-h-screen bg-background safe-area-top safe-area-left safe-area-right">
+            <Switch>
             {/* Direct to Ultra Queen Dashboard - No login needed */}
             <Route path="/" component={UltraQueenDashboardEnhanced} />
             
@@ -144,6 +151,7 @@ function App() {
             <Route component={NotFoundPage} />
           </Switch>
         </div>
+        )}
 
         {/* Floating AI Chat Assistant */}
         {showAIChat && (
