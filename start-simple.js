@@ -24,8 +24,8 @@ try {
   execSync('npx tsx --version', { stdio: 'pipe' });
   console.log('✅ tsx is available');
 } catch (e) {
-  console.log('📦 Installing tsx...');
-  execSync('npm install', { stdio: 'inherit' });
+  console.log('📦 Installing dependencies...');
+  execSync('npm install --legacy-peer-deps --no-optional', { stdio: 'inherit' });
 }
 
 console.log('✅ Starting DHA Server with tsx...\n');
