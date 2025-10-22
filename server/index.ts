@@ -55,7 +55,7 @@ console.log('🇿🇦 Department of Home Affairs - Real Implementation');
 console.log('=' .repeat(60));
 
 const PORT = parseInt(process.env.PORT || '5000');
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
+const HOST = '0.0.0.0';
 
 // Create Express app and HTTP server
 const app = express();

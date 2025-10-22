@@ -43,7 +43,7 @@ const server = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'server/index
 
 server.on('error', (err) => {
   console.error('❌ Server failed to start:', err.message);
-  console.error('\n💡 Try running: npm install --force');
+  console.error('\n💡 Try running: npm install tsx --save-dev');
   process.exit(1);
 });
 
