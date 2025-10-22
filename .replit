@@ -8,8 +8,8 @@ packages = ["libuuid", "cairo", "pango", "giflib", "jq", "python3", "gcc", "pkgc
 
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "render-start-production.sh"]
-build = ["bash", "render-build-production.sh"]
+run = ["sh", "-c", "bash render-start-production.sh"]
+build = ["sh", "-c", "bash render-build-production.sh"]
 
 [[ports]]
 localPort = 5000
