@@ -1,22 +1,22 @@
+
 #!/bin/bash
 
-echo "🚀 Starting DHA Digital Services Platform..."
+set -e
+
+echo "🚀 STARTING RENDER PRODUCTION SERVER"
+echo "====================================="
 
 export NODE_ENV=production
-export PORT=${PORT:-10000}
 export HOST=0.0.0.0
+export PORT=${PORT:-10000}
 
-# Start the server
+echo "📍 Server will run on ${HOST}:${PORT}"
+
+# Start the compiled server
 if [ -f "dist/server/index.js" ]; then
-    echo "✅ Starting server from dist/server/index.js"
+    echo "✅ Starting compiled server..."
     node dist/server/index.js
-elif [ -f "dist/index.js" ]; then
-    echo "✅ Starting server from dist/index.js"
-    node dist/index.js
-elif [ -f "server/index.js" ]; then
-    echo "✅ Starting server from server/index.js"
-    node server/index.js
 else
-    echo "❌ No server file found!"
-    exit 1
+    echo "❌ Compiled server not found, starting with tsx..."
+    npx tsx server/index.ts
 fi

@@ -1,205 +1,53 @@
 #!/bin/bash
 
-echo "🚀 DHA Digital Services - Production Build"
-echo "========================================"
+set -e
 
-# Force production mode
+echo "🚀 RENDER PRODUCTION BUILD"
+echo "=========================="
+
+# Set production environment
 export NODE_ENV=production
-export API_ENVIRONMENT=production
-export FORCE_REAL_APIS=true
+export NODE_OPTIONS="--max-old-space-size=4096"
 
-# Clean existing build
-echo "🧹 Cleaning previous build..."
-rm -rf dist
+# Clean previous builds
+echo "🧹 Cleaning previous builds..."
+rm -rf dist node_modules/.cache
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install --production
+npm install --legacy-peer-deps --production=false
 
 # Build client
-echo "🔨 Building client..."
+echo "🎨 Building client..."
 cd client
-npm install --production
+npm install --legacy-peer-deps
 npm run build
 cd ..
 
-# Copy client build to dist
-echo "📂 Copying client build..."
-mkdir -p dist/public
-cp -r client/dist/* dist/public/
-
-# Build server
+# Compile TypeScript server
 echo "🔨 Building server..."
-npm run compile
-
-# Create production package.json
-echo "📄 Creating production package.json..."
-cat > dist/package.json << EOL
-{
-  "name": "dha-digital-services",
-  "version": "2.0.0",
-  "private": true,
-  "type": "module",
-  "main": "server/index.js",
-  "scripts": {
-    "start": "node --max-old-space-size=512 server/index.js"
-  }
-}
-EOL
+npx tsc --project tsconfig.json --skipLibCheck || echo "⚠️ Build completed with warnings"
 
 # Copy necessary files
-echo "📄 Copying configuration files..."
-cp .env.production dist/.env
-cp -r server/config dist/server/
+echo "📋 Copying runtime files..."
+cp -r server/middleware dist/server/ 2>/dev/null || true
+cp -r server/services dist/server/ 2>/dev/null || true
+cp -r server/routes dist/server/ 2>/dev/null || true
 
 # Verify build
 echo "✅ Verifying build..."
-if [ -f "dist/server/index.js" ] && [ -d "dist/public" ]; then
-    echo "✅ Build successful!"
-    echo "✅ Ready for deployment"
-    exit 0
-else
-    echo "❌ Build verification failed!"
-    exit 1
-fi
-set -e
-
-echo "🚀 RENDER PRODUCTION BUILD - BULLETPROOF VERSION"
-echo "=================================================="
-
-# Environment setup
-export NODE_ENV=production
-export SKIP_PREFLIGHT_CHECK=true
-export DISABLE_ESLINT_PLUGIN=true
-export TSC_COMPILE_ON_ERROR=true
-export GENERATE_SOURCEMAP=false
-
-# Clean everything
-echo "🧹 Cleaning previous builds..."
-rm -rf dist build .next node_modules/.cache client/node_modules/.cache
-
-# Clean install - remove node_modules for fresh install
-echo "🧹 Removing node_modules for clean install..."
-rm -rf node_modules client/node_modules
-
-# Install root dependencies
-echo "📦 Installing root dependencies..."
-npm install --legacy-peer-deps --no-audit --no-fund || {
-    echo "⚠️ Root install had issues, retrying..."
-    npm install --legacy-peer-deps --force
-}
-
-# Rebuild esbuild for linux-x64 platform (root)
-echo "🔧 Rebuilding esbuild for linux-x64 (root)..."
-npm rebuild esbuild --platform=linux --arch=x64 || echo "⚠️ Root esbuild rebuild skipped"
-
-# Install client dependencies
-echo "📦 Installing client dependencies..."
-cd client
-npm install --legacy-peer-deps --no-audit --no-fund || {
-    echo "⚠️ Client install had issues, retrying..."
-    npm install --legacy-peer-deps --force
-}
-
-# Rebuild esbuild for linux-x64 platform (client)
-echo "🔧 Rebuilding esbuild for linux-x64 (client)..."
-npm rebuild esbuild --platform=linux --arch=x64 || echo "⚠️ Client esbuild rebuild skipped"
-
-cd ..
-
-# Build client (with error bypass)
-echo "🔨 Building client..."
-cd client
-npm run build || {
-    echo "⚠️ Vite build had errors, trying alternative..."
-    npx vite build --mode production || echo "Using fallback build"
-}
-cd ..
-
-# Create dist directory
-echo "📁 Setting up dist directory..."
-mkdir -p dist/public
-
-# Copy client build to dist/public
-if [ -d "client/dist" ]; then
-    echo "✅ Copying client build..."
-    cp -r client/dist/* dist/public/
-elif [ -d "client/build" ]; then
-    echo "✅ Copying client build from build dir..."
-    cp -r client/build/* dist/public/
-else
-    echo "⚠️ No client build found, creating placeholder..."
-    mkdir -p dist/public
-    echo '<!DOCTYPE html><html><body><h1>Loading...</h1></body></html>' > dist/public/index.html
-fi
-
-# Build TypeScript (with errors allowed)
-echo "🔨 Building TypeScript..."
-npx tsc --project tsconfig.json --noEmitOnError false || {
-    echo "⚠️ TypeScript had errors but continuing..."
-}
-
-# Copy necessary files
-echo "📄 Copying production files..."
-cp package.json dist/ 2>/dev/null || true
-cp -r shared dist/ 2>/dev/null || true
-
-# Create minimal production package.json
-echo "📝 Creating production package.json..."
-cat > dist/package.json << 'EOF'
-{
-  "name": "dha-digital-services-prod",
-  "version": "2.0.0",
-  "type": "module",
-  "main": "server/index.js",
-  "engines": {
-    "node": ">=20.0.0"
-  },
-  "scripts": {
-    "start": "node server/index.js"
-  }
-}
-EOF
-
-# Verify build
-echo "✅ Verifying build..."
-if [ -f "dist/server/index.js" ] || [ -f "dist/index.js" ]; then
+if [ -f "dist/server/index.js" ]; then
     echo "✅ Server build successful"
 else
-    echo "⚠️ Creating fallback server..."
-    mkdir -p dist/server
-    cat > dist/server/index.js << 'EOFS'
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const app = express();
-const PORT = process.env.PORT || 5000;
-
-app.use(express.static(join(__dirname, '../public')));
-app.get('*', (req, res) => {
-    res.sendFile(join(__dirname, '../public/index.html'));
-});
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
-EOFS
+    echo "❌ Server build failed"
+    exit 1
 fi
 
-if [ -d "dist/public" ] && [ "$(ls -A dist/public)" ]; then
+if [ -d "dist/public" ]; then
     echo "✅ Client build successful"
 else
-    echo "⚠️ Client build missing, creating placeholder..."
-    mkdir -p dist/public
-    echo '<!DOCTYPE html><html><body><h1>App Loading...</h1></body></html>' > dist/public/index.html
+    echo "❌ Client build failed"
+    exit 1
 fi
 
-echo ""
-echo "🎉 BUILD COMPLETED SUCCESSFULLY!"
-echo "=================================="
-echo "✅ Server: dist/server/index.js"
-echo "✅ Client: dist/public/"
-echo "✅ Ready for deployment"
+echo "🎉 Build complete!"
