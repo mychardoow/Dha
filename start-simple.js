@@ -21,9 +21,11 @@ try {
 // Ensure tsx is installed
 try {
   console.log('📦 Verifying tsx installation...');
-  execSync('npm list tsx || npm install --no-save tsx', { stdio: 'inherit' });
+  execSync('npx tsx --version', { stdio: 'pipe' });
+  console.log('✅ tsx is available');
 } catch (e) {
-  console.warn('⚠️ Could not verify tsx, continuing anyway...');
+  console.log('📦 Installing tsx...');
+  execSync('npm install', { stdio: 'inherit' });
 }
 
 console.log('✅ Starting DHA Server with tsx...\n');
@@ -43,7 +45,7 @@ const server = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'server/index
 
 server.on('error', (err) => {
   console.error('❌ Server failed to start:', err.message);
-  console.error('\n💡 Try running: npm install tsx --save-dev');
+  console.error('\n💡 Try running: npm install');
   process.exit(1);
 });
 
