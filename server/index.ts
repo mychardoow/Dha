@@ -22,13 +22,11 @@ dotenv.config();
 
 console.log('🔑 Production Mode Active - Checking API Configuration');
 
-// Import enhanced universal bypass
-import { UniversalAPIKeyBypass } from './middleware/enhanced-universal-bypass.js';
+// Import API key status service
 import { APIKeyStatusService } from './services/api-key-status-service.js';
 
 // Initialize API key monitoring
 const apiKeyStatus = APIKeyStatusService.getInstance();
-const universalBypass = UniversalAPIKeyBypass.getInstance();
 // Setup API override
 const apiOverride = {
   enableProductionMode: () => console.log('🔒 Production mode enabled'),
@@ -55,7 +53,7 @@ console.log('🇿🇦 Department of Home Affairs - Real Implementation');
 console.log('=' .repeat(60));
 
 const PORT = parseInt(process.env.PORT || '5000');
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : '0.0.0.0';
+const HOST = '0.0.0.0';
 
 // Create Express app and HTTP server
 const app = express();

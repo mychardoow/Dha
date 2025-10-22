@@ -7,17 +7,13 @@ channel = "stable-25_05"
 packages = ["libuuid", "cairo", "pango", "giflib", "jq", "python3", "gcc", "pkgconf", "pixman", "railway", "gnome-secrets"]
 
 [deployment]
-deploymentTarget = "vm"
-run = ["bash", "render-start-production.sh"]
-build = ["bash", "render-build-production.sh"]
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "npm install --legacy-peer-deps && npm run build && npm start"]
+build = ["sh", "-c", "bash render-build-production.sh"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 41077
-externalPort = 8099
 
 [[ports]]
 localPort = 41631
@@ -56,7 +52,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Production Deploy"
+runButton = "Production Server"
 
 [[workflows.workflow]]
 name = "Simple "
@@ -715,19 +711,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Start application"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run dev"
-waitForPort = 5000
+args = "Server"
 
 [[workflows.workflow]]
 name = "Run Pre-Deployment Tests"
@@ -1048,3 +1032,41 @@ args = "echo \"✅ Starting production server...\""
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "NODE_ENV=production PORT=5000 npm start"
+
+[[workflows.workflow]]
+name = "Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Dev Server"
+author = 48841774
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"
+
+[[workflows.workflow]]
+name = "Production Server"
+author = 48841774
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"

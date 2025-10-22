@@ -1613,4 +1613,12 @@ export class PostgreSQLStorage implements IStorage {
       };
     }
   }
+
+  // API Status tracking
+  async storeAPIStatus(data: { timestamp: Date; status: any }): Promise<void> {
+    // This is a stub implementation - API status tracking doesn't need persistence
+    // The data is logged in memory by the service itself
+    // If persistence is needed, implement a table for it
+    return Promise.resolve();
+  }
 }
