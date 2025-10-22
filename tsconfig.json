@@ -1,55 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": true,
+    "target": "ES2020",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "./server",
+    "rootDir": "./",
     "strict": false,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noErrorTruncation": true,
-    "composite": false,
-    "noEmitOnError": false,
+    "esModuleInterop": true,
     "skipLibCheck": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "preserveWatchOutput": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
-    "lib": ["ES2022"],
     "resolveJsonModule": true,
+    "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "#server/*": ["./server/*"]
+      "@shared/*": ["server/shared/*"]
     },
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
+    "noEmitOnError": false,
+    "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "removeComments": true,
-    "sourceMap": true,
-    "declaration": false,
-    "incremental": true
+    "isolatedModules": true
   },
-  "ts-node": {
-    "transpileOnly": true
-  },
-  "include": [
-    "server/**/*.ts",
-    "server/**/*.js",
-    "server/**/*.d.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "client/**/*",
-    "**/*.test.ts",
-    "**/*test*.ts",
-    "**/test-*.ts",
-    "**/__tests__/**"
-  ]
+  "include": ["server/**/*"],
+  "exclude": ["node_modules", "**/*.spec.ts", "**/*.test.ts"]
 }

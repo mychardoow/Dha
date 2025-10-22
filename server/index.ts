@@ -7,14 +7,14 @@ import { dirname, join } from 'path';
 import { createServer } from 'http';
 import dotenv from 'dotenv';
 
-import { 
+import {
   universalAPIOverrideMiddleware,
   selfHealingErrorHandler,
   circuitBreakerMiddleware,
   healthCheckOptimization,
   timeoutProtection,
   memoryOptimization
-} from './middleware/render-bulletproof-middleware';
+} from './middleware/render-bulletproof-middleware.js';
 
 
 // Load environment variables first
@@ -22,24 +22,24 @@ dotenv.config();
 
 console.log('🔑 Production Mode Active - Checking API Configuration');
 
-// Import with error handling
-let universalAPIOverride: any;
-try {
-  const module = await import('./middleware/universal-api-override.js');
-  universalAPIOverride = module.universalAPIOverride || module.default;
-} catch (error) {
-  console.warn('⚠️ Could not load universal-api-override, using minimal config');
-  universalAPIOverride = {
-    enableProductionMode: () => console.log('🔒 Production mode enabled'),
-    getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
-    getStatus: () => ({ production: true })
-  };
-}
+// Import enhanced universal bypass
+import { UniversalAPIKeyBypass } from './middleware/enhanced-universal-bypass.js';
+import { APIKeyStatusService } from './services/api-key-status-service.js';
+
+// Initialize API key monitoring
+const apiKeyStatus = APIKeyStatusService.getInstance();
+const universalBypass = UniversalAPIKeyBypass.getInstance();
+// Setup API override
+const apiOverride = {
+  enableProductionMode: () => console.log('🔒 Production mode enabled'),
+  getAPIKey: (service: string) => process.env[`${service}_API_KEY`] || '',
+  getStatus: () => ({ production: true })
+};
 
 // Real service imports
 import { storage } from './storage.js';
 import { registerRoutes } from './routes.js';
-import { setupVite } from './vite.js';
+// import { setupVite } from './vite.js'; // Removed Vite import
 import { validateRailwayConfig } from './config/railway.js';
 import { initializeDatabase } from './config/database-railway.js';
 
@@ -65,7 +65,7 @@ if (!process.env.REPL_ID) {
   console.log('🔑 PRODUCTION MODE ACTIVE - NO MOCKS ALLOWED');
   process.env.NODE_ENV = 'production';
   process.env.FORCE_REAL_APIS = 'true';
-  universalAPIOverride.enableProductionMode();
+  apiOverride.enableProductionMode();
 } else {
   console.log('🔧 REPLIT DEVELOPMENT MODE - USING VITE');
 }
@@ -119,9 +119,7 @@ app.use(helmet({
 
 app.use(compression());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://*.replit.app', 'https://*.replit.dev']
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://0.0.0.0:5000'],
+  origin: ['https://*.replit.app', 'https://*.replit.dev', 'https://*.onrender.com', 'https://*.railway.app'],
   credentials: true
 }));
 
@@ -221,16 +219,8 @@ console.log('✅ Universal API Manager initialized with 40+ integrations');
 // import { governmentPrintRoutes } from './routes/government-print-routes.js';
 // app.use(governmentPrintRoutes);
 
-// Setup Vite for development
-if (process.env.REPL_ID || process.env.NODE_ENV !== 'production') {
-  console.log('🔧 Setting up Vite development server...');
-  try {
-    await setupVite(app, server);
-    console.log('✅ Vite development server ready');
-  } catch (error) {
-    console.warn('⚠️ Vite setup failed (non-critical):', error.message);
-  }
-} else {
+// Always serve static files in production mode
+{
   // Serve static files in production
   const staticPath = join(process.cwd(), 'dist/public');
   console.log('📦 Serving built static files from dist/public');

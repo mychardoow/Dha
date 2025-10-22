@@ -202,10 +202,15 @@ async function testPDFGeneration() {
     return await response.json();
   });
 
-  // Test document types availability
+  interface DocumentTypesResponse {
+  success: boolean;
+  total: number;
+}
+
+// Test document types availability
   await testWithTimeout('PDF Generation', 'All Document Types', async () => {
     const response = await fetch(`${BASE_URL}/api/ultra-dashboard/documents`);
-    const data = await response.json();
+    const data = await response.json() as DocumentTypesResponse;
     if (!data.success || data.total < 21) {
       throw new Error(`Only ${data.total} document types available, expected 21+`);
     }
@@ -265,10 +270,18 @@ async function testDHADocuments() {
 async function testIntegrations() {
   console.log('\n🔗 TESTING INTEGRATIONS\n');
 
-  // Test government API status
+  interface DashboardStatusResponse {
+  status: {
+    government: boolean;
+    blockchain: boolean;
+    web3auth: boolean;
+  };
+}
+
+// Test government API status
   await testWithTimeout('Integrations', 'Government APIs', async () => {
     const response = await fetch(`${BASE_URL}/api/ultra-dashboard/status`);
-    const data = await response.json();
+    const data = await response.json() as DashboardStatusResponse;
     if (!data.status.government) {
       throw new Error('Government API status unavailable');
     }
@@ -278,7 +291,7 @@ async function testIntegrations() {
   // Test blockchain integration
   await testWithTimeout('Integrations', 'Blockchain Services', async () => {
     const response = await fetch(`${BASE_URL}/api/ultra-dashboard/status`);
-    const data = await response.json();
+    const data = await response.json() as DashboardStatusResponse;
     if (!data.status.blockchain) {
       throw new Error('Blockchain status unavailable');
     }
@@ -297,7 +310,7 @@ async function testIntegrations() {
   // Test Web3 authentication
   await testWithTimeout('Integrations', 'Web3 Auth', async () => {
     const response = await fetch(`${BASE_URL}/api/ultra-dashboard/status`);
-    const data = await response.json();
+    const data = await response.json() as DashboardStatusResponse;
     if (!data.status.web3auth) {
       throw new Error('Web3Auth not configured');
     }

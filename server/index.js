@@ -20,10 +20,11 @@ const state = {
 };
 
 // Worker management
-const numCPUs = 1; // Use single CPU for stability
-let workerRestarts = 0;
+const numCPUs = process.env.NODE_ENV === 'production' ? 1 : os.cpus().length; // Single worker in production for Render
+let fworkerRestarts = 0;
 const MAX_RESTARTS = 5;
 const RESTART_RESET_TIMEOUT = 60000; // 1 minute
+const PORT = process.env.PORT || 3000;
 
 // Import routes
 import { createRequire } from 'module';
@@ -80,17 +81,37 @@ const app = express();
 // Serve static files and HTML
 app.use(express.static(path.join(__dirname, '..')));
 
-// Serve the main app
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
+// Error handler for static files
+app.use((err, req, res, next) => {
+  if (err.code === 'ENOENT') {
+    console.warn(`[Static] File not found: ${req.path}`);
+    next();
+  } else {
+    next(err);
+  }
 });
 
-// Fallback route for SPA
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'dha-document-generator.html'));
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy', time: new Date().toISOString() });
+});
+
+// Serve the main app
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'dha-official-generator.html'));
 });
 
 function startServer() {
+  // Health check endpoint first
+  app.get('/api/health', (req, res) => {
+    res.json({
+      status: 'healthy',
+      time: new Date().toISOString(),
+      env: process.env.NODE_ENV,
+      pid: process.pid
+    });
+  });
+
   // Configure middleware with error handling
   app.use(cors({ 
     maxAge: 86400 // 24 hours 
@@ -174,12 +195,21 @@ function startServer() {
   const port = process.env.PORT || 3000;
   const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
   
-  state.server = app.listen(port, host, () => {
-    console.log(`[Worker ${state.workerId}] Server running on ${host}:${port} (${process.env.NODE_ENV})`);
-  }).on('error', (err) => {
-    console.error(`[Worker ${state.workerId}] Failed to start server:`, err);
-    process.exit(1);
-  });
+  // Always bind in production, but use clustering in development
+  if (process.env.NODE_ENV === 'production' || cluster.isPrimary || !cluster.isWorker) {
+    state.server = app.listen(port, host, () => {
+      console.log(`[Worker ${state.workerId}] Server running on ${host}:${port} (${process.env.NODE_ENV})`);
+    }).on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`[Worker ${state.workerId}] Port ${port} in use, worker will remain idle`);
+      } else {
+        console.error(`[Worker ${state.workerId}] Failed to start server:`, err);
+        process.exit(1);
+      }
+    });
+  } else {
+    console.log(`[Worker ${state.workerId}] Worker ready (not binding to port in production)`);
+  }
 
   // Memory monitor
   setInterval(() => {
@@ -215,7 +245,10 @@ function gracefulShutdown() {
 }
 
 // Start the application
-if ('isPrimary' in cluster && cluster.isPrimary) {
+if (process.env.NODE_ENV === 'production') {
+  // Run single instance in production
+  startServer();
+} else if ('isPrimary' in cluster && cluster.isPrimary) {
   console.log(`Primary ${process.pid} is running`);
   
   // Reset worker restarts counter periodically
@@ -247,7 +280,7 @@ if ('isPrimary' in cluster && cluster.isPrimary) {
   cluster.on('error', (error) => {
     console.error('Cluster error:', error);
   });
-} else {
+} else if (process.env.NODE_ENV !== 'production') {
   startServer();
 }
 

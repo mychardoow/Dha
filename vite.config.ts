@@ -1,30 +1,36 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import * as path from "path";
+import { fileURLToPath } from "url";
+
+// derive __dirname in ESM
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(async () => {
-  let vitePluginCartographer = null;
-  let vitePluginRuntimeErrorModal = null;
+  let vitePluginCartographer: any = null;
+  let vitePluginRuntimeErrorModal: any = null;
 
   try {
-    const cartographer = await import("@replit/vite-plugin-cartographer");
-    vitePluginCartographer = cartographer.default;
+    const { cartographer } = await import("@replit/vite-plugin-cartographer");
+    vitePluginCartographer = cartographer;
   } catch (e) {
     console.log("Cartographer plugin not available");
   }
 
   try {
-    const errorModal = await import("@replit/vite-plugin-runtime-error-modal");
-    vitePluginRuntimeErrorModal = errorModal.default;
+    const runtimeErrorModalPlugin = await import("@replit/vite-plugin-runtime-error-modal");
+    vitePluginRuntimeErrorModal = runtimeErrorModalPlugin.default;
   } catch (e) {
     console.log("Runtime error modal plugin not available");
   }
 
+  // import react plugin dynamically to avoid type/module resolution issues during tsc runs
+  const react = (await import("@vitejs/plugin-react")).default;
+
   return {
     plugins: [
       react(),
-      vitePluginCartographer ? vitePluginCartographer() : null,
-      vitePluginRuntimeErrorModal ? vitePluginRuntimeErrorModal() : null,
+      vitePluginCartographer && vitePluginCartographer(),
+      vitePluginRuntimeErrorModal && vitePluginRuntimeErrorModal,
     ].filter(Boolean),
     resolve: {
       alias: {

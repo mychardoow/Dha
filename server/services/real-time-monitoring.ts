@@ -1,18 +1,25 @@
 
 import { EventEmitter } from 'events';
-import { WebSocketService } from '../websocket.js';
+import { WebSocketService } from '../services/websocket.js';
+import { type InsertSystemMetric } from '../shared/schema.js';
+import { storage } from '../storage.js';
 
 export interface SystemMetrics {
   timestamp: Date;
+  lastUpdate: number; // Timestamp of last update
+  updateInterval: number; // Current update interval in ms
+  status: 'active' | 'degraded' | 'recovering' | 'failed';
   cpu: {
     usage: number;
     cores: number;
     loadAverage: number[];
+    throttling: boolean;
   };
   memory: {
     used: number;
     total: number;
     percentage: number;
+    swapUsage: number;
   };
   disk: {
     used: number;

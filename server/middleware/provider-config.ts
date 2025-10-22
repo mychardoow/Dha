@@ -75,10 +75,10 @@ const configSchema = z.object({
   // Database configuration with validation and fallback
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid URL').optional(),
 
-  // External service API keys
-  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required').optional(),
-  ANTHROPIC_API_KEY: z.string().min(1, 'ANTHROPIC_API_KEY is required').optional(),
-  GITHUB_TOKEN: z.string().min(1, 'GITHUB_TOKEN is required').optional(),
+  // External service API keys (optional in development, can be added via Replit Secrets)
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+  GITHUB_TOKEN: z.string().optional(),
 
   // Optional configuration
   ALLOWED_ORIGINS: z.string().optional(),

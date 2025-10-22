@@ -3,20 +3,19 @@ services:
     name: dha-digital-services
     env: node
     region: frankfurt
-    plan: free
-    buildCommand: bash maximum-protection-build.sh
-    startCommand: bash maximum-protection-start.sh
-    healthCheckPath: /health
+    plan: pro
+    buildCommand: ./enhanced-build.sh # Use enhanced build script
+    startCommand: NODE_ENV=production node dist/server/index.js
+    healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
-    healthCheckInterval: 30
+    healthCheckInterval: 15 # Reduced for faster response
     pullRequestPreviewsEnabled: true
-    numInstances: 1
     scaling:
       minInstances: 1
-      maxInstances: 1
-      targetMemoryPercent: 90
-      targetCPUPercent: 90
+      maxInstances: 3
+      targetMemoryPercent: 80
+      targetCPUPercent: 70
     envVars:
       - key: NODE_ENV
         value: production
@@ -47,35 +46,42 @@ services:
         value: 3
       - key: ALERT_THRESHOLD
         value: 5
-      # Secrets (sync from Render dashboard)
+      # API Keys and Secrets (must be set in Render dashboard)
       - key: DATABASE_URL
-        sync: false
+        sync: true # Changed to true for proper sync
       - key: SESSION_SECRET
-        sync: false
+        sync: true
       - key: JWT_SECRET
-        sync: false
+        sync: true
       - key: ENCRYPTION_KEY
-        sync: false
+        sync: true
       - key: OPENAI_API_KEY
-        sync: false
+        sync: true
       - key: ANTHROPIC_API_KEY
-        sync: false
-        # Extra failsafe environment variables
-        - key: MAXIMUM_PROTECTION_MODE
-          value: true
-        - key: ENABLE_SELF_HEALING
-          value: true
-        - key: ENABLE_AUTO_RECOVERY
-          value: true
-        - key: ENABLE_ULTRA_MONITORING
-          value: true
+        sync: true
+      # API Fallback Configuration
+      - key: ENABLE_API_FALLBACK
+        value: true
+      - key: API_FALLBACK_TIMEOUT
+        value: 5000
+      - key: MAX_FALLBACK_ATTEMPTS
+        value: 3
+      # Extra failsafe environment variables
+      - key: MAXIMUM_PROTECTION_MODE
+        value: true
+      - key: ENABLE_SELF_HEALING
+        value: true
+      - key: ENABLE_AUTO_RECOVERY
+        value: true
+      - key: ENABLE_ULTRA_MONITORING
+        value: true
 
   - type: worker
     name: dha-monitoring-service
     runtime: node
     plan: starter
-    buildCommand: npm ci --legacy-peer-deps
-    startCommand: node render-monitor.js
+    buildCommand: ./build-fix.sh
+    startCommand: npm run worker
     envVars:
       - key: NODE_ENV
         value: production
@@ -85,10 +91,6 @@ services:
         value: 60000
       - key: TARGET_SERVICE
         value: dha-digital-services
-    startCommand: node server/monitor.js
-    envVars:
-      - key: NODE_ENV
-        value: production
       - key: RENDER_EXTERNAL_URL
         fromService:
           type: web
@@ -101,6 +103,8 @@ services:
           envVarKey: DATABASE_URL
       - key: ALERT_WEBHOOK_URL
         sync: false
+      - key: DISABLE_PORT_BINDING
+        value: true
     autoscaling:
       min: 1
       max: 1

@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { auditTrailService } from '../services/audit-trail-service.js';
-import { AuditAction } from '@shared/schema';
+import { AuditAction } from '../../shared/audit-schema.js';
 
 declare module 'express-serve-static-core' {
   interface Request {
-    user?: { id: string };
+    user?: { id: string; [key: string]: any };
     session?: { userId?: string; id?: string };
     sessionID?: string;
     auditContext?: {
