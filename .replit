@@ -7,8 +7,8 @@ channel = "stable-25_05"
 packages = ["libuuid", "cairo", "pango", "giflib", "jq", "python3", "gcc", "pkgconf", "pixman", "railway", "gnome-secrets"]
 
 [deployment]
-deploymentTarget = "vm"
-run = ["sh", "-c", "bash render-start-production.sh"]
+deploymentTarget = "cloudrun"
+run = ["sh", "-c", "npm install --legacy-peer-deps && npm run build && npm start"]
 build = ["sh", "-c", "bash render-build-production.sh"]
 
 [[ports]]
