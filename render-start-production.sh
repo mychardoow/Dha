@@ -3,20 +3,17 @@
 
 set -e
 
-echo "🚀 STARTING RENDER PRODUCTION SERVER"
-echo "====================================="
+echo "🚀 STARTING PRODUCTION SERVER"
+echo "=============================="
 
 export NODE_ENV=production
+export PORT=${PORT:-5000}
 export HOST=0.0.0.0
-export PORT=${PORT:-10000}
+export NODE_OPTIONS="--max-old-space-size=460"
 
-echo "📍 Server will run on ${HOST}:${PORT}"
+echo "Port: $PORT"
+echo "Environment: $NODE_ENV"
+echo ""
 
-# Start the compiled server
-if [ -f "dist/server/index.js" ]; then
-    echo "✅ Starting compiled server..."
-    node dist/server/index.js
-else
-    echo "❌ Compiled server not found, starting with tsx..."
-    npx tsx server/index.ts
-fi
+# Start with tsx directly
+exec npx tsx server/index.ts

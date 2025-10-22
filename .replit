@@ -52,7 +52,7 @@ integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascr
 expertMode = true
 
 [workflows]
-runButton = "Dev Server"
+runButton = "Production Server"
 
 [[workflows.workflow]]
 name = "Simple "
@@ -1047,6 +1047,19 @@ outputType = "webview"
 
 [[workflows.workflow]]
 name = "Dev Server"
+author = 48841774
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --legacy-peer-deps --no-optional"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node start-simple.js"
+
+[[workflows.workflow]]
+name = "Production Server"
 author = 48841774
 mode = "sequential"
 

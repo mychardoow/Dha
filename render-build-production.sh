@@ -15,39 +15,26 @@ rm -rf dist node_modules/.cache
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install --legacy-peer-deps --production=false
+npm install --legacy-peer-deps --no-optional
 
 # Build client
 echo "🎨 Building client..."
 cd client
-npm install --legacy-peer-deps
+npm install --legacy-peer-deps --no-optional
 npm run build
 cd ..
 
-# Compile TypeScript server
-echo "🔨 Building server..."
-npx tsc --project tsconfig.json --skipLibCheck || echo "⚠️ Build completed with warnings"
+# Create dist directory structure
+echo "📋 Creating dist structure..."
+mkdir -p dist/server
+mkdir -p dist/public
 
-# Copy necessary files
-echo "📋 Copying runtime files..."
-cp -r server/middleware dist/server/ 2>/dev/null || true
-cp -r server/services dist/server/ 2>/dev/null || true
-cp -r server/routes dist/server/ 2>/dev/null || true
+# Copy built client
+cp -r client/dist/* dist/public/ 2>/dev/null || true
 
-# Verify build
-echo "✅ Verifying build..."
-if [ -f "dist/server/index.js" ]; then
-    echo "✅ Server build successful"
-else
-    echo "❌ Server build failed"
-    exit 1
-fi
+# Copy server files (no TypeScript compilation needed - we use tsx)
+cp -r server dist/
+cp package.json dist/
+cp start-simple.js dist/
 
-if [ -d "dist/public" ]; then
-    echo "✅ Client build successful"
-else
-    echo "❌ Client build failed"
-    exit 1
-fi
-
-echo "🎉 Build complete!"
+echo "✅ Build complete!"

@@ -8,7 +8,7 @@
     "npm": ">=8"
   },
   "scripts": {
-    "start": "NODE_ENV=production HOST=0.0.0.0 PORT=5000 node start-simple.js",
+    "start": "node start-simple.js",
     "dev": "tsx watch server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm install && npm run build",

@@ -28,24 +28,21 @@ try {
   execSync('npm install --legacy-peer-deps --no-optional', { stdio: 'inherit' });
 }
 
-console.log('✅ Starting DHA Server with tsx...\n');
+console.log('✅ Starting DHA Server...\n');
 
-const server = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'server/index.ts'], {
+const server = spawn('npx', ['tsx', 'server/index.ts'], {
   stdio: 'inherit',
   env: {
     ...process.env,
     NODE_ENV: process.env.NODE_ENV || 'production',
     PORT: process.env.PORT || '5000',
-    HOST: '0.0.0.0',
-    TS_NODE_TRANSPILE_ONLY: 'true',
-    TS_NODE_IGNORE_DIAGNOSTICS: 'true'
+    HOST: '0.0.0.0'
   },
   cwd: process.cwd()
 });
 
 server.on('error', (err) => {
   console.error('❌ Server failed to start:', err.message);
-  console.error('\n💡 Try running: npm install');
   process.exit(1);
 });
 
