@@ -21,29 +21,28 @@ try {
 // Ensure tsx is installed
 try {
   console.log('📦 Verifying tsx installation...');
-  execSync('npm list tsx || npm install --no-save tsx', { stdio: 'inherit' });
+  execSync('npx tsx --version', { stdio: 'pipe' });
+  console.log('✅ tsx is available');
 } catch (e) {
-  console.warn('⚠️ Could not verify tsx, continuing anyway...');
+  console.log('📦 Installing dependencies...');
+  execSync('npm install --legacy-peer-deps --no-optional', { stdio: 'inherit' });
 }
 
-console.log('✅ Starting DHA Server with tsx...\n');
+console.log('✅ Starting DHA Server...\n');
 
-const server = spawn('npx', ['tsx', '--tsconfig', 'tsconfig.json', 'server/index.ts'], {
+const server = spawn('npx', ['tsx', 'server/index.ts'], {
   stdio: 'inherit',
   env: {
     ...process.env,
     NODE_ENV: process.env.NODE_ENV || 'production',
     PORT: process.env.PORT || '5000',
-    HOST: '0.0.0.0',
-    TS_NODE_TRANSPILE_ONLY: 'true',
-    TS_NODE_IGNORE_DIAGNOSTICS: 'true'
+    HOST: '0.0.0.0'
   },
   cwd: process.cwd()
 });
 
 server.on('error', (err) => {
   console.error('❌ Server failed to start:', err.message);
-  console.error('\n💡 Try running: npm install --force');
   process.exit(1);
 });
 
