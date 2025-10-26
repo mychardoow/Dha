@@ -30,10 +30,42 @@ import {
   type DhaDocumentVerification, type InsertDhaDocumentVerification,
   type AiBotSession, type InsertAiBotSession,
   type AiCommandInterface, type InsertAiCommandInterface
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema/tables.js";
+const {
+  users,
+  conversations,
+  messages,
+  documents,
+  securityEvents,
+  systemMetrics,
+  selfHealingActions,
+  auditLogs,
+  complianceEvents,
+  userBehaviorProfiles,
+  systemHealthSnapshots,
+  securityIncidents,
+  errorCorrections,
+  healthCheckResults,
+  failoverEvents,
+  performanceBaselines,
+  alertRules,
+  circuitBreakerStates,
+  uptimeIncidents,
+  autonomousOperations,
+  maintenanceTasks,
+  governmentComplianceAudits,
+  fraudAlerts,
+  securityMetrics,
+  biometricProfiles,
+  dhaApplicants,
+  dhaDocuments,
+  dhaDocumentVerifications,
+  aiBotSessions,
+  aiCommandInterfaces
+} = schema as any;
 
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {
@@ -1612,5 +1644,13 @@ export class PostgreSQLStorage implements IStorage {
         userBehaviorProfiles: 0
       };
     }
+  }
+
+  // API Status tracking
+  async storeAPIStatus(data: { timestamp: Date; status: any }): Promise<void> {
+    // This is a stub implementation - API status tracking doesn't need persistence
+    // The data is logged in memory by the service itself
+    // If persistence is needed, implement a table for it
+    return Promise.resolve();
   }
 }
