@@ -30,10 +30,42 @@ import {
   type DhaDocumentVerification, type InsertDhaDocumentVerification,
   type AiBotSession, type InsertAiBotSession,
   type AiCommandInterface, type InsertAiCommandInterface
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { eq, desc, and, gte, sql, or, isNull, count } from "drizzle-orm";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import * as schema from "./schema/tables.js";
+const {
+  users,
+  conversations,
+  messages,
+  documents,
+  securityEvents,
+  systemMetrics,
+  selfHealingActions,
+  auditLogs,
+  complianceEvents,
+  userBehaviorProfiles,
+  systemHealthSnapshots,
+  securityIncidents,
+  errorCorrections,
+  healthCheckResults,
+  failoverEvents,
+  performanceBaselines,
+  alertRules,
+  circuitBreakerStates,
+  uptimeIncidents,
+  autonomousOperations,
+  maintenanceTasks,
+  governmentComplianceAudits,
+  fraudAlerts,
+  securityMetrics,
+  biometricProfiles,
+  dhaApplicants,
+  dhaDocuments,
+  dhaDocumentVerifications,
+  aiBotSessions,
+  aiCommandInterfaces
+} = schema as any;
 
 // Storage interface definition for PostgreSQL implementation
 export interface IStorage {
