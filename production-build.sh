@@ -17,7 +17,12 @@ rm -rf dist build .cache
 
 # Install only production dependencies
 echo "Installing production dependencies..."
-npm ci --only=production --no-audit
+if [ -f "package-lock.json" ]; then
+    npm ci --only=production --no-audit
+else
+    echo "No package-lock.json found, using npm install..."
+    npm install --production --no-audit
+fi
 
 # Optimize package.json for production
 node -e "
@@ -30,11 +35,18 @@ fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
 "
 
 # Set production optimizations for Node.js
-export NODE_OPTIONS="--max-old-space-size=460 --optimize-for-size --gc-interval=100"
+export NODE_OPTIONS="--max-old-space-size=460"
 
 # Run production build with optimizations
 echo "Running optimized build..."
-npm run build
+# Increase memory limit for TypeScript compilation
+export NODE_OPTIONS="--max-old-space-size=4096"
+npm run build || {
+    echo "⚠️ Full build failed, trying incremental build..."
+    # Try incremental build if full build fails
+    rm -rf dist/*
+    ./node_modules/.bin/tsc --incremental --tsBuildInfoFile ./dist/.tsbuildinfo
+}
 
 # Cleanup unnecessary files
 echo "Cleaning up..."

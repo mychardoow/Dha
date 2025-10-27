@@ -3,7 +3,7 @@
  * Monitors and validates API key configuration
  */
 
-import { UniversalAPIKeyBypass } from '../middleware/enhanced-universal-bypass.js';
+import { UniversalAPIManager } from '../services/universal-api-manager.js';
 
 interface KeyStatus {
   present: boolean;
@@ -11,11 +11,19 @@ interface KeyStatus {
   valid: boolean;
 }
 
+interface APIKeyConfig {
+  provider: string;
+  key: string;
+  isActive: boolean;
+  lastCheck: Date;
+}
+
 export class APIKeyStatusService {
   private static instance: APIKeyStatusService;
   private lastCheck: number = 0;
   private checkInterval: number = 60000; // 1 minute
-  private apiStatus: any = {};
+  private apiStatus: Record<string, APIKeyConfig> = {};
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.startMonitoring();
@@ -28,50 +36,72 @@ export class APIKeyStatusService {
     return APIKeyStatusService.instance;
   }
 
-  private async startMonitoring() {
-    while (true) {
+  private async startMonitoring(): Promise<void> {
+    if (this.intervalId) {
+      return; // Already monitoring
+    }
+    
+    // Start periodic monitoring
+    this.intervalId = setInterval(async () => {
       try {
         await this.checkAPIStatus();
-        await new Promise(resolve => setTimeout(resolve, this.checkInterval));
       } catch (error) {
         console.error('API status monitoring error:', error);
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s on error
       }
+    }, this.checkInterval);
+
+    // Initial check
+    try {
+      await this.checkAPIStatus();
+    } catch (error) {
+      console.error('Initial API status check failed:', error);
     }
   }
 
-  private async checkAPIStatus() {
-    const bypass = UniversalAPIKeyBypass.getInstance();
-    const status = bypass.getAPIStatus();
-    const apiKeys = status && typeof status === 'object' && 'keys' in status ? status.keys : {};
+  private async checkAPIStatus(): Promise<void> {
+    try {
+      // Get API manager instance
+      const apiManager = UniversalAPIManager.getInstance();
+      
+      // Check all API keys
+      const status = await apiManager.checkAllAPIKeys();
+      
+      // Update status
+      const timestamp = new Date();
+      
+      status.forEach(({provider, key, isActive}) => {
+        this.apiStatus[provider] = {
+          provider,
+          key: this.maskKey(key),
+          isActive,
+          lastCheck: timestamp
+        };
+      });
 
-    interface KeyStatus {
-      present: boolean;
-      length: number;
-      valid: boolean;
-    }
+      this.lastCheck = Date.now();
 
-    // Validate each key's presence
-    const keyStatus = Object.entries(apiKeys).reduce((acc, [name, key]) => ({
-      ...acc,
-      [name]: {
-        present: !!key,
-        length: typeof key === 'string' ? key.length : 0,
-        valid: this.isValidKey(name, key as string)
+      // Log status (without sensitive data)
+      interface APIStatusLog {
+        timestamp: string;
+        totalAPIs: number;
+        activeAPIs: number;
       }
-    }), {} as Record<string, KeyStatus>);
 
-    // Update status
-    this.apiStatus = {
-      ...status,
-      keys: keyStatus,
-      lastCheck: new Date().toISOString(),
-      allKeysPresent: Object.values(keyStatus).every((k: KeyStatus) => k.present),
-      allKeysValid: Object.values(keyStatus).every((k: KeyStatus) => k.valid)
-    };
+            console.log('API Status Check:', {
+              timestamp: timestamp.toISOString(),
+              totalAPIs: status.length,
+              activeAPIs: status.filter(s => s.isActive).length
+            } as APIStatusLog);
+    } catch (error) {
+      console.error('Error checking API status:', error);
+      throw error;
+    }
+  }
 
-    // Persist last check timestamp for cache control
-    this.lastCheck = Date.now();
+  private maskKey(key: string): string {
+    if (!key) return '';
+    if (key.length <= 8) return '*'.repeat(key.length);
+    return key.substring(0, 4) + '*'.repeat(key.length - 8) + key.substring(key.length - 4);
   }
 
   private isValidKey(provider: string, key?: string): boolean {
@@ -89,7 +119,7 @@ export class APIKeyStatusService {
   }
 
   // Public API
-  public async getStatus() {
+  public async getStatus(): Promise<Record<string, APIKeyConfig>> {
     // Force refresh if last check was more than 1 minute ago
     if (Date.now() - this.lastCheck > this.checkInterval) {
       await this.checkAPIStatus();
@@ -98,14 +128,14 @@ export class APIKeyStatusService {
   }
 
   public isConfigurationValid(): boolean {
-    const bypass = UniversalAPIKeyBypass.getInstance();
-    
-    // If bypass is enabled, configuration is always valid
-    if (bypass.isValidationBypassed()) {
-      return true;
-    }
+    // Check if we have any active APIs
+    return Object.values(this.apiStatus).some(config => config.isActive);
+  }
 
-    // Otherwise, check all keys
-    return Object.values(this.apiStatus.keys || {}).every((k) => (k as KeyStatus).valid);
+  public stopMonitoring(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
   }
 }
