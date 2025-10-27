@@ -1,28 +1,36 @@
-
 {
   "compilerOptions": {
-    "baseUrl": "./",
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
-    "outDir": "./dist",
-    "rootDir": "./",
-    "strict": false,
     "esModuleInterop": true,
+    "strict": false,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "baseUrl": ".",
     "allowJs": true,
-    "declaration": false,
-    "sourceMap": false,
+    "resolveJsonModule": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "incremental": true,
+    "ignoreDeprecations": "6.0",
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "noEmitOnError": false,
-    "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "paths": {
+      "*": ["node_modules/*", "src/*", "server/*"],
       "@shared/*": ["shared/*"]
     }
   },
-  "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "dist", "client"]
+  "include": [
+    "server/**/*",
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

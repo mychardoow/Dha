@@ -1,0 +1,28 @@
+{
+  "name": "dha-production-db",
+  "plan": "pro",
+  "ipAllowList": [
+    {
+      "ip": "0.0.0.0/0",
+      "description": "Temporary allow all - REMOVE IN PRODUCTION"
+    }
+  ],
+  "allowedNetworks": [
+    {
+      "name": "DHA Internal Network",
+      "cidr": "10.0.0.0/8",
+      "description": "DHA internal network range"
+    },
+    {
+      "name": "Production VPC",
+      "cidr": "172.16.0.0/12",
+      "description": "Production VPC network"
+    }
+  ],
+  "serverConfig": {
+    "maxConnections": 100,
+    "statementTimeout": 30000,
+    "idleTimeout": 60000,
+    "sslMode": "require"
+  }
+}

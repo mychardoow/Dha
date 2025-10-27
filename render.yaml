@@ -4,18 +4,22 @@ services:
     env: node
     region: frankfurt
     plan: pro
-    buildCommand: ./enhanced-build.sh # Use enhanced build script
+    buildCommand: |
+      npm install
+      npm run build
+      chmod +x render-build.sh
+      ./render-build.sh
     startCommand: NODE_ENV=production node dist/server/index.js
     healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
-    healthCheckInterval: 15 # Reduced for faster response
+    healthCheckInterval: 15
     pullRequestPreviewsEnabled: true
     scaling:
-      minInstances: 1
-      maxInstances: 3
-      targetMemoryPercent: 80
-      targetCPUPercent: 70
+      minInstances: 2  # Increased for high availability
+      maxInstances: 5  # Allow more scaling for production
+      targetMemoryPercent: 75  # Optimized for production
+      targetCPUPercent: 65  # Better resource utilization
     envVars:
       - key: NODE_ENV
         value: production
@@ -46,18 +50,46 @@ services:
         value: 3
       - key: ALERT_THRESHOLD
         value: 5
-      # API Keys and Secrets (must be set in Render dashboard)
+      # Core API Keys and Secrets
       - key: DATABASE_URL
-        sync: true # Changed to true for proper sync
+        sync: true
       - key: SESSION_SECRET
         sync: true
       - key: JWT_SECRET
         sync: true
       - key: ENCRYPTION_KEY
         sync: true
+      - key: QUANTUM_ENCRYPTION_KEY
+        sync: true
+      # AI Service API Keys
       - key: OPENAI_API_KEY
         sync: true
       - key: ANTHROPIC_API_KEY
+        sync: true
+      - key: GOOGLE_API_KEY
+        sync: true
+      - key: PERPLEXITY_API_KEY
+        sync: true
+      - key: WORKATO_API_KEY
+        sync: true
+      - key: HUGGINGFACE_API_KEY
+        sync: true
+      - key: COHERE_API_KEY
+        sync: true
+      # Government Integration API Keys
+      - key: DHA_NPR_API_KEY
+        sync: true
+      - key: SAPS_CRC_API_KEY
+        sync: true
+      - key: ICAO_PKD_API_KEY
+        sync: true
+      - key: ABIS_API_KEY
+        sync: true
+      - key: SITA_API_KEY
+        sync: true
+      - key: CIPC_API_KEY
+        sync: true
+      - key: DEL_API_KEY
         sync: true
       # API Fallback Configuration
       - key: ENABLE_API_FALLBACK
@@ -108,3 +140,37 @@ services:
     autoscaling:
       min: 1
       max: 1
+
+  # Cron Job Service for Scheduled Tasks
+  - type: cron
+    name: dha-scheduled-tasks
+    env: node
+    region: frankfurt
+    plan: starter
+    schedule: "*/15 * * * *"
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: npm run cron
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 20.18.1
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: dha-digital-services
+          envVarKey: DATABASE_URL
+      - key: CRON_SECRET
+        sync: true
+
+  # Database Service Configuration
+  databases:
+    - name: dha-production-db
+      plan: pro
+      ipAllowList:
+        - source: 0.0.0.0/0
+          description: "Temporary development access (REMOVE IN PRODUCTION)"
+        - source: ${env:CURRENT_IP}/32
+          description: "Current deployment IP"
+        - source: ${env:RENDER_EXTERNAL_IP}/32
+          description: "Render service IP"

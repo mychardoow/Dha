@@ -1,0 +1,26 @@
+export var AuditAction;
+(function (AuditAction) {
+    AuditAction["CREATE"] = "CREATE";
+    AuditAction["READ"] = "READ";
+    AuditAction["UPDATE"] = "UPDATE";
+    AuditAction["DELETE"] = "DELETE";
+    AuditAction["LOGIN"] = "LOGIN";
+    AuditAction["LOGOUT"] = "LOGOUT";
+    AuditAction["VERIFY"] = "VERIFY";
+    AuditAction["GENERATE"] = "GENERATE";
+    AuditAction["LOGIN_ATTEMPT"] = "LOGIN_ATTEMPT";
+    AuditAction["USER_CREATED"] = "USER_CREATED";
+    AuditAction["PASSWORD_CHANGED"] = "PASSWORD_CHANGED";
+    AuditAction["DOCUMENT_UPLOADED"] = "DOCUMENT_UPLOADED";
+    AuditAction["DOCUMENT_VIEWED"] = "DOCUMENT_VIEWED";
+    AuditAction["DOCUMENT_MODIFIED"] = "DOCUMENT_MODIFIED";
+    AuditAction["DOCUMENT_DELETED"] = "DOCUMENT_DELETED";
+    AuditAction["DOCUMENT_DOWNLOADED"] = "DOCUMENT_DOWNLOADED";
+    AuditAction["DOCUMENT_VERIFIED"] = "DOCUMENT_VERIFIED";
+    AuditAction["USER_UPDATED"] = "USER_UPDATED";
+    AuditAction["USER_DELETED"] = "USER_DELETED";
+    AuditAction["DHA_API_CALL"] = "DHA_API_CALL";
+    AuditAction["SAPS_API_CALL"] = "SAPS_API_CALL";
+    AuditAction["ICAO_API_CALL"] = "ICAO_API_CALL";
+    AuditAction["API_CALL"] = "API_CALL";
+})(AuditAction || (AuditAction = {}));
