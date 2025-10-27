@@ -24,8 +24,34 @@ rm -rf node_modules package-lock.json
 rm -rf dist
 
 echo "📦 Installing dependencies..."
-npm install --production --legacy-peer-deps express
-mkdir -p dist
+npm install --production --legacy-peer-deps express typescript @types/express @types/node ts-node
+npm install -g typescript ts-node
+
+echo "🔧 Setting up TypeScript configuration..."
+cat > tsconfig.json << EOL
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "rootDir": "server",
+        "baseUrl": ".",
+        "paths": {
+            "*": ["node_modules/*"]
+        }
+    },
+    "include": ["server/**/*"],
+    "exclude": ["node_modules"]
+}
+EOL
+
+echo "🏗️ Compiling TypeScript..."
+tsc
 
 echo "📋 Setting up build..."
 

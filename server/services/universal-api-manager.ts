@@ -20,6 +20,7 @@ interface APIProvider {
 }
 
 export class UniversalAPIManager extends EventEmitter {
+  [x: string]: any;
   private static instance: UniversalAPIManager;
   private providers: Map<string, APIProvider> = new Map();
   private apiKeys: Map<string, string> = new Map();

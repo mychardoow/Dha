@@ -5,36 +5,30 @@ set -e
 echo "🚀 RENDER PRODUCTION BUILD"
 echo "=========================="
 
-# Set production environment
+# Set environment variables
 export NODE_ENV=production
-export NODE_OPTIONS="--max-old-space-size=4096"
+export NODE_VERSION=20.18.1
 
-# Clean previous builds
-echo "🧹 Cleaning previous builds..."
-rm -rf dist node_modules/.cache
+echo "🔍 Verifying Node.js version..."
+node -v
+npm -v
 
-# Install dependencies
 echo "📦 Installing dependencies..."
-npm install --legacy-peer-deps --no-optional
+npm install --no-audit --no-fund --production=false
 
-# Build client
-echo "🎨 Building client..."
-cd client
-npm install --legacy-peer-deps --no-optional
-npm run build
-cd ..
+echo "�️ Running TypeScript build..."
+npm run build:ts
 
-# Create dist directory structure
-echo "📋 Creating dist structure..."
-mkdir -p dist/server
-mkdir -p dist/public
+echo "🧪 Running validation suite..."
+node ai-validation-suite.cjs
 
-# Copy built client
-cp -r client/dist/* dist/public/ 2>/dev/null || true
+echo "🔐 Running security checks..."
+npm audit
 
-# Copy server files (no TypeScript compilation needed - we use tsx)
-cp -r server dist/
-cp package.json dist/
-cp start-simple.js dist/
+echo "♻️ Optimizing dependencies..."
+npm prune --production
 
-echo "✅ Build complete!"
+echo "✅ Running final validation..."
+node comprehensive-system-test.ts
+
+echo "🎉 Production build complete!"
