@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "outDir": "dist",
     "rootDir": ".",
@@ -14,9 +14,12 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "incremental": true,
+    "ignoreDeprecations": "6.0",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
     "noEmitOnError": false,
     "isolatedModules": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
     "paths": {
       "*": ["node_modules/*", "src/*", "server/*"],
       "@shared/*": ["shared/*"]

@@ -169,8 +169,15 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Database configuration interface
+interface DatabaseConfig {
+  type: string;
+  db: any;
+  connectionString?: string;
+}
+
 // Database health check function
-async function checkDatabaseHealth(config) {
+async function checkDatabaseHealth(config: DatabaseConfig) {
   try {
     if (config.type === 'postgresql') {
       await config.db.execute('SELECT 1 as health_check');

@@ -11,7 +11,9 @@
     "build:ts": "tsc -p tsconfig.json",
     "build:clean": "rm -rf dist && npm run build",
     "validate": "node ai-validation-suite.cjs",
-    "test:all": "node comprehensive-system-test.ts"
+    "test:all": "node comprehensive-system-test.ts",
+    "postinstall": "npm run build:ts",
+    "prepare": "npm run build:ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",

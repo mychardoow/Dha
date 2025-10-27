@@ -23,7 +23,7 @@ export class APIKeyStatusService {
   private lastCheck: number = 0;
   private checkInterval: number = 60000; // 1 minute
   private apiStatus: Record<string, APIKeyConfig> = {};
-  private intervalId: NodeJS.Timer | null = null;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
 
   private constructor() {
     this.startMonitoring();
