@@ -1,4 +1,3 @@
-
 #!/usr/bin/env tsx
 
 /**
@@ -315,11 +314,11 @@ async function runAllTests() {
   console.log('='.repeat(80));
 
   const categories = [...new Set(results.map(r => r.category))];
-  
+
   for (const category of categories) {
     console.log(`\n📁 ${category}:`);
     const categoryResults = results.filter(r => r.category === category);
-    
+
     for (const result of categoryResults) {
       console.log(`   ${result.status} ${result.function}`);
       console.log(`      ${result.details}${result.responseTime ? ` (${result.responseTime}ms)` : ''}`);

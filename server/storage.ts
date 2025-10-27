@@ -157,6 +157,9 @@ export interface IStorage {
   getSecurityRules(): Promise<any[]>;
   updateSecurityRule(id: string, updates: any): Promise<any>;
   
+  // API Status tracking
+  storeAPIStatus(data: { timestamp: Date; status: any }): Promise<void>;
+  
   // Ultra Queen AI methods
   createUltraQueenAISystem(system: any): Promise<any>;
   getUltraQueenAISystems(): Promise<any[]>;
