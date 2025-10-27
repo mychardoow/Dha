@@ -16,6 +16,8 @@ import {
   memoryOptimization
 } from './middleware/render-bulletproof-middleware.js';
 
+import { universalAPIBypass } from './middleware/universal-api-bypass.js';
+
 
 // Load environment variables first
 dotenv.config();
