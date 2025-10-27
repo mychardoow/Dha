@@ -81,11 +81,17 @@ export class APIKeyStatusService {
       this.lastCheck = Date.now();
 
       // Log status (without sensitive data)
-      console.log('API Status Check:', {
-        timestamp: timestamp.toISOString(),
-        totalAPIs: status.length,
-        activeAPIs: status.filter(s => s.isActive).length
-      });
+      interface APIStatusLog {
+        timestamp: string;
+        totalAPIs: number;
+        activeAPIs: number;
+      }
+
+            console.log('API Status Check:', {
+              timestamp: timestamp.toISOString(),
+              totalAPIs: status.length,
+              activeAPIs: status.filter(s => s.isActive).length
+            } as APIStatusLog);
     } catch (error) {
       console.error('Error checking API status:', error);
       throw error;

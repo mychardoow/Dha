@@ -4,8 +4,8 @@ services:
     env: node
     region: frankfurt
     plan: pro
-    buildCommand: chmod +x render-build-enhanced.sh && ./render-build-enhanced.sh
-    startCommand: chmod +x start-production-enhanced.sh && ./start-production-enhanced.sh
+    buildCommand: chmod +x production-simple.sh && ./production-simple.sh
+    startCommand: node server/index.js
     healthCheckPath: /api/health
     autoDeploy: true
     healthCheckTimeout: 180
@@ -163,4 +163,10 @@ services:
   databases:
     - name: dha-production-db
       plan: pro
-      ipAllowList: []  # Configure IP allow list in dashboard for security
+      ipAllowList:
+        - source: 0.0.0.0/0
+          description: "Temporary development access (REMOVE IN PRODUCTION)"
+        - source: ${env:CURRENT_IP}/32
+          description: "Current deployment IP"
+        - source: ${env:RENDER_EXTERNAL_IP}/32
+          description: "Render service IP"

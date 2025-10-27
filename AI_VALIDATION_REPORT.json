@@ -1,31 +1,31 @@
 {
-  "timestamp": "2025-10-18T08:12:32.556Z",
-  "overallScore": 100,
+  "timestamp": "2025-10-27T07:46:16.009Z",
+  "overallScore": 80,
   "summary": {
-    "pass": 10,
+    "pass": 8,
     "partial": 0,
-    "fail": 0
+    "fail": 2
   },
   "categories": [
     {
       "name": "OpenAI Integration",
-      "status": "PASS",
+      "status": "FAIL",
       "details": [
         {
           "test": "OpenAI API Key Configuration",
-          "status": "PASS",
-          "message": "API key configured"
+          "status": "FAIL",
+          "message": "API key missing or placeholder"
         }
       ]
     },
     {
       "name": "Anthropic Integration",
-      "status": "PASS",
+      "status": "FAIL",
       "details": [
         {
           "test": "Anthropic API Key Configuration",
-          "status": "PASS",
-          "message": "API key configured"
+          "status": "FAIL",
+          "message": "API key missing or placeholder"
         }
       ]
     },
@@ -331,8 +331,10 @@
         {
           "test": "Deployment Readiness Assessment",
           "status": "PASS",
-          "message": "Deployment score: 6/6",
-          "issues": []
+          "message": "Deployment score: 5/6",
+          "issues": [
+            "Missing environment variables: OPENAI_API_KEY, ANTHROPIC_API_KEY, DATABASE_URL"
+          ]
         }
       ]
     }
@@ -354,8 +356,8 @@
   },
   "deploymentRecommendation": "READY",
   "railwayReadiness": {
-    "score": 100,
-    "apiKeysConfigured": true,
+    "score": 80,
+    "apiKeysConfigured": false,
     "servicesOperational": true,
     "securityEnabled": true,
     "deploymentReady": true

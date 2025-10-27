@@ -1,16 +1,7 @@
 {
-    "ipAllowlist": [
-        {
-            "ip": "20.192.21.49",
-            "comment": "Current deployment IP"
-        },
-        {
-            "ip": "0.0.0.0",
-            "comment": "Render service IP"
-        },
-        {
-            "ip": "0.0.0.0/0",
-            "comment": "Temporary: Allow all (remove in production)"
-        }
-    ]
+  "allowedIPs": [
+    "13.71.3.96/32",
+    "0.0.0.0/0"  # For development - remove in production
+  ],
+  "description": "Initial database access configuration"
 }
