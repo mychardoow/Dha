@@ -1,0 +1,7 @@
+{
+  "allowedIPs": [
+    "13.71.3.96/32",
+    "0.0.0.0/0"  # For development - remove in production
+  ],
+  "description": "Initial database access configuration"
+}
